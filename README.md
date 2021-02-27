@@ -40,7 +40,7 @@ Let's assume the fields `"myString"`,`"myArray1"` and `"mySubDoc2"` of the above
 }
 ```
 
-The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the secret key** specified by its id with the `cipher_data_key_identifier` parameter. Currently, all available secret keys have to be directly configured using the parameter `cipher_data_keys`. Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the secret keys renders encryption useless.
+The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the secret key** specified by its id with the `cipher_data_key_identifier` parameter. Currently, the secret keys to work with have to be configured using the parameter `cipher_data_keys`. Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the secret keys renders encryption useless. The recommended way of doing this for now is to indirectly reference secret key materials by externalizing them into a separate properties file. Read a few details about this [here](#externalize-configuration-parameters).
 
 Since the configuration parameter `field_mode` is set to 'OBJECT', complex field types are processed as a whole instead of element-wise. 
 
@@ -58,11 +58,11 @@ Below is an exemplary JSON-encoded record after the encryption:
 }
 ```
 
-**NOTE:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields original value** and authenticated but unencrypted(!) meta-data.
+**NOTE:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields original value** and authenticated but unencrypted(!) meta-data. If you want to learn about a few more details look [here](#cipher-algorithm-specific).
 
 #### Decryption of selected fields
 
-Given that the secret key material used to encrypt the original data record is made available to a specific sink connector, the CipherField SMT can be configured to decrypt the data like so:
+Provided that the secret key material used to encrypt the original data record is made available to a specific sink connector, the CipherField SMT can be configured to decrypt the data like so:
 
 ```json5
 {
@@ -96,7 +96,7 @@ Below is an exemplary JSON-encoded record after the decryption, which is equal t
 
 ### Data Records with Schema
 
-The following is based on an **AVRO value record** and used to illustrate a simple encrypt/decrypt scenario for data records with schema. The schema could be defined as:
+The following is based on an **Avro value record** and used to illustrate a simple encrypt/decrypt scenario for data records with schema. The schema could be defined as:
 
 ```json5
 {
@@ -148,7 +148,7 @@ Let's assume the fields `"myString"`,`"myArray1"` and `"mySubDoc2"` of the above
 }
 ```
 
-The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the secret key** specified by its id with the `cipher_data_key_identifier` parameter. Currently, all available secret keys have to be directly configured using the parameter `cipher_data_keys`. Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the secret keys renders encryption useless.
+The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the secret key** specified by its id with the `cipher_data_key_identifier` parameter. Currently, all available secret keys have to be directly configured using the parameter `cipher_data_keys`. Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the secret keys renders encryption useless. The recommended way of doing this for now is to indirectly reference secret key materials by externalizing them into a separate properties file. Read a few details about this [here](#externalize-configuration-parameters).
 
 Since the configuration parameter `field_mode` is set to 'OBJECT', complex field types are processed as a whole instead of element-wise.
 
@@ -166,13 +166,13 @@ Struct{
 }
 ```
 
-**NOTE 1:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields original value** and authenticated meta-data (unencrypted!) about the field in question.
+**NOTE 1:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields original value** and authenticated meta-data (unencrypted!) about the field in question. If you want to learn about a few more details look [here](#cipher-algorithm-specific).
 
 **NOTE 2:** Obviously, in order to support this **the original schema of the data record is automatically redacted such that any encrypted fields can be stored as strings**, even though the original data types for the fields in question were different ones.
 
 #### Decryption of selected fields
 
-Given that the secret key material used to encrypt the original data record is made available to a specific sink connector, the CipherField SMT can be configured to decrypt the data like so:
+Provided that the secret key material used to encrypt the original data record is made available to a specific sink connector, the CipherField SMT can be configured to decrypt the data like so:
 
 ```json5
 {
@@ -235,9 +235,56 @@ Struct{
 <td>path_delimiter</td><td>path delimiter used as field name separator when referring to nested fields in the input record</td><td>string</td><td>.</td><td>non-empty string</td><td>low</td></tr>
 </tbody></table>
 
+### Externalize configuration parameters
+
+The problem with directly specifying configuration parameters which contain sensitive data, such as secret key materials, is that they are exposed via Kafka Connect's REST API. This means for connect clusters that are shared among teams the configured secret key materials would leak, which is of course unacceptable. The way to deal with this for now, is to indirectly reference such configuration parameters from external property files.
+
+Below is a quick example of how such a configuration would look like:
+
+1. Before you can make use of configuration parameters from external sources you have customize your Kafka Connect worker configuration by adding the following two settings:
+
+```
+connect.config.providers=file
+connect.config.providers.file.class=org.apache.kafka.common.config.provider.FileConfigProvider
+```
+
+2. Then you create the external properties file e.g. `classified.properties` which contains the secret key materials. This file needs to be available on all your Kafka Connect workers which you want to run Kryptonite on. Let's pretend the file is located at path `/secrets/kryptonite/classified.properties` your worker nodes:
+
+```properties
+cipher_data_keys=[{"identifier":"my-demo-secret-key-123","material":"0bpRAigAvP9fTTFw43goyg=="}]
+```
+
+3. Finally, you simply reference this file and contained `key=value` therein, from the SMT configuration like so:
+
+```json5
+{
+  //...
+  "transforms":"cipher",
+  "transforms.cipher.type":"com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value",
+  "transforms.cipher.cipher_mode": "ENCRYPT",
+  "transforms.cipher.cipher_data_keys": "${file:/secrets/kryptonite/classified.properties:cipher_data_keys}",
+  "transforms.cipher.cipher_data_key_identifier": "my-demo-secret-key-123",
+  "transforms.cipher.field_config": "[{\"name\":\"myString\"},{\"name\":\"myArray1\"},{\"name\":\"mySubDoc2\"}]",
+  "transforms.cipher.field_mode": "OBJECT",
+  //...
+}
+```
+
+In case you want to learn more about configuration parameter externalization there is e.g. this nice [blog post](https://debezium.io/blog/2019/12/13/externalized-secrets/) from the Debezium team showing how to externalize username and password settings using a docker-compose example.
+
 ### Build, Installation / Deployment
 
-* TODO...
+Either you can build this project from sources via Maven or you can download a pre-built, self-contained package of Kryptonite [kafka-connect-transform-kryptonite-0.1.0.jar](https://drive.google.com/file/d/1T-QUKzCoRi_YHSVcLBxMWPm_WGBvlo46/view?usp=sharing).
+
+In order to deploy it you simply put the jar into a _'plugin path'_ that is configured to be scanned by your Kafka Connect worker nodes.
+
+After that, simply configure Kryptonite as transformation for any of your source / sink connectors, sit back and relax! Happy 'binge watching' ciphertext ;-)
+
+### Cipher Algorithm Specific
+
+Kryptonite currently provides a single cipher algorithm, namely, AES in GCM mode. It offers so-called _authentic encryption with associated data_ (AEAD). This basically means that besides the ciphertext, an encrypted field additionally contains unencrypted but authenticated meta-data. In order to keep the storage overhead per encrypted field down to a minimum, the SMT implementation only incorporates a version identifier for Kryptonite itself (`k1`) together with a short identifier representing the algorithm (`01` for `AES/GCM/NoPadding`) which was used to encrypt the field in question. Future versions may support additional algorithms or might benefit from further meta-data, so this should be considered to undergo changes.
+
+By design, every application of Kryptonite on a specific record field results in different ciphertexts for one and the same plaintext. This is in general not only desirable but very important to make attacks harder. However, in the context of Kafka Connect records this has an unfavorable consequence for source connectors. **Applying the SMT on a source record's key would result in a 'partition mix-up'** because records with the same original plaintext key would end up in different topic partitions. In other words, **do NOT(!) use Kryptonite for source record keys** at the moment. There are plans in place to do away with this restriction and extend Kryptonite with a deterministic mode which could then safely support the encryption of record keys while at the same time keep topic partitioning and record ordering intact.
 
 ## Donate
 If you like this project and want to support its further development and maintenance we are happy about your [PayPal donation](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE)

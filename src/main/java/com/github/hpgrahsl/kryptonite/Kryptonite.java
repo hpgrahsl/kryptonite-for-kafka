@@ -71,13 +71,9 @@ public class Kryptonite {
   }
 
   private static byte[] encrypt(byte[] plaintext, byte[] associatedData, byte[] key, boolean syntheticIV, String ciphername) throws Exception {
-    byte[] iv;
-    if(!syntheticIV) {
-      iv = new byte[IV_LENGTH];
-      SECURE_RANDOM.nextBytes(iv);
-    } else {
-      iv = new byte[IV_LENGTH]; //TODO: should be hash of plaintext for determinism
-    }
+    //TODO: future versions should additionally support AES SIV mode for deterministic AEAD
+    byte[] iv = new byte[IV_LENGTH];
+    SECURE_RANDOM.nextBytes(iv);
     final Cipher cipher = Cipher.getInstance(ciphername);
     GCMParameterSpec parameterSpec = new GCMParameterSpec(AUTH_TAG_LENGTH, iv);
     SecretKey secretKey = new SecretKeySpec(key, DEFAULT_KEY_ALGORITHM);
