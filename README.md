@@ -58,7 +58,7 @@ Below is an exemplary JSON-encoded record after the encryption:
 }
 ```
 
-**NOTE:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields original value** and authenticated but unencrypted(!) meta-data. If you want to learn about a few more details look [here](#cipher-algorithm-specific).
+**NOTE:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields' original values** and authenticated but unencrypted(!) meta-data. If you want to learn about a few more details look [here](#cipher-algorithm-specific).
 
 #### Decryption of selected fields
 
@@ -96,7 +96,7 @@ Below is an exemplary JSON-encoded record after the decryption, which is equal t
 
 ### Data Records with Schema
 
-The following is based on an **Avro value record** and used to illustrate a simple encrypt/decrypt scenario for data records with schema. The schema could be defined as:
+The following example is based on an **Avro value record** and used to illustrate a simple encrypt/decrypt scenario for data records with schema. The schema could be defined as:
 
 ```json5
 {
@@ -166,7 +166,7 @@ Struct{
 }
 ```
 
-**NOTE 1:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields original value** and authenticated meta-data (unencrypted!) about the field in question. If you want to learn about a few more details look [here](#cipher-algorithm-specific).
+**NOTE 1:** Encrypted fields are always represented as **Base64-encoded strings** which contain both, the **ciphertext of the fields' original values** and authenticated meta-data (unencrypted!) about the field in question. If you want to learn about a few more details look [here](#cipher-algorithm-specific).
 
 **NOTE 2:** Obviously, in order to support this **the original schema of the data record is automatically redacted such that any encrypted fields can be stored as strings**, even though the original data types for the fields in question were different ones.
 
@@ -241,20 +241,20 @@ The problem with directly specifying configuration parameters which contain sens
 
 Below is a quick example of how such a configuration would look like:
 
-1. Before you can make use of configuration parameters from external sources you have customize your Kafka Connect worker configuration by adding the following two settings:
+1. Before you can make use of configuration parameters from external sources you have to customize your Kafka Connect worker configuration by adding the following two settings:
 
 ```
 connect.config.providers=file
 connect.config.providers.file.class=org.apache.kafka.common.config.provider.FileConfigProvider
 ```
 
-2. Then you create the external properties file e.g. `classified.properties` which contains the secret key materials. This file needs to be available on all your Kafka Connect workers which you want to run Kryptonite on. Let's pretend the file is located at path `/secrets/kryptonite/classified.properties` your worker nodes:
+2. Then you create the external properties file e.g. `classified.properties` which contains the secret key materials. This file needs to be available on all your Kafka Connect workers which you want to run Kryptonite on. Let's pretend the file is located at path `/secrets/kryptonite/classified.properties` on your worker nodes:
 
 ```properties
 cipher_data_keys=[{"identifier":"my-demo-secret-key-123","material":"0bpRAigAvP9fTTFw43goyg=="}]
 ```
 
-3. Finally, you simply reference this file and contained `key=value` therein, from the SMT configuration like so:
+3. Finally, you simply reference this file and the corresponding key of the property therein, from your SMT configuration like so:
 
 ```json5
 {
@@ -272,24 +272,26 @@ cipher_data_keys=[{"identifier":"my-demo-secret-key-123","material":"0bpRAigAvP9
 
 In case you want to learn more about configuration parameter externalization there is e.g. this nice [blog post](https://debezium.io/blog/2019/12/13/externalized-secrets/) from the Debezium team showing how to externalize username and password settings using a docker-compose example.
 
-### Build, Installation / Deployment
+### Build, installation / deployment
 
 Either you can build this project from sources via Maven or you can download a pre-built, self-contained package of Kryptonite [kafka-connect-transform-kryptonite-0.1.0.jar](https://drive.google.com/file/d/1T-QUKzCoRi_YHSVcLBxMWPm_WGBvlo46/view?usp=sharing).
 
 In order to deploy it you simply put the jar into a _'plugin path'_ that is configured to be scanned by your Kafka Connect worker nodes.
 
-After that, simply configure Kryptonite as transformation for any of your source / sink connectors, sit back and relax! Happy 'binge watching' ciphertext ;-)
+After that, configure Kryptonite as transformation for any of your source / sink connectors, sit back and relax! Happy _'binge watching'_ plenty of ciphertexts ;-)
 
-### Cipher Algorithm Specific
+### Cipher algorithm specifics
 
-Kryptonite currently provides a single cipher algorithm, namely, AES in GCM mode. It offers so-called _authentic encryption with associated data_ (AEAD). This basically means that besides the ciphertext, an encrypted field additionally contains unencrypted but authenticated meta-data. In order to keep the storage overhead per encrypted field down to a minimum, the SMT implementation only incorporates a version identifier for Kryptonite itself (`k1`) together with a short identifier representing the algorithm (`01` for `AES/GCM/NoPadding`) which was used to encrypt the field in question. Future versions may support additional algorithms or might benefit from further meta-data, so this should be considered to undergo changes.
+Kryptonite currently provides a single cipher algorithm, namely, AES in GCM mode. It offers so-called _authenticated encryption with associated data_ (AEAD). This basically means that besides the ciphertext, an encrypted field additionally contains unencrypted but authenticated meta-data. In order to keep the storage overhead per encrypted field down to a minimum, the SMT implementation currently only incorporates a version identifier for Kryptonite itself (`k1`) together with a short identifier representing the algorithm (`01` for `AES/GCM/NoPadding`) which was used to encrypt the field in question. Future versions may support additional algorithms or might benefit from further meta-data, which is why the meta-data handling should be considered to undergo changes.
 
-By design, every application of Kryptonite on a specific record field results in different ciphertexts for one and the same plaintext. This is in general not only desirable but very important to make attacks harder. However, in the context of Kafka Connect records this has an unfavorable consequence for source connectors. **Applying the SMT on a source record's key would result in a 'partition mix-up'** because records with the same original plaintext key would end up in different topic partitions. In other words, **do NOT(!) use Kryptonite for source record keys** at the moment. There are plans in place to do away with this restriction and extend Kryptonite with a deterministic mode which could then safely support the encryption of record keys while at the same time keep topic partitioning and record ordering intact.
+By design, every application of Kryptonite on a specific record field results in different ciphertexts for one and the same plaintext. This is in general not only desirable but very important to make attacks harder. However, in the context of Kafka Connect records this has an unfavorable consequence for source connectors. **Applying the SMT on a source record's key would result in a 'partition mix-up'** because records with the same original plaintext key would end up in different topic partitions. In other words, **do NOT(!) use Kryptonite for source record keys** at the moment. There are plans in place to do away with this restriction and extend Kryptonite with a deterministic mode. This could then safely support the encryption of record keys while at the same time keep topic partitioning and record ordering intact.
 
 ## Donate
-If you like this project and want to support its further development and maintenance we are happy about your [PayPal donation](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE)
+
+If you like this project and want to support its further development and maintenance we are happy about your [PayPal donation](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE). 
 
 ## License Information
+
 This project is licensed according to [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ```
