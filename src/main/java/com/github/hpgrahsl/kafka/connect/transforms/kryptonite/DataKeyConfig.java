@@ -22,7 +22,7 @@ import java.util.Objects;
 public class DataKeyConfig {
 
   private String identifier;
-  private String material;
+  private String material = "";
 
   public DataKeyConfig() {
   }
@@ -69,4 +69,5 @@ public class DataKeyConfig {
         ", material='" + material + '\'' +
         '}';
   }
+
 }

@@ -19,6 +19,8 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
 import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
 
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,9 +31,12 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.Cipher
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.CipherNameValidator;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.FieldConfigValidator;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.FieldModeValidator;
+import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.KeySourceValidator;
+import com.github.hpgrahsl.kryptonite.AzureSecretDataKeyVault;
 import com.github.hpgrahsl.kryptonite.CipherMode;
-import com.github.hpgrahsl.kryptonite.InMemoryDataKeyVault;
+import com.github.hpgrahsl.kryptonite.ConfigDataKeyVault;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.NoOpKeyStrategy;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +64,11 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
     OBJECT
   }
 
+  public enum KeySource {
+    CONFIG,
+    AZ_KV_SECRETS
+  }
+
   public static final String OVERVIEW_DOC =
       "Encrypt/Decrypt specified record fields with AEAD cipher."
           + "<p/>The transformation should currently only be used for the record value (<code>" + CipherField.Value.class.getName() + "</code>)."
@@ -73,11 +83,15 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   public static final String CIPHER_DATA_KEYS = "cipher_data_keys";
   public static final String CIPHER_TEXT_ENCODING = "cipher_text_encoding";
   public static final String CIPHER_MODE = "cipher_mode";
+  public static final String KEY_SOURCE = "key_source";
+  public static final String KMS_CONFIG = "kms_config";
 
   private static final String PATH_DELIMITER_DEFAULT = ".";
   private static final String FIELD_MODE_DEFAULT = "ELEMENT";
   private static final String CIPHER_ALGORITHM_DEFAULT = "AES/GCM/NoPadding";
   private static final String CIPHER_TEXT_ENCODING_DEFAULT = "base64";
+  private static final String KEY_SOURCE_DEFAULT = "CONFIG";
+  private static final String KMS_CONFIG_DEFAULT = "{}";
 
   public static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(FIELD_CONFIG, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new FieldConfigValidator(),
@@ -95,7 +109,11 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       .define(CIPHER_TEXT_ENCODING, Type.STRING, CIPHER_TEXT_ENCODING_DEFAULT, new CipherEncodingValidator(),
           ConfigDef.Importance.LOW, "defines the encoding of the resulting ciphertext bytes (currently only supports 'base64')")
       .define(CIPHER_MODE, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new CipherModeValidator(),
-          ConfigDef.Importance.HIGH, "defines whether the data should get encrypted or decrypted");
+          ConfigDef.Importance.HIGH, "defines whether the data should get encrypted or decrypted")
+      .define(KEY_SOURCE, Type.STRING, KEY_SOURCE_DEFAULT, new KeySourceValidator(), ConfigDef.Importance.HIGH,
+          "defines the origin of the secret key material (currently supports keys specified in the config or secrets fetched from azure key vault)")
+      .define(KMS_CONFIG, Type.STRING, KMS_CONFIG_DEFAULT,
+          ConfigDef.Importance.MEDIUM, "JSON object specifying KMS-specific client authentication settings (currently only supports Azure Key Vault");
 
   private static final String PURPOSE = "(de)cipher record fields";
 
@@ -106,6 +124,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   private RecordHandler recordHandlerWithoutSchema;
   private SchemaRewriter schemaRewriter;
   private Cache<Schema, Schema> schemaCache;
+  private Map<String,KeyMaterialResolver> keyMaterialResolvers;
 
   @Override
   public R apply(R record) {
@@ -159,16 +178,11 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           OBJECT_MAPPER
               .readValue(config.getString(FIELD_CONFIG), new TypeReference<Set<FieldConfig>>() {})
               .stream().collect(Collectors.toMap(FieldConfig::getName, Function.identity()));
-      var dataKeyMap =
-          OBJECT_MAPPER
-              .readValue(config.getPassword(CIPHER_DATA_KEYS).value(), new TypeReference<Set<DataKeyConfig>>() {})
-              .stream().collect(Collectors.toMap(DataKeyConfig::getIdentifier,DataKeyConfig::getKeyBytes)
-      );
-      var kryptonite = new Kryptonite(new InMemoryDataKeyVault(dataKeyMap));
+      var kryptonite = configureKryptonite(config);
       var serdeProcessor = new KryoSerdeProcessor();
-      recordHandlerWithSchema = new SchemaawareRecordHandler(config, serdeProcessor, kryptonite,CipherMode.valueOf(
+      recordHandlerWithSchema = new SchemaawareRecordHandler(config, serdeProcessor, kryptonite, CipherMode.valueOf(
           config.getString(CIPHER_MODE)),fieldPathMap);
-      recordHandlerWithoutSchema = new SchemalessRecordHandler(config, serdeProcessor, kryptonite,CipherMode.valueOf(
+      recordHandlerWithoutSchema = new SchemalessRecordHandler(config, serdeProcessor, kryptonite, CipherMode.valueOf(
           config.getString(CIPHER_MODE)),fieldPathMap);
       schemaRewriter = new SchemaRewriter(fieldPathMap, FieldMode.valueOf(config.getString(
           FIELD_MODE)),CipherMode.valueOf(config.getString(CIPHER_MODE)), config.getString(PATH_DELIMITER));
@@ -178,6 +192,44 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       throw new ConfigException(e.getMessage());
     }
 
+  }
+
+  private Kryptonite configureKryptonite(SimpleConfig config) {
+    try {
+      var dataKeyConfig = OBJECT_MAPPER
+          .readValue(config.getPassword(CIPHER_DATA_KEYS).value(), new TypeReference<Set<DataKeyConfig>>() {});
+      var keySource = KeySource.valueOf(config.getString(KEY_SOURCE));
+      switch(keySource) {
+        case CONFIG:
+          var configKeyMap = dataKeyConfig.stream()
+              .collect(Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getKeyBytes));
+          return new Kryptonite(new ConfigDataKeyVault(configKeyMap));
+        case AZ_KV_SECRETS:
+          var azureKeyVaultConfig =
+              OBJECT_MAPPER
+                  .readValue(config.getString(KMS_CONFIG),AzureKeyVaultConfig.class);
+          var secretClient = new SecretClientBuilder()
+              .vaultUrl(azureKeyVaultConfig.getKeyVaultUrl())
+              .credential(new ClientSecretCredentialBuilder()
+                  .clientId(azureKeyVaultConfig.getClientId())
+                  .clientSecret(azureKeyVaultConfig.getClientSecret())
+                  .tenantId(azureKeyVaultConfig.getTenantId())
+                  .build()).buildClient();
+          var azureSecretResolver = new AzureSecretResolver(secretClient);
+          var azKvSecretsKeyMap = dataKeyConfig.stream()
+              .collect(Collectors.toMap(DataKeyConfig::getIdentifier,
+                  dkc -> dkc.getKeyBytes().length == 0
+                      ? azureSecretResolver.resolve(dkc)
+                      : dkc.getKeyBytes()
+              ));
+          return new Kryptonite(new AzureSecretDataKeyVault(secretClient,new NoOpKeyStrategy(),azKvSecretsKeyMap));
+        default:
+          throw new ConfigException(
+              "failed to configure kryptonite instance due to invalid key source");
+      }
+    } catch (Exception e) {
+      throw new ConfigException(e.getMessage());
+    }
   }
 
   protected abstract Schema operatingSchema(R record);

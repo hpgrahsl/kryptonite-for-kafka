@@ -18,16 +18,16 @@ package com.github.hpgrahsl.kryptonite;
 
 import java.util.Map;
 
-public class InMemoryDataKeyVault extends KeyVault {
+public class ConfigDataKeyVault extends KeyVault {
 
   private final Map<String, byte[]> keys;
 
-  public InMemoryDataKeyVault(Map<String,byte[]> keys) {
+  public ConfigDataKeyVault(Map<String,byte[]> keys) {
     super(new NoOpKeyStrategy());
     this.keys = keys;
   }
 
-  public InMemoryDataKeyVault(Map<String,byte[]> keys, KeyStrategy keyStrategy) {
+  public ConfigDataKeyVault(Map<String,byte[]> keys, KeyStrategy keyStrategy) {
     super(keyStrategy);
     this.keys = keys;
   }
@@ -37,7 +37,7 @@ public class InMemoryDataKeyVault extends KeyVault {
     var keyBytes = keys.get(identifier);
     if(keyBytes == null) {
       throw new KeyNotFoundException("could not find key for identifier '"
-          +identifier+"' in "+InMemoryDataKeyVault.class.getName() + " key vault");
+          +identifier+"' in "+ ConfigDataKeyVault.class.getName() + " key vault");
     }
     return keyStrategy.processKey(keyBytes,identifier);
   }

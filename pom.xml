@@ -63,6 +63,8 @@
     <jackson.version>2.12.1</jackson.version>
     <kryo.version>5.0.3</kryo.version>
     <logback.version>1.2.3</logback.version>
+    <az.keyvault.version>4.2.8</az.keyvault.version>
+    <az.identity.version>1.2.5</az.identity.version>
     <junit.version>5.7.0</junit.version>
     <shade.plugin.version>3.2.1</shade.plugin.version>
     <compiler.plugin.version>3.8.0</compiler.plugin.version>
@@ -101,6 +103,21 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>${logback.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-security-keyvault-keys</artifactId>
+      <version>${az.keyvault.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-security-keyvault-secrets</artifactId>
+      <version>${az.keyvault.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
+      <version>${az.identity.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

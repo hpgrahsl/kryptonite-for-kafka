@@ -17,24 +17,24 @@
 package com.github.hpgrahsl.kryptonite;
 
 @SuppressWarnings("serial")
-public class KeyNotFoundException extends KeyException {
+public class KeyException extends RuntimeException {
 
-  public KeyNotFoundException() {
+  public KeyException() {
   }
 
-  public KeyNotFoundException(String message) {
+  public KeyException(String message) {
     super(message);
   }
 
-  public KeyNotFoundException(String message, Throwable cause) {
+  public KeyException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public KeyNotFoundException(Throwable cause) {
+  public KeyException(Throwable cause) {
     super(cause);
   }
 
-  public KeyNotFoundException(String message, Throwable cause, boolean enableSuppression,
+  public KeyException(String message, Throwable cause, boolean enableSuppression,
       boolean writableStackTrace) {
     super(message, cause, enableSuppression, writableStackTrace);
   }

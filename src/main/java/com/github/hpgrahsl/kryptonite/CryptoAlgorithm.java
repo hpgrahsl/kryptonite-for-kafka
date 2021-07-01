@@ -16,27 +16,18 @@
 
 package com.github.hpgrahsl.kryptonite;
 
-@SuppressWarnings("serial")
-public class KeyNotFoundException extends KeyException {
+public interface CryptoAlgorithm {
 
-  public KeyNotFoundException() {
+  default byte[] cipher(byte[] plaintext, byte[] key) throws Exception {
+    return cipher(plaintext, key, null);
   }
 
-  public KeyNotFoundException(String message) {
-    super(message);
+  byte[] cipher(byte[] plaintext, byte[] key, byte[] associatedData) throws Exception;
+
+  default byte[] decipher(byte[] ciphertext, byte[] key) throws Exception {
+    return decipher(ciphertext, key, null);
   }
 
-  public KeyNotFoundException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-  public KeyNotFoundException(Throwable cause) {
-    super(cause);
-  }
-
-  public KeyNotFoundException(String message, Throwable cause, boolean enableSuppression,
-      boolean writableStackTrace) {
-    super(message, cause, enableSuppression, writableStackTrace);
-  }
+  byte[] decipher(byte[] ciphertext, byte[] key, byte[] associatedData) throws Exception;
 
 }

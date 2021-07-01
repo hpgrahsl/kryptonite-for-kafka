@@ -47,6 +47,9 @@ public class CipherDataKeysValidator implements Validator {
             + " there must be at least 1 valid key definition entry");
       }
       if(!dataKeyConfig.stream()
+          //NOTE: external data key config variants e.g. azure secrets need to be
+          //resolved first so there is nothing to validate for these at that point
+          .filter(dkc -> !dkc.getMaterial().isEmpty())
           .map(DataKeyConfig::getKeyBytes)
           .allMatch(bytes -> VALID_KEY_LENGTHS.contains(bytes.length))) {
         throw new ConfigException(name, o, "data key specification violation -> invalid key length "
