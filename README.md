@@ -220,11 +220,15 @@ Struct{
 <tr>
 <td>cipher_data_key_identifier</td><td>secret key identifier to be used as default data encryption key for all fields which don't refer to a field-specific secret key identifier</td><td>string</td><td></td><td>non-empty string</td><td>high</td></tr>
 <tr>
-<td>cipher_data_keys</td><td>JSON array with data key objects specifying the key identifiers and base64 encoded key bytes used for encryption / decryption</td><td>password</td><td></td><td>JSON array holding at least one valid data key config object, e.g. [{"identifier":"my-key-id-1234-abcd","material":"dmVyeS1zZWNyZXQta2V5JA=="}]</td><td>high</td></tr>
+<td>cipher_data_keys</td><td>JSON array with data key objects specifying the key identifiers. The key material is mandatory if the key_source=CONFIG and optional in case the key material is retrieved from a KMS such as Azure Key Vault. <strong>Irrespective of the <em>key_source</em> setting all key materials are expected to be base64-encoded secret key bytes for encryption / decryption</strong></td><td>password</td><td></td><td>JSON array holding at least one valid data key config object, e.g. <ul><li>if <em>key_source=CONFIG</em><br/>[{"identifier":"my-key-id-1234-abcd","material":"dmVyeS1zZWNyZXQta2V5JA=="}]</li><li>if <em>key_source=AZ_KV_SECRETS</em><br/>[{"identifier":"my-key-id-1234-abcd"}]</li></ul></td><td>high</td></tr>
 <tr>
 <td>cipher_mode</td><td>defines whether the data should get encrypted or decrypted</td><td>string</td><td></td><td>ENCRYPT or DECRYPT</td><td>high</td></tr>
 <tr>
 <td>field_config</td><td>JSON array with field config objects specifying which fields together with their settings should get either encrypted / decrypted (nested field names are expected to be separated by '.' per default, or by a custom 'path_delimiter' config</td><td>string</td><td></td><td>JSON array holding at least one valid field config object, e.g. [{"name": "my-field-abc"},{"name": "my-nested.field-xyz"}]</td><td>high</td></tr>
+<tr>
+<td>key_source</td><td>defines the origin of the secret key material (currently supports keys specified in the config or secrets fetched from azure key vault)</td><td>string</td><td>CONFIG</td><td>CONFIG or AZ_KV_SECRETS</td><td>medium</td></tr>
+<tr>
+<td>kms_config</td><td>JSON object specifying KMS-specific client authentication settings (currently only supports Azure Key Vault). <strong>To be used if <em>key_source</em> is not CONFIG</strong></td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for azure key vault access: {"clientId": "...", "tenantId": "...", "clientSecret": "...", "keyVaultUrl": "..."}</td><td>medium</td></tr>
 <tr>
 <td>field_mode</td><td>defines how to process complex field types (maps, lists, structs), either as full objects or element-wise</td><td>string</td><td>ELEMENT</td><td>ELEMENT or OBJECT</td><td>medium</td></tr>
 <tr>
@@ -238,6 +242,8 @@ Struct{
 ### Externalize configuration parameters
 
 The problem with directly specifying configuration parameters which contain sensitive data, such as secret key materials, is that they are exposed via Kafka Connect's REST API. This means for connect clusters that are shared among teams the configured secret key materials would leak, which is of course unacceptable. The way to deal with this for now, is to indirectly reference such configuration parameters from external property files.
+
+This approach can be used to configure any kind of sensitive data such as KMS-specific client authentication settings, in case the secret keys aren't sourced from the config directly but rather retrieved from an external KMS such as Azure Key Vault.
 
 Below is a quick example of how such a configuration would look like:
 

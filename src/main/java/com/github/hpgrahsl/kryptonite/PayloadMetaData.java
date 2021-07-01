@@ -37,7 +37,7 @@ public class PayloadMetaData {
   public static PayloadMetaData from(FieldMetaData fieldMetaData) {
     return new PayloadMetaData(
         Kryptonite.KRYPTONITE_VERSION,
-        Kryptonite.ALGORITHM_ID_LUT.get(fieldMetaData.getAlgorithm())
+        Kryptonite.CIPHERNAME_ID_LUT.get(fieldMetaData.getAlgorithm())
     );
   }
 
