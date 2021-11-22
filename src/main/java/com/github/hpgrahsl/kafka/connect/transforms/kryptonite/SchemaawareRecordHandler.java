@@ -58,9 +58,13 @@ public class SchemaawareRecordHandler extends RecordHandler {
               LOGGER.trace("processing {} field element-wise",Type.MAP);
               dataNew.put(schemaNew.field(f.name()), processMapField((Map<?,?>)dataOriginal.get(f.name()),updatedPath));
             } else if(f.schema().type() == Type.STRUCT) {
-              LOGGER.trace("processing {} field element-wise",Type.STRUCT);
-              dataNew.put(schemaNew.field(f.name()),
-                  matchFields(f.schema(),dataOriginal.get(f.name()),schemaNew.field(f.name()).schema(),new Struct(schemaNew.field(f.name()).schema()),updatedPath));
+              if (dataOriginal.get(f.name()) != null) {
+                LOGGER.trace("processing {} field element-wise",Type.STRUCT);
+                dataNew.put(schemaNew.field(f.name()),
+                    matchFields(f.schema(),dataOriginal.get(f.name()),schemaNew.field(f.name()).schema(),new Struct(schemaNew.field(f.name()).schema()),updatedPath));
+              } else {
+                LOGGER.trace("value of {} field was null -> skip element-wise sub-field matching",Type.STRUCT);
+              }
             } else {
               LOGGER.trace("processing primitive field of type {}",f.schema().type());
               dataNew.put(schemaNew.field(f.name()), processField(dataOriginal.get(f.name()), updatedPath));
