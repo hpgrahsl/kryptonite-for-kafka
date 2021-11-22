@@ -20,7 +20,6 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.Field
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -56,7 +55,7 @@ public class SchemalessRecordHandler extends RecordHandler {
                 dataNew.put(f, processListField((List<?>)dataOriginal.get(f),updatedPath));
               } else if(v instanceof Map) {
                 LOGGER.trace("processing {} field element-wise", Map.class.getSimpleName());
-                dataNew.put(f, matchFields(null,dataOriginal.get(f),null,new LinkedHashMap<>(),updatedPath));
+                dataNew.put(f, processMapField((Map<?,?>)dataOriginal.get(f),updatedPath));
               } else {
                 LOGGER.trace("processing primitive field");
                 dataNew.put(f, processField(dataOriginal.get(f), updatedPath));

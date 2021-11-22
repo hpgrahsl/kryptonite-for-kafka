@@ -77,7 +77,7 @@ public class SchemaRewriter {
         builder.field(field.name(), field.schema());
       }
     }
-    return builder.build();
+    return original.isOptional() ? builder.optional().build() : builder.build();
   }
 
   private void adaptField(Type decisiveType, SchemaBuilder builder, Field field, String updatedPath) {
