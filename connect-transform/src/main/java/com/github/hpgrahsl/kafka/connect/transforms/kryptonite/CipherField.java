@@ -59,6 +59,10 @@ import org.slf4j.LoggerFactory;
 
 public abstract class CipherField<R extends ConnectRecord<R>> implements Transformation<R> {
 
+  public enum CipherEncoding {
+    BASE64
+  }
+
   public enum FieldMode {
     ELEMENT,
     OBJECT
@@ -75,10 +79,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   }
 
   public static final String OVERVIEW_DOC =
-      "Encrypt/Decrypt specified record fields with AEAD cipher."
-          + "<p/>The transformation should currently only be used for the record value (<code>" + CipherField.Value.class.getName() + "</code>)."
-          + "Future versions will support a dedicated 'mode of operation' applicable also to the record key (<code>" + CipherField.Key.class.getName()
-          + "</code>) or value .";
+      "encrypt / decrypt specified record fields with either probabilistic or deterministic AEAD ciphers.";
 
   public static final String FIELD_CONFIG = "field_config";
   public static final String PATH_DELIMITER = "path_delimiter";
@@ -95,7 +96,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   private static final String PATH_DELIMITER_DEFAULT = ".";
   private static final String FIELD_MODE_DEFAULT = "ELEMENT";
   private static final String CIPHER_ALGORITHM_DEFAULT = "TINK/AES_GCM";
-  private static final String CIPHER_TEXT_ENCODING_DEFAULT = "base64";
+  private static final String CIPHER_TEXT_ENCODING_DEFAULT = "BASE64";
   private static final String KEY_SOURCE_DEFAULT = "TINK_KEY_SETS";
   private static final String KMS_TYPE_DEFAULT = "NONE";
   private static final String KMS_CONFIG_DEFAULT = "{}";
@@ -110,7 +111,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       .define(CIPHER_ALGORITHM, Type.STRING, CIPHER_ALGORITHM_DEFAULT, new CipherNameValidator(),
           ConfigDef.Importance.LOW, "cipher algorithm used for data encryption (currently supports only one AEAD cipher: "+CIPHER_ALGORITHM_DEFAULT+")")
       .define(CIPHER_DATA_KEYS, Type.PASSWORD, ConfigDef.NO_DEFAULT_VALUE, new CipherDataKeysValidator(),
-          ConfigDef.Importance.HIGH, "JSON array with data key objects specifying the key identifiers and base64 encoded key bytes used for encryption / decryption")
+          ConfigDef.Importance.HIGH, "JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format")
       .define(CIPHER_DATA_KEY_IDENTIFIER, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new NonEmptyString(),
           ConfigDef.Importance.HIGH, "secret key identifier to be used as default data encryption key for all fields which don't refer to a field-specific secret key identifier")
       .define(CIPHER_TEXT_ENCODING, Type.STRING, CIPHER_TEXT_ENCODING_DEFAULT, new CipherEncodingValidator(),
@@ -121,7 +122,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           "defines the type of key source to load secret key material (currently only supports Tink key set JSON config format)")
       .define(KMS_TYPE, Type.STRING, KMS_TYPE_DEFAULT, new KmsTypeValidator(),
           ConfigDef.Importance.MEDIUM, "defines the KMS which can be used to resolve externalized key materials which are not specified in the key source configuration (currently only supports Azure Key Vault)")
-      .define(KMS_CONFIG, Type.STRING, KMS_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
+      .define(KMS_CONFIG, Type.PASSWORD, KMS_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
           "JSON object specifying the KMS-specific client authentication settings (currently only supports Azure Key Vault)");
 
   private static final String PURPOSE = "(de)cipher record fields";

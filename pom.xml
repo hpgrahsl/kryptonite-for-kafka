@@ -26,4 +26,35 @@
     <module>kryptonite</module>
     <module>connect-transform</module>
   </modules>
+
+  <description>Field-Level Cryptography for Kafka</description>
+  <url>https://github.com/hpgrahsl/kryptonite-for-kafka</url>
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <inceptionYear>2021</inceptionYear>
+  <developers>
+    <developer>
+      <name>Hans-Peter Grahsl</name>
+      <email>grahslhp@gmail.com</email>
+      <url>https://github.com/hpgrahsl</url>
+      <roles>
+        <role>maintainer</role>
+      </roles>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:git://github.com/hpgrahsl/kryptonite-for-kafka.git</connection>
+    <developerConnection>scm:git:ssh://github.com:hpgrahsl/kryptonite-for-kafka.git</developerConnection>
+    <url>https://github.com/hpgrahsl/kryptonite-for-kafka/tree/master</url>
+  </scm>
+  <issueManagement>
+    <system>github</system>
+    <url>https://github.com/hpgrahsl/kryptonite-for-kafka/issues</url>
+  </issueManagement>
+
 </project>
