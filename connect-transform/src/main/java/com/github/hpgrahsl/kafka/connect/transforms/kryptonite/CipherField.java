@@ -218,7 +218,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           if (kmsType.equals(KmsType.AZ_KV_SECRETS)) {
             return new Kryptonite(
                 new TinkKeyVault(keyConfigs,
-                new AzureSecretResolver(config.getString(KMS_CONFIG)))
+                new AzureSecretResolver(config.getPassword(KMS_CONFIG).value()))
             );
           }
           return new Kryptonite(new TinkKeyVault(keyConfigs));
