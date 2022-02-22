@@ -22,27 +22,25 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>kafka-connect-transform-kryptonite</artifactId>
-  <version>0.2.0-SNAPSHOT</version>
+  <version>0.2.0</version>
   <packaging>jar</packaging>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
-    <kryptonite.version>0.2.0-SNAPSHOT</kryptonite.version>
-    <kafka.version>2.7.0</kafka.version>
-    <jackson.version>2.12.1</jackson.version>
+    <kryptonite.version>0.2.0</kryptonite.version>
+    <kafka.version>3.1.0</kafka.version>
+    <jackson.version>2.13.1</jackson.version>
     <kryo.version>5.3.0</kryo.version>
-    <logback.version>1.2.3</logback.version>
-    <az.keyvault.version>4.2.8</az.keyvault.version>
-    <az.identity.version>1.2.5</az.identity.version>
-    <junit.version>5.7.0</junit.version>
-    <shade.plugin.version>3.2.1</shade.plugin.version>
-    <compiler.plugin.version>3.8.0</compiler.plugin.version>
+    <logback.version>1.2.10</logback.version>
+    <junit.version>5.8.2</junit.version>
+    <shade.plugin.version>3.2.4</shade.plugin.version>
+    <compiler.plugin.version>3.10.0</compiler.plugin.version>
     <surefire.plugin.version>2.22.2</surefire.plugin.version>
   </properties>
 
@@ -83,21 +81,6 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>${logback.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-security-keyvault-keys</artifactId>
-      <version>${az.keyvault.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-security-keyvault-secrets</artifactId>
-      <version>${az.keyvault.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-identity</artifactId>
-      <version>${az.identity.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
