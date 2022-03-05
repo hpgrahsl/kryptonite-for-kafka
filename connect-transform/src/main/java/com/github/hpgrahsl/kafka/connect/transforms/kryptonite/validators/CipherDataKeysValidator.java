@@ -43,10 +43,6 @@ public class CipherDataKeysValidator implements Validator {
       var dataKeyConfig = OBJECT_MAPPER.readValue(
             ((Password)o).value(), new TypeReference<Set<DataKeyConfig>>() {}
           );
-      if(dataKeyConfig.isEmpty()) {
-        throw new ConfigException(name, o, "data key specification violation -> "
-            + " there must be at least 1 valid key definition entry");
-      }
       if(!dataKeyConfig.stream()
           //NOTE: external data key config variants e.g. azure secrets need to be
           //resolved first so there is nothing to validate for these at that point

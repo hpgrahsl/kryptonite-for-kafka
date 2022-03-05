@@ -18,8 +18,6 @@ package com.github.hpgrahsl.kryptonite.keys;
 
 public interface KeyMaterialResolver {
 
-  byte[] resolveBytesKey(String identifier);
-
-  String resolveBase64Key(String identifier);
+  String resolveKeyset(String identifier);
 
 }

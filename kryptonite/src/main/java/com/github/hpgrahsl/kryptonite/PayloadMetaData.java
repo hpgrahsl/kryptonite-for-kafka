@@ -25,19 +25,22 @@ public class PayloadMetaData {
 
   private String version;
   private String algorithmId;
+  private String keyId;
 
   public PayloadMetaData() {
   }
 
-  public  PayloadMetaData(String version, String algorithmId) {
+  public  PayloadMetaData(String version, String algorithmId, String keyId) {
     this.version = Objects.requireNonNull(version);
     this.algorithmId = Objects.requireNonNull(algorithmId);
+    this.keyId = Objects.requireNonNull(keyId);
   }
 
   public static PayloadMetaData from(FieldMetaData fieldMetaData) {
     return new PayloadMetaData(
         Kryptonite.KRYPTONITE_VERSION,
-        Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm()))
+        Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm())),
+        fieldMetaData.getKeyId()
     );
   }
 
@@ -49,10 +52,15 @@ public class PayloadMetaData {
     return algorithmId;
   }
 
+  public String getKeyId() {
+    return keyId;
+  }
+
   public byte[] asBytes() {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     baos.writeBytes(version.getBytes(StandardCharsets.UTF_8));
     baos.writeBytes(algorithmId.getBytes(StandardCharsets.UTF_8));
+    baos.writeBytes(keyId.getBytes(StandardCharsets.UTF_8));
     return baos.toByteArray();
   }
 
@@ -61,6 +69,7 @@ public class PayloadMetaData {
     return "PayloadMetaData{" +
         "version='" + version + '\'' +
         ", algorithmId='" + algorithmId + '\'' +
+        ", keyId='" + keyId + '\'' +
         '}';
   }
 

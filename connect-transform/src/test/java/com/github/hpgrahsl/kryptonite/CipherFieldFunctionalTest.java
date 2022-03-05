@@ -201,7 +201,18 @@ public class CipherFieldFunctionalTest {
 
     var decProps = new HashMap<String, Object>();
     decProps.put(CipherField.CIPHER_MODE, "DECRYPT");
-    decProps.put(CipherField.FIELD_CONFIG, encProps.get(CipherField.FIELD_CONFIG));
+    decProps.put(CipherField.FIELD_CONFIG,
+        "["
+            + "    {\"name\":\"id\"},"
+            + "    {\"name\":\"myString\"},"
+            + "    {\"name\":\"myInt\"},"
+            + "    {\"name\":\"myBoolean\"},"
+            + "    {\"name\":\"mySubDoc1\"},"
+            + "    {\"name\":\"myArray1\"},"
+            + "    {\"name\":\"mySubDoc2\"},"
+            + "    {\"name\":\"myBytes\"}"
+            + "]"
+    );
     decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));
     decProps.put(CipherField.CIPHER_DATA_KEYS,encProps.get(CipherField.CIPHER_DATA_KEYS));
     decProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,encProps.get(CipherField.CIPHER_DATA_KEY_IDENTIFIER));
@@ -269,13 +280,13 @@ public class CipherFieldFunctionalTest {
     decProps.put(CipherField.FIELD_CONFIG,
         "["
             + "    {\"name\":\"id\",\"schema\": {\"type\": \"STRING\"}},"
-            + "    {\"name\":\"myString\",\"schema\": {\"type\": \"STRING\"},\"keyId\":\""+keyId1+"\"},"
-            + "    {\"name\":\"myInt\",\"schema\": {\"type\": \"INT32\"},\"keyId\":\""+keyId2+"\"},"
+            + "    {\"name\":\"myString\",\"schema\": {\"type\": \"STRING\"}},"
+            + "    {\"name\":\"myInt\",\"schema\": {\"type\": \"INT32\"}},"
             + "    {\"name\":\"myBoolean\",\"schema\": {\"type\": \"BOOLEAN\"}},"
-            + "    {\"name\":\"mySubDoc1\",\"schema\": { \"type\": \"STRUCT\",\"fields\": [ { \"name\": \"myString\", \"schema\": { \"type\": \"STRING\"}}]},\"keyId\":\""+keyId1+"\"},"
-            + "    {\"name\":\"myArray1\",\"schema\": {\"type\": \"ARRAY\",\"valueSchema\": {\"type\": \"STRING\"}},\"keyId\":\""+keyId2+"\"},"
+            + "    {\"name\":\"mySubDoc1\",\"schema\": { \"type\": \"STRUCT\",\"fields\": [ { \"name\": \"myString\", \"schema\": { \"type\": \"STRING\"}}]}},"
+            + "    {\"name\":\"myArray1\",\"schema\": {\"type\": \"ARRAY\",\"valueSchema\": {\"type\": \"STRING\"}}},"
             + "    {\"name\":\"mySubDoc2\",\"schema\": { \"type\": \"MAP\", \"keySchema\": { \"type\": \"STRING\" }, \"valueSchema\": { \"type\": \"INT32\"}}},"
-            + "    {\"name\":\"myBytes\",\"schema\": {\"type\": \"BYTES\"},\"keyId\":\""+keyId1+"\"}"
+            + "    {\"name\":\"myBytes\",\"schema\": {\"type\": \"BYTES\"}}"
             + "]"
     );
     decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));

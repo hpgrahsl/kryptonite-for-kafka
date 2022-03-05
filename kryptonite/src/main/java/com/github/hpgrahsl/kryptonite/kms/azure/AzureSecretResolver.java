@@ -21,11 +21,8 @@ import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.hpgrahsl.kryptonite.keys.KeyInvalidException;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 public class AzureSecretResolver implements KeyMaterialResolver {
 
@@ -48,30 +45,12 @@ public class AzureSecretResolver implements KeyMaterialResolver {
   }
 
   @Override
-  public byte[] resolveBytesKey(String identifier) {
+  public String resolveKeyset(String identifier) {
     try {
       var secret = secretClient.getSecret(identifier);
-      return Base64.getDecoder().decode(secret.getValue().getBytes(StandardCharsets.UTF_8));
-    } catch (ResourceNotFoundException exc) {
-      throw new KeyNotFoundException("could not resolve key for identifier '"
-          + identifier + "' in " + AzureSecretResolver.class.getName() + " key resolver", exc);
-    } catch (IllegalArgumentException exc) {
-      throw new KeyInvalidException("could not decode key for identifier '"
-          + identifier + "' in " + AzureSecretResolver.class.getName() + " key resolver", exc);
-    }
-  }
-
-  @Override
-  public String resolveBase64Key(String identifier) {
-    try {
-      var secret = secretClient.getSecret(identifier);
-      var decoded = Base64.getDecoder().decode(secret.getValue().getBytes(StandardCharsets.UTF_8));
       return secret.getValue();
     } catch (ResourceNotFoundException exc) {
       throw new KeyNotFoundException("could not resolve key for identifier '"
-          + identifier + "' in " + AzureSecretResolver.class.getName() + " key resolver", exc);
-    } catch (IllegalArgumentException exc) {
-      throw new KeyInvalidException("hit key with invalid encoding for identifier '"
           + identifier + "' in " + AzureSecretResolver.class.getName() + " key resolver", exc);
     }
   }

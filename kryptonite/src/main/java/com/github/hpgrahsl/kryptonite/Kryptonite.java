@@ -123,37 +123,37 @@ public class Kryptonite {
     }
   }
 
-  public EncryptedField cipherField(byte[] plaintext, PayloadMetaData metadata, String keyId) {
+  public EncryptedField cipherField(byte[] plaintext, PayloadMetaData metadata) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(metadata.getAlgorithmId());
       if (cipherSpec.getType().equals(CipherSpec.TYPE_JCE)) {
         return new EncryptedField(
             metadata,
-            cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKey(keyId), metadata.asBytes())
+            cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKey(metadata.getKeyId()), metadata.asBytes())
         );
       }
       return new EncryptedField(
           metadata,
-          cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKeysetHandle(keyId), metadata.asBytes())
+          cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKeysetHandle(metadata.getKeyId()), metadata.asBytes())
       );
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(),e);
     }
   }
 
-  public byte[] decipherField(EncryptedField encryptedField, String keyId) {
+  public byte[] decipherField(EncryptedField encryptedField) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(encryptedField.getMetaData().getAlgorithmId());
       if (cipherSpec.getType().equals(CipherSpec.TYPE_JCE)) {
         return cipherSpec.getAlgorithm().decipher(
             encryptedField.ciphertext(),
-            keyVault.readKey(keyId),
+            keyVault.readKey(encryptedField.getMetaData().getKeyId()),
             encryptedField.associatedData()
         );
       }
       return cipherSpec.getAlgorithm().decipher(
           encryptedField.ciphertext(),
-          keyVault.readKeysetHandle(keyId),
+          keyVault.readKeysetHandle(encryptedField.getMetaData().getKeyId()),
           encryptedField.associatedData()
       );
     } catch (Exception e) {

@@ -28,44 +28,18 @@ import java.util.stream.Collectors;
 
 public class TinkKeyVault extends AbstractKeyVault {
 
-  public static final String IDENTIFIER_PK_SEPARATOR = "-";
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private final KeyMaterialResolver keyMaterialResolver;
   private final Map<String, TinkKeyConfig> keyConfigs;
   private final Map<String, KeysetHandle> keysetHandles;
 
   public TinkKeyVault(Map<String, TinkKeyConfig> keyConfigs) {
     super(new NoOpKeyStrategy());
-    this.keyMaterialResolver = null;
     this.keyConfigs = keyConfigs;
-    this.keysetHandles = createKeySetHandlesFromConfig();
+    this.keysetHandles = createKeysetHandlesFromKeyConfigs();
   }
 
-  public TinkKeyVault(Map<String, TinkKeyConfig> keyConfigs, KeyMaterialResolver keyMaterialResolver) {
-    super(new NoOpKeyStrategy());
-    this.keyMaterialResolver = keyMaterialResolver;
-    this.keyConfigs = keyConfigs;
-    resolveKeyMaterials();
-    this.keysetHandles = createKeySetHandlesFromConfig();
-  }
-
-  private void resolveKeyMaterials() {
-    keyConfigs.forEach((identifier,config) ->
-        config.getKey().forEach(keyConfig -> {
-          if(keyConfig.getKeyId() == config.getPrimaryKeyId()
-              && keyConfig.getKeyData().getValue().isEmpty()) {
-            keyConfig.getKeyData().setValue(
-                keyMaterialResolver.resolveBase64Key(
-                    identifier+IDENTIFIER_PK_SEPARATOR+config.getPrimaryKeyId()
-                )
-            );
-          }
-        })
-    );
-  }
-
-  private Map<String,KeysetHandle> createKeySetHandlesFromConfig() {
+  private Map<String,KeysetHandle> createKeysetHandlesFromKeyConfigs() {
     return keyConfigs.entrySet().stream()
         .map(me -> {
           try {

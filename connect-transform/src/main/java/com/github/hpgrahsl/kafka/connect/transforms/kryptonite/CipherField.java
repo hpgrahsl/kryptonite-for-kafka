@@ -34,8 +34,8 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.KmsTyp
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
-import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
+import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -134,7 +134,6 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   private RecordHandler recordHandlerWithoutSchema;
   private SchemaRewriter schemaRewriter;
   private Cache<Schema, Schema> schemaCache;
-  private Map<String, KeyMaterialResolver> keyMaterialResolvers;
 
   @Override
   public R apply(R record) {
@@ -216,10 +215,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           var keyConfigs = dataKeyConfig.stream()
               .collect(Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
           if (kmsType.equals(KmsType.AZ_KV_SECRETS)) {
-            return new Kryptonite(
-                new TinkKeyVault(keyConfigs,
-                new AzureSecretResolver(config.getPassword(KMS_CONFIG).value()))
-            );
+            return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(config.getPassword(KMS_CONFIG).value())));
           }
           return new Kryptonite(new TinkKeyVault(keyConfigs));
         case CONFIG:

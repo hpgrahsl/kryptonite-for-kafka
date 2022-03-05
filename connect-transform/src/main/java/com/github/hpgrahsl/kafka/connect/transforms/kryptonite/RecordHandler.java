@@ -78,8 +78,7 @@ public abstract class RecordHandler implements FieldPathMatcher {
       LOGGER.trace("field meta-data for path '{}' {}",matchedPath,fieldMetaData);
       if (CipherMode.ENCRYPT == cipherMode) {
         var valueBytes = serdeProcessor.objectToBytes(object);
-        var encryptedField = kryptonite.cipherField(
-            valueBytes, PayloadMetaData.from(fieldMetaData), fieldMetaData.getKeyId());
+        var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
         LOGGER.debug("encrypted field: {}",encryptedField);
         var output = new Output(new ByteArrayOutputStream());
         KryoInstance.get().writeObject(output,encryptedField);
@@ -90,7 +89,7 @@ public abstract class RecordHandler implements FieldPathMatcher {
         var decodedField = Base64.getDecoder().decode((String)object);
         LOGGER.trace("decoded field: {}",decodedField);
         var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);
-        var plaintext = kryptonite.decipherField(encryptedField,fieldMetaData.getKeyId());
+        var plaintext = kryptonite.decipherField(encryptedField);
         LOGGER.trace("decrypted field: {}",plaintext);
         var restoredField = serdeProcessor.bytesToObject(plaintext);
         LOGGER.debug("restored field: {}",restoredField);
