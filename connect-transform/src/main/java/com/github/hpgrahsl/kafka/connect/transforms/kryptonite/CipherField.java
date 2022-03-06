@@ -69,8 +69,8 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   }
 
   public enum KeySource {
-    CONFIG, //unsupported legacy mode
-    TINK_KEY_SETS
+    CONFIG,
+    KMS
   }
 
   public enum KmsType {
@@ -79,7 +79,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   }
 
   public static final String OVERVIEW_DOC =
-      "encrypt / decrypt specified record fields with either probabilistic or deterministic AEAD ciphers.";
+      "Encrypt / Decrypt specified record fields with either probabilistic or deterministic cryptography.";
 
   public static final String FIELD_CONFIG = "field_config";
   public static final String PATH_DELIMITER = "path_delimiter";
@@ -96,8 +96,10 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   private static final String PATH_DELIMITER_DEFAULT = ".";
   private static final String FIELD_MODE_DEFAULT = "ELEMENT";
   private static final String CIPHER_ALGORITHM_DEFAULT = "TINK/AES_GCM";
+  public static final String CIPHER_DATA_KEY_IDENTIFIER_DEFAULT = "";
+  private static final String CIPHER_DATA_KEYS_DEFAULT = "[]";
   private static final String CIPHER_TEXT_ENCODING_DEFAULT = "BASE64";
-  private static final String KEY_SOURCE_DEFAULT = "TINK_KEY_SETS";
+  private static final String KEY_SOURCE_DEFAULT = "CONFIG";
   private static final String KMS_TYPE_DEFAULT = "NONE";
   private static final String KMS_CONFIG_DEFAULT = "{}";
 
@@ -110,22 +112,22 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           "defines how to process complex field types (maps, lists, structs), either as full objects or element-wise")
       .define(CIPHER_ALGORITHM, Type.STRING, CIPHER_ALGORITHM_DEFAULT, new CipherNameValidator(),
           ConfigDef.Importance.LOW, "cipher algorithm used for data encryption (currently supports only one AEAD cipher: "+CIPHER_ALGORITHM_DEFAULT+")")
-      .define(CIPHER_DATA_KEYS, Type.PASSWORD, ConfigDef.NO_DEFAULT_VALUE, new CipherDataKeysValidator(),
+      .define(CIPHER_DATA_KEYS, Type.PASSWORD, CIPHER_DATA_KEYS_DEFAULT, new CipherDataKeysValidator(),
           ConfigDef.Importance.HIGH, "JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format")
-      .define(CIPHER_DATA_KEY_IDENTIFIER, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new NonEmptyString(),
+      .define(CIPHER_DATA_KEY_IDENTIFIER, Type.STRING, CIPHER_DATA_KEY_IDENTIFIER_DEFAULT,
           ConfigDef.Importance.HIGH, "secret key identifier to be used as default data encryption key for all fields which don't refer to a field-specific secret key identifier")
       .define(CIPHER_TEXT_ENCODING, Type.STRING, CIPHER_TEXT_ENCODING_DEFAULT, new CipherEncodingValidator(),
           ConfigDef.Importance.LOW, "defines the encoding of the resulting ciphertext bytes (currently only supports 'base64')")
       .define(CIPHER_MODE, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new CipherModeValidator(),
           ConfigDef.Importance.HIGH, "defines whether the data should get encrypted or decrypted")
       .define(KEY_SOURCE, Type.STRING, KEY_SOURCE_DEFAULT, new KeySourceValidator(), ConfigDef.Importance.HIGH,
-          "defines the type of key source to load secret key material (currently only supports Tink key set JSON config format)")
+          "defines the origin of the Tink keysets which can be defined directly in the config or fetched from a remote/cloud KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)")
       .define(KMS_TYPE, Type.STRING, KMS_TYPE_DEFAULT, new KmsTypeValidator(),
-          ConfigDef.Importance.MEDIUM, "defines the KMS which can be used to resolve externalized key materials which are not specified in the key source configuration (currently only supports Azure Key Vault)")
+          ConfigDef.Importance.MEDIUM, "defines from which remote/cloud KMS keysets are resolved from (currently only supports Azure Key Vault)")
       .define(KMS_CONFIG, Type.PASSWORD, KMS_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
           "JSON object specifying the KMS-specific client authentication settings (currently only supports Azure Key Vault)");
 
-  private static final String PURPOSE = "(de)cipher record fields";
+  private static final String PURPOSE = "(de)cipher connect record fields";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CipherField.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -209,21 +211,21 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       var keySource = KeySource.valueOf(config.getString(KEY_SOURCE));
       var kmsType = KmsType.valueOf(config.getString(KMS_TYPE));
       switch(keySource) {
-        case TINK_KEY_SETS:
+        case CONFIG:
           var dataKeyConfig = OBJECT_MAPPER
               .readValue(config.getPassword(CIPHER_DATA_KEYS).value(), new TypeReference<Set<DataKeyConfig>>() {});
           var keyConfigs = dataKeyConfig.stream()
               .collect(Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
-          if (kmsType.equals(KmsType.AZ_KV_SECRETS)) {
-            return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(config.getPassword(KMS_CONFIG).value())));
-          }
           return new Kryptonite(new TinkKeyVault(keyConfigs));
-        case CONFIG:
-          throw new ConfigException(CipherField.KEY_SOURCE+"="+
-              KeySource.CONFIG + " was the legacy way to configure the key source and is not supported any longer");
+        case KMS:
+          if (kmsType.equals(KmsType.AZ_KV_SECRETS)) {
+            return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(config.getPassword(KMS_CONFIG).value()),true));
+          }
+          throw new ConfigException(
+              "failed to configure kryptonite due to invalid key_source ("+keySource+") / kms_type ("+kmsType+") settings");
         default:
           throw new ConfigException(
-              "failed to configure kryptonite instance due to invalid key source");
+              "failed to configure kryptonite due to invalid key_source ("+keySource+") / kms_type ("+kmsType+") settings");
       }
     } catch (ConfigException e) {
       throw e;

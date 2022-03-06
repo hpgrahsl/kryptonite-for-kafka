@@ -20,9 +20,12 @@ import com.azure.core.exception.ResourceNotFoundException;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
+import com.azure.security.keyvault.secrets.models.SecretProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class AzureSecretResolver implements KeyMaterialResolver {
 
@@ -42,6 +45,13 @@ public class AzureSecretResolver implements KeyMaterialResolver {
 
   public AzureSecretResolver(SecretClient secretClient) {
     this.secretClient = secretClient;
+  }
+
+  @Override
+  public Collection<String> resolveIdentifiers() {
+    return secretClient.listPropertiesOfSecrets().stream()
+        .map(SecretProperties::getName)
+        .collect(Collectors.toList());
   }
 
   @Override

@@ -46,15 +46,15 @@ Let's assume the fields `"myString"`,`"myArray1"` and `"mySubDoc2"` of the above
 }
 ```
 
-The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the secret key** specified by its id with the `cipher_data_key_identifier` parameter. The secret keys are configured using the parameter `cipher_data_keys` where the key material itself is specified according to a [Tink](https://developers.google.com/tink/) key set configuration in JSON format (here is a [concrete example](#tink-key-sets)). Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the secret keys renders encryption useless. The recommended way of doing this for now is to either
+The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the keyset** configured by its id with the `cipher_data_key_identifier` parameter. The keysets themselves are configured using the parameter `cipher_data_keys` where the key material itself is specified according to a [Tink](https://developers.google.com/tink/) keyset configuration in JSON format (here is a [concrete example](#tink-keysets)). Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the keyset materials renders encryption useless. The recommended way of doing this for now is to either
 
-- indirectly reference secret key materials by externalizing them into a separate properties file (find a few details [here](#externalize-configuration-parameters))
+- indirectly reference keyset materials by externalizing them into a separate properties file (find a few details [here](#externalize-configuration-parameters))
 
 or
 
-- to NOT store the key materials at the client-side in the first place, but instead resolve keys at runtime from a cloud KMS such as [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) which is supported as well.
+- to NOT store the keyset materials at the client-side in the first place, but instead resolve keysets at runtime from a cloud KMS such as [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) which is supported as well.
 
-In general though, this can be considered a "chicken-and-egg" problem since the confidential settings in order to access a remote KMS also need to be store somewhere somehow.
+_In general though, this can be considered a "chicken-and-egg" problem since the confidential settings in order to access a remote KMS also need to be store somewhere somehow._
 
 Since the configuration parameter `field_mode` is set to `OBJECT`, complex field types are processed as a whole instead of element-wise, the latter of which can be achieved by choosing `ELEMENT` mode.
 
@@ -76,7 +76,7 @@ Below is an exemplary JSON-encoded record after the encryption:
 
 #### Decryption of selected fields
 
-Provided that the secret key material used to encrypt the original data record is made available to a specific sink connector, the `CipherField` SMT can be configured to decrypt the data as follows:
+Provided that the keyset used to encrypt the original data record is made available to a specific sink connector, the `CipherField` SMT can be configured to decrypt the data as follows:
 
 ```json5
 {
@@ -85,14 +85,13 @@ Provided that the secret key material used to encrypt the original data record i
   "transforms.cipher.type":"com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value",
   "transforms.cipher.cipher_mode": "DECRYPT",
   "transforms.cipher.cipher_data_keys": "[{\"identifier\":\"my-demo-secret-key-123\",\"material\":{<TINK_KEYSET_SPEC_JSON_HERE>}}]", //key materials of utmost secrecy!
-  "transforms.cipher.cipher_data_key_identifier": "my-demo-secret-key-123",
   "transforms.cipher.field_config": "[{\"name\":\"myString\"},{\"name\":\"myArray1\"},{\"name\":\"mySubDoc2\"}]",
   "transforms.cipher.field_mode": "OBJECT",
   //...
 }
 ```
 
-The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **decrypted using the secret key id that is specified and was used to encrypt the original data**. Apparently, this can work if and only if the secret key id has the correct key material configured using the parameter `cipher_data_keys`.
+The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **decrypted using the keyset that was used to encrypt the original data**. Apparently, this can work if and only if the keyset is properly configured.
 
 Below is an exemplary JSON-encoded record after the decryption, which is equal to the original record:
 
@@ -162,15 +161,15 @@ Let's assume the fields `"myString"`,`"myArray1"` and `"mySubDoc2"` of the above
 }
 ```
 
-The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the secret key** specified by its id with the `cipher_data_key_identifier` parameter. The secret keys are configured using the parameter `cipher_data_keys` where the key material itself is specified according to a [Tink](https://developers.google.com/tink/) key set configuration in JSON format (here is a [concrete example](#tink-key-sets)). Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the secret keys renders encryption useless. The recommended way of doing this for now is to either
+The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **encrypted using the keyset** configured by its id with the `cipher_data_key_identifier` parameter. The keysets themselves are configured using the parameter `cipher_data_keys` where the key material itself is specified according to a [Tink](https://developers.google.com/tink/) keyset configuration in JSON format (here is a [concrete example](#tink-keysets)). Apparently, the **configured key materials have to be treated with utmost secrecy**, for leaking any of the keyset materials renders encryption useless. The recommended way of doing this for now is to either
 
-- indirectly reference secret key materials by externalizing them into a separate properties file (find a few details [here](#externalize-configuration-parameters))
+- indirectly reference keyset materials by externalizing them into a separate properties file (find a few details [here](#externalize-configuration-parameters))
 
 or
 
-- to NOT store the key materials at the client-side in the first place, but instead resolve keys at runtime from a cloud KMS such as [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) which is supported as well.
+- to NOT store the keyset materials at the client-side in the first place, but instead resolve keysets at runtime from a cloud KMS such as [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) which is supported as well.
 
-In general though, this can be considered a "chicken-and-egg" problem since the confidential settings in order to access a remote KMS also need to be store somewhere somehow.
+_In general though, this can be considered a "chicken-and-egg" problem since the confidential settings in order to access a remote KMS also need to be store somewhere somehow._
 
 Since the configuration parameter `field_mode` in the configuration above is set to 'OBJECT', complex field types are processed as a whole instead of element-wise, the latter of which can be achieved by choosing `ELEMENT` mode.
 
@@ -194,7 +193,7 @@ Struct{
 
 #### Decryption of selected fields
 
-Provided that the secret key material used to encrypt the original data record is made available to a specific sink connector, the `CipherField` SMT can be configured to decrypt the data as follows:
+Provided that the keyset used to encrypt the original data record is made available to a specific sink connector, the `CipherField` SMT can be configured to decrypt the data as follows:
 
 ```json5
 {
@@ -203,7 +202,6 @@ Provided that the secret key material used to encrypt the original data record i
   "transforms.cipher.type":"com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value",
   "transforms.cipher.cipher_mode": "DECRYPT",
   "transforms.cipher.cipher_data_keys": "[{\"identifier\":\"my-demo-secret-key-123\",\"material\":{<TINK_KEYSET_SPEC_JSON_HERE>}}]", //key materials of utmost secrecy!
-  "transforms.cipher.cipher_data_key_identifier": "my-demo-secret-key-123",
   "transforms.cipher.field_config": "[{\"name\":\"myString\",\"schema\": {\"type\": \"STRING\"}},{\"name\":\"myArray1\",\"schema\": {\"type\": \"ARRAY\",\"valueSchema\": {\"type\": \"STRING\"}}},{\"name\":\"mySubDoc2\",\"schema\": { \"type\": \"MAP\", \"keySchema\": { \"type\": \"STRING\" }, \"valueSchema\": { \"type\": \"INT32\"}}}]",
   "transforms.cipher.field_mode": "OBJECT",
   //...
@@ -212,7 +210,7 @@ Provided that the secret key material used to encrypt the original data record i
 
 **Take notice of the extended `field_config` parameter settings.** For decryption of schema-aware data, the SMT configuration expects that for each field to decrypt the original schema information is explicitly specified.  This allows to **redact the encrypted record's schema towards a compatible decrypted record's schema upfront,** such that the resulting plaintext field values can be stored in accordance with their original data types.
 
-The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **decrypted using the secret key id that is specified and was used to encrypt the original data**. Apparently, this can work if and only if the secret key id has the correct key material configured using the parameter `cipher_data_keys`.
+The result after applying this SMT is a record in which all the fields specified in the `field_config` parameter are **decrypted using the keyset that was used to encrypt the original data**. Apparently, this can work if and only if the keyset is properly configured.
 
 Below is the decrypted data - represented by its `Struct.toString()` output - which is equal to the original record:
 
@@ -240,9 +238,13 @@ Struct{
 <th>Importance</th>
 </tr>
 <tr>
-<td>cipher_data_key_identifier</td><td>secret key identifier to be used as default data encryption key for all fields which don't refer to a field-specific secret key identifier</td><td>string</td><td></td><td>non-empty string</td><td>high</td></tr>
+<td>cipher_data_key_identifier</td><td>keyset identifier to be used as default data encryption keyset for all fields which don't refer to a field-specific keyset identifier</td><td>string</td><td>""</td><td>
+<ul>
+<li>non-empty string if <pre>cipher_mode=ENCRYPT</pre></li>
+<li>empty string if <pre>cipher_mode=DECRYPT</pre></li>
+</td><td>high</td></tr>
 <tr>
-<td>cipher_data_keys</td><td>JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format. The actual key material is mandatory if <pre>kms_type=NONE</pre> and may be left empty otherwise in order to resolve keys from a remote KMS such as Azure Key Vault. <pre>kms_type=AZ_KV_SECRETS</pre><strong>Irrespective of their origin, all key materials are expected to be Base64-encoded secret key bytes which are used for encryption / decryption purposes.</strong></td><td>password</td><td></td><td>JSON array holding at least one valid data key config object, e.g.
+<td>cipher_data_keys</td><td>JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format. The contained keyset objects are mandatory if <pre>kms_type=NONE</pre> but the array may be left empty in order to resolve keysets from a remote KMS such as Azure Key Vault. <pre>kms_type=AZ_KV_SECRETS</pre><strong>Irrespective of their origin, all keysets ("material" fields) are expected to be valid tink keyset descriptions in JSON format which are used for encryption / decryption purposes.</strong></td><td>password</td><td><pre>[]</pre></td><td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in JSON format, e.g.
 <pre>
 [
     {
@@ -283,9 +285,13 @@ DECRYPT
 ]
 </pre></td><td>high</td></tr>
 <tr>
-<td>key_source</td><td>defines the origin of the secret key material (currently supports keys specified directly in the config or secrets fetched from Azure Key Vault if <pre>kms_type=AZ_KV_SECRETS</pre></td><td>string</td><td><pre>TINK_KEY_SETS</pre></td><td><pre>TINK_KEY_SETS</pre></td><td>medium</td></tr>
+<td>key_source</td><td>defines the origin of the keysets which can be defined directly in the config or fetched from a remote KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)</td><td>string</td><td><pre>CONFIG</pre></td><td>
+<pre>
+CONFIG
+KMS
+</pre></td><td>medium</td></tr>
 <tr>
-<td>kms_type</td><td>defines if key materials are read from the config directly or resolved from a remote/cloud KMS (currently only supports Azure Key Vault).</td><td>string</td><td><pre>NONE</pre></td><td>
+<td>kms_type</td><td>defines if keysets are read from the config directly or resolved from a remote/cloud KMS (e.g. Azure Key Vault).</td><td>string</td><td><pre>NONE</pre></td><td>
 <pre>
 NONE
 AZ_KV_SECRETS
@@ -323,9 +329,9 @@ TINK/AES_GCM_SIV
 
 ### Externalize configuration parameters
 
-The problem with directly specifying configuration parameters which contain sensitive data, such as secret key materials, is that they are exposed via Kafka Connect's REST API. This means for connect clusters that are shared among teams the configured secret key materials would leak, which would be unacceptable. The way to deal with this for now, is to indirectly reference such configuration parameters from external property files.
+The problem with directly specifying configuration parameters which contain sensitive data, such as keyset materials, is that they are exposed via Kafka Connect's REST API. This means for connect clusters that are shared among teams the configured keyset materials would leak, which would be unacceptable. The way to deal with this for now, is to indirectly reference such configuration parameters from external property files.
 
-This approach can be used to configure any kind of sensitive data such secret key materials themselves or KMS-specific client authentication settings, in case the secret keys aren't sourced from the config directly but rather retrieved from an cloud KMS such as Azure Key Vault.
+This approach can be used to configure any kind of sensitive data such keyset materials themselves or KMS-specific client authentication settings, in case the keysets aren't sourced from the config directly but rather retrieved from a cloud KMS such as Azure Key Vault.
 
 Below is a quick example of how such a configuration would look like:
 
@@ -336,7 +342,7 @@ connect.config.providers=file
 connect.config.providers.file.class=org.apache.kafka.common.config.provider.FileConfigProvider
 ```
 
-2. Then you create the external properties file e.g. `classified.properties` which contains the secret key materials. This file needs to be available on all your Kafka Connect workers which you want to run Kryptonite on. Let's pretend the file is located at path `/secrets/kryptonite/classified.properties` on your worker nodes:
+2. Then you create the external properties file e.g. `classified.properties` which contains the keyset materials. This file needs to be available on all your Kafka Connect workers which you want to run Kryptonite on. Let's pretend the file is located at path `/secrets/kryptonite/classified.properties` on your worker nodes:
 
 ```properties
 cipher_data_keys=[{"identifier":"my-demo-secret-key-123","material":{<TINK_KEYSET_SPEC_JSON_HERE>}}]
@@ -360,9 +366,9 @@ cipher_data_keys=[{"identifier":"my-demo-secret-key-123","material":{<TINK_KEYSE
 
 In case you want to learn more about configuration parameter externalization there is e.g. this nice [blog post](https://debezium.io/blog/2019/12/13/externalized-secrets/) from the Debezium team showing how to externalize username and password settings using a docker-compose example.
 
-### Tink Key Sets
+### Tink Keysets
 
-Key material is configured in the `cipher_data_keys` property of the `CipherField` SMT which takes an array of JSON objects. The `material` field in one such JSON object represents a key set and might look as follows:
+Key material is configured in the `cipher_data_keys` property of the `CipherField` SMT which takes an array of JSON objects. The `material` field in one such JSON object represents a keyset and might look as follows:
 
 ```json5
 {
@@ -401,9 +407,9 @@ Kryptonite version 0.2.0+ provides the following cipher algorithms:
 
 - [AEAD](https://developers.google.com/tink/aead) using AES in GCM mode for probabilistic encryption based on Tink's implementation
 - [DAEAD](https://developers.google.com/tink/deterministic-aead) using AES in SIV mode for deterministic encryption based on Tink's implementation
-- for backwards compatibility to earlier versions of Kryptonite a JCE-based AEAD AES GCM implementation which is deprecated
+- for backwards compatibility to earlier versions of Kryptonite a JCE-based AEAD AES GCM implementation which should be considered deprecated in the context of this project and not used any longer
 
-All three cryptographic primitives offer support for _authenticated encryption with associated data_ (AEAD). This basically means that besides the ciphertext, an encrypted field additionally contains unencrypted but authenticated meta-data. In order to keep the storage overhead per encrypted field down to a minimum, the implementation currently only incorporates a version identifier for Kryptonite itself together with a short identifier representing the algorithm which was used to encrypt the field in question. Future versions might benefit from additional meta-data.
+All three cryptographic primitives offer support for _authenticated encryption with associated data_ (AEAD). This basically means that besides the ciphertext, an encrypted field additionally contains unencrypted but authenticated meta-data. In order to keep the storage overhead per encrypted field relatively low, the implementation currently only incorporates a version identifier for Kryptonite itself together with a short identifier representing the algorithm as well as the keyset identifier which was used to encrypt the field in question. Future versions might benefit from additional meta-data.
 
 By design, every application of AEAD in probabilistic mode on a specific record field results in different ciphertexts for one and the same plaintext. This is in general not only desirable but very important to make attacks harder. However, in the context of Kafka records this has an unfavorable consequence for producing clients e.g. a source connector. **Applying Kryptonite using AEAD in probabilistic mode on a source record's key would result in a 'partition mix-up'** because records with the same original plaintext key would end up in different topic partitions. In other words, **if you plan to use Kryptonite for source record keys make sure to configure it to apply deterministic AEAD i.e. AES in SIV mode**. Doing so safely supports the encryption of record keys and keeps topic partitioning and record ordering intact.
 

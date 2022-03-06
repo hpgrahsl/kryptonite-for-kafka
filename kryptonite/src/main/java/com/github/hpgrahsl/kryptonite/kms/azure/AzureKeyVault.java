@@ -22,8 +22,19 @@ public class AzureKeyVault extends AbstractKeyVault {
   private final Map<String, KeysetHandle> keysetHandles = new HashMap<>();
 
   public AzureKeyVault(KeyMaterialResolver keyMaterialResolver) {
+    this(keyMaterialResolver,false);
+  }
+
+  public AzureKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
     super(new NoOpKeyStrategy());
     this.keyMaterialResolver = keyMaterialResolver;
+    if (prefetch) {
+      warmUpKeyCache();
+    }
+  }
+
+  private void warmUpKeyCache() {
+    keyMaterialResolver.resolveIdentifiers().forEach(this::fetchIntoKeyCache);
   }
 
   private void fetchIntoKeyCache(String identifier) {

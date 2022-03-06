@@ -215,7 +215,6 @@ public class CipherFieldFunctionalTest {
     );
     decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));
     decProps.put(CipherField.CIPHER_DATA_KEYS,encProps.get(CipherField.CIPHER_DATA_KEYS));
-    decProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,encProps.get(CipherField.CIPHER_DATA_KEY_IDENTIFIER));
     decProps.put(CipherField.FIELD_MODE,fieldMode.name());
 
     var decryptTransform = new CipherField.Value<SinkRecord>();
@@ -291,7 +290,6 @@ public class CipherFieldFunctionalTest {
     );
     decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));
     decProps.put(CipherField.CIPHER_DATA_KEYS,encProps.get(CipherField.CIPHER_DATA_KEYS));
-    decProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,encProps.get(CipherField.CIPHER_DATA_KEY_IDENTIFIER));
     decProps.put(CipherField.FIELD_MODE,fieldMode.name());
 
     var decryptTransform = new CipherField.Value<SinkRecord>();

@@ -16,7 +16,11 @@
 
 package com.github.hpgrahsl.kryptonite.keys;
 
+import java.util.Collection;
+
 public interface KeyMaterialResolver {
+
+  Collection<String> resolveIdentifiers();
 
   String resolveKeyset(String identifier);
 
