@@ -25,7 +25,7 @@
     <version>0.2.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>kafka-connect-transform-kryptonite</artifactId>
+  <artifactId>connect-transform-kryptonite</artifactId>
   <version>0.2.0</version>
   <packaging>jar</packaging>
 

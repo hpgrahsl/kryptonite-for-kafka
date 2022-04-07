@@ -24,10 +24,10 @@
   <packaging>pom</packaging>
   <modules>
     <module>kryptonite</module>
-    <module>connect-transform</module>
+    <module>connect-transform-kryptonite</module>
   </modules>
 
-  <description>Field-Level Cryptography for Kafka</description>
+  <description>Client-Side Field Level Cryptography for Kafka (unofficial community project)</description>
   <url>https://github.com/hpgrahsl/kryptonite-for-kafka</url>
   <licenses>
     <license>
