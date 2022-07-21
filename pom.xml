@@ -25,6 +25,7 @@
   <modules>
     <module>kryptonite</module>
     <module>connect-transform-kryptonite</module>
+    <module>ksqldb-udfs-kryptonite</module>
   </modules>
 
   <description>Client-Side Field Level Cryptography for Kafka (unofficial community project)</description>
