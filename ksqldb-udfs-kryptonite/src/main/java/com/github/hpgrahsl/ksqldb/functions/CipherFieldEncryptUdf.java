@@ -44,16 +44,19 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @UdfDescription(
     name = "k4kencrypt",
-    description = "🐉 encrypt data ... here be 🐲",
+    description = "🔒 encrypt field data ... here be 🐲 🐉 ",
     version = "0.1.0-EXPERIMENTAL",
     author = "H.P. Grahsl (@hpgrahsl)",
     category = "cryptography"
 )
 public class CipherFieldEncryptUdf implements Configurable {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CipherFieldEncryptUdf.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   public static final String KSQL_FUNCTION_CONFIG_PREFIX = "ksql.functions";
   public static final String CONFIG_PARAM_CIPHER_DATA_KEYS = "cipher.data.keys";
@@ -71,15 +74,15 @@ public class CipherFieldEncryptUdf implements Configurable {
   SerdeProcessor serdeProcessor = new KryoSerdeProcessor();
   String defaultCipherDataKeyIdentifier;
 
-  @Udf(description = "🔒 encrypt primitive field data using the configured defaults for key identifier and cipher algorithm")
-  public <T> String encryptPrimitiveField(
+  @Udf(description = "🔒 encrypt primitive or complex field data in object mode using the configured defaults for key identifier and cipher algorithm")
+  public <T> String encryptField(
           @UdfParameter(value = "data", description = "the data to encrypt") final T data
   ) {
     return encryptComplexField(data,"",defaultCipherDataKeyIdentifier,CIPHER_ALGORITHM_DEFAULT);
   }
 
-  @Udf(description = "🔒 encrypt primitive field data using the specified key identifier and cipher algorithm")
-  public <T> String encryptPrimitiveField(
+  @Udf(description = "🔒 encrypt primitive or complex field data in object mode using the specified key identifier and cipher algorithm")
+  public <T> String encryptField(
           @UdfParameter(value = "data", description = "the data to encrypt")
           final T data,
           @UdfParameter(value = "keyIdentifier", description = "the key identifier to use for encryption")
@@ -91,29 +94,29 @@ public class CipherFieldEncryptUdf implements Configurable {
   }
 
   @SuppressWarnings({"unchecked"})
-  @Udf(description = "🔒 encrypt complex field data using the configured defaults for key identifier and cipher algorithm")
+  @Udf(description = "🔒 encrypt complex field data either in object mode or element mode using the configured defaults for key identifier and cipher algorithm")
   public <U,V> V encryptComplexField(
           @UdfParameter(value = "data", description = "the data to encrypt")
           final U data,
-          @UdfParameter(value = "typeCapture", description = "param for target type inference")
+          @UdfParameter(value = "typeCapture", description = "param for target type inference (use STRING for object mode encryption, use MAP | ARRAY | STRUCT for element mode encryption)")
           final V typeCapture
   ) {
     return encryptComplexField(data,typeCapture,defaultCipherDataKeyIdentifier,CIPHER_ALGORITHM_DEFAULT);
   }
 
   @SuppressWarnings({"unchecked"})
-  @Udf(description = "🔒 encrypt complex field data using the specified key identifier and cipher algorithm")
+  @Udf(description = "🔒 encrypt complex field data either in object mode or element mode using the specified key identifier and cipher algorithm")
   public <U,V> V encryptComplexField(
           @UdfParameter(value = "data", description = "the data to encrypt")
           final U data,
-          @UdfParameter(value = "typeCapture", description = "param for target type inference")
+          @UdfParameter(value = "typeCapture", description = "param for target type inference (use STRING for object mode encryption, use MAP | ARRAY | STRUCT for element mode encryption)")
           final V typeCapture,
           @UdfParameter(value = "keyIdentifier", description = "the key identifier to use for encryption")
           final String keyIdentifier,
           @UdfParameter(value = "cipherAlgorithm", description = "the cipher algorithm to use for encryption")
           final String cipherAlgorithm
   ) {
-    if(!hasComplexType(data) || (hasComplexType(data) && typeCapture instanceof String)) {
+    if(!hasSupportedComplexType(data) || (hasSupportedComplexType(data) && typeCapture instanceof String)) {
       var fieldMetaData = new FieldMetaData(
               cipherAlgorithm,
               Optional.ofNullable(data).map(o -> o.getClass().getName()).orElse(""),
@@ -121,15 +124,14 @@ public class CipherFieldEncryptUdf implements Configurable {
       );
       return (V) encryptData(data,fieldMetaData);
     }
-
-    if(hasComplexType(data) && typeCapture.getClass().equals(data.getClass())) {
+    if(hasSupportedComplexType(data) && typeCapture.getClass().equals(data.getClass())) {
       return (V) processComplexFieldElementwise(data,typeCapture,keyIdentifier,cipherAlgorithm);
     }
     throw new KsqlFunctionException("error: unsupported combinations for field data type ("
             +data.getClass().getName()+") and target type ("+typeCapture.getClass().getName()+")");
   }
 
-  private boolean hasComplexType(Object data) {
+  private boolean hasSupportedComplexType(Object data) {
     return (data instanceof List)
             || (data instanceof Map)
             || (data instanceof Struct);
@@ -181,6 +183,7 @@ public class CipherFieldEncryptUdf implements Configurable {
   }
 
   private Object processComplexFieldElementwise(Object data, Object typeCapture, String keyIdentifier, String cipherAlgorithm) {
+    LOGGER.debug("processing '{}' element-wise", data.getClass());
     if (data instanceof List && typeCapture instanceof List) {
       return encryptListInElementMode(data, keyIdentifier, cipherAlgorithm);
     }
@@ -196,11 +199,16 @@ public class CipherFieldEncryptUdf implements Configurable {
 
   private String encryptData(Object data, FieldMetaData fieldMetaData) {
     try {
+      LOGGER.debug("encrypting: {} (having meta-data {})",data,fieldMetaData);
       var valueBytes = serdeProcessor.objectToBytes(data);
+      LOGGER.trace("plaintext byte sequence: {}", Arrays.toString(valueBytes));
       var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
+      LOGGER.trace("encrypted data: {}", encryptedField);
       var output = new Output(new ByteArrayOutputStream());
       KryoInstance.get().writeObject(output, encryptedField);
-      return Base64.getEncoder().encodeToString(output.toBytes());
+      var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
+      LOGGER.debug("BASE64 encoded ciphertext: {}",encodedField);
+      return encodedField;
     } catch (Exception exc) {
       exc.printStackTrace();
     }

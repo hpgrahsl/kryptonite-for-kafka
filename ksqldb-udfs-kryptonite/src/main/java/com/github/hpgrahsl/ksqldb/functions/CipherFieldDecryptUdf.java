@@ -34,19 +34,24 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @UdfDescription(
     name = "k4kdecrypt",
-    description = "🐉 decrypt data ... here be 🐲",
+    description = "🔓 decrypt field data ... here be 🐲 🐉",
     version = "0.1.0-EXPERIMENTAL",
     author = "H.P. Grahsl (@hpgrahsl)",
     category = "cryptography"
 )
 public class CipherFieldDecryptUdf implements Configurable {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(CipherFieldDecryptUdf.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   public static final String KSQL_FUNCTION_CONFIG_PREFIX = "ksql.functions";
   public static final String CONFIG_PARAM_CIPHER_DATA_KEYS = "cipher.data.keys";
@@ -62,15 +67,15 @@ public class CipherFieldDecryptUdf implements Configurable {
   SerdeProcessor serdeProcessor = new KryoSerdeProcessor();
 
   @SuppressWarnings({"unchecked"})
-  @Udf(description = "🔓 decrypt the field data")
-  public <T> T decryptData(
-      @UdfParameter(value = "data", description = "the encrypted data (base64 encoded bytes) to decrypt")
+  @Udf(description = "🔓 decrypt the field data (object mode)")
+  public <T> T decryptField(
+      @UdfParameter(value = "data", description = "the encrypted data (base64 encoded ciphertext) to decrypt")
       final String data,
       @UdfParameter(value = "typeCapture", description = "param for target type inference")
       final T typeCapture
   ) {
     try {
-      return (T) decryptField(data);
+      return (T) decryptData(data);
     } catch(Exception exc) {
       exc.printStackTrace();
     }
@@ -78,16 +83,16 @@ public class CipherFieldDecryptUdf implements Configurable {
   }
 
   @SuppressWarnings({"unchecked"})
-  @Udf(description = "🔓 decrypt array elements")
+  @Udf(description = "🔓 decrypt array elements (element mode)")
   public <E> List<E> decryptArrayElements(
-          @UdfParameter(value = "data", description = "the encrypted array elements (base64 encoded ciphertext) to decrypt")
+          @UdfParameter(value = "data", description = "the encrypted array elements (given as base64 encoded ciphertext) to decrypt")
           final List<String> data,
           @UdfParameter(value = "typeCapture", description = "param for elements' target type inference")
           final E typeCapture
   ) {
     try {
       return data.stream()
-              .map(e -> (E)decryptField(e))
+              .map(e -> (E) decryptData(e))
               .collect(Collectors.toList());
     } catch(Exception exc) {
       exc.printStackTrace();
@@ -96,16 +101,16 @@ public class CipherFieldDecryptUdf implements Configurable {
   }
 
   @SuppressWarnings({"unchecked"})
-  @Udf(description = "🔓 decrypt map values")
+  @Udf(description = "🔓 decrypt map values (element mode)")
   public <K,V> Map<K,V> decryptMapValues(
-          @UdfParameter(value = "data", description = "the encrypted map values (base64 encoded ciphertext) to decrypt")
+          @UdfParameter(value = "data", description = "the encrypted map entries (values given as base64 encoded ciphertext) to decrypt")
           final Map<K,String> data,
           @UdfParameter(value = "typeCapture", description = "param for values' target type inference")
           final V typeCapture
   ) {
     try {
       return data.entrySet().stream()
-              .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),(V)decryptField(e.getValue())))
+              .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),(V) decryptData(e.getValue())))
               .collect(LinkedHashMap::new,(lhm, e) -> lhm.put(e.getKey(),e.getValue()), HashMap::putAll);
     } catch(Exception exc) {
       exc.printStackTrace();
@@ -113,11 +118,27 @@ public class CipherFieldDecryptUdf implements Configurable {
     return null;
   }
 
-  private Object decryptField(String data) {
+  public Struct decryptStructValues(final Struct data, final Schema originalSchema) {
+    Struct decryptedStruct = new Struct(originalSchema);
+    data.schema().fields().forEach(
+            f -> decryptedStruct.put(
+                    f.name(),
+                    decryptData((String)data.get(f.name()))
+            )
+    );
+    return decryptedStruct;
+  }
+
+  private Object decryptData(String data) {
     try {
+      LOGGER.debug("BASE64 encoded ciphertext: {}",data);
       var encryptedField = KryoInstance.get().readObject(new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
+      LOGGER.trace("encrypted data: {}",encryptedField);
       var plaintext = kryptonite.decipherField(encryptedField);
-      return serdeProcessor.bytesToObject(plaintext);
+      LOGGER.trace("plaintext byte sequence: {}",plaintext);
+      var restored = serdeProcessor.bytesToObject(plaintext);
+      LOGGER.debug("restored data: {}",restored);
+      return restored;
     } catch (Exception exc) {
       exc.printStackTrace();
     }
