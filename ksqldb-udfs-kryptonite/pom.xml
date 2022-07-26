@@ -37,6 +37,7 @@
         <ksql.version>6.2.0</ksql.version>
         <connect-transform-kryptonite.version>0.2.0</connect-transform-kryptonite.version>
         <junit.version>5.8.2</junit.version>
+        <logback.version>1.2.10</logback.version>
         <jackson.version>2.13.3</jackson.version>
         <shade.plugin.version>3.2.4</shade.plugin.version>
         <compiler.plugin.version>3.10.0</compiler.plugin.version>
@@ -89,7 +90,7 @@
                             <artifactSet>
                                 <excludes>
                                     <exclude>org.slf4j:slf4j-api:jar:</exclude>
-                                    <exclude> org.slf4j:slf4j-log4j12:jar:</exclude>
+                                    <exclude>org.slf4j:slf4j-log4j12:jar:</exclude>
                                     <exclude>log4j:log4j:jar:</exclude>
                                 </excludes>
                             </artifactSet>
@@ -121,11 +122,23 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-udf</artifactId>
             <version>${ksql.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
             <version>${ksql.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -141,6 +154,11 @@
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
             <version>${ksql.version}-ccs</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
         </dependency>
         <!-- Test dependencies -->
         <dependency>
