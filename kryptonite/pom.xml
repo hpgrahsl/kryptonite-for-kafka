@@ -34,7 +34,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <google.tink.version>1.6.1</google.tink.version>
-    <logback.version>1.2.10</logback.version>
+    <logback.version>1.2.11</logback.version>
     <az.keyvault.version>4.3.7</az.keyvault.version>
     <az.identity.version>1.4.4</az.identity.version>
     <junit.version>5.8.2</junit.version>
@@ -48,11 +48,6 @@
       <groupId>com.google.crypto.tink</groupId>
       <artifactId>tink</artifactId>
       <version>${google.tink.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <version>${logback.version}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -116,7 +111,7 @@
               <artifactSet>
                 <excludes>
                   <exclude>org.slf4j:slf4j-api:jar:</exclude>
-                  <exclude> org.slf4j:slf4j-log4j12:jar:</exclude>
+                  <exclude>org.slf4j:slf4j-log4j12:jar:</exclude>
                   <exclude>log4j:log4j:jar:</exclude>
                 </excludes>
               </artifactSet>
