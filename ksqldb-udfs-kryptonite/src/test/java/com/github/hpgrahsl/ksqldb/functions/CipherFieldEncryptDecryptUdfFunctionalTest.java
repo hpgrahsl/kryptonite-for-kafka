@@ -92,14 +92,15 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
     static void initializeTestData() {
 
         OBJ_SCHEMA_1 = SchemaBuilder.struct()
-                .field("id", Schema.STRING_SCHEMA)
-                .field("myString", Schema.STRING_SCHEMA)
-                .field("myInt",Schema.INT32_SCHEMA)
-                .field("myBoolean", Schema.BOOLEAN_SCHEMA)
-                .field("mySubDoc1", SchemaBuilder.struct().field("myString",Schema.STRING_SCHEMA).build())
-                .field("myArray1", SchemaBuilder.array(Schema.STRING_SCHEMA).build())
-                .field("mySubDoc2", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build())
-                .field("myBytes", Schema.BYTES_SCHEMA)
+                .field("id", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("myString", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("myInt",Schema.OPTIONAL_INT32_SCHEMA)
+                .field("myBoolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                .field("mySubDoc1", SchemaBuilder.struct().field("myString",Schema.OPTIONAL_STRING_SCHEMA).optional().build())
+                .field("myArray1", SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build())
+                .field("mySubDoc2", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA).optional().build())
+                .field("myBytes", Schema.OPTIONAL_BYTES_SCHEMA)
+                .optional()
                 .build();
 
         OBJ_STRUCT_1 = new Struct(OBJ_SCHEMA_1)
@@ -145,7 +146,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
                         f.schema().isOptional() ? Schema.OPTIONAL_STRING_SCHEMA : Schema.STRING_SCHEMA)
         );
 
-        Schema targetSchema = schemaBuilder.build();
+        Schema targetSchema = schemaBuilder.optional().build();
         Struct encryptedStruct = new Struct(targetSchema);
         originalStruct.schema().fields().forEach(
                 f -> encryptedStruct.put(
@@ -241,9 +242,9 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         );
 
         var complexFieldSchemaTarget = Map.of(
-                "mySubDoc1",SchemaBuilder.struct().field("myString",Schema.STRING_SCHEMA).build(),
-                "myArray1",SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
-                "mySubDoc2",SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build()
+                "mySubDoc1",SchemaBuilder.struct().field("myString",Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
+                "myArray1",SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
+                "mySubDoc2",SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA).optional().build()
         );
 
         SchemaBuilder schemaBuilder = SchemaBuilder.struct();
@@ -256,7 +257,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
                 )
         );
 
-        Schema targetSchema = schemaBuilder.build();
+        Schema targetSchema = schemaBuilder.optional().build();
         Struct encryptedStruct = new Struct(targetSchema);
         originalStruct.schema().fields().forEach(
                 f -> encryptedStruct.put(
@@ -377,7 +378,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
                 Stream.concat(
                         Stream.of(() -> assertEquals(expected.schema(),actual.schema())),
                         expected.schema().fields().stream().map(
-                                f -> f.schema().equals(Schema.BYTES_SCHEMA)
+                                f -> (f.schema().equals(Schema.OPTIONAL_BYTES_SCHEMA) || f.schema().equals(Schema.BYTES_SCHEMA))
                                         ? () -> assertArrayEquals((byte[])expected.get(f.name()),(byte[])actual.get(f.name()))
                                         : () -> assertEquals(expected.get(f.name()),actual.get(f.name()))
                         )

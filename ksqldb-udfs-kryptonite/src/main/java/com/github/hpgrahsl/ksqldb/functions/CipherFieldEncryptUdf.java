@@ -166,7 +166,7 @@ public class CipherFieldEncryptUdf implements Configurable {
             f -> schemaBuilder.field(f.name(),
                     f.schema().isOptional() ? Schema.OPTIONAL_STRING_SCHEMA : Schema.STRING_SCHEMA)
     );
-    Schema targetSchema = schemaBuilder.build();
+    Schema targetSchema = schemaBuilder.optional().build();
     Struct redacted = new Struct(targetSchema);
     original.schema().fields().forEach(
             f -> redacted.put(
