@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.ksqldb.functions;
+package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.fasterxml.jackson.core.type.TypeReference;

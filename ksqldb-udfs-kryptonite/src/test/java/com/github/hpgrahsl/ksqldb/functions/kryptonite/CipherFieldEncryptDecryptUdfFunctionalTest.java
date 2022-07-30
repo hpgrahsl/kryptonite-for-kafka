@@ -1,4 +1,4 @@
-package com.github.hpgrahsl.ksqldb.functions;
+package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.crypto.jce.AesGcmNoPadding;
