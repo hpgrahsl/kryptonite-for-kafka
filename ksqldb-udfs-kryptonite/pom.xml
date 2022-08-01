@@ -122,6 +122,7 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-udf</artifactId>
             <version>${ksql.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -133,6 +134,7 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksqldb-common</artifactId>
             <version>${ksql.version}</version>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -141,19 +143,23 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-api</artifactId>
+            <version>${ksql.version}-ccs</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- removable because this might come as transitive dependency with kryptonite module / package ??? -->
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
+            <!-- removed after moving serde processor to kryptonite module/package ??? -->
+            <!-- add kryptonite module/package after removing connect-transform package ??? -->
             <groupId>com.github.hpgrahsl</groupId>
             <artifactId>connect-transform-kryptonite</artifactId>
             <version>${connect-transform-kryptonite.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>connect-api</artifactId>
-            <version>${ksql.version}-ccs</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
