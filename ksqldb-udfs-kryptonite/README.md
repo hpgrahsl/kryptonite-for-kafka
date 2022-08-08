@@ -30,7 +30,7 @@ K4KENCRYPT            | cryptography
 
 ### Configuration
 
-The following table lists configuration options for the `K4KENCRYPT` UDF.
+The following table lists configuration options for the UDFs.
 
 <table class="data-table"><tbody>
 <tr>
@@ -41,8 +41,6 @@ The following table lists configuration options for the `K4KENCRYPT` UDF.
 <th>Valid Values</th>
 <th>?</th>
 </tr>
-<tr>
-<td>cipher_data_key_identifier</td><td>keyset identifier to be used as default data encryption keyset for all UDF calls which don't refer to a specific keyset identifier</td><td>string</td><td>""</td><td>non-empty string</td><td><strong>mandatory</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td>
 <tr>
 <td>cipher_data_keys</td><td>JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format. The contained keyset objects are mandatory if <pre>kms_type=NONE</pre> but the array may be left empty in order to resolve keysets from a remote KMS such as Azure Key Vault. <pre>kms_type=AZ_KV_SECRETS</pre><strong>Irrespective of their origin, all keysets ("material" fields) are expected to be valid tink keyset descriptions in JSON format which are used for encryption / decryption purposes.</strong></td><td>string</td><td><pre>[]</pre></td><td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in JSON format, e.g.
 <pre>
@@ -66,7 +64,9 @@ The following table lists configuration options for the `K4KENCRYPT` UDF.
         }
     }
 ]
-</pre></td><td><strong>mandatory</strong> for <pre>K4KENCRYPT</pre></td></tr>
+</pre></td><td><strong>mandatory</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
+<tr>
+<td>cipher_data_key_identifier</td><td>keyset identifier to be used as default data encryption keyset for all UDF calls which don't refer to a specific keyset identifier</td><td>string</td><td>""</td><td>non-empty string</td><td><strong>mandatory</strong> for <pre>K4KENCRYPT</pre></td>
 <tr>
 <td>key_source</td><td>defines the origin of the keysets which can be defined directly in the CONFIG or fetched from a remote KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)</td><td>string</td><td><pre>CONFIG</pre></td><td>
 <pre>
