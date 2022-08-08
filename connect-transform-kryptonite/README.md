@@ -6,7 +6,14 @@
 
 ## Kafka Connect Transformation (SMT)
 
-Kryptonite for Kafka provides a turn-key ready SMT called `CipherField`. The simple examples below show how to configure and use the SMT to encrypt and decrypt record fields.
+Kryptonite for Kafka provides a turn-key ready SMT called `CipherField`. The simple examples below show how to install, configure and apply the SMT to encrypt and decrypt record fields.
+
+### Build and Deployment
+
+Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built Kafka Connect SMT can be downloaded from here [connect-transform-kryptonite-0.3.0.jar](https://drive.google.com/file/d/1XVDnvId5bnemOTtqmJhL0R0114JT8Mjv/view?usp=sharing)
+
+In order to deploy this custom SMT **put the jar into your _'connect plugin path'_** that is configured to be scanned during boostrap of the kafka connect worker node(s).
+
 
 ### Data Records without Schema
 
@@ -396,16 +403,3 @@ or
 - as single-line escape/quoted JSON string if included directly within a connector's JSON configuration
 
 `"... \"material\": { \"primaryKeyId\": 1234567890, \"key\": [ { \"keyData\": { \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesGcmKey\", \"value\": \"<BASE64_ENCODED_KEY_HERE>\", \"keyMaterialType\": \"SYMMETRIC\" }, \"status\": \"ENABLED\", \"keyId\": 1234567890, \"outputPrefixType\": \"TINK\" } ] } ..."`
-
-### Cipher Algorithm Specifics
-
-The project uses authenticated encryption with associated data ([AEAD](https://en.wikipedia.org/wiki/Authenticated_encryption)) and in particular applies [AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard) in [GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) mode for probabilistic encryption (default) or [SIV](https://en.wikipedia.org/wiki/AES-GCM-SIV) mode for uses cases which either require or at least benefit from deterministic encryption. The preferred and new default way is to configure Kryptonite to use Google's [Tink](https://github.com/google/tink) multi-language, cross-platform open-source cryptography library. Kryptonite version 0.2.0+ provides the following cipher algorithms:
-
-- [AEAD](https://developers.google.com/tink/aead) using **AES in GCM mode for probabilistic encryption** based on Tink's implementation
-- [DAEAD](https://developers.google.com/tink/deterministic-aead) using **AES in SIV mode for deterministic encryption** based on Tink's implementation
-- for backwards compatibility to earlier versions of Kryptonite a JCE-based AEAD AES GCM implementation which should be considered _@Deprecated_ in the context of this project and not used any longer
-
-All three cryptographic primitives offer support for _authenticated encryption with associated data_ (AEAD). This basically means that besides the ciphertext, an encrypted field additionally contains unencrypted but authenticated meta-data. In order to keep the storage overhead per encrypted field relatively low, the implementation currently only incorporates a version identifier for Kryptonite itself together with a short identifier representing the algorithm as well as the keyset identifier which was used to encrypt the field in question. Future versions might benefit from additional meta-data.
-
-By design, every application of AEAD in probabilistic mode on a specific record field results in different ciphertexts for one and the same plaintext. This is in general not only desirable but very important to make attacks harder. However, in the context of Kafka records this has an unfavorable consequence for producing clients e.g. a source connector. **Applying Kryptonite using AEAD in probabilistic mode on a source record's key would result in a 'partition mix-up'** because records with the same original plaintext key would end up in different topic partitions. In other words, **if you plan to use Kryptonite for source record keys make sure to configure it to apply deterministic AEAD i.e. AES in SIV mode**. Doing so safely supports the encryption of record keys and keeps topic partitioning and record ordering intact.
-

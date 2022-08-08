@@ -6,13 +6,13 @@
 
 ## ksqlDB User-Defined Functions (UDFs)
 
-Kryptonite for Kafka provides two ksqlDB user-defined functions (UDFs) named `K4KENCRYPT` and `K4KDECRYPT`. The simple examples below show how to install, configure and apply the UDFs to selectively encrypt column values in ksqlDB _STREAMS_ and _TABLES_.
+Kryptonite for Kafka provides two ksqlDB user-defined functions (UDFs) named `K4KENCRYPT` and `K4KDECRYPT`. The simple examples below show how to install, configure and apply the UDFs to selectively encrypt column values in ksqlDB `STREAMS` and `TABLES`.
 
 ### Build and Deployment
 
-Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite artefacts. The pre-built ksqlDB UDFs can be downloaded from here [ksqldb-udfs-kryptonite-0.1.0-EXPERIMENTAL.jar]().
+Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built ksqlDB UDFs can be downloaded from here [ksqldb-udfs-kryptonite-0.1.0-EXPERIMENTAL.jar](https://drive.google.com/file/d/1_VG3LbWx2qdZgX7tXJk2hX1_cDSC49y9/view?usp=sharing)
 
-In order to deploy the UDFs **put the jar into your _'ksql extension directory'_** that is configured to be scanned during bootstrap of the ksqldb server process(es).
+In order to deploy the UDFs **put the jar into your _'ksql extension directory'_** that is configured to be scanned during bootstrap of the ksqlDB server process(es).
 
 Verify a successful deployment by checking all available functions from within the ksqlDB CLI, which somewhere along the lines should output both Kryptonite for Kafka related user-defined functions like so:
 
