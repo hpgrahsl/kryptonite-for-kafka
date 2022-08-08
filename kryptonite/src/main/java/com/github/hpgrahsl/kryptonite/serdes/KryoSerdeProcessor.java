@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes;
+package com.github.hpgrahsl.kryptonite.serdes;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Map;
-
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -31,6 +27,10 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Map;
 
 public class KryoSerdeProcessor implements SerdeProcessor {
 

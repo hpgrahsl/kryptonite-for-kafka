@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes;
+package com.github.hpgrahsl.kryptonite.serdes;
 
 public interface SerdeProcessor {
 

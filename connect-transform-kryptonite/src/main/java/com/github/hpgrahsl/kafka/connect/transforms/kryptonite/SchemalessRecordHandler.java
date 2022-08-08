@@ -17,24 +17,25 @@
 package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import java.util.List;
-import java.util.Map;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
 
 public class SchemalessRecordHandler extends RecordHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemalessRecordHandler.class);
 
   public SchemalessRecordHandler(AbstractConfig config,
-      SerdeProcessor serdeProcessor, Kryptonite kryptonite,
-      CipherMode cipherMode,
-      Map<String, FieldConfig> fieldConfig) {
+                                 SerdeProcessor serdeProcessor, Kryptonite kryptonite,
+                                 CipherMode cipherMode,
+                                 Map<String, FieldConfig> fieldConfig) {
     super(config, serdeProcessor, kryptonite, cipherMode, fieldConfig);
   }
 

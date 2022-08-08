@@ -19,10 +19,6 @@ package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 import com.esotericsoftware.kryo.io.Output;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.KryoInstance;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.KryoSerdeProcessor;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
@@ -31,6 +27,9 @@ import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
+import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
+import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -230,9 +229,9 @@ public class CipherFieldEncryptUdf implements Configurable {
       var keyIdentifierConfig = (String)configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER);
       defaultCipherDataKeyIdentifier = keyIdentifierConfig != null ? keyIdentifierConfig : "";
       var keySourceConfig = (String)configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_KEY_SOURCE);
-      var keySource = CipherField.KeySource.valueOf(keySourceConfig != null ? keySourceConfig : KEY_SOURCE_DEFAULT);
+      var keySource = CustomUdfConfig.KeySource.valueOf(keySourceConfig != null ? keySourceConfig : KEY_SOURCE_DEFAULT);
       var kmsTypeConfig = (String)configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_KMS_TYPE);
-      var kmsType = CipherField.KmsType.valueOf(kmsTypeConfig != null ? kmsTypeConfig : KMS_TYPE_DEFAULT);
+      var kmsType = CustomUdfConfig.KmsType.valueOf(kmsTypeConfig != null ? kmsTypeConfig : KMS_TYPE_DEFAULT);
       var kmsConfigConfig = (String)configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_KMS_CONFIG);
       var kmsConfig = kmsConfigConfig != null ? kmsConfigConfig : KMS_CONFIG_DEFAULT;
       switch(keySource) {
@@ -246,7 +245,7 @@ public class CipherFieldEncryptUdf implements Configurable {
           kryptonite = new Kryptonite(new TinkKeyVault(keyConfigs));
           return;
         case KMS:
-          if (kmsType.equals(CipherField.KmsType.AZ_KV_SECRETS)) {
+          if (kmsType.equals(CustomUdfConfig.KmsType.AZ_KV_SECRETS)) {
             kryptonite = new Kryptonite(new AzureKeyVault(new AzureSecretResolver(kmsConfig),true));
           }
           throw new ConfigException(

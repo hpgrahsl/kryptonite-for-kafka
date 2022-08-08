@@ -23,7 +23,7 @@
     <parent>
         <groupId>com.github.hpgrahsl</groupId>
         <artifactId>kryptonite-for-kafka</artifactId>
-        <version>0.2.0</version>
+        <version>0.3.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>ksqldb-udfs-kryptonite</artifactId>
@@ -35,7 +35,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <ksql.version>6.2.0</ksql.version>
-        <connect-transform-kryptonite.version>0.2.0</connect-transform-kryptonite.version>
+        <kryptonite.version>0.3.0</kryptonite.version>
         <junit.version>5.8.2</junit.version>
         <logback.version>1.2.11</logback.version>
         <jackson.version>2.13.3</jackson.version>
@@ -149,17 +149,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <!-- removable because this might come as transitive dependency with kryptonite module / package ??? -->
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <!-- removed after moving serde processor to kryptonite module/package ??? -->
-            <!-- add kryptonite module/package after removing connect-transform package ??? -->
             <groupId>com.github.hpgrahsl</groupId>
-            <artifactId>connect-transform-kryptonite</artifactId>
-            <version>${connect-transform-kryptonite.version}</version>
+            <artifactId>kryptonite</artifactId>
+            <version>${kryptonite.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

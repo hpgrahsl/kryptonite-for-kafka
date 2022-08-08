@@ -18,26 +18,17 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.KryoInstance;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.SerdeProcessor;
-import com.github.hpgrahsl.kryptonite.CipherMode;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
-import com.github.hpgrahsl.kryptonite.FieldMetaData;
-import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import java.io.ByteArrayOutputStream;
-import java.util.AbstractMap;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import com.github.hpgrahsl.kryptonite.*;
+import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class RecordHandler implements FieldPathMatcher {
 

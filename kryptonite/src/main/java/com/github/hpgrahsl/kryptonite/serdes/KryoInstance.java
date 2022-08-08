@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes;
+package com.github.hpgrahsl.kryptonite.serdes;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.KryoSerdeProcessor.SchemaSerializer;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.KryoSerdeProcessor.StructSerializer;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
@@ -48,8 +46,8 @@ public class KryoInstance {
       KRYO.register(FieldMetaData.class);
       KRYO.register(PayloadMetaData.class);
       KRYO.register(EncryptedField.class);
-      KRYO.register(Struct.class).setSerializer(new StructSerializer());
-      KRYO.register(Schema.class).setSerializer(new SchemaSerializer());
+      KRYO.register(Struct.class).setSerializer(new KryoSerdeProcessor.StructSerializer());
+      KRYO.register(Schema.class).setSerializer(new KryoSerdeProcessor.SchemaSerializer());
       KRYO.register(Schema.Type.class);
       //NOTE: pre-registering a couple of commonly found classes
       //      in the context of kafka connect and ksqlDB
