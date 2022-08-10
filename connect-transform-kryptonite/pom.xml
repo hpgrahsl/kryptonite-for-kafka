@@ -36,7 +36,7 @@
     <kryptonite.version>0.3.0</kryptonite.version>
     <kafka.version>3.1.0</kafka.version>
     <jackson.version>2.13.3</jackson.version>
-    <logback.version>1.2.10</logback.version>
+    <logback.version>1.2.11</logback.version>
     <junit.version>5.8.2</junit.version>
     <shade.plugin.version>3.2.4</shade.plugin.version>
     <compiler.plugin.version>3.10.0</compiler.plugin.version>
