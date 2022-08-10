@@ -34,11 +34,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <ksql.version>6.2.0</ksql.version>
+        <ksql.version>7.2.1</ksql.version>
         <kryptonite.version>0.3.0</kryptonite.version>
-        <junit.version>5.8.2</junit.version>
         <logback.version>1.2.11</logback.version>
         <jackson.version>2.13.3</jackson.version>
+        <junit.version>5.9.0</junit.version>
         <shade.plugin.version>3.2.4</shade.plugin.version>
         <compiler.plugin.version>3.10.0</compiler.plugin.version>
         <surefire.plugin.version>2.22.2</surefire.plugin.version>
