@@ -6,7 +6,7 @@
 
 ## ksqlDB User-Defined Functions (UDFs)
 
-Kryptonite for Kafka provides two ksqlDB user-defined functions (UDFs) named `K4KENCRYPT` and `K4KDECRYPT`. The simple examples below show how to install, configure and apply the UDFs to selectively encrypt column values in ksqlDB `STREAMS` and `TABLES`.
+Kryptonite for Kafka provides two [ksqlDB](https://ksqlDB.io) [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDFs) named `K4KENCRYPT` and `K4KDECRYPT` which are currently in _[EXPERIMENTAL]_ stage. The simple examples below show how to install, configure and apply the UDFs to selectively encrypt column values in ksqlDB `STREAMS` and `TABLES`.
 
 ### Build and Deployment
 

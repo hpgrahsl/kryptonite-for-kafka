@@ -6,7 +6,7 @@
 
 ## Kafka Connect Transformation (SMT)
 
-Kryptonite for Kafka provides a turn-key ready SMT called `CipherField`. The simple examples below show how to install, configure and apply the SMT to encrypt and decrypt record fields.
+Kryptonite for Kafka provides a turn-key ready [Kafka Connect](https://kafka.apache.org/documentation/#connect) [single message transformation](https://kafka.apache.org/documentation/#connect_transforms) (SMT) called `CipherField`. The simple examples below show how to install, configure and apply the SMT to encrypt and decrypt record fields.
 
 ### Build and Deployment
 
