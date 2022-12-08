@@ -48,8 +48,8 @@ import org.slf4j.LoggerFactory;
 
 @UdfDescription(
     name = "k4kencrypt",
-    description = "🔒 encrypt field data ... here be 🐲 🐉 ",
-    version = "0.1.0-EXPERIMENTAL",
+    description = "🔒 encrypt field data ... hopefully without fighting 🐲 🐉",
+    version = "0.1.1",
     author = "H.P. Grahsl (@hpgrahsl)",
     category = "cryptography"
 )
