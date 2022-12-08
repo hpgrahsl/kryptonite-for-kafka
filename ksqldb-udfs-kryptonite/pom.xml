@@ -27,20 +27,18 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>ksqldb-udfs-kryptonite</artifactId>
-    <version>0.1.0-EXPERIMENTAL</version>
+    <version>0.1.1</version>
     <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <ksql.version>7.2.1</ksql.version>
-        <kryptonite.version>0.3.0</kryptonite.version>
-        <logback.version>1.2.11</logback.version>
-        <jackson.version>2.13.3</jackson.version>
-        <junit.version>5.9.0</junit.version>
-        <shade.plugin.version>3.2.4</shade.plugin.version>
-        <compiler.plugin.version>3.10.0</compiler.plugin.version>
+        <maven.compiler.release>11</maven.compiler.release>
+        <kryptonite.version>0.3.1</kryptonite.version>
+        <ksql.version>7.3.0</ksql.version>
+        <jackson.version>2.14.1</jackson.version>
+        <junit.version>5.9.1</junit.version>
+        <shade.plugin.version>3.4.1</shade.plugin.version>
+        <compiler.plugin.version>3.10.1</compiler.plugin.version>
         <surefire.plugin.version>2.22.2</surefire.plugin.version>
     </properties>
 
@@ -49,11 +47,11 @@
             <id>confluent</id>
             <url>https://packages.confluent.io/maven/</url>
         </repository>
-        <repository>
+        <!--<repository>
             <id>ossrh</id>
             <name>Maven Central</name>
             <url>https://repo1.maven.org/maven2/</url>
-        </repository>
+        </repository>-->
     </repositories>
 
     <build>
@@ -69,8 +67,7 @@
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
+                    <release>${maven.compiler.release}</release>
                     <compilerArgs>
                         <!--<arg>-parameters</arg>-->
                     </compilerArgs>
@@ -87,13 +84,6 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>org.slf4j:slf4j-api:jar:</exclude>
-                                    <exclude>org.slf4j:slf4j-log4j12:jar:</exclude>
-                                    <exclude>log4j:log4j:jar:</exclude>
-                                </excludes>
-                            </artifactSet>
                             <minimizeJar>true</minimizeJar>
                             <filters>
                                 <filter>
@@ -117,6 +107,11 @@
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>com.github.hpgrahsl</groupId>
+            <artifactId>kryptonite</artifactId>
+            <version>${kryptonite.version}</version>
+        </dependency>
         <!-- KSQL dependencies -->
         <dependency>
             <groupId>io.confluent.ksql</groupId>
@@ -127,6 +122,10 @@
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -140,6 +139,10 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -147,16 +150,6 @@
             <artifactId>connect-api</artifactId>
             <version>${ksql.version}-ccs</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.hpgrahsl</groupId>
-            <artifactId>kryptonite</artifactId>
-            <version>${kryptonite.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
         </dependency>
         <!-- Test dependencies -->
         <dependency>

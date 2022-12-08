@@ -48,9 +48,11 @@ public class SchemalessRecordHandler extends RecordHandler {
     var dataNew =  (Map<String, Object>)objectNew;
     dataOriginal.forEach((f,v) -> {
       var updatedPath = matchedPath.isEmpty() ? f : matchedPath+pathDelimiter+f;
-          if(fieldConfig.containsKey(updatedPath)) {
+      var fc = fieldConfig.get(updatedPath);
+      if(fc != null) {
             LOGGER.trace("matched field '{}'",updatedPath);
-            if(FieldMode.ELEMENT == FieldMode.valueOf(getConfig().getString(CipherField.FIELD_MODE))) {
+            if(FieldMode.ELEMENT == fc.getFieldMode()
+                    .orElse(FieldMode.valueOf(getConfig().getString(CipherField.FIELD_MODE)))) {
               if(v instanceof List) {
                 LOGGER.trace("processing {} field element-wise", List.class.getSimpleName());
                 dataNew.put(f, processListField((List<?>)dataOriginal.get(f),updatedPath));

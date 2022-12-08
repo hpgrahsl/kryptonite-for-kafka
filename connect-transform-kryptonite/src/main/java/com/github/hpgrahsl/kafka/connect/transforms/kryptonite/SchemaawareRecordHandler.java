@@ -49,9 +49,11 @@ public class SchemaawareRecordHandler extends RecordHandler {
     var dataNew = (Struct)objectNew;
     schemaOriginal.fields().forEach(f -> {
       var updatedPath = matchedPath.isEmpty() ? f.name() : matchedPath+pathDelimiter+f.name();
-        if(fieldConfig.containsKey(updatedPath)) {
+      var fc = fieldConfig.get(updatedPath);
+      if(fc != null) {
           LOGGER.trace("matched field '{}'",updatedPath);
-          if(FieldMode.ELEMENT == FieldMode.valueOf(getConfig().getString(CipherField.FIELD_MODE))) {
+          if(FieldMode.ELEMENT == fc.getFieldMode()
+                  .orElse(FieldMode.valueOf(getConfig().getString(CipherField.FIELD_MODE)))) {
             if(f.schema().type() == Type.ARRAY){
               LOGGER.trace("processing {} field element-wise",Type.ARRAY);
               dataNew.put(schemaNew.field(f.name()), processListField((List<?>)dataOriginal.get(f.name()),updatedPath));

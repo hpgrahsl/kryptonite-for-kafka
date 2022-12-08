@@ -26,20 +26,18 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connect-transform-kryptonite</artifactId>
-  <version>0.3.0</version>
+  <version>0.3.1</version>
   <packaging>jar</packaging>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
-    <kryptonite.version>0.3.0</kryptonite.version>
-    <kafka.version>3.2.1</kafka.version>
-    <jackson.version>2.13.3</jackson.version>
-    <logback.version>1.2.11</logback.version>
-    <junit.version>5.9.0</junit.version>
-    <shade.plugin.version>3.2.4</shade.plugin.version>
-    <compiler.plugin.version>3.10.0</compiler.plugin.version>
+    <maven.compiler.release>11</maven.compiler.release>
+    <kryptonite.version>0.3.1</kryptonite.version>
+    <kafka.version>3.3.1</kafka.version>
+    <jackson.version>2.14.1</jackson.version>
+    <junit.version>5.9.1</junit.version>
+    <shade.plugin.version>3.4.1</shade.plugin.version>
+    <compiler.plugin.version>3.10.1</compiler.plugin.version>
     <surefire.plugin.version>2.22.2</surefire.plugin.version>
   </properties>
 
@@ -67,11 +65,6 @@
       <version>${jackson.version}</version>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>${logback.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
@@ -92,8 +85,7 @@
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
-          <source>${maven.compiler.source}</source>
-          <target>${maven.compiler.target}</target>
+          <release>${maven.compiler.release}</release>
           <compilerArgs>
             <!--<arg>-parameters</arg>-->
           </compilerArgs>
@@ -110,13 +102,6 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-              <artifactSet>
-                <excludes>
-                  <exclude>org.slf4j:slf4j-api:jar:</exclude>
-                  <exclude>org.slf4j:slf4j-log4j12:jar:</exclude>
-                  <exclude>log4j:log4j:jar:</exclude>
-                </excludes>
-              </artifactSet>
               <minimizeJar>true</minimizeJar>
               <filters>
                 <filter>

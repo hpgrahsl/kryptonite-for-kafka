@@ -106,7 +106,7 @@ public class SchemaRewriter {
       if(CipherMode.ENCRYPT == cipherMode) {
         LOGGER.trace("creating field schema for type {}",Type.ARRAY);
         builder.field(field.name(),
-            FieldMode.ELEMENT == fieldMode
+            FieldMode.ELEMENT == fieldConfig.get(fieldPath).getFieldMode().orElse(fieldMode)
                 ? SchemaBuilder.array(typeSchemaMapper.getSchemaForPrimitiveType(field.schema().valueSchema().type(), field.schema().valueSchema().isOptional(), cipherMode)).build()
                 : (field.schema().isOptional() ? Schema.OPTIONAL_STRING_SCHEMA : Schema.STRING_SCHEMA)
         );
@@ -127,7 +127,7 @@ public class SchemaRewriter {
       if(CipherMode.ENCRYPT == cipherMode) {
         LOGGER.trace("creating field schema for type {}",Type.MAP);
         builder.field(field.name(),
-            FieldMode.ELEMENT == fieldMode
+            FieldMode.ELEMENT == fieldConfig.get(fieldPath).getFieldMode().orElse(fieldMode)
                 ? SchemaBuilder.map(typeSchemaMapper.getSchemaForPrimitiveType(field.schema().keySchema().type(), field.schema().keySchema().isOptional(), cipherMode),
                 typeSchemaMapper.getSchemaForPrimitiveType(field.schema().valueSchema().type(), field.schema().valueSchema().isOptional(), cipherMode)).build()
                 : (field.schema().isOptional() ? Schema.OPTIONAL_STRING_SCHEMA : Schema.STRING_SCHEMA)
@@ -148,12 +148,12 @@ public class SchemaRewriter {
       if(CipherMode.ENCRYPT == cipherMode) {
         LOGGER.trace("creating field schema for type {}",Type.STRUCT);
         builder.field(field.name(),
-            FieldMode.ELEMENT == fieldMode
+            FieldMode.ELEMENT == fieldConfig.get(fieldPath).getFieldMode().orElse(fieldMode)
             ? adaptSchema(field.schema(), fieldPath)
             : field.schema().isOptional() ? Schema.OPTIONAL_STRING_SCHEMA : Schema.STRING_SCHEMA
         );
       } else {
-        //NOTE: whether or not the map itself is optional is specified
+        //NOTE: whether or not the struct itself is optional is specified
         // in the config instead of taken from field.schema().isOptional()
         LOGGER.trace("rebuilding field schema for type {} from config",Type.STRUCT);
         var fieldSpec = extractFieldSpecFromConfig(fieldPath);

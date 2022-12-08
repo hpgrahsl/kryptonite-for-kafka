@@ -184,11 +184,16 @@ public class CipherFieldFunctionalTest {
 
     if(fieldMode == FieldMode.OBJECT) {
       assertAll(
+          () -> assertEquals(String.class, encryptedRecord.get("mySubDoc1").getClass()),
           () -> assertEquals(String.class, encryptedRecord.get("myArray1").getClass()),
           () -> assertEquals(String.class, encryptedRecord.get("mySubDoc2").getClass())
       );
     } else {
       assertAll(
+          () -> assertAll(
+              () -> assertTrue(encryptedRecord.get("mySubDoc1") instanceof Map),
+              () -> assertEquals(1, ((Map<?,?>)encryptedRecord.get("mySubDoc1")).size())
+          ),
           () -> assertAll(
               () -> assertTrue(encryptedRecord.get("myArray1") instanceof List),
               () -> assertEquals(4, ((List<?>)encryptedRecord.get("myArray1")).size())
@@ -241,6 +246,7 @@ public class CipherFieldFunctionalTest {
             + "    {\"name\":\"myInt\",\"keyId\":\""+keyId2+"\"},"
             + "    {\"name\":\"myBoolean\"},"
             + "    {\"name\":\"mySubDoc1\",\"keyId\":\""+keyId1+"\"},"
+            + "    {\"name\":\"mySubDoc1.myString\",\"keyId\":\""+keyId1+"\"},"
             + "    {\"name\":\"myArray1\",\"keyId\":\""+keyId2+"\"},"
             + "    {\"name\":\"mySubDoc2\"},"
             + "    {\"name\":\"myBytes\",\"keyId\":\""+keyId1+"\"}"
@@ -259,11 +265,17 @@ public class CipherFieldFunctionalTest {
 
     if (fieldMode == FieldMode.OBJECT) {
       assertAll(
+          () -> assertEquals(String.class, encryptedRecord.get("mySubDoc1").getClass()),
           () -> assertEquals(String.class,encryptedRecord.get("myArray1").getClass()),
           () -> assertEquals(String.class,encryptedRecord.get("mySubDoc2").getClass())
       );
     } else {
       assertAll(
+          () -> assertAll(
+              () -> assertTrue(encryptedRecord.get("mySubDoc1") instanceof Struct),
+              () -> assertEquals(1, ((Struct)encryptedRecord.get("mySubDoc1")).schema().fields().size()),
+              () -> assertTrue(((Struct)encryptedRecord.get("mySubDoc1")).get("myString") instanceof String)
+          ),
           () -> assertAll(
               () -> assertTrue(encryptedRecord.get("myArray1") instanceof List),
               () -> assertEquals(4, ((List<?>)encryptedRecord.get("myArray1")).size())
@@ -284,6 +296,7 @@ public class CipherFieldFunctionalTest {
             + "    {\"name\":\"myInt\",\"schema\": {\"type\": \"INT32\"}},"
             + "    {\"name\":\"myBoolean\",\"schema\": {\"type\": \"BOOLEAN\"}},"
             + "    {\"name\":\"mySubDoc1\",\"schema\": { \"type\": \"STRUCT\",\"fields\": [ { \"name\": \"myString\", \"schema\": { \"type\": \"STRING\"}}]}},"
+            + "    {\"name\":\"mySubDoc1.myString\",\"schema\": {\"type\": \"STRING\"}},"
             + "    {\"name\":\"myArray1\",\"schema\": {\"type\": \"ARRAY\",\"valueSchema\": {\"type\": \"STRING\"}}},"
             + "    {\"name\":\"mySubDoc2\",\"schema\": { \"type\": \"MAP\", \"keySchema\": { \"type\": \"STRING\" }, \"valueSchema\": { \"type\": \"INT32\"}}},"
             + "    {\"name\":\"myBytes\",\"schema\": {\"type\": \"BYTES\"}}"
