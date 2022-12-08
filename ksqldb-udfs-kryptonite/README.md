@@ -10,7 +10,7 @@ Kryptonite for Kafka provides two [ksqlDB](https://ksqlDB.io) [user-defined func
 
 ### Build and Deployment
 
-Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built ksqlDB UDFs can be downloaded from here [ksqldb-udfs-kryptonite-0.1.0-EXPERIMENTAL.jar](https://drive.google.com/file/d/1_VG3LbWx2qdZgX7tXJk2hX1_cDSC49y9/view?usp=sharing)
+Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built ksqlDB UDFs can be downloaded from here [ksqldb-udfs-kryptonite-0.1.1.jar](https://drive.google.com/file/d/1cTneQ_Wqtd2UCIVHgZLwHQ-7ulfYP7Ng/view?usp=sharing)
 
 In order to deploy the UDFs **put the jar into your _'ksql extension directory'_** that is configured to be scanned during bootstrap of the ksqlDB server process(es).
 
@@ -134,10 +134,10 @@ After making sure that all the mandatory configuration properties are set, start
 ```text
 Name        : K4KENCRYPT
 Author      : H.P. Grahsl (@hpgrahsl)
-Version     : 0.1.0-EXPERIMENTAL
-Overview    : 🔒 encrypt field data ... here be 🐲 🐉
+Version     : 0.1.1
+Overview    : 🔒 encrypt field data ... hopefully without fighting 🐲 🐉
 Type        : SCALAR
-Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.1.0-EXPERIMENTAL.jar
+Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.1.1.jar
 Variations  : 
 
 	Variation   : K4KENCRYPT(data T, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
@@ -172,10 +172,10 @@ Variations  :
 ```text
 Name        : K4KDECRYPT
 Author      : H.P. Grahsl (@hpgrahsl)
-Version     : 0.1.0-EXPERIMENTAL
-Overview    : 🔓 decrypt field data ... here be 🐲 🐉
+Version     : 0.1.1
+Overview    : 🔓 decrypt field data ... hopefully without fighting 🐲 🐉
 Type        : SCALAR
-Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.1.0-EXPERIMENTAL.jar
+Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.1.1.jar
 Variations  : 
 
 	Variation   : K4KDECRYPT(data ARRAY<VARCHAR>, typeCapture E)

@@ -10,7 +10,7 @@ Kryptonite for Kafka provides a turn-key ready [Kafka Connect](https://kafka.apa
 
 ### Build and Deployment
 
-Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built Kafka Connect SMT can be downloaded from here [connect-transform-kryptonite-0.3.0.jar](https://drive.google.com/file/d/1XVDnvId5bnemOTtqmJhL0R0114JT8Mjv/view?usp=sharing)
+Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built Kafka Connect SMT can be downloaded from here [connect-transform-kryptonite-0.3.1.jar](https://drive.google.com/file/d/1aWobunR9eZabSflrhP-ZRBUAZpj1hORv/view?usp=sharing)
 
 In order to deploy this custom SMT **put the jar into your _'connect plugin path'_** that is configured to be scanned during boostrap of the kafka connect worker node(s).
 

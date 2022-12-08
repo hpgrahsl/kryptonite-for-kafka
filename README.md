@@ -17,7 +17,7 @@ Either you build this project from sources via Maven or you can download pre-bui
 
 ##### Kafka Connect SMT
 
-The pre-built Kafka Connect SMT can be downloaded from here [connect-transform-kryptonite-0.3.0.jar](https://drive.google.com/file/d/1XVDnvId5bnemOTtqmJhL0R0114JT8Mjv/view?usp=sharing)
+The pre-built Kafka Connect SMT can be downloaded from here [connect-transform-kryptonite-0.3.1.jar](https://drive.google.com/file/d/1aWobunR9eZabSflrhP-ZRBUAZpj1hORv/view?usp=sharing)
 
 In order to deploy this custom SMT **put the jar into your _'connect plugin path'_** that is configured to be scanned during boostrap of the kafka connect worker node(s).
 
@@ -25,7 +25,7 @@ After that, configure Kryptonite's `CipherField` transformation for any of your 
 
 ##### ksqlDB UDFs
 
-The pre-built ksqlDB UDFs can be downloaded from here [ksqldb-udfs-kryptonite-0.1.0-EXPERIMENTAL.jar](https://drive.google.com/file/d/1_VG3LbWx2qdZgX7tXJk2hX1_cDSC49y9/view?usp=sharing)
+The pre-built ksqlDB UDFs can be downloaded from here [ksqldb-udfs-kryptonite-0.1.1.jar](https://drive.google.com/file/d/1cTneQ_Wqtd2UCIVHgZLwHQ-7ulfYP7Ng/view?usp=sharing)
 
 In order to deploy the UDFs **put the jar into your _'ksql extension directory'_** that is configured to be scanned during bootstrap of the ksqlDB server process(es).
 
