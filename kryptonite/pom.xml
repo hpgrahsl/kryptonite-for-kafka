@@ -22,24 +22,26 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>kryptonite</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.1</version>
   <packaging>jar</packaging>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
-    <google.tink.version>1.6.1</google.tink.version>
-    <logback.version>1.2.10</logback.version>
-    <az.keyvault.version>4.3.7</az.keyvault.version>
-    <az.identity.version>1.4.4</az.identity.version>
-    <junit.version>5.8.2</junit.version>
-    <shade.plugin.version>3.2.4</shade.plugin.version>
-    <compiler.plugin.version>3.10.0</compiler.plugin.version>
+    <maven.compiler.release>11</maven.compiler.release>
+    <google.tink.version>1.7.0</google.tink.version>
+    <kryo.version>5.3.0</kryo.version>
+    <kryo.serializers>0.45</kryo.serializers>
+    <logback.version>1.4.5</logback.version>
+    <az.keyvault.version>4.5.2</az.keyvault.version>
+    <az.identity.version>1.7.1</az.identity.version>
+    <kafka.version>3.3.1</kafka.version>
+    <junit.version>5.9.1</junit.version>
+    <shade.plugin.version>3.4.1</shade.plugin.version>
+    <compiler.plugin.version>3.10.1</compiler.plugin.version>
     <surefire.plugin.version>2.22.2</surefire.plugin.version>
   </properties>
 
@@ -50,9 +52,14 @@
       <version>${google.tink.version}</version>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <version>${logback.version}</version>
+      <groupId>com.esotericsoftware</groupId>
+      <artifactId>kryo</artifactId>
+      <version>${kryo.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.javakaffee</groupId>
+      <artifactId>kryo-serializers</artifactId>
+      <version>${kryo.serializers}</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -75,6 +82,12 @@
       <version>${az.identity.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>connect-api</artifactId>
+      <version>${kafka.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
@@ -95,8 +108,7 @@
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
-          <source>${maven.compiler.source}</source>
-          <target>${maven.compiler.target}</target>
+          <release>${maven.compiler.release}</release>
           <compilerArgs>
             <!--<arg>-parameters</arg>-->
           </compilerArgs>
@@ -113,13 +125,6 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-              <artifactSet>
-                <excludes>
-                  <exclude>org.slf4j:slf4j-api:jar:</exclude>
-                  <exclude> org.slf4j:slf4j-log4j12:jar:</exclude>
-                  <exclude>log4j:log4j:jar:</exclude>
-                </excludes>
-              </artifactSet>
               <minimizeJar>true</minimizeJar>
               <filters>
                 <filter>

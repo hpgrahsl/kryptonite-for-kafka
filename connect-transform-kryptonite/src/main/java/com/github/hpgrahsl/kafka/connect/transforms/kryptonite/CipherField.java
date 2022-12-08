@@ -16,32 +16,17 @@
 
 package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
-import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
-import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes.KryoSerdeProcessor;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.CipherDataKeysValidator;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.CipherEncodingValidator;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.CipherModeValidator;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.CipherNameValidator;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.FieldConfigValidator;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.FieldModeValidator;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.KeySourceValidator;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.KmsTypeValidator;
+import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.*;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.cache.LRUCache;
 import org.apache.kafka.common.cache.SynchronizedCache;
@@ -56,6 +41,15 @@ import org.apache.kafka.connect.transforms.Transformation;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
+import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
 
 public abstract class CipherField<R extends ConnectRecord<R>> implements Transformation<R> {
 

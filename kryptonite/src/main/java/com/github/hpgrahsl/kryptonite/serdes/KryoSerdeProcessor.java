@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.serdes;
+package com.github.hpgrahsl.kryptonite.serdes;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -29,6 +27,10 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Map;
 
 public class KryoSerdeProcessor implements SerdeProcessor {
 
@@ -60,15 +62,15 @@ public class KryoSerdeProcessor implements SerdeProcessor {
     private final SchemaSerializer schemaSerializer = new SchemaSerializer();
 
     public void write (Kryo kryo, Output output, Struct struct) {
-      LOGGER.info("writing struct's schema");
+      LOGGER.trace("writing struct's schema");
       kryo.writeObject(output,struct.schema(),schemaSerializer);
       writeStructFieldObjects(kryo,output,struct);
     }
 
     private void writeStructFieldObjects(Kryo kryo, Output output, Struct struct) {
-      LOGGER.info("writing struct objects one by one...");
+      LOGGER.trace("writing struct objects one by one...");
       struct.schema().fields().forEach(f -> {
-        LOGGER.info("write full field '{}' of type {}",f.name(),f.schema().type());
+        LOGGER.trace("write full field '{}' of type {}",f.name(),f.schema().type());
         if(f.schema().type() != Type.STRUCT) {
           kryo.writeClassAndObject(output,struct.get(f));
         } else {
@@ -78,15 +80,15 @@ public class KryoSerdeProcessor implements SerdeProcessor {
     }
 
     public Struct read (Kryo kryo, Input input, Class<? extends Struct> type) {
-      LOGGER.info("reading struct's schema");
+      LOGGER.trace("reading struct's schema");
       var schema = kryo.readObject(input,Schema.class,schemaSerializer);
       return readStructFieldObjects(kryo,input, new Struct(schema));
     }
 
     private Struct readStructFieldObjects(Kryo kryo, Input input, Struct struct) {
-      LOGGER.info("reading struct objects one by one...");
+      LOGGER.trace("reading struct objects one by one...");
       struct.schema().fields().forEach(f -> {
-        LOGGER.info("read full field '{}' of type {}",f.name(),f.schema().type());
+        LOGGER.trace("read full field '{}' of type {}",f.name(),f.schema().type());
         if(f.schema().type() != Type.STRUCT) {
           struct.put(f,kryo.readClassAndObject(input));
         } else {
@@ -104,11 +106,14 @@ public class KryoSerdeProcessor implements SerdeProcessor {
       LOGGER.trace("writing basic schema info for type {}",object.type());
       kryo.writeClassAndObject(output,object.type());
       output.writeString(object.name());
+      //NOTE: ksqlDB expects all fields and sub-fields in STRUCTs to be defined as optional=true -> introduce separate SerdeProcessor for ksqlDB UDF???
+      //output.writeBoolean(true);
       output.writeBoolean(object.isOptional());
       Object defaultValue = object.defaultValue();
       kryo.writeObjectOrNull(output,defaultValue,defaultValue != null ? defaultValue.getClass() : Object.class);
       kryo.writeObjectOrNull(output,object.version(),Integer.class);
       output.writeString(object.doc());
+      kryo.writeClassAndObject(output,object.parameters());
 
       if(Type.STRUCT == object.type()) {
         LOGGER.trace("writing struct type schema info");
@@ -130,6 +135,7 @@ public class KryoSerdeProcessor implements SerdeProcessor {
 
     }
 
+    @SuppressWarnings("unchecked")
     public Schema read (Kryo kryo, Input input, Class<? extends Schema> type) {
       var schemaType = (Type)kryo.readClassAndObject(input);
       LOGGER.trace("reading basic schema info for type {}",schemaType);
@@ -138,6 +144,7 @@ public class KryoSerdeProcessor implements SerdeProcessor {
       var defaultValue = kryo.readObjectOrNull(input,Object.class);
       var version = kryo.readObjectOrNull(input,Integer.class);
       var doc = input.readString();
+      var params = (Map<String, String>)kryo.readClassAndObject(input);
 
       if(Type.STRUCT == schemaType) {
         LOGGER.trace("reading struct type schema info");
@@ -151,21 +158,21 @@ public class KryoSerdeProcessor implements SerdeProcessor {
           fields.add(new Field(fName, fIndex, fSchema));
         }
         LOGGER.trace("returning struct schema");
-        return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,null, fields,null,null);
+        return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params, fields,null,null);
       } else if(Type.ARRAY == schemaType) {
         LOGGER.trace("reading array type schema info");
         var vSchema = read(kryo, input, Schema.class);
         LOGGER.trace("returning array schema");
-        return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,null, null,null,vSchema);
+        return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params, null,null,vSchema);
       } else if(Type.MAP == schemaType) {
         LOGGER.trace("reading map type schema info");
         var kSchema = read(kryo, input, Schema.class);
         var vSchema = read(kryo, input, Schema.class);
         LOGGER.trace("returning map schema");
-        return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,null, null,kSchema,vSchema);
+        return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params, null,kSchema,vSchema);
       } else {
           LOGGER.trace("returning {} schema",schemaType);
-          return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc);
+          return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params,null,null,null);
       }
 
     }

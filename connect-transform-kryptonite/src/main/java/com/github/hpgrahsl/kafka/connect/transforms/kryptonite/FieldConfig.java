@@ -27,15 +27,18 @@ public class FieldConfig {
   private String keyId;
   private Map<String,Object> schema;
 
+  private CipherField.FieldMode fieldMode;
+
   public FieldConfig() {
   }
 
   public FieldConfig(String name, String algorithm, String keyId,
-      Map<String, Object> schema) {
+                     Map<String, Object> schema, CipherField.FieldMode fieldMode) {
     this.name = Objects.requireNonNull(name,"field config's name must not be null");
     this.algorithm = algorithm;
     this.keyId = keyId;
     this.schema = schema;
+    this.fieldMode = fieldMode;
   }
 
   public String getName() {
@@ -54,33 +57,32 @@ public class FieldConfig {
     return Optional.ofNullable(schema);
   }
 
+  public Optional<CipherField.FieldMode> getFieldMode() {
+    return Optional.ofNullable(fieldMode);
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof FieldConfig)) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     FieldConfig that = (FieldConfig) o;
-    return Objects.equals(name, that.name) && Objects
-        .equals(algorithm, that.algorithm) && Objects.equals(keyId, that.keyId)
-        && Objects.equals(schema, that.schema);
+    return Objects.equals(name, that.name) && Objects.equals(algorithm, that.algorithm) && Objects.equals(keyId, that.keyId) && Objects.equals(schema, that.schema) && fieldMode == that.fieldMode;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, algorithm, keyId, schema);
+    return Objects.hash(name, algorithm, keyId, schema, fieldMode);
   }
 
   @Override
   public String toString() {
     return "FieldConfig{" +
-        "name='" + name + '\'' +
-        ", algorithm='" + algorithm + '\'' +
-        ", keyId='" + keyId + '\'' +
-        ", schema=" + schema +
-        '}';
+            "name='" + name + '\'' +
+            ", algorithm='" + algorithm + '\'' +
+            ", keyId='" + keyId + '\'' +
+            ", schema=" + schema +
+            ", fieldMode=" + fieldMode +
+            '}';
   }
 
 }

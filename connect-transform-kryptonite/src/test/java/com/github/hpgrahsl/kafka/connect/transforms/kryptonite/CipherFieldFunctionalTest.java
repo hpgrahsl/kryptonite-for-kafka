@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite;
+package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
+import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import java.util.ArrayList;
@@ -136,8 +137,8 @@ public class CipherFieldFunctionalTest {
           .put("mySubDoc1",new Struct(OBJ_SCHEMA_1.field("mySubDoc1").schema())
               .put("myString","hello json")
           )
-          .put("myArray1",Arrays.asList("str_1","str_2","...","str_N"))
-          .put("mySubDoc2",new HashMap<String,Integer>(){{ put("k1",9); put("k2",8); put("k3",7);}})
+          .put("myArray1",List.of("str_1","str_2","...","str_N"))
+          .put("mySubDoc2",Map.of("k1",9,"k2",8,"k3",7))
           .put("myBytes", new byte[]{75, 97, 102, 107, 97, 32, 114, 111, 99, 107, 115, 33});
 
       OBJ_MAP_1 = new LinkedHashMap<>();
@@ -145,9 +146,9 @@ public class CipherFieldFunctionalTest {
       OBJ_MAP_1.put("myString","some foo bla text");
       OBJ_MAP_1.put("myInt",42);
       OBJ_MAP_1.put("myBoolean",true);
-      OBJ_MAP_1.put("mySubDoc1",new HashMap<String,String>(){{put("myString","hello json");}});
-      OBJ_MAP_1.put("myArray1",Arrays.asList("str_1","str_2","...","str_N"));
-      OBJ_MAP_1.put("mySubDoc2",new HashMap<String,Integer>(){{ put("k1",9); put("k2",8); put("k3",7);}});
+      OBJ_MAP_1.put("mySubDoc1",Map.of("myString","hello json"));
+      OBJ_MAP_1.put("myArray1",List.of("str_1","str_2","...","str_N"));
+      OBJ_MAP_1.put("mySubDoc2",Map.of("k1",9,"k2",8,"k3",7));
       OBJ_MAP_1.put("myBytes", new byte[]{75, 97, 102, 107, 97, 32, 114, 111, 99, 107, 115, 33});
     }
 
@@ -183,11 +184,16 @@ public class CipherFieldFunctionalTest {
 
     if(fieldMode == FieldMode.OBJECT) {
       assertAll(
+          () -> assertEquals(String.class, encryptedRecord.get("mySubDoc1").getClass()),
           () -> assertEquals(String.class, encryptedRecord.get("myArray1").getClass()),
           () -> assertEquals(String.class, encryptedRecord.get("mySubDoc2").getClass())
       );
     } else {
       assertAll(
+          () -> assertAll(
+              () -> assertTrue(encryptedRecord.get("mySubDoc1") instanceof Map),
+              () -> assertEquals(1, ((Map<?,?>)encryptedRecord.get("mySubDoc1")).size())
+          ),
           () -> assertAll(
               () -> assertTrue(encryptedRecord.get("myArray1") instanceof List),
               () -> assertEquals(4, ((List<?>)encryptedRecord.get("myArray1")).size())
@@ -240,6 +246,7 @@ public class CipherFieldFunctionalTest {
             + "    {\"name\":\"myInt\",\"keyId\":\""+keyId2+"\"},"
             + "    {\"name\":\"myBoolean\"},"
             + "    {\"name\":\"mySubDoc1\",\"keyId\":\""+keyId1+"\"},"
+            + "    {\"name\":\"mySubDoc1.myString\",\"keyId\":\""+keyId1+"\"},"
             + "    {\"name\":\"myArray1\",\"keyId\":\""+keyId2+"\"},"
             + "    {\"name\":\"mySubDoc2\"},"
             + "    {\"name\":\"myBytes\",\"keyId\":\""+keyId1+"\"}"
@@ -258,11 +265,17 @@ public class CipherFieldFunctionalTest {
 
     if (fieldMode == FieldMode.OBJECT) {
       assertAll(
+          () -> assertEquals(String.class, encryptedRecord.get("mySubDoc1").getClass()),
           () -> assertEquals(String.class,encryptedRecord.get("myArray1").getClass()),
           () -> assertEquals(String.class,encryptedRecord.get("mySubDoc2").getClass())
       );
     } else {
       assertAll(
+          () -> assertAll(
+              () -> assertTrue(encryptedRecord.get("mySubDoc1") instanceof Struct),
+              () -> assertEquals(1, ((Struct)encryptedRecord.get("mySubDoc1")).schema().fields().size()),
+              () -> assertTrue(((Struct)encryptedRecord.get("mySubDoc1")).get("myString") instanceof String)
+          ),
           () -> assertAll(
               () -> assertTrue(encryptedRecord.get("myArray1") instanceof List),
               () -> assertEquals(4, ((List<?>)encryptedRecord.get("myArray1")).size())
@@ -283,6 +296,7 @@ public class CipherFieldFunctionalTest {
             + "    {\"name\":\"myInt\",\"schema\": {\"type\": \"INT32\"}},"
             + "    {\"name\":\"myBoolean\",\"schema\": {\"type\": \"BOOLEAN\"}},"
             + "    {\"name\":\"mySubDoc1\",\"schema\": { \"type\": \"STRUCT\",\"fields\": [ { \"name\": \"myString\", \"schema\": { \"type\": \"STRING\"}}]}},"
+            + "    {\"name\":\"mySubDoc1.myString\",\"schema\": {\"type\": \"STRING\"}},"
             + "    {\"name\":\"myArray1\",\"schema\": {\"type\": \"ARRAY\",\"valueSchema\": {\"type\": \"STRING\"}}},"
             + "    {\"name\":\"mySubDoc2\",\"schema\": { \"type\": \"MAP\", \"keySchema\": { \"type\": \"STRING\" }, \"valueSchema\": { \"type\": \"INT32\"}}},"
             + "    {\"name\":\"myBytes\",\"schema\": {\"type\": \"BYTES\"}}"
