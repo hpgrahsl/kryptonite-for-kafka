@@ -26,7 +26,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>kryptonite</artifactId>
-  <version>0.3.1</version>
+  <version>0.3.2</version>
   <packaging>jar</packaging>
 
   <properties>
@@ -51,6 +51,11 @@
       <artifactId>tink</artifactId>
       <version>${google.tink.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.google.crypto.tink</groupId>
+      <artifactId>tink-gcpkms</artifactId>
+      <version>${google.tink.version}</version>
+    </dependency>  
     <dependency>
       <groupId>com.esotericsoftware</groupId>
       <artifactId>kryo</artifactId>
