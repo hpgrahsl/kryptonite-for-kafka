@@ -32,15 +32,19 @@ public class AzureSecretResolver implements KeyMaterialResolver {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private SecretClient secretClient;
 
-  public AzureSecretResolver(String jsonKmsConfig) throws Exception {
-    var keyVaultConfig = OBJECT_MAPPER.readValue(jsonKmsConfig,AzureKeyVaultConfig.class);
-    this.secretClient = new SecretClientBuilder()
+  public AzureSecretResolver(String jsonKmsConfig) {
+    try {
+      var keyVaultConfig = OBJECT_MAPPER.readValue(jsonKmsConfig,AzureKeyVaultConfig.class);
+      this.secretClient = new SecretClientBuilder()
         .vaultUrl(keyVaultConfig.getKeyVaultUrl())
         .credential(new ClientSecretCredentialBuilder()
             .clientId(keyVaultConfig.getClientId())
             .clientSecret(keyVaultConfig.getClientSecret())
             .tenantId(keyVaultConfig.getTenantId())
             .build()).buildClient();
+    } catch (Exception exc) {
+      throw new RuntimeException("failed to create " + AzureSecretResolver.class.getSimpleName(), exc);
+    }
   }
 
   public AzureSecretResolver(SecretClient secretClient) {
