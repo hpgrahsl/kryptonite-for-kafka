@@ -27,13 +27,13 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>ksqldb-udfs-kryptonite</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>11</maven.compiler.release>
-        <kryptonite.version>0.3.1</kryptonite.version>
+        <kryptonite.version>0.4.0</kryptonite.version>
         <ksql.version>7.3.0</ksql.version>
         <jackson.version>2.14.1</jackson.version>
         <junit.version>5.9.1</junit.version>

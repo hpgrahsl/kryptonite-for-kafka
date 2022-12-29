@@ -16,8 +16,10 @@
 
 package com.github.hpgrahsl.kryptonite.keys;
 
+import com.google.crypto.tink.KeysetHandle;
+
 public interface KeyVault {
 
-  byte[] readKey(String identifier);
+  KeysetHandle readKeysetHandle(String identifier);
 
 }

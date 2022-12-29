@@ -25,6 +25,7 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
+import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -341,22 +342,30 @@ public class CipherFieldFunctionalTest {
   static List<Arguments> generateCipherFieldParamCombinations() {
     var argsList = new ArrayList<Arguments>();
     for (FieldMode fieldMode : FieldMode.values()) {
-      for (CipherSpec cipherSpec : Kryptonite.ID_CIPHERSPEC_LUT.values()
-          .stream().filter(cs -> !cs.getName().contains("SIV"))
-          .collect(Collectors.toList())) {
-        for (String keyId1 : PROBABILISTIC_KEY_IDS) {
-          for (String keyId2 : PROBABILISTIC_KEY_IDS) {
-            argsList.add(Arguments.of(fieldMode, cipherSpec, keyId1, keyId2));
-          }
+      for (String keyId1 : PROBABILISTIC_KEY_IDS) {
+        for (String keyId2 : PROBABILISTIC_KEY_IDS) {
+          argsList.add(
+            Arguments.of(
+              fieldMode,
+              CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
+              keyId1,
+              keyId2
+            )
+          );
         }
       }
     }
     for (FieldMode fieldMode : FieldMode.values()) {
       for (String keyId1 : DETERMINISTIC_KEY_IDS) {
         for (String keyId2 : DETERMINISTIC_KEY_IDS) {
-          argsList.add(Arguments
-              .of(fieldMode, CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM), keyId1,
-                  keyId2));
+          argsList.add(
+            Arguments.of(
+              fieldMode,
+              CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
+              keyId1,
+              keyId2
+            )
+          );
         }
       }
     }

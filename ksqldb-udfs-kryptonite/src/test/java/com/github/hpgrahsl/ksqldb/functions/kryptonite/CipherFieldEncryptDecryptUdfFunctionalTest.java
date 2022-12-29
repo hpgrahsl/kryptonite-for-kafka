@@ -1,7 +1,6 @@
 package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.crypto.jce.AesGcmNoPadding;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -390,8 +389,6 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         return List.of(
                 Arguments.of("my-demo-secret-key-987","my-demo-secret-key-123", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM)),
                 Arguments.of("my-demo-secret-key-123","my-demo-secret-key-987", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM)),
-                Arguments.of("my-demo-secret-key-987","my-demo-secret-key-123", Kryptonite.CipherSpec.fromName(AesGcmNoPadding.CIPHER_ALGORITHM)),
-                Arguments.of("my-demo-secret-key-123","my-demo-secret-key-987", Kryptonite.CipherSpec.fromName(AesGcmNoPadding.CIPHER_ALGORITHM)),
                 Arguments.of("my-demo-secret-key-876","my-demo-secret-key-234", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM)),
                 Arguments.of("my-demo-secret-key-234","my-demo-secret-key-876", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM))
         );

@@ -16,7 +16,6 @@
 
 package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators;
 
-import com.github.hpgrahsl.kryptonite.crypto.jce.AesGcmNoPadding;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import java.util.Set;
@@ -26,7 +25,6 @@ import org.apache.kafka.common.config.ConfigException;
 public class CipherNameValidator implements Validator {
 
   private static final Set<String> VALID_CIPHERS = Set.of(
-      AesGcmNoPadding.CIPHER_ALGORITHM,
       TinkAesGcm.CIPHER_ALGORITHM,
       TinkAesGcmSiv.CIPHER_ALGORITHM
   );
