@@ -25,16 +25,12 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Map;
 
 public class KryoSerdeProcessor implements SerdeProcessor {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(KryoSerdeProcessor.class);
 
   public KryoSerdeProcessor() {}
 
@@ -62,15 +58,12 @@ public class KryoSerdeProcessor implements SerdeProcessor {
     private final SchemaSerializer schemaSerializer = new SchemaSerializer();
 
     public void write (Kryo kryo, Output output, Struct struct) {
-      LOGGER.trace("writing struct's schema");
       kryo.writeObject(output,struct.schema(),schemaSerializer);
       writeStructFieldObjects(kryo,output,struct);
     }
 
     private void writeStructFieldObjects(Kryo kryo, Output output, Struct struct) {
-      LOGGER.trace("writing struct objects one by one...");
       struct.schema().fields().forEach(f -> {
-        LOGGER.trace("write full field '{}' of type {}",f.name(),f.schema().type());
         if(f.schema().type() != Type.STRUCT) {
           kryo.writeClassAndObject(output,struct.get(f));
         } else {
@@ -80,15 +73,12 @@ public class KryoSerdeProcessor implements SerdeProcessor {
     }
 
     public Struct read (Kryo kryo, Input input, Class<? extends Struct> type) {
-      LOGGER.trace("reading struct's schema");
       var schema = kryo.readObject(input,Schema.class,schemaSerializer);
       return readStructFieldObjects(kryo,input, new Struct(schema));
     }
 
     private Struct readStructFieldObjects(Kryo kryo, Input input, Struct struct) {
-      LOGGER.trace("reading struct objects one by one...");
       struct.schema().fields().forEach(f -> {
-        LOGGER.trace("read full field '{}' of type {}",f.name(),f.schema().type());
         if(f.schema().type() != Type.STRUCT) {
           struct.put(f,kryo.readClassAndObject(input));
         } else {
@@ -103,7 +93,6 @@ public class KryoSerdeProcessor implements SerdeProcessor {
   public static class SchemaSerializer extends Serializer<Schema> {
 
     public void write (Kryo kryo, Output output, Schema object) {
-      LOGGER.trace("writing basic schema info for type {}",object.type());
       kryo.writeClassAndObject(output,object.type());
       output.writeString(object.name());
       //NOTE: ksqlDB expects all fields and sub-fields in STRUCTs to be defined as optional=true -> introduce separate SerdeProcessor for ksqlDB UDF???
@@ -116,19 +105,15 @@ public class KryoSerdeProcessor implements SerdeProcessor {
       kryo.writeClassAndObject(output,object.parameters());
 
       if(Type.STRUCT == object.type()) {
-        LOGGER.trace("writing struct type schema info");
         output.writeInt(object.fields().size());
         object.fields().forEach(f -> {
-          LOGGER.trace("writing field name '{}' with index '{}' and schema '{}'",f.name(),f.index(),f.schema().type());
           output.writeString(f.name());
           output.writeInt(f.index());
           write(kryo, output,f.schema());
         });
       } else if(Type.ARRAY == object.type()) {
-        LOGGER.trace("writing array type schema info");
         write(kryo, output, object.valueSchema());
       } else if(Type.MAP == object.type()) {
-        LOGGER.trace("writing map type schema info");
         write(kryo, output, object.keySchema());
         write(kryo, output, object.valueSchema());
       }
@@ -138,7 +123,6 @@ public class KryoSerdeProcessor implements SerdeProcessor {
     @SuppressWarnings("unchecked")
     public Schema read (Kryo kryo, Input input, Class<? extends Schema> type) {
       var schemaType = (Type)kryo.readClassAndObject(input);
-      LOGGER.trace("reading basic schema info for type {}",schemaType);
       var name = input.readString();
       var isOptional = input.readBoolean();
       var defaultValue = kryo.readObjectOrNull(input,Object.class);
@@ -147,31 +131,23 @@ public class KryoSerdeProcessor implements SerdeProcessor {
       var params = (Map<String, String>)kryo.readClassAndObject(input);
 
       if(Type.STRUCT == schemaType) {
-        LOGGER.trace("reading struct type schema info");
         var numFields = input.readInt();
         var fields = new ArrayList<Field>();
         while(--numFields >= 0) {
           var fName = input.readString();
           var fIndex = input.readInt();
           var fSchema = read(kryo, input, Schema.class);
-          LOGGER.trace("adding field name '{}' with index '{}' and schema '{}'",fName,fIndex,fSchema.type());
           fields.add(new Field(fName, fIndex, fSchema));
         }
-        LOGGER.trace("returning struct schema");
         return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params, fields,null,null);
       } else if(Type.ARRAY == schemaType) {
-        LOGGER.trace("reading array type schema info");
         var vSchema = read(kryo, input, Schema.class);
-        LOGGER.trace("returning array schema");
         return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params, null,null,vSchema);
       } else if(Type.MAP == schemaType) {
-        LOGGER.trace("reading map type schema info");
         var kSchema = read(kryo, input, Schema.class);
         var vSchema = read(kryo, input, Schema.class);
-        LOGGER.trace("returning map schema");
         return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params, null,kSchema,vSchema);
       } else {
-          LOGGER.trace("returning {} schema",schemaType);
           return new ConnectSchema(schemaType,isOptional,defaultValue,name,version,doc,params,null,null,null);
       }
 

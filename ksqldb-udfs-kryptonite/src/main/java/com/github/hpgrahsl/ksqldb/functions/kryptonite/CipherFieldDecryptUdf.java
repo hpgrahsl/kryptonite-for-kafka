@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 @UdfDescription(
     name = "k4kdecrypt",
     description = "🔓 decrypt field data ... hopefully without fighting 🐲 🐉",
-    version = "0.1.1",
+    version = "0.1.2",
     author = "H.P. Grahsl (@hpgrahsl)",
     category = "cryptography"
 )
