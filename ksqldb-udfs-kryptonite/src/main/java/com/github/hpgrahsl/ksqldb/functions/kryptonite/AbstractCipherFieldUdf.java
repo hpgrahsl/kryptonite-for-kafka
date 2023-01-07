@@ -84,6 +84,7 @@ public abstract class AbstractCipherFieldUdf {
                 case KMS:
                     if (kmsType.equals(CustomUdfConfig.KmsType.AZ_KV_SECRETS)) {
                         kryptonite = new Kryptonite(new AzureKeyVault(new AzureSecretResolver(kmsConfig), true));
+                        return;
                     }
                     throw new ConfigException(
                             "failed to configure kryptonite UDF "+functionName+" due to invalid key_source (" + keySource
