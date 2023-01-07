@@ -133,8 +133,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnEncrypt = cfeUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfeUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS,
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER,defaultKeyIdentifier
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS,
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier
                 )
         );
 
@@ -164,7 +164,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnDecrypt = cfdUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfdUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnDecrypt+"."+CipherFieldDecryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS
+                        CustomUdfConfig.getPrefixedConfigParam(fnDecrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS
                 )
         );
 
@@ -187,8 +187,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnEncrypt = cfeUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfeUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS,
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER,defaultKeyIdentifier
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS,
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier
                 )
         );
 
@@ -211,7 +211,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnDecrypt = cfdUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfdUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnDecrypt+"."+CipherFieldDecryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS
+                        CustomUdfConfig.getPrefixedConfigParam(fnDecrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS
                 )
         );
 
@@ -235,8 +235,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnEncrypt = cfeUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfeUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS,
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER,defaultKeyIdentifier
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS,
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier
                 )
         );
 
@@ -278,7 +278,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnDecrypt = cfdUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfdUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnDecrypt+"."+CipherFieldDecryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS
+                        CustomUdfConfig.getPrefixedConfigParam(fnDecrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS
                 )
         );
 
@@ -303,8 +303,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnEncrypt = cfeUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfeUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS,
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnEncrypt+"."+CipherFieldEncryptUdf.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER,defaultKeyIdentifier
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS,
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier
                 )
         );
 
@@ -329,7 +329,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         var fnDecrypt = cfdUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfdUDF.configure(
                 Map.of(
-                        CipherFieldEncryptUdf.KSQL_FUNCTION_CONFIG_PREFIX+"."+fnDecrypt+"."+CipherFieldDecryptUdf.CONFIG_PARAM_CIPHER_DATA_KEYS,CIPHER_DATA_KEYS
+                        CustomUdfConfig.getPrefixedConfigParam(fnDecrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),CIPHER_DATA_KEYS
                 )
         );
 

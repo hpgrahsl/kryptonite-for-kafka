@@ -16,30 +16,27 @@
 
 package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
-import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
-import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
-import io.confluent.ksql.function.udf.Udf;
-import io.confluent.ksql.function.udf.UdfDescription;
-import io.confluent.ksql.function.udf.UdfParameter;
+import java.util.AbstractMap;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.kafka.common.Configurable;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import com.esotericsoftware.kryo.io.Input;
+import com.github.hpgrahsl.kryptonite.EncryptedField;
+import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
+
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
 @UdfDescription(
     name = "k4kdecrypt",
@@ -48,22 +45,9 @@ import java.util.stream.Collectors;
     author = "H.P. Grahsl (@hpgrahsl)",
     category = "cryptography"
 )
-public class CipherFieldDecryptUdf implements Configurable {
+public class CipherFieldDecryptUdf extends AbstractCipherFieldUdf implements Configurable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CipherFieldDecryptUdf.class);
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  public static final String KSQL_FUNCTION_CONFIG_PREFIX = "ksql.functions";
-  public static final String CONFIG_PARAM_CIPHER_DATA_KEYS = "cipher.data.keys";
-  public static final String CONFIG_PARAM_KEY_SOURCE = "key.source";
-  public static final String CONFIG_PARAM_KMS_TYPE = "kms.type";
-  public static final String CONFIG_PARAM_KMS_CONFIG = "kms.config";
-
-  public static final String KEY_SOURCE_DEFAULT = "CONFIG";
-  public static final String KMS_TYPE_DEFAULT = "NONE";
-  public static final String KMS_CONFIG_DEFAULT = "{}";
-
-  Kryptonite kryptonite;
-  SerdeProcessor serdeProcessor = new KryoSerdeProcessor();
 
   @SuppressWarnings({"unchecked"})
   @Udf(description = "🔓 decrypt the field data (object mode)")
@@ -133,9 +117,9 @@ public class CipherFieldDecryptUdf implements Configurable {
       LOGGER.debug("BASE64 encoded ciphertext: {}",data);
       var encryptedField = KryoInstance.get().readObject(new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
       LOGGER.trace("encrypted data: {}",encryptedField);
-      var plaintext = kryptonite.decipherField(encryptedField);
+      var plaintext = getKryptonite().decipherField(encryptedField);
       LOGGER.trace("plaintext byte sequence: {}",plaintext);
-      var restored = serdeProcessor.bytesToObject(plaintext);
+      var restored = getSerdeProcessor().bytesToObject(plaintext);
       LOGGER.debug("restored data: {}",restored);
       return restored;
     } catch (Exception exc) {
@@ -146,46 +130,7 @@ public class CipherFieldDecryptUdf implements Configurable {
 
   @Override
   public void configure(Map<String, ?> configMap) {
-    var functionName = this.getClass().getDeclaredAnnotation(UdfDescription.class).name();
-    if (!configMap.containsKey(
-            KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_CIPHER_DATA_KEYS)) {
-      throw new ConfigException(
-              "error: at least one mandatory configuration param is missing ("
-                      + CONFIG_PARAM_CIPHER_DATA_KEYS + ", ... " + ")"
-                      + "\n\nfunction [" + functionName + "] configured with -> " + configMap
-      );
-    }
-    try {
-      var keySourceConfig = (String)configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_KEY_SOURCE);
-      var keySource = CustomUdfConfig.KeySource.valueOf(keySourceConfig != null ? keySourceConfig : KEY_SOURCE_DEFAULT);
-      var kmsTypeConfig = (String)configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_KMS_TYPE);
-      var kmsType = CustomUdfConfig.KmsType.valueOf(kmsTypeConfig != null ? kmsTypeConfig : KMS_TYPE_DEFAULT);
-      var kmsConfigConfig = (String)configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "." + CONFIG_PARAM_KMS_CONFIG);
-      var kmsConfig = kmsConfigConfig != null ? kmsConfigConfig : KMS_CONFIG_DEFAULT;
-      switch(keySource) {
-        case CONFIG:
-          var dataKeyConfig = OBJECT_MAPPER
-                  .readValue((String) configMap.get(KSQL_FUNCTION_CONFIG_PREFIX + "." + functionName + "."
-                          + CONFIG_PARAM_CIPHER_DATA_KEYS), new TypeReference<Set<DataKeyConfig>>() {
-                  });
-          var keyConfigs = dataKeyConfig.stream()
-                  .collect(Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
-          kryptonite = new Kryptonite(new TinkKeyVault(keyConfigs));
-          return;
-        case KMS:
-          if (kmsType.equals(CustomUdfConfig.KmsType.AZ_KV_SECRETS)) {
-            kryptonite = new Kryptonite(new AzureKeyVault(new AzureSecretResolver(kmsConfig),true));
-          }
-          throw new ConfigException(
-                  "failed to configure kryptonite UDF due to invalid key_source ("+keySource+") / kms_type ("+kmsType+") settings");
-        default:
-          throw new ConfigException(
-                  "failed to configure kryptonite UDF due to invalid key_source ("+keySource+") / kms_type ("+kmsType+") settings");
-      }
-    } catch (ConfigException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new ConfigException(e.getMessage(),e);
-    }
+    this.configure(configMap, this.getClass().getDeclaredAnnotation(UdfDescription.class));
   }
+
 }
