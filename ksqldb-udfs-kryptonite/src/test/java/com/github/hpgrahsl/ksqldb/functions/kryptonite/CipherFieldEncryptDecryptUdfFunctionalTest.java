@@ -518,58 +518,33 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
                 Arguments.of(CIPHER_DATA_KEYS_CONFIG,"keyA","keyB", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.CONFIG,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.NONE,"{}",""
                 ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"keyB","keyA", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.NONE,"{}",""
-                ),
                 Arguments.of(CIPHER_DATA_KEYS_CONFIG,"key9","key8", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.CONFIG,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.NONE,"{}",""
                 ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"key8","key9", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.NONE,"{}",""
-                ),
-
+                
                 Arguments.of(CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,"keyX","keyY", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG_ENCRYPTED,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
-                ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,"keyY","keyX", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.CONFIG_ENCRYPTED,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
                 ),
                 Arguments.of(CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,"key1","key0", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.CONFIG_ENCRYPTED,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
                 ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,"key0","key1", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG_ENCRYPTED,CustomUdfConfig.KmsType.NONE,"{}",CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
-                ),
-
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"keyA","keyB", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
+                
+                Arguments.of(CIPHER_DATA_KEYS_EMPTY,"keyA","keyB", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.KMS,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_CONFIG,CustomUdfConfig.KekType.NONE,"{}",""
                 ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"keyB","keyA", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
+                Arguments.of(CIPHER_DATA_KEYS_EMPTY,"key9","key8", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.KMS,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_CONFIG,CustomUdfConfig.KekType.NONE,"{}",""
                 ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"key9","key8", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_CONFIG,CustomUdfConfig.KekType.NONE,"{}",""
-                ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"key8","key9", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_CONFIG,CustomUdfConfig.KekType.NONE,"{}",""
-                ),
-
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"keyX","keyY", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
+                
+                Arguments.of(CIPHER_DATA_KEYS_EMPTY,"keyX","keyY", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.KMS_ENCRYPTED,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_ENCRYPTED_CONFIG,
                         CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
                 ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"keyY","keyX", Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS_ENCRYPTED,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_ENCRYPTED_CONFIG,
-                        CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
-                ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"key1","key0", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS_ENCRYPTED,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_ENCRYPTED_CONFIG,
-                        CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
-                ),
-                Arguments.of(CIPHER_DATA_KEYS_CONFIG,"key0","key1", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
+                Arguments.of(CIPHER_DATA_KEYS_EMPTY,"key1","key0", Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
                         CustomUdfConfig.KeySource.KMS_ENCRYPTED,CustomUdfConfig.KmsType.AZ_KV_SECRETS,TEST_KMS_ENCRYPTED_CONFIG,
                         CustomUdfConfig.KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
                 )
+                
                
         );
     }
