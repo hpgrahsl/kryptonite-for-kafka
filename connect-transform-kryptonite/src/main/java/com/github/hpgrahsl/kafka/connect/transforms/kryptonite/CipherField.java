@@ -18,14 +18,20 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.*;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
+import com.github.hpgrahsl.kryptonite.config.DataKeyConfigEncrypted;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
+import com.github.hpgrahsl.kryptonite.keys.TinkKeyVaultEncrypted;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
+import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVaultEncrypted;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
+import com.github.hpgrahsl.kryptonite.kms.gcp.GcpKeyEncryption;
 import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.cache.LRUCache;
@@ -119,7 +125,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           "defines how to process complex field types (maps, lists, structs), either as full objects or element-wise")
       .define(CIPHER_ALGORITHM, Type.STRING, CIPHER_ALGORITHM_DEFAULT, new CipherNameValidator(),
           ConfigDef.Importance.LOW, "cipher algorithm used for data encryption (currently supports only one AEAD cipher: "+CIPHER_ALGORITHM_DEFAULT+")")
-      .define(CIPHER_DATA_KEYS, Type.PASSWORD, CIPHER_DATA_KEYS_DEFAULT, new CipherDataKeysValidator(),
+      .define(CIPHER_DATA_KEYS, Type.PASSWORD, CIPHER_DATA_KEYS_DEFAULT,
           ConfigDef.Importance.HIGH, "JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format")
       .define(CIPHER_DATA_KEY_IDENTIFIER, Type.STRING, CIPHER_DATA_KEY_IDENTIFIER_DEFAULT,
           ConfigDef.Importance.HIGH, "secret key identifier to be used as default data encryption key for all fields which don't refer to a field-specific secret key identifier")
@@ -137,7 +143,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           ConfigDef.Importance.LOW, "defines which remote/cloud KMS is used for data key encryption (currently only supports GCP Cloud KMS)")
       .define(KEK_CONFIG, Type.PASSWORD, KEK_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
           "JSON object specifying the KMS-specific client authentication settings (currently only supports GCP Cloud KMS)")
-      .define(KEK_URI, Type.PASSWORD, KEK_URI, ConfigDef.Importance.LOW,
+      .define(KEK_URI, Type.PASSWORD, KEK_URI_DEFAULT, ConfigDef.Importance.LOW,
           "remote/cloud KMS-specific URI to refer to the key encryption key if applicable (currently only supports GCP Cloud KMS key URIs)");
 
   private static final String PURPOSE = "(de)cipher connect record fields";
@@ -213,37 +219,90 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           FIELD_MODE)),CipherMode.valueOf(config.getString(CIPHER_MODE)), config.getString(PATH_DELIMITER));
       schemaCache = new SynchronizedCache<>(new LRUCache<>(16));
     } catch (JsonProcessingException e) {
-      e.printStackTrace();
       throw new ConfigException(e.getMessage());
     }
 
   }
 
-  private Kryptonite configureKryptonite(SimpleConfig config) {
+  private static Kryptonite configureKryptonite(SimpleConfig config) {
     try {
       var keySource = KeySource.valueOf(config.getString(KEY_SOURCE));
-      var kmsType = KmsType.valueOf(config.getString(KMS_TYPE));
-      switch(keySource) {
+      switch (keySource) {
         case CONFIG:
-          var dataKeyConfig = OBJECT_MAPPER
-              .readValue(config.getPassword(CIPHER_DATA_KEYS).value(), new TypeReference<Set<DataKeyConfig>>() {});
-          var keyConfigs = dataKeyConfig.stream()
-              .collect(Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
-          return new Kryptonite(new TinkKeyVault(keyConfigs));
+          return configureKryptoniteWithTinkKeyVault(config);
+        case CONFIG_ENCRYPTED:
+          return configureKryptoniteWithTinkKeyVaultEncrypted(config);
         case KMS:
-          if (kmsType.equals(KmsType.AZ_KV_SECRETS)) {
-            return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(config.getPassword(KMS_CONFIG).value()),true));
-          }
-          throw new ConfigException(
-              "failed to configure kryptonite due to invalid key_source ("+keySource+") / kms_type ("+kmsType+") settings");
+          return configureKryptoniteWithKmsKeyVault(config);
+        case KMS_ENCRYPTED:
+          return configureKryptoniteWithKmsKeyVaultEncrypted(config);
         default:
-          throw new ConfigException(
-              "failed to configure kryptonite due to invalid key_source ("+keySource+") / kms_type ("+kmsType+") settings");
+          throw new ConfigException("failed to configure cipher field SMT due to invalid settings");
       }
     } catch (ConfigException e) {
       throw e;
     } catch (Exception e) {
-      throw new ConfigException(e.getMessage(),e);
+      throw new ConfigException(e.getMessage(), e);
+    }
+  }
+
+  private static Kryptonite configureKryptoniteWithTinkKeyVault(SimpleConfig config)
+      throws JsonMappingException, JsonProcessingException {
+    var dataKeyConfig = OBJECT_MAPPER.readValue(
+        config.getPassword(CIPHER_DATA_KEYS).value(),
+        new TypeReference<Set<DataKeyConfig>>() {}
+    );
+    var keyConfigs = dataKeyConfig.stream().collect(
+        Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
+    return new Kryptonite(new TinkKeyVault(keyConfigs));
+  }
+
+  private static Kryptonite configureKryptoniteWithTinkKeyVaultEncrypted(SimpleConfig config)
+      throws JsonMappingException, JsonProcessingException {
+    var dataKeyConfig = OBJECT_MAPPER.readValue(
+          config.getPassword(CIPHER_DATA_KEYS).value(),
+          new TypeReference<Set<DataKeyConfigEncrypted>>() {}
+    );
+    var keyConfigs = dataKeyConfig.stream().collect(
+        Collectors.toMap(DataKeyConfigEncrypted::getIdentifier, DataKeyConfigEncrypted::getMaterial));
+    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)));
+  }
+
+  private static Kryptonite configureKryptoniteWithKmsKeyVault(SimpleConfig config) {
+    var kmsType = KmsType.valueOf(config.getString(KMS_TYPE));
+    var kmsConfig = config.getPassword(KMS_CONFIG).value();
+    switch (kmsType) {
+      case AZ_KV_SECRETS:
+        return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(kmsConfig), true));
+      default:
+        throw new ConfigException(
+            "error: configuration for a KMS backed tink key vault failed with param '"
+                + KMS_TYPE + "' -> " + kmsType);
+    }
+  }
+
+  private static Kryptonite configureKryptoniteWithKmsKeyVaultEncrypted(SimpleConfig config) {
+    var kmsType = KmsType.valueOf(config.getString(KMS_TYPE));
+    var kmsConfig = config.getPassword(KMS_CONFIG).value();
+    switch (kmsType) {
+      case AZ_KV_SECRETS:
+        return new Kryptonite(
+            new AzureKeyVaultEncrypted(configureKmsKeyEncryption(config), new AzureSecretResolver(kmsConfig), true));
+      default:
+        throw new ConfigException(
+            "error: configuration for a KMS backed tink key vault failed with param '" + KMS_TYPE + "' -> " + kmsType);
+    }
+  }
+
+  private static KmsKeyEncryption configureKmsKeyEncryption(SimpleConfig config) {
+    var kekType = KekType.valueOf(config.getString(KEK_TYPE));
+    var kekConfig = config.getPassword(KEK_CONFIG).value();
+    var kekUri = config.getPassword(KEK_URI).value();
+    switch (kekType) {
+      case GCP:
+        return new GcpKeyEncryption(kekUri, kekConfig);
+      default:
+        throw new ConfigException("error: configuration for KMS key encryption failed with param '" + KEK_TYPE + "' -> " + kekType);
     }
   }
 

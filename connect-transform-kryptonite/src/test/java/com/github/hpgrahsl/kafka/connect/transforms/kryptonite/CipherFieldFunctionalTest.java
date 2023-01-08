@@ -23,8 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
+import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KekType;
+import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KeySource;
+import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KmsType;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
+import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig.KeyConfig;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import java.util.ArrayList;
@@ -51,70 +55,146 @@ public class CipherFieldFunctionalTest {
   public static Schema OBJ_SCHEMA_1;
   public static Struct OBJ_STRUCT_1;
   public static Map<String,Object> OBJ_MAP_1;
-  public static List<String> PROBABILISTIC_KEY_IDS = List.of("my-demo-secret-key-123","my-demo-secret-key-987");
-  public static List<String> DETERMINISTIC_KEY_IDS = List.of("my-demo-secret-key-234","my-demo-secret-key-876");
-  public static String CIPHER_DATA_KEYS = "["
-      + "{\"identifier\":\"my-demo-secret-key-123\","
-      +     "\"material\":{"
-      +       "\"primaryKeyId\":1000000001,"
-      +       "\"key\":["
-      +          "{\"keyData\":"
-      +                "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesGcmKey\","
-      +                "\"value\":\"GhDRulECKAC8/19NMXDjeCjK\","
-      +                "\"keyMaterialType\":\"SYMMETRIC\"},"
-      +                "\"status\":\"ENABLED\","
-      +                "\"keyId\":1000000001,"
-      +                "\"outputPrefixType\":\"TINK\""
-      +           "}"
-      +       "]"
-      +     "}"
-      + "},"
-      + "{\"identifier\":\"my-demo-secret-key-987\","
-      +     "\"material\":{"
-      +       "\"primaryKeyId\":1000000002,"
-      +       "\"key\":["
-      +           "{\"keyData\":"
-      +               "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesGcmKey\","
-      +               "\"value\":\"GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==\","
-      +               "\"keyMaterialType\":\"SYMMETRIC\"},"
-      +               "\"status\":\"ENABLED\","
-      +               "\"keyId\":1000000002,"
-      +               "\"outputPrefixType\":\"TINK\""
-      +           "}"
-      +       "]"
-      +     "}"
-      + "},"
-      + "{\"identifier\":\"my-demo-secret-key-234\","
-      +     "\"material\":{"
-      +       "\"primaryKeyId\":1000000003,"
-      +       "\"key\":["
-      +           "{\"keyData\":"
-      +               "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesSivKey\","
-      +               "\"value\":\"EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz\","
-      +               "\"keyMaterialType\":\"SYMMETRIC\"},"
-      +               "\"status\":\"ENABLED\","
-      +               "\"keyId\":1000000003,"
-      +               "\"outputPrefixType\":\"TINK\""
-      +           "}"
-      +       "]"
-      +     "}"
-      + "},"
-      + "{\"identifier\":\"my-demo-secret-key-876\","
-      +     "\"material\":{"
-      +       "\"primaryKeyId\":1000000004,"
-      +       "\"key\":["
-      +           "{\"keyData\":"
-      +               "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesSivKey\","
-      +               "\"value\":\"EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/\","
-      +               "\"keyMaterialType\":\"SYMMETRIC\"},"
-      +               "\"status\":\"ENABLED\","
-      +               "\"keyId\":1000000004,"
-      +               "\"outputPrefixType\":\"TINK\""
-      +           "}"
-      +       "]"
-      +     "}"
-      + "}"
-      + "]";
+  public static List<String> PROBABILISTIC_KEY_IDS = List.of("keyA","keyB");
+  public static List<String> DETERMINISTIC_KEY_IDS = List.of("key8","key9");
+  public static final String CIPHER_DATA_KEYS_EMPTY = "[]";
+  public static final String CIPHER_DATA_KEYS_CONFIG = "["
+              + "{\"identifier\":\"keyA\","
+              +     "\"material\":{"
+              +       "\"primaryKeyId\":1000000001,"
+              +       "\"key\":["
+              +          "{\"keyData\":"
+              +                "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesGcmKey\","
+              +                "\"value\":\"GhDRulECKAC8/19NMXDjeCjK\","
+              +                "\"keyMaterialType\":\"SYMMETRIC\"},"
+              +                "\"status\":\"ENABLED\","
+              +                "\"keyId\":1000000001,"
+              +                "\"outputPrefixType\":\"TINK\""
+              +           "}"
+              +       "]"
+              +     "}"
+              + "},"
+              + "{\"identifier\":\"keyB\","
+              +     "\"material\":{"
+              +       "\"primaryKeyId\":1000000002,"
+              +       "\"key\":["
+              +           "{\"keyData\":"
+              +               "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesGcmKey\","
+              +               "\"value\":\"GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==\","
+              +               "\"keyMaterialType\":\"SYMMETRIC\"},"
+              +               "\"status\":\"ENABLED\","
+              +               "\"keyId\":1000000002,"
+              +               "\"outputPrefixType\":\"TINK\""
+              +           "}"
+              +       "]"
+              +     "}"
+              + "},"
+              + "{\"identifier\":\"key9\","
+              +     "\"material\":{"
+              +       "\"primaryKeyId\":1000000003,"
+              +       "\"key\":["
+              +           "{\"keyData\":"
+              +               "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesSivKey\","
+              +               "\"value\":\"EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz\","
+              +               "\"keyMaterialType\":\"SYMMETRIC\"},"
+              +               "\"status\":\"ENABLED\","
+              +               "\"keyId\":1000000003,"
+              +               "\"outputPrefixType\":\"TINK\""
+              +           "}"
+              +       "]"
+              +     "}"
+              + "},"
+              + "{\"identifier\":\"key8\","
+              +     "\"material\":{"
+              +       "\"primaryKeyId\":1000000004,"
+              +       "\"key\":["
+              +           "{\"keyData\":"
+              +               "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesSivKey\","
+              +               "\"value\":\"EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/\","
+              +               "\"keyMaterialType\":\"SYMMETRIC\"},"
+              +               "\"status\":\"ENABLED\","
+              +               "\"keyId\":1000000004,"
+              +               "\"outputPrefixType\":\"TINK\""
+              +           "}"
+              +       "]"
+              +     "}"
+              + "}"
+              + "]";
+  public static final String CIPHER_DATA_KEYS_CONFIG_ENCRYPTED = "["
+              + "    {"
+              + "        \"identifier\": \"keyX\","
+              + "        \"material\": {"
+              + "            \"encryptedKeyset\": \"CiQAxVFVnXQGci+bKTFoJwYENusDTbOmB+akfwJH3V9yRJXu8HwShQEAjEQQ+iL+3/Y8/Q7PcTgSJTAr8yUkNbFf7715soTCa9pfxFLxv78aZOwONmIktL1ntM8+uQfOt7Ka3nYxrrzitJORFSh8pIQBE7B1vcbhCJQk5+8mSnNcYcAgk90Es8qAiVeptfVaw0VLWok4/ejnsogaD0gLEOeR/4FJfKELj7LLUgLf\","
+              + "            \"keysetInfo\": {"
+              + "                \"primaryKeyId\": 1070658096,"
+              + "                \"keyInfo\": ["
+              + "                    {"
+              + "                        \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesGcmKey\","
+              + "                        \"status\": \"ENABLED\","
+              + "                        \"keyId\": 1070658096,"
+              + "                        \"outputPrefixType\": \"TINK\""
+              + "                    }"
+              + "                ]"
+              + "            }"
+              + "        }"
+              + "    },"
+              + "    {"
+              + "        \"identifier\": \"keyY\","
+              + "        \"material\": {"
+              + "            \"encryptedKeyset\": \"CiQAxVFVnYb69VZimvSnRRsxEhFMbHHTW4BaGHVMLKTZrXViaPwSlAEAjEQQ+iDiddqY3C/jHIjAsU5Ph+gQULl4Xi6mmKusbjTiBzQkIwuXg+nE3Y1C0GFSl7LEqtBQuyb7L0w5CsjGRBoRLhyqJUfil92AAb1yC7j+ArxvcV+T970KPyVG9QdDcJ2fiYqNqwLf8dwqPP0n+nAHksF0DpQf6yg3vslox0GIVxauojPdbq9pFuQUTZyGVs/a\","
+              + "            \"keysetInfo\": {"
+              + "                \"primaryKeyId\": 1053599701,"
+              + "                \"keyInfo\": ["
+              + "                    {"
+              + "                        \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesGcmKey\","
+              + "                        \"status\": \"ENABLED\","
+              + "                        \"keyId\": 1053599701,"
+              + "                        \"outputPrefixType\": \"TINK\""
+              + "                    }"
+              + "                ]"
+              + "            }"
+              + "        }"
+              + "    },"
+              + "    {"
+              + "        \"identifier\": \"key1\","
+              + "        \"material\": {"
+              + "            \"encryptedKeyset\": \"CiQAxVFVnfzb8jhDAfGwquh5lxU0R+blpz7DP/00cF8aq4gLtuIStwEAjEQQ+vGbPfFxa07XkaMHEP7TU9PGsd0l38St3CckCrgVnzYidrX3H4XtN58VUFN5eTXcIq3Rx2gsx/RaSpe85o+MP33woGM9Va4s/INyjeeCQVsJnoWU1EqLchfU8BnL0dAXwajj3Bj5X3oL8k22TNome2ywDKjrXz4AU75QYNwta000SmRxlY7UbmR1Mv38Nrs2qvy5P8B6fOYPusamtFJkJWG/dxJpoS+4URWcCc2yfrCY4yg=\","
+              + "            \"keysetInfo\": {"
+              + "                \"primaryKeyId\": 1932849140,"
+              + "                \"keyInfo\": ["
+              + "                    {"
+              + "                        \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesSivKey\","
+              + "                        \"status\": \"ENABLED\","
+              + "                        \"keyId\": 1932849140,"
+              + "                        \"outputPrefixType\": \"TINK\""
+              + "                    }"
+              + "                ]"
+              + "            }"
+              + "        }"
+              + "    },"
+              + "    {"
+              + "        \"identifier\": \"key0\","
+              + "        \"material\": {"
+              + "            \"encryptedKeyset\": \"CiQAxVFVnUUw/pZSdQXtve5M+wgVBlGqPJwuf4X9SmWB4B1u4OQStQEAjEQQ+iXK6u/gbul2QpS0mIO2wqUwiOBHz5C+MZ2JKyjKlzMA8yGlyqoN54qhRJA5IazFUIJVWNigXBDUU0km1Bm1oFDdzb6pMVZY5HDH26AiyJZOQSjglLAz+SoYR3DjHapkWNDv2QGacP/5qCwC7zOCc89pZxEDtT+eJvVsJqUHV6VGJYnIVYQBwxBAzy3XsPWm6IARj5VHtLwOTuM3UNP96Bwk/jzR6Ot+izXASRTeHomP\","
+              + "            \"keysetInfo\": {"
+              + "                \"primaryKeyId\": 151824924,"
+              + "                \"keyInfo\": ["
+              + "                    {"
+              + "                        \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesSivKey\","
+              + "                        \"status\": \"ENABLED\","
+              + "                        \"keyId\": 151824924,"
+              + "                        \"outputPrefixType\": \"TINK\""
+              + "                    }"
+              + "                ]"
+              + "            }"
+              + "        }"
+              + "    }"
+              + "]";
+  public static final String TEST_KMS_CONFIG = "{\"clientId\":\"ae15e95c-5faa-4bf2-9e6c-eb4ef3af84cf\",\"tenantId\":\"907eb0ce-22b4-4199-991c-ef0c715a6d1e\",\"clientSecret\":\"XWk8Q~fw3ycbuqSCktlAlwmzn2TZ5Eel2aivWbPz\",\"keyVaultUrl\":\"https://kryptonite.vault.azure.net/\"}";
+  public static final String TEST_KMS_ENCRYPTED_CONFIG = "{\"clientId\":\"ae15e95c-5faa-4bf2-9e6c-eb4ef3af84cf\",\"tenantId\":\"907eb0ce-22b4-4199-991c-ef0c715a6d1e\",\"clientSecret\":\"XWk8Q~fw3ycbuqSCktlAlwmzn2TZ5Eel2aivWbPz\",\"keyVaultUrl\":\"https://kryptonite-enc.vault.azure.net/\"}";
+  public static final String TEST_KEK_URI = "gcp-kms://projects/endless-duality-312807/locations/europe-west1/keyRings/kryptonite-kek-demo-001/cryptoKeys/my-tink-kek-001";
+  public static final String TEST_KEK_CONFIG = "{ \"type\": \"service_account\", \"project_id\": \"endless-duality-312807\", \"private_key_id\": \"c2680139effcfb34cac02b62bb10b62b600b3d50\", \"private_key\": \"-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC1z5uA8PZpxMYy\nDVv/4t5zAq2KCjs2kaXCEw2G0jJwFeFjpS9C/so7irDoFJvErR2hNXXeOEeNt+Yj\n5LjKDrFl+35kE3HenfpVLC9Yf2ZQRZAFpEkEdP1xvG6p413Aa+Lm0rK9RTJ1uB6B\nzgzx6+ixpoCza2W7kjcCaFzLmhBJLe972Zez/Tsq6YHzyOdUbtuPO3NU8czpep9z\nCaEexGbDEbrzmeY+yVx2uOGXcBOvfsf0QvLjVEzP06v/16gDugktItWXZniNfMHX\n2x2V4L++dFgUzsfr5/sScCmsqV1zVn4Pag7fN5E9cbt8luVUkc5mUKOHct2VbhhD\n2bFwNg8DAgMBAAECggEAKGeJavfiAzJwS2pNoknkXtHfCDjq3N80Y7OBQ4+OFvu9\n2bu5i519Cwtw8jq2PVitp4hud+KxAC04z4xChuEKCpyAA7SQj0Uzf18w7G1vqvIy\nphZTBdMMCg0y2L2HNb6kL+DuSQLKSoAPA5Drro3bajOTEYySEMPXRskzqinEacaT\nN65w48sO9LtTO1il8uau8xlaZ9IstVMuL4t5LVVToXyqYyS38vhWGrarqTaPBcKu\nEHaWuRIIkVPMMqr47EnLhoq8sZ3As8M9R1VRvGM179em+Zh5toRypFIUJt5nn0ls\nzbcB0eY1dj+Vr7pZweHUsd/Rmgq2xQwuREtp/4dhdQKBgQD5Tmlz2AaB2syUasER\n6qQMuEiZzfIQGpj+0hlJXq2Tsq9JJ3m2ngGO7y3nYX70T4EvAPXlSIMroRSXw87J\nzOP9qoKv2l2aJ/5UooXSKw2sEsl0SgCDzJqE/NN6DEklBXos1wFRVpq0iJa47KiD\n8Y1xHrhP3o7A7hg3+pre+mDUDQKBgQC6sUV8/y4fRZ1WUUUMkaeNGMTlBQZI0U8W\ng3fdwHwNC4KxE+9EhhW2JrTZFIPwYJWtNtH+T1q6htO5BzQ6leE8aYwhwoLEsJnx\nUNAl0QSe414QY7MzbtyqvYen2X3EeqxkW/ZAhxwB+G3tqp8FRT+2MrIc1u2tV8Gr\nlPtAQ8RbTwKBgQDffuwKbh9nSj8czpdG+JMY1BxBxd67kRyXVMJWhAoX3phFfJ4g\nmIXNHZ6JT14Ap0WoXbQTWG4/LqjHZUJ8prG9Np7yB1DiYfge55QQVYhsOmtfVPgh\nL8tWbVEomNr51W8xw43q3TjTn59/KKnpnyKtxlx1PY+8ZbZQeNleDBfCAQKBgEFl\niY7goJppu1SaQVLGzud5Dreey/XEBC1BvkJag9nZ91zqO71ILuDQrDcCnbkdTDER\n6/tmdsSyKAY/hMck63JLEsBcr4wQxMwoX9FvZ2v0/2VEV2ij4/6XR6a/Y/PoeOzq\n3db6vQ/fozpGs0+YU1oSZhv+GeHHxNrC5EQ9uNG3AoGBAKYg+5/EdPyYtQh86Mi1\nWWRoiCFOw47W/2W+5ur+LGhu9b9sHHCNPFcpNz5oRn+R4XUFfuxOdk6G6jOMjzLo\nrsDoUEJp3ktcght3LFyut9wXtJob8XEs8LJNoxFWM6tVpNebroHqQWUgoLNlUTUH\nvcE9RR22reTjyVfNZYFgSBS8\n-----END PRIVATE KEY-----\n\", \"client_email\": \"kryptonite-kms-demo@endless-duality-312807.iam.gserviceaccount.com\", \"client_id\": \"107286961965823927359\", \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\", \"token_uri\": \"https://oauth2.googleapis.com/token\", \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\", \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/kryptonite-kms-demo%40endless-duality-312807.iam.gserviceaccount.com\" }";
+
 
   @BeforeAll
   static void initializeTestData() {
@@ -154,10 +234,11 @@ public class CipherFieldFunctionalTest {
     }
 
   @ParameterizedTest
-  @MethodSource("generateCipherFieldParamCombinations")
+  @MethodSource("generateValidSmtParamCombinations")
   @DisplayName("apply SMT decrypt(encrypt(plaintext)) = plaintext for schemaless record with param combinations")
   @SuppressWarnings("unchecked")
-  void encryptDecryptSchemalessRecordTest(FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2) {
+  void encryptDecryptSchemalessRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
+      KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
     var encProps = new HashMap<String, Object>();
     encProps.put(CipherField.CIPHER_MODE, "ENCRYPT");
     encProps.put(CipherField.FIELD_CONFIG,
@@ -173,9 +254,15 @@ public class CipherFieldFunctionalTest {
             + "]"
     );
     encProps.put(CipherField.CIPHER_ALGORITHM,cipherSpec.getName());
-    encProps.put(CipherField.CIPHER_DATA_KEYS,CIPHER_DATA_KEYS);
+    encProps.put(CipherField.CIPHER_DATA_KEYS,cipherDataKeys);
     encProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,keyId1);
     encProps.put(CipherField.FIELD_MODE,fieldMode.name());
+    encProps.put(CipherField.KEY_SOURCE,keySource.name());
+    encProps.put(CipherField.KMS_TYPE,kmsType.name());
+    encProps.put(CipherField.KMS_CONFIG,kmsConfig);
+    encProps.put(CipherField.KEK_TYPE,kekType.name());
+    encProps.put(CipherField.KEK_CONFIG,kekConfig);
+    encProps.put(CipherField.KEK_URI,kekUri);
 
     var encryptTransform = new CipherField.Value<SourceRecord>();
     encryptTransform.configure(encProps);
@@ -223,6 +310,12 @@ public class CipherFieldFunctionalTest {
     decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));
     decProps.put(CipherField.CIPHER_DATA_KEYS,encProps.get(CipherField.CIPHER_DATA_KEYS));
     decProps.put(CipherField.FIELD_MODE,fieldMode.name());
+    decProps.put(CipherField.KEY_SOURCE,encProps.get(CipherField.KEY_SOURCE));
+    decProps.put(CipherField.KMS_TYPE,encProps.get(CipherField.KMS_TYPE));
+    decProps.put(CipherField.KMS_CONFIG,encProps.get(CipherField.KMS_CONFIG));
+    decProps.put(CipherField.KEK_TYPE,encProps.get(CipherField.KEK_TYPE));
+    decProps.put(CipherField.KEK_CONFIG,encProps.get(CipherField.KEK_CONFIG));
+    decProps.put(CipherField.KEK_URI,encProps.get(CipherField.KEK_URI));
 
     var decryptTransform = new CipherField.Value<SinkRecord>();
     decryptTransform.configure(decProps);
@@ -232,12 +325,13 @@ public class CipherFieldFunctionalTest {
 
     assertAllResultingFieldsSchemalessRecord(OBJ_MAP_1,decryptedRecord);
   }
-
+ 
   @ParameterizedTest
-  @MethodSource("generateCipherFieldParamCombinations")
+  @MethodSource("generateValidSmtParamCombinations")
   @DisplayName("apply SMT decrypt(encrypt(plaintext)) = plaintext for schemaful record with param combinations")
   @SuppressWarnings("unchecked")
-  void encryptDecryptSchemafulRecordTest(FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2) {
+  void encryptDecryptSchemafulRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
+      KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
     var encProps = new HashMap<String, Object>();
     encProps.put(CipherField.CIPHER_MODE, "ENCRYPT");
     encProps.put(CipherField.FIELD_CONFIG,
@@ -254,9 +348,15 @@ public class CipherFieldFunctionalTest {
             + "]"
     );
     encProps.put(CipherField.CIPHER_ALGORITHM,cipherSpec.getName());
-    encProps.put(CipherField.CIPHER_DATA_KEYS,CIPHER_DATA_KEYS);
-    encProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,keyId2);
+    encProps.put(CipherField.CIPHER_DATA_KEYS,cipherDataKeys);
+    encProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,keyId1);
     encProps.put(CipherField.FIELD_MODE,fieldMode.name());
+    encProps.put(CipherField.KEY_SOURCE,keySource.name());
+    encProps.put(CipherField.KMS_TYPE,kmsType.name());
+    encProps.put(CipherField.KMS_CONFIG,kmsConfig);
+    encProps.put(CipherField.KEK_TYPE,kekType.name());
+    encProps.put(CipherField.KEK_CONFIG,kekConfig);
+    encProps.put(CipherField.KEK_URI,kekUri);
 
     var encryptTransform = new CipherField.Value<SourceRecord>();
     encryptTransform.configure(encProps);
@@ -306,6 +406,12 @@ public class CipherFieldFunctionalTest {
     decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));
     decProps.put(CipherField.CIPHER_DATA_KEYS,encProps.get(CipherField.CIPHER_DATA_KEYS));
     decProps.put(CipherField.FIELD_MODE,fieldMode.name());
+    decProps.put(CipherField.KEY_SOURCE,encProps.get(CipherField.KEY_SOURCE));
+    decProps.put(CipherField.KMS_TYPE,encProps.get(CipherField.KMS_TYPE));
+    decProps.put(CipherField.KMS_CONFIG,encProps.get(CipherField.KMS_CONFIG));
+    decProps.put(CipherField.KEK_TYPE,encProps.get(CipherField.KEK_TYPE));
+    decProps.put(CipherField.KEK_CONFIG,encProps.get(CipherField.KEK_CONFIG));
+    decProps.put(CipherField.KEK_URI,encProps.get(CipherField.KEK_URI));
 
     var decryptTransform = new CipherField.Value<SinkRecord>();
     decryptTransform.configure(decProps);
@@ -339,37 +445,47 @@ public class CipherFieldFunctionalTest {
     );
   }
 
-  static List<Arguments> generateCipherFieldParamCombinations() {
-    var argsList = new ArrayList<Arguments>();
-    for (FieldMode fieldMode : FieldMode.values()) {
-      for (String keyId1 : PROBABILISTIC_KEY_IDS) {
-        for (String keyId2 : PROBABILISTIC_KEY_IDS) {
-          argsList.add(
-            Arguments.of(
-              fieldMode,
-              CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-              keyId1,
-              keyId2
-            )
-          );
-        }
-      }
-    }
-    for (FieldMode fieldMode : FieldMode.values()) {
-      for (String keyId1 : DETERMINISTIC_KEY_IDS) {
-        for (String keyId2 : DETERMINISTIC_KEY_IDS) {
-          argsList.add(
-            Arguments.of(
-              fieldMode,
-              CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-              keyId1,
-              keyId2
-            )
-          );
-        }
-      }
-    }
-    return argsList;
+  static List<Arguments> generateValidSmtParamCombinations() {
+    return List.of(
+       
+        Arguments.of(
+          CIPHER_DATA_KEYS_CONFIG,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyA","keyB",
+          KeySource.CONFIG,KmsType.NONE,"{}",KekType.NONE,"{}",""
+        ),
+        Arguments.of(
+          CIPHER_DATA_KEYS_CONFIG,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key9","key8",
+          KeySource.CONFIG,KmsType.NONE,"{}",KekType.NONE,"{}",""
+        ),
+
+        Arguments.of(
+          CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyX","keyY",
+          KeySource.CONFIG_ENCRYPTED,KmsType.NONE,"{}",KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
+        ),
+
+        Arguments.of(
+          CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key1","key0",
+          KeySource.CONFIG_ENCRYPTED,KmsType.NONE,"{}",KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
+        ),
+
+        Arguments.of(
+          CIPHER_DATA_KEYS_EMPTY,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyA","keyB",
+          KeySource.KMS,KmsType.AZ_KV_SECRETS,TEST_KMS_CONFIG,KekType.NONE,"{}",""
+        ),
+        Arguments.of(
+          CIPHER_DATA_KEYS_EMPTY,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key9","key8",
+          KeySource.KMS,KmsType.AZ_KV_SECRETS,TEST_KMS_CONFIG,KekType.NONE,"{}",""
+        ),
+
+        Arguments.of(
+          CIPHER_DATA_KEYS_EMPTY,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyX","keyY",
+          KeySource.KMS_ENCRYPTED,KmsType.AZ_KV_SECRETS,TEST_KMS_ENCRYPTED_CONFIG,KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
+        ),
+        Arguments.of(
+          CIPHER_DATA_KEYS_EMPTY,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key1","key0",
+          KeySource.KMS_ENCRYPTED,KmsType.AZ_KV_SECRETS,TEST_KMS_ENCRYPTED_CONFIG,KekType.GCP,TEST_KEK_CONFIG,TEST_KEK_URI
+        )
+
+    );
   }
 
 }
