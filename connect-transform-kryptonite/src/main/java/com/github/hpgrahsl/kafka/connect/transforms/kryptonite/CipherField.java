@@ -64,12 +64,19 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
 
   public enum KeySource {
     CONFIG,
-    KMS
+    KMS,
+    CONFIG_ENCRYPTED,
+    KMS_ENCRYPTED
   }
 
   public enum KmsType {
     NONE,
     AZ_KV_SECRETS
+  }
+
+  public enum KekType {
+    NONE,
+    GCP
   }
 
   public static final String OVERVIEW_DOC =
@@ -86,6 +93,9 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   public static final String KEY_SOURCE = "key_source";
   public static final String KMS_TYPE = "kms_type";
   public static final String KMS_CONFIG = "kms_config";
+  public static final String KEK_TYPE = "kek_type";
+  public static final String KEK_CONFIG = "kek_config";
+  public static final String KEK_URI = "kek_uri";
 
   private static final String PATH_DELIMITER_DEFAULT = ".";
   private static final String FIELD_MODE_DEFAULT = "ELEMENT";
@@ -96,6 +106,9 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   private static final String KEY_SOURCE_DEFAULT = "CONFIG";
   private static final String KMS_TYPE_DEFAULT = "NONE";
   private static final String KMS_CONFIG_DEFAULT = "{}";
+  private static final String KEK_TYPE_DEFAULT = "NONE";
+  private static final String KEK_CONFIG_DEFAULT = "{}";
+  private static final String KEK_URI_DEFAULT = "xyz-kms://";
 
   public static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(FIELD_CONFIG, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new FieldConfigValidator(),
@@ -118,8 +131,14 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           "defines the origin of the Tink keysets which can be defined directly in the config or fetched from a remote/cloud KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)")
       .define(KMS_TYPE, Type.STRING, KMS_TYPE_DEFAULT, new KmsTypeValidator(),
           ConfigDef.Importance.MEDIUM, "defines from which remote/cloud KMS keysets are resolved from (currently only supports Azure Key Vault)")
-      .define(KMS_CONFIG, Type.PASSWORD, KMS_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
-          "JSON object specifying the KMS-specific client authentication settings (currently only supports Azure Key Vault)");
+      .define(KMS_CONFIG, Type.PASSWORD, KMS_CONFIG_DEFAULT, ConfigDef.Importance.MEDIUM,
+          "JSON object specifying the KMS-specific client authentication settings (currently only supports Azure Key Vault)")
+      .define(KEK_TYPE, Type.STRING, KEK_TYPE_DEFAULT, new KekTypeValidator(),
+          ConfigDef.Importance.LOW, "defines which remote/cloud KMS is used for data key encryption (currently only supports GCP Cloud KMS)")
+      .define(KEK_CONFIG, Type.PASSWORD, KEK_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
+          "JSON object specifying the KMS-specific client authentication settings (currently only supports GCP Cloud KMS)")
+      .define(KEK_URI, Type.PASSWORD, KEK_URI, ConfigDef.Importance.LOW,
+          "remote/cloud KMS-specific URI to refer to the key encryption key if applicable (currently only supports GCP Cloud KMS key URIs)");
 
   private static final String PURPOSE = "(de)cipher connect record fields";
 
