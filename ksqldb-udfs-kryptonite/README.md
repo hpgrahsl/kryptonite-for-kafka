@@ -6,11 +6,11 @@
 
 ## ksqlDB User-Defined Functions (UDFs)
 
-Kryptonite for Kafka provides two [ksqlDB](https://ksqlDB.io) [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDFs) named `K4KENCRYPT` and `K4KDECRYPT` which are currently in _[EXPERIMENTAL]_ stage. The simple examples below show how to install, configure and apply the UDFs to selectively encrypt column values in ksqlDB `STREAMS` and `TABLES`.
+Kryptonite for Kafka provides two [ksqlDB](https://ksqlDB.io) [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDFs) named `K4KENCRYPT` and `K4KDECRYPT`. The simple examples below show how to install, configure and apply the UDFs to selectively encrypt or decrypt column values in ksqlDB `STREAMS` and `TABLES`.
 
 ### Build and Deployment
 
-Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built ksqlDB UDFs can be downloaded from here [ksqldb-udfs-kryptonite-0.1.1.jar](https://drive.google.com/file/d/1cTneQ_Wqtd2UCIVHgZLwHQ-7ulfYP7Ng/view?usp=sharing)
+Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest artefacts. Starting with Kryptonite for Kafka 0.4.0, the pre-built ksqlDB UDFs can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
 
 In order to deploy the UDFs **put the jar into your _'ksql extension directory'_** that is configured to be scanned during bootstrap of the ksqlDB server process(es).
 
@@ -42,13 +42,16 @@ The following table lists configuration options for the UDFs.
 <th>?</th>
 </tr>
 <tr>
-<td>cipher_data_keys</td><td>JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format. The contained keyset objects are mandatory if <pre>kms_type=NONE</pre> but the array may be left empty in order to resolve keysets from a remote KMS such as Azure Key Vault. <pre>kms_type=AZ_KV_SECRETS</pre><strong>Irrespective of their origin, all keysets ("material" fields) are expected to be valid tink keyset descriptions in JSON format which are used for encryption / decryption purposes.</strong></td><td>string</td><td><pre>[]</pre></td><td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in JSON format, e.g.
+<td>cipher_data_keys</td><td>JSON array with plain or encrypted data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format. The contained keyset objects are mandatory if <pre>kms_type=NONE</pre> but the array may be left empty in order to resolve keysets from a remote KMS such as Azure Key Vault, e.g. <pre>kms_type=AZ_KV_SECRETS</pre><strong>Irrespective of their origin, all plain or encrypted keysets (see the example values in the right column) are expected to be valid tink keyset descriptions in JSON format.</strong></td><td>string</td><td><pre>[]</pre></td><td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in JSON format (see "material" fields)
+
+* plain data key config example:
+
 <pre>
 [
     {
         "identifier": "my-demo-secret-key-123",
         "material": {
-            "primaryKeyId": 1234567890,
+            "primaryKeyId": 123456789,
             "key": [
                 {
                     "keyData": {
@@ -57,30 +60,69 @@ The following table lists configuration options for the UDFs.
                         "keyMaterialType": "SYMMETRIC"
                     },
                     "status": "ENABLED",
-                    "keyId": 1234567890,
+                    "keyId": 123456789,
                     "outputPrefixType": "TINK"
                 }
             ]
         }
     }
 ]
-</pre></td><td><strong>mandatory</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
+</pre>
+
+* encrypted data key config example:
+
+<pre>
+[
+    {
+        "identifier": "my-demo-secret-key-123",
+        "material": {
+            "encryptedKeyset": "&lt;ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE&gt;",
+            "keysetInfo": {
+                "primaryKeyId": 123456789,
+                "keyInfo": [
+                    {
+                        "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey",
+                        "status": "ENABLED",
+                        "keyId": 123456789,
+                        "outputPrefixType": "TINK"
+                    }
+                ]
+            }
+        }
+    }
+}
+</pre>
+
+</td><td><strong>mandatory</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>cipher_data_key_identifier</td><td>keyset identifier to be used as default data encryption keyset for all UDF calls which don't refer to a specific keyset identifier</td><td>string</td><td>""</td><td>non-empty string</td><td><strong>mandatory</strong> for <pre>K4KENCRYPT</pre></td>
+<td>cipher_data_key_identifier</td><td>keyset identifier to be used as default data encryption keyset for all UDF calls which don't refer to a specific keyset identifier</td><td>string</td><td>&nbsp;</td><td>non-empty string</td><td><strong>mandatory</strong> for <pre>K4KENCRYPT</pre></td>
 <tr>
-<td>key_source</td><td>defines the origin of the keysets which can be defined directly in the CONFIG or fetched from a remote KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)</td><td>string</td><td><pre>CONFIG</pre></td><td>
+<td>key_source</td><td>defines the nature and origin of the keysets which can be defined as:
+
+* plain data keysets given by `cipher_data_keys` (CONFIG)
+* encrypted data keysets given by `cipher_data_keys` (CONFIG_ENCRYPTED)
+* plain data keysets residing in a remote key management system (KMS)
+* encrypted data keysets residing in a remote key management system (KMS_ENCRYPTED)
+
+When using the KMS options refer to the `kms_type` and `kms_config` settings. When using encrypted data keysets refer to the `kek_type`, `kek_config` and `kek_uri` settings as well.
+</td><td>string</td>
+<td><pre>CONFIG</pre></td><td>
 <pre>
 CONFIG
+CONFIG_ENCRYPTED
 KMS
+KMS_ENCRYPTED
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>kms_type</td><td>defines if keysets are read from the config directly or resolved from a remote/cloud KMS (e.g. Azure Key Vault).</td><td>string</td><td><pre>NONE</pre></td><td>
+<td>kms_type</td><td>defines if data keysets are read from the config directly (kms_source=CONFIG|CONFIG_ENCRYPTED) or resolved from a key management system (kms_source=KMS|KMS_ENCRYPTED)
+
+</td><td>string</td><td><pre>NONE</pre></td><td>
 <pre>
 NONE
 AZ_KV_SECRETS
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>kms_config</td><td>JSON object specifying KMS-specific client authentication settings (currently only supports Azure Key Vault). <pre>kms_type=AZ_KV_SECRETS</pre></td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for azure key vault access:
+<td>kms_config</td><td>JSON object specifying KMS-specific client authentication settings, currently only supports Azure Key Vault (kms_type=AZ_KV_SECRETS)</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
 <pre>
 {
     "clientId": "...",
@@ -89,6 +131,36 @@ AZ_KV_SECRETS
     "keyVaultUrl": "..."
 }
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
+<tr>
+<td>kek_type</td><td>defines if and which key encryption is used for the data keysets and must be specified when kms_source=CONFIG_ENCRYPTED|KMS_ENCRYPTED, currently only support Google Cloud KMS
+
+</td><td>string</td><td><pre>NONE</pre></td><td>
+<pre>
+NONE
+GCP
+</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
+<tr>
+<td>kek_config</td><td>JSON object specifying KMS-specific client authentication settings, currently only supports Google Cloud KMS (kms_type=GCP)</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Google Cloud KMS:
+<pre>
+{
+  "type": "service_account",
+  "project_id": "...",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY----- ... -----END PRIVATE KEY-----\n",
+  "client_email": "...",
+  "client_id": "...",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "..."
+}
+</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
+<tr>
+<td>kek_uri</td><td>URI referring to the key encryption key stored in the respective remote KMS, currently only support Google Cloud KMS</td><td>string</td><td>{}</td><td>a valid Tink KEK URI e.g. pointing to a key in Google Cloud KMS:
+<pre>
+gcp-kms://...
+</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
+
 </tbody></table>
 
 ##### UDF K4KENCRYPT
@@ -134,10 +206,10 @@ After making sure that all the mandatory configuration properties are set, start
 ```text
 Name        : K4KENCRYPT
 Author      : H.P. Grahsl (@hpgrahsl)
-Version     : 0.1.1
+Version     : 0.2.0
 Overview    : 🔒 encrypt field data ... hopefully without fighting 🐲 🐉
 Type        : SCALAR
-Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.1.1.jar
+Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.2.0.jar
 Variations  : 
 
 	Variation   : K4KENCRYPT(data T, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
@@ -172,10 +244,10 @@ Variations  :
 ```text
 Name        : K4KDECRYPT
 Author      : H.P. Grahsl (@hpgrahsl)
-Version     : 0.1.1
+Version     : 0.2.0
 Overview    : 🔓 decrypt field data ... hopefully without fighting 🐲 🐉
 Type        : SCALAR
-Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.1.1.jar
+Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.2.0.jar
 Variations  : 
 
 	Variation   : K4KDECRYPT(data ARRAY<VARCHAR>, typeCapture E)
