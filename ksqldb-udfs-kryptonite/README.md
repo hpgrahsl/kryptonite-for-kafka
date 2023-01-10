@@ -114,7 +114,10 @@ KMS
 KMS_ENCRYPTED
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>kms_type</td><td>defines if data keysets are read from the config directly (kms_source=CONFIG|CONFIG_ENCRYPTED) or resolved from a key management system (kms_source=KMS|KMS_ENCRYPTED)
+<td>kms_type</td><td>defines if: 
+
+* data keysets are read from the config directly `kms_source=CONFIG` | `kms_source=CONFIG_ENCRYPTED`
+* or if they are resolved from a key management system `kms_source=KMS` | `kms_source=KMS_ENCRYPTED`, currently only supports Azure Key Vault
 
 </td><td>string</td><td><pre>NONE</pre></td><td>
 <pre>
@@ -122,7 +125,9 @@ NONE
 AZ_KV_SECRETS
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>kms_config</td><td>JSON object specifying KMS-specific client authentication settings, currently only supports Azure Key Vault (kms_type=AZ_KV_SECRETS)</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
+<td>kms_config</td><td>JSON object specifying KMS-specific client authentication settings: 
+
+* currently only supports Azure Key Vault `kms_type=AZ_KV_SECRETS`</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
 <pre>
 {
     "clientId": "...",
@@ -132,7 +137,9 @@ AZ_KV_SECRETS
 }
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>kek_type</td><td>defines if and which key encryption is used for the data keysets and must be specified when kms_source=CONFIG_ENCRYPTED|KMS_ENCRYPTED, currently only support Google Cloud KMS
+<td>kek_type</td><td>defines if KMS key encryption is used for encrypting data keysets which must be specified when using 
+
+`kms_source=CONFIG_ENCRYPTED` | `kms_source=KMS_ENCRYPTED`, currently only supports Google Cloud KMS
 
 </td><td>string</td><td><pre>NONE</pre></td><td>
 <pre>
@@ -140,7 +147,9 @@ NONE
 GCP
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>kek_config</td><td>JSON object specifying KMS-specific client authentication settings, currently only supports Google Cloud KMS (kms_type=GCP)</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Google Cloud KMS:
+<td>kek_config</td><td>JSON object specifying KMS-specific client authentication settings:
+
+* currently only supports Google Cloud KMS `kek_type=GCP`</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Google Cloud KMS:
 <pre>
 {
   "type": "service_account",
@@ -156,7 +165,9 @@ GCP
 }
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
 <tr>
-<td>kek_uri</td><td>URI referring to the key encryption key stored in the respective remote KMS, currently only support Google Cloud KMS</td><td>string</td><td>{}</td><td>a valid Tink KEK URI e.g. pointing to a key in Google Cloud KMS:
+<td>kek_uri</td><td>URI referring to the key encryption key stored in the respective remote KMS, currently only support Google Cloud KMS</td><td>string</td><td>{}</td><td>a valid Tink KEK URI
+
+* e.g. pointing to a key in Google Cloud KMS see `kek_type=GCP`
 <pre>
 gcp-kms://...
 </pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
