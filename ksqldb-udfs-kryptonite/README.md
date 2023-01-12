@@ -32,124 +32,187 @@ K4KENCRYPT            | cryptography
 
 The following table lists configuration options for the UDFs.
 
-<table class="data-table"><tbody>
-<tr>
-<th>Name</th>
-<th>Description</th>
-<th>Type</th>
-<th>Default</th>
-<th>Valid Values</th>
-<th>?</th>
-</tr>
-<tr>
-<td>cipher_data_keys</td><td>JSON array with plain or encrypted data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format. The contained keyset objects are mandatory if <pre>kms_type=NONE</pre> but the array may be left empty in order to resolve keysets from a remote KMS such as Azure Key Vault, e.g. <pre>kms_type=AZ_KV_SECRETS</pre><strong>Irrespective of their origin, all plain or encrypted keysets (see the example values in the right column) are expected to be valid tink keyset descriptions in JSON format.</strong></td><td>string</td><td><pre>[]</pre></td><td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in JSON format (see "material" fields)
-
-* plain data key config example:
-
-<pre>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Valid Values</th>
+            <th>?</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>cipher.data.keys</td>
+            <td>JSON array with plain or encrypted data key objects specifying the key identifiers together with key
+                sets for encryption / decryption which are defined in Tink's key specification format. The contained
+                keyset objects are mandatory if
+                <code>kms_type=NONE</code> but the array may be left empty for e.g. <code>kms_type=AZ_KV_SECRETS</code> in order to resolve keysets from a remote KMS such as Azure Key Vault.
+                <strong>NOTE: Irrespective of their origin, all plain or encrypted keysets
+                    (see the example values in the right column) are expected to be valid tink keyset descriptions in
+                    JSON format.</strong>
+            </td>
+            <td>JSON array</td>
+            <td>
+                <pre>[]</pre>
+            </td>
+            <td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in JSON format (see "material" field)
+                <ul>
+                <li>plain data key config example:</li>
+    <pre>
 [
-    {
-        "identifier": "my-demo-secret-key-123",
-        "material": {
-            "primaryKeyId": 123456789,
-            "key": [
-                {
-                    "keyData": {
-                        "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
-                        "value": "&lt;BASE64_ENCODED_KEY_HERE&gt;",
-                        "keyMaterialType": "SYMMETRIC"
-                    },
-                    "status": "ENABLED",
-                    "keyId": 123456789,
-                    "outputPrefixType": "TINK"
-                }
-            ]
+  {
+    "identifier": "my-demo-secret-key-123",
+    "material": {
+      "primaryKeyId": 123456789,
+      "key": [
+        {
+          "keyData": {
+            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+            "value": "&lt;BASE64_ENCODED_KEY_HERE&gt;",
+            "keyMaterialType": "SYMMETRIC"
+          },
+          "status": "ENABLED",
+          "keyId": 123456789,
+          "outputPrefixType": "TINK"
         }
+      ]
     }
+  }
 ]
-</pre>
-
-* encrypted data key config example:
-
-<pre>
+    </pre>
+    <li>encrypted data key config example:</li>
+    <pre>
 [
-    {
-        "identifier": "my-demo-secret-key-123",
-        "material": {
-            "encryptedKeyset": "&lt;ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE&gt;",
-            "keysetInfo": {
-                "primaryKeyId": 123456789,
-                "keyInfo": [
-                    {
-                        "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey",
-                        "status": "ENABLED",
-                        "keyId": 123456789,
-                        "outputPrefixType": "TINK"
-                    }
-                ]
-            }
-        }
+  {
+    "identifier": "my-demo-secret-key-123",
+    "material": {
+      "encryptedKeyset": "&lt;ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE&gt;",
+      "keysetInfo": {
+        "primaryKeyId": 123456789,
+        "keyInfo": [
+          {
+            "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey",
+            "status": "ENABLED",
+            "keyId": 123456789,
+            "outputPrefixType": "TINK"
+          }
+        ]
+      }
     }
-}
-</pre>
-
-</td><td><strong>mandatory</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
-<tr>
-<td>cipher_data_key_identifier</td><td>keyset identifier to be used as default data encryption keyset for all UDF calls which don't refer to a specific keyset identifier</td><td>string</td><td>&nbsp;</td><td>non-empty string</td><td><strong>mandatory</strong> for <pre>K4KENCRYPT</pre></td>
-<tr>
-<td>key_source</td><td>defines the nature and origin of the keysets which can be defined as:
-
-* plain data keysets given by `cipher_data_keys` (CONFIG)
-* encrypted data keysets given by `cipher_data_keys` (CONFIG_ENCRYPTED)
-* plain data keysets residing in a remote key management system (KMS)
-* encrypted data keysets residing in a remote key management system (KMS_ENCRYPTED)
-
-When using the KMS options refer to the `kms_type` and `kms_config` settings. When using encrypted data keysets refer to the `kek_type`, `kek_config` and `kek_uri` settings as well.
-</td><td>string</td>
-<td><pre>CONFIG</pre></td><td>
-<pre>
-CONFIG
-CONFIG_ENCRYPTED
-KMS
-KMS_ENCRYPTED
-</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
-<tr>
-<td>kms_type</td><td>defines if: 
-
-* data keysets are read from the config directly `kms_source=CONFIG` | `kms_source=CONFIG_ENCRYPTED`
-* or if they are resolved from a key management system `kms_source=KMS` | `kms_source=KMS_ENCRYPTED`, currently only supports Azure Key Vault
-
-</td><td>string</td><td><pre>NONE</pre></td><td>
-<pre>
-NONE
-AZ_KV_SECRETS
-</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
-<tr>
-<td>kms_config</td><td>JSON object specifying KMS-specific client authentication settings: 
-
-* currently only supports Azure Key Vault `kms_type=AZ_KV_SECRETS`</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
-<pre>
-{
-    "clientId": "...",
-    "tenantId": "...",
-    "clientSecret": "...",
-    "keyVaultUrl": "..."
-}
-</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
-<tr>
-<td>kek_type</td><td>defines if KMS key encryption is used for encrypting data keysets which must be specified when using 
-
-`kms_source=CONFIG_ENCRYPTED` | `kms_source=KMS_ENCRYPTED`, currently only supports Google Cloud KMS
-
-</td><td>string</td><td><pre>NONE</pre></td><td>
-<pre>
-NONE
-GCP
-</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
-<tr>
-<td>kek_config</td><td>JSON object specifying KMS-specific client authentication settings:
-
-* currently only supports Google Cloud KMS `kek_type=GCP`</td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for Google Cloud KMS:
+  }
+]
+    </pre>
+    </ul>
+    </td>
+    <td><strong>mandatory</strong> for both,
+                <code>K4KENCRYPT</code> and
+                <code>K4KDECRYPT</code>
+            </td>
+        </tr>
+        <tr>
+            <td>cipher.data.key.identifier</td>
+            <td>keyset identifier to be used as default data encryption keyset for all UDF calls which don't refer to a
+                specific keyset identifier in the parameter list</td>
+            <td>string</td>
+            <td><pre>!no default!</pre></td>
+            <td>non-empty string referring to an existing identifier for a keyset</td>
+            <td><strong>mandatory</strong> for <code>K4KENCRYPT</code>
+            </td>
+        <tr>
+            <td>key.source</td>
+            <td>defines the nature and origin of the keysets:
+            <ul>
+                <li>plain data keysets in <code>cipher_data_keys (key_source=CONFIG)</code></li>
+                <li>encrypted data keysets in <code>cipher_data_keys (key_source=CONFIG_ENCRYPTED)</code></li>
+                <li>plain data keysets residing in a cloud/remote key management system <code>(key_source=KMS)</code></li>
+                <li>encrypted data keysets residing in a cloud/remote key management system <code>(key_source=KMS_ENCRYPTED)</code></li>
+            </ul>
+                When using the KMS options refer to the <code>kms_type</code> and <code>kms_config</code> settings. When using encrypted data
+                keysets refer to the <code>kek_type</code>, <code>kek_config</code> and <code>kek_uri</code> settings as well.
+            </td>
+            <td>string</td>
+            <td>
+                <pre>CONFIG</pre>
+            </td>
+            <td>
+                <pre>CONFIG</pre>
+                <pre>CONFIG_ENCRYPTED</pre>
+                <pre>KMS</pre>
+                <pre>KMS_ENCRYPTED</pre>
+            </td>
+            <td><strong>optional</strong> for both,
+                <code>K4KENCRYPT</code> and
+                <code>K4KDECRYPT</code>
+            </td>
+        </tr>
+        <tr>
+            <td>kms.type</td>
+            <td>defines if:
+                <ul>
+                <li>data keysets are read from the config directly <code>kms_source=CONFIG | CONFIG_ENCRYPTED</code></li>
+                <li>data keysets are resolved from a remote/cloud key management system (currently only supports Azure Key Vault) <code>kms_source=KMS | KMS_ENCRYPTED</code>
+                </li>
+                </ul>
+            </td>
+            <td>string</td>
+            <td>
+                <pre>NONE</pre>
+            </td>
+            <td>
+                <pre>NONE</pre>
+                <pre>AZ_KV_SECRETS</pre>
+            </td>
+            <td><strong>optional</strong> for both,
+                <code>K4KENCRYPT</code> and
+                <code>K4KDECRYPT</code>
+            </td>
+        </tr>
+        <tr>
+            <td>kms.config</td>
+            <td>JSON object specifying KMS-specific client authentication settings. Currently only supports Azure Key Vault <code>kms_type=AZ_KV_SECRETS</code></td>
+            <td>JSON object</td>
+            <td><pre>{}</pre></td>
+            <td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
+                <pre>
+    {
+        "clientId": "...",
+        "tenantId": "...",
+        "clientSecret": "...",
+        "keyVaultUrl": "..."
+    }
+    </pre>
+            </td>
+            <td><strong>optional</strong> for both,
+                <code>K4KENCRYPT</code> and
+                <code>K4KDECRYPT</code>
+            </td>
+        </tr>
+        <tr>
+            <td>kek.type</td>
+            <td>defines if KMS key encryption - currently only supports Google Cloud KMS - is used for encrypting data keysets and must be specified when using <code>kms_source=CONFIG_ENCRYPTED | KMS_ENCRYPTED</code> 
+            </td>
+            <td>string</td>
+            <td>
+                <pre>NONE</pre>
+            </td>
+            <td>
+                <pre>NONE</pre>
+                <pre>GCP</pre>
+            </td>
+            <td><strong>optional</strong> for both,
+                <code>K4KENCRYPT</code> and
+                <code>K4KDECRYPT</code>
+            </td>
+        </tr>
+        <tr>
+            <td>kek.config</td>
+            <td>JSON object specifying KMS-specific client authentication settings (currently only supports Google Cloud KMS) <code>kek_type=GCP</code></td>
+            <td>JSON object</td>
+            <td><pre>{}</pre></td>
+            <td>JSON object specifying the KMS-specific client authentication settings, e.g. for Google Cloud KMS:
 <pre>
 {
   "type": "service_account",
@@ -163,16 +226,28 @@ GCP
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": "..."
 }
-</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
-<tr>
-<td>kek_uri</td><td>URI referring to the key encryption key stored in the respective remote KMS, currently only support Google Cloud KMS</td><td>string</td><td>{}</td><td>a valid Tink KEK URI
-
-* e.g. pointing to a key in Google Cloud KMS see `kek_type=GCP`
-<pre>
-gcp-kms://...
-</pre></td><td><strong>optional</strong> for both, <pre>K4KENCRYPT</pre> and <pre>K4KDECRYPT</pre></td></tr>
-
-</tbody></table>
+</pre>
+            </td>
+            <td><strong>optional</strong> for both,
+                <code>K4KENCRYPT</code> and
+                <code>K4KDECRYPT</code>
+            </td>
+        </tr>
+        <tr>
+            <td>kek.uri</td>
+            <td>URI referring to the key encryption key stored in the respective remote/cloud KMS, currently only support Google Cloud KMS</td>
+            <td>string</td>
+            <td><pre>!no default!</pre></td>
+            <td>a valid and supported Tink key encryption key URI, e.g. pointing to a key in Google Cloud KMS (<code>kek_type=GCP</code>)
+            <pre>gcp-kms://...</pre>
+            </td>
+            <td><strong>optional</strong> for both,
+                <code>K4KENCRYPT</code> and
+                <code>K4KDECRYPT</code>
+            </td>
+        </tr>
+    </tbody>
+</table>
 
 ##### UDF K4KENCRYPT
 
