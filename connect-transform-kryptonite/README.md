@@ -419,12 +419,12 @@ Struct{
             </td>
             <td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
                 <pre>
-    {
-        "clientId": "...",
-        "tenantId": "...",
-        "clientSecret": "...",
-        "keyVaultUrl": "..."
-    }
+{
+  "clientId": "...",
+  "tenantId": "...",
+  "clientSecret": "...",
+  "keyVaultUrl": "..."
+}
     </pre>
             </td>
             <td>medium</td>

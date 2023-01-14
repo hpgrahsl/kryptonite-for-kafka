@@ -177,12 +177,12 @@ The following table lists configuration options for the UDFs.
             <td><pre>{}</pre></td>
             <td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
                 <pre>
-    {
-        "clientId": "...",
-        "tenantId": "...",
-        "clientSecret": "...",
-        "keyVaultUrl": "..."
-    }
+{
+  "clientId": "...",
+  "tenantId": "...",
+  "clientSecret": "...",
+  "keyVaultUrl": "..."
+}
     </pre>
             </td>
             <td><strong>optional</strong> for both,
