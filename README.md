@@ -4,7 +4,7 @@
 
 **Disclaimer: This is an UNOFFICIAL community project!**
 
-### Overview
+## Overview
 
 Kryptonite is a library to do field-level cryptography for records on their way into and out of [Apache Kafka®](https://kafka.apache.org/). Currently, it targets two main use cases:
 
