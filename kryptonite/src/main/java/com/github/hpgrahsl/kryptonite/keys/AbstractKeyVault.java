@@ -16,19 +16,57 @@
 
 package com.github.hpgrahsl.kryptonite.keys;
 
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
+import com.azure.core.cryptography.KeyEncryptionKey;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
+import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
+import com.google.crypto.tink.Aead;
+import com.google.crypto.tink.CleartextKeysetHandle;
+import com.google.crypto.tink.JsonKeysetReader;
 import com.google.crypto.tink.KeysetHandle;
 
 public abstract class AbstractKeyVault implements KeyVault {
 
-  protected KeyStrategy keyStrategy;
+  protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  public AbstractKeyVault(KeyStrategy keyStrategy) {
-    this.keyStrategy = keyStrategy;
+  protected final Map<String, KeysetHandle> keysetHandles;
+
+  public AbstractKeyVault(Map<String, KeysetHandle> keysetHandles) {
+    this.keysetHandles = keysetHandles;
   }
 
-  public abstract TinkKeyConfig readKeyConfig(String identifier);
+  @Override
+  public KeysetHandle readKeysetHandle(String identifier) {
+    var keysetHandle = keysetHandles.get(identifier);
+    if(keysetHandle == null) {
+      throw new KeyNotFoundException("could not find key set handle for identifier '"
+          +identifier+"' in " + " key vault");
+    }
+    return keysetHandle;
+  }
 
-  public abstract KeysetHandle readKeysetHandle(String identifier);
+  protected static KeysetHandle createKeysetHandle(TinkKeyConfig tinkKeyConfig) {
+    try {
+      return CleartextKeysetHandle.read(
+        JsonKeysetReader.withString(OBJECT_MAPPER.writeValueAsString(tinkKeyConfig))
+      );
+    } catch (Exception exc) {
+      throw new KeyException("failed to read key config", exc);
+    }
+  }
+
+  protected static KeysetHandle createKeysetHandle(TinkKeyConfigEncrypted tinkKeyConfigEncrypted, Aead keyEncryption) {
+    try {
+      return KeysetHandle.read(
+        JsonKeysetReader.withString(OBJECT_MAPPER.writeValueAsString(tinkKeyConfigEncrypted)),keyEncryption
+      );
+    } catch (Exception exc) {
+      throw new KeyException("failed to read encrypted key config", exc);
+    }
+  }
 
 }

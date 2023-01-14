@@ -1,5 +1,7 @@
+package com.github.hpgrahsl.kryptonite.kms;
+
 /*
- * Copyright (c) 2021. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2022. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +16,10 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.keys;
-
 import com.google.crypto.tink.KeysetHandle;
 
-public interface KeyVault {
-
-  KeysetHandle readKeysetHandle(String identifier);
+public interface KmsKeyEncryption {
+    
+    KeysetHandle getKeyEnryptionKeyHandle();
 
 }

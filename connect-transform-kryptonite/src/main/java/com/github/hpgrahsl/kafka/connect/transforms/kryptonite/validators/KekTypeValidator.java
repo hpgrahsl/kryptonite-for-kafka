@@ -16,31 +16,25 @@
 
 package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators;
 
-import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
-import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
-import java.util.Set;
+import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KekType;
+import java.util.Arrays;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
 
-public class CipherNameValidator implements Validator {
-
-  private static final Set<String> VALID_CIPHERS = Set.of(
-      TinkAesGcm.CIPHER_ALGORITHM,
-      TinkAesGcmSiv.CIPHER_ALGORITHM
-  );
+public class KekTypeValidator implements Validator {
 
   @Override
   public void ensureValid(String name, Object o) {
-    var value = (String)o;
-    if (!VALID_CIPHERS.contains(value)) {
-      throw new ConfigException(name, o, "Must be an AEAD cipher from the following ones: "
-          + String.join(",", VALID_CIPHERS));
+    try {
+      var kekType = KekType.valueOf((String)o);
+    } catch (IllegalArgumentException exc) {
+      throw new ConfigException(name, o, "Must be one of "+ Arrays.toString(KekType.values()));
     }
   }
 
   @Override
   public String toString() {
-    return String.join(",", VALID_CIPHERS);
+    return Arrays.toString(KekType.values());
   }
 
 }

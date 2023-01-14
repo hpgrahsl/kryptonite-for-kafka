@@ -22,23 +22,19 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connect-transform-kryptonite</artifactId>
-  <version>0.3.1</version>
+  <version>0.4.0</version>
   <packaging>jar</packaging>
 
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.release>11</maven.compiler.release>
-    <kryptonite.version>0.3.1</kryptonite.version>
+    <kryptonite.version>0.4.0</kryptonite.version>
     <kafka.version>3.3.1</kafka.version>
     <jackson.version>2.14.1</jackson.version>
+    <logback.version>1.2.11</logback.version>
     <junit.version>5.9.1</junit.version>
-    <shade.plugin.version>3.4.1</shade.plugin.version>
-    <compiler.plugin.version>3.10.1</compiler.plugin.version>
-    <surefire.plugin.version>2.22.2</surefire.plugin.version>
   </properties>
 
   <dependencies>
@@ -63,6 +59,12 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -93,28 +95,21 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>${shade.plugin.version}</version>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>${assembly.plugin.version}</version>
         <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <minimizeJar>true</minimizeJar>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-            </configuration>
-          </execution>
+            <execution>
+                <phase>package</phase>
+                <goals>
+                    <goal>single</goal>
+                </goals>
+                <configuration>
+                    <descriptors>
+                      <descriptor>src/main/resources/connect-transform-distribution.xml</descriptor>
+                    </descriptors>
+                    <appendAssemblyId>false</appendAssemblyId>
+                </configuration>
+            </execution>
         </executions>
       </plugin>
       <plugin>

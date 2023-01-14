@@ -17,7 +17,6 @@
 package com.github.hpgrahsl.kryptonite;
 
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
-import com.github.hpgrahsl.kryptonite.crypto.jce.AesGcmNoPadding;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
@@ -31,7 +30,6 @@ public class Kryptonite {
 
   public static final class CipherSpec {
 
-    public static final String TYPE_JCE = "JCE";
     public static final String TYPE_TINK = "TINK";
 
     private final String type;
@@ -47,8 +45,6 @@ public class Kryptonite {
     public static CipherSpec fromName(String name) {
       Objects.requireNonNull(name,"name must not be null");
       switch(name) {
-        case AesGcmNoPadding.CIPHER_ALGORITHM:
-          return new CipherSpec(CipherSpec.TYPE_JCE, AesGcmNoPadding.CIPHER_ALGORITHM, new AesGcmNoPadding());
         case TinkAesGcm.CIPHER_ALGORITHM:
           return new CipherSpec(CipherSpec.TYPE_TINK, TinkAesGcm.CIPHER_ALGORITHM, new TinkAesGcm());
         case TinkAesGcmSiv.CIPHER_ALGORITHM:
@@ -100,13 +96,11 @@ public class Kryptonite {
   public static final String KRYPTONITE_VERSION = "k1";
 
   public static final Map<CipherSpec,String> CIPHERSPEC_ID_LUT = Map.of(
-      CipherSpec.fromName(AesGcmNoPadding.CIPHER_ALGORITHM),"01",
       CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"02",
       CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"03"
   );
 
   public static final Map<String,CipherSpec> ID_CIPHERSPEC_LUT = Map.of(
-      "01", CipherSpec.fromName(AesGcmNoPadding.CIPHER_ALGORITHM),
       "02", CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
       "03", CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM)
   );
@@ -126,12 +120,6 @@ public class Kryptonite {
   public EncryptedField cipherField(byte[] plaintext, PayloadMetaData metadata) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(metadata.getAlgorithmId());
-      if (cipherSpec.getType().equals(CipherSpec.TYPE_JCE)) {
-        return new EncryptedField(
-            metadata,
-            cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKey(metadata.getKeyId()), metadata.asBytes())
-        );
-      }
       return new EncryptedField(
           metadata,
           cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKeysetHandle(metadata.getKeyId()), metadata.asBytes())
@@ -144,13 +132,6 @@ public class Kryptonite {
   public byte[] decipherField(EncryptedField encryptedField) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(encryptedField.getMetaData().getAlgorithmId());
-      if (cipherSpec.getType().equals(CipherSpec.TYPE_JCE)) {
-        return cipherSpec.getAlgorithm().decipher(
-            encryptedField.ciphertext(),
-            keyVault.readKey(encryptedField.getMetaData().getKeyId()),
-            encryptedField.associatedData()
-        );
-      }
       return cipherSpec.getAlgorithm().decipher(
           encryptedField.ciphertext(),
           keyVault.readKeysetHandle(encryptedField.getMetaData().getKeyId()),

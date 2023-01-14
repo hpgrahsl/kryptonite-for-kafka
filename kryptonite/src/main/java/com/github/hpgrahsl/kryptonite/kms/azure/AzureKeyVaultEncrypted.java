@@ -16,26 +16,36 @@
 
 package com.github.hpgrahsl.kryptonite.kms.azure;
 
-import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
+import com.github.hpgrahsl.kryptonite.KryptoniteException;
+import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.KeyException;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
+import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
+
 import java.util.HashMap;
 
-public class AzureKeyVault extends AbstractKeyVault {
+public class AzureKeyVaultEncrypted extends AbstractKeyVault {
 
   private final KeyMaterialResolver keyMaterialResolver;
+  private final KmsKeyEncryption kmsKeyEncryption;
   
-  public AzureKeyVault(KeyMaterialResolver keyMaterialResolver) {
-    this(keyMaterialResolver,false);
+  public AzureKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver) {
+    this(kmsKeyEncryption,keyMaterialResolver,false);
   }
 
-  public AzureKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
+  public AzureKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
     super(new HashMap<>());
-    this.keyMaterialResolver = keyMaterialResolver;
-    if (prefetch) {
-      warmUpKeyCache();
+    try {
+      this.kmsKeyEncryption = kmsKeyEncryption;
+      this.keyMaterialResolver = keyMaterialResolver;
+      if (prefetch) {
+        warmUpKeyCache();
+      }
+    } catch (Exception exc) {
+      throw new KryptoniteException(exc.getMessage(),exc);
     }
   }
 
@@ -56,10 +66,11 @@ public class AzureKeyVault extends AbstractKeyVault {
   private void fetchIntoKeyCache(String identifier) {
     try {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
-      keysetHandles.put(identifier, createKeysetHandle(OBJECT_MAPPER.readValue(keyConfig,TinkKeyConfig.class)));
+      Aead kekAead = kmsKeyEncryption.getKeyEnryptionKeyHandle().getPrimitive(Aead.class);
+      keysetHandles.put(identifier, createKeysetHandle(OBJECT_MAPPER.readValue(keyConfig, TinkKeyConfigEncrypted.class), kekAead));
     } catch (Exception e) {
-      throw new KeyException("invalid key config for identifier '"
-          +identifier+"' in "+ AzureKeyVault.class.getName() + " key vault",e);
+      throw new KeyException("could not fetch Azure secret for key identifier'"
+          +identifier+"' into "+ AzureKeyVaultEncrypted.class.getName() + " key vault",e);
     }
   }
 

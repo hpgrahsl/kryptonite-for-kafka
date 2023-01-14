@@ -25,21 +25,9 @@ public class TinkAesGcmSiv implements CryptoAlgorithm {
   public static final String CIPHER_ALGORITHM = "TINK/AES_GCM_SIV";
 
   @Override
-  public byte[] cipher(byte[] plaintext, byte[] key, byte[] associatedData) throws Exception {
-    throw new UnsupportedOperationException(TinkAesGcmSiv.class.getName()
-        + " crypto primitive does not support this!");
-  }
-
-  @Override
   public byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
     DeterministicAead daead = keysetHandle.getPrimitive(DeterministicAead.class);
     return daead.encryptDeterministically(plaintext, associatedData);
-  }
-
-  @Override
-  public byte[] decipher(byte[] ciphertext, byte[] key, byte[] associatedData) throws Exception {
-    throw new UnsupportedOperationException(TinkAesGcmSiv.class.getName()
-        + " crypto primitive does not support this!");
   }
 
   @Override

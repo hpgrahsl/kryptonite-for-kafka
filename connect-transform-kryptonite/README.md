@@ -10,9 +10,9 @@ Kryptonite for Kafka provides a turn-key ready [Kafka Connect](https://kafka.apa
 
 ### Build and Deployment
 
-Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest Kryptonite for Kafka artefacts. The pre-built Kafka Connect SMT can be downloaded from here [connect-transform-kryptonite-0.3.1.jar](https://drive.google.com/file/d/1aWobunR9eZabSflrhP-ZRBUAZpj1hORv/view?usp=sharing)
+Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest artefacts. Starting with Kryptonite for Kafka 0.4.0, the pre-built Kakfa Connect SMT can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
 
-In order to deploy this custom SMT **put the jar into your _'connect plugin path'_** that is configured to be scanned during boostrap of the kafka connect worker node(s).
+In order to deploy this custom SMT **put the root folder of the extracted archive into your _'connect plugin path'_** that is configured to be scanned during boostrap of the kafka connect worker node(s).
 
 
 ### Data Records without Schema
@@ -231,54 +231,124 @@ Struct{
 
 ## Configuration Parameters
 
-<table class="data-table"><tbody>
-<tr>
-<th>Name</th>
-<th>Description</th>
-<th>Type</th>
-<th>Default</th>
-<th>Valid Values</th>
-<th>Importance</th>
-</tr>
-<tr>
-<td>cipher_data_key_identifier</td><td>keyset identifier to be used as default data encryption keyset for all fields which don't refer to a field-specific keyset identifier</td><td>string</td><td>""</td><td>
-<ul>
-<li>non-empty string if <pre>cipher_mode=ENCRYPT</pre></li>
-<li>empty string if <pre>cipher_mode=DECRYPT</pre></li>
-</ul>
-</td><td>high</td></tr>
-<tr>
-<td>cipher_data_keys</td><td>JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format. The contained keyset objects are mandatory if <pre>kms_type=NONE</pre> but the array may be left empty in order to resolve keysets from a remote KMS such as Azure Key Vault. <pre>kms_type=AZ_KV_SECRETS</pre><strong>Irrespective of their origin, all keysets ("material" fields) are expected to be valid tink keyset descriptions in JSON format which are used for encryption / decryption purposes.</strong></td><td>password</td><td><pre>[]</pre></td><td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in JSON format, e.g.
-<pre>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th>Default</th>
+            <th>Valid Values</th>
+            <th>Importance</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>cipher_data_key_identifier</td>
+            <td>keyset identifier to be used as default data encryption keyset for all fields which don't refer to a specific keyset identifier in its <code>field_config</code></td>
+            <td>string</td>
+            <td>
+                <pre>!no default!</pre>
+            </td>
+            <td>
+                <ul>
+                    <li>non-empty string if
+                        <pre>cipher_mode=ENCRYPT</pre>
+                    </li>
+                    <li>empty string if
+                        <pre>cipher_mode=DECRYPT</pre>
+                    </li>
+                </ul>
+            </td>
+            <td>high</td>
+        </tr>
+        <tr>
+            <td>cipher_data_keys</td>
+            <td>JSON array with plain or encrypted data key objects specifying the key identifiers together with key
+                sets for encryption / decryption which are defined in Tink's key specification format. The contained
+                keyset objects are mandatory if
+                <code>kms_type=NONE</code> but the array may be left empty for e.g. <code>kms_type=AZ_KV_SECRETS</code>
+                in order to resolve keysets from a remote KMS such as Azure Key Vault.
+                <strong>NOTE: Irrespective of their origin, all plain or encrypted keysets
+                    (see the example values in the right column) are expected to be valid tink keyset descriptions in
+                    JSON format.</strong>
+            </td>
+            <td>string</td>
+            <td>
+                <pre>[]</pre>
+            </td>
+            <td>JSON array either empty or holding N data key config objects each of which refers to a tink keyset in
+                JSON format (see "material" field)
+                <ul>
+                    <li>plain data key config example:</li>
+                    <pre>
 [
-    {
-        "identifier": "my-demo-secret-key-123",
-        "material": {
-            "primaryKeyId": 1234567890,
-            "key": [
-                {
-                    "keyData": {
-                        "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
-                        "value": "&lt;BASE64_ENCODED_KEY_HERE&gt;",
-                        "keyMaterialType": "SYMMETRIC"
-                    },
-                    "status": "ENABLED",
-                    "keyId": 1234567890,
-                    "outputPrefixType": "TINK"
-                }
-            ]
+  {
+    "identifier": "my-demo-secret-key-123",
+    "material": {
+      "primaryKeyId": 123456789,
+      "key": [
+        {
+          "keyData": {
+            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+            "value": "&lt;BASE64_ENCODED_KEY_HERE&gt;",
+            "keyMaterialType": "SYMMETRIC"
+          },
+          "status": "ENABLED",
+          "keyId": 123456789,
+          "outputPrefixType": "TINK"
         }
+      ]
     }
+  }
 ]
-</pre></td><td>high</td></tr>
-<tr>
-<td>cipher_mode</td><td>defines whether the data should get encrypted or decrypted</td><td>string</td><td></td><td>
-<pre>
-ENCRYPT
-DECRYPT
-</pre></td><td>high</td></tr>
-<tr>
-<td>field_config</td><td>JSON array with field config objects specifying which fields together with their settings should get either encrypted / decrypted (nested field names are expected to be <strong>separated by '.' per default</strong>, or by a custom <pre>path_delimiter</pre> config</td><td>string</td><td></td><td>JSON array holding at least one valid field config object, e.g. <pre>
+    </pre>
+                    <li>encrypted data key config example:</li>
+                    <pre>
+[
+  {
+    "identifier": "my-demo-secret-key-123",
+    "material": {
+      "encryptedKeyset": "&lt;ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE&gt;",
+      "keysetInfo": {
+        "primaryKeyId": 123456789,
+        "keyInfo": [
+          {
+            "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey",
+            "status": "ENABLED",
+            "keyId": 123456789,
+            "outputPrefixType": "TINK"
+          }
+        ]
+      }
+    }
+  }
+]
+    </pre>
+                </ul>
+            </td>
+            <td>high</td>
+        </tr>
+        <tr>
+            <td>cipher_mode</td>
+            <td>defines whether the data should get encrypted or decrypted</td>
+            <td>string</td>
+            <td><pre>!no default!</pre></td>
+            <td>
+                <pre>ENCRYPT</pre>
+                <pre>DECRYPT</pre>
+            </td>
+            <td>high</td>
+        </tr>
+        <tr>
+            <td>field_config</td>
+            <td>JSON array with field config objects specifying which fields together with their settings should get
+                either encrypted / decrypted (nested field names are expected to be <strong>separated by <code>.</code> per
+                    default</strong>, or by a custom <code>path_delimiter</code></td>
+            <td>string</td>
+            <td></td>
+            <td>JSON array holding at least one valid field config object, e.g.
+                <pre>
 [
     {
         "name": "my-field-abc"
@@ -287,49 +357,184 @@ DECRYPT
         "name": "my-nested.field-xyz"
     }
 ]
-</pre></td><td>high</td></tr>
-<tr>
-<td>key_source</td><td>defines the origin of the keysets which can be defined directly in the config or fetched from a remote KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)</td><td>string</td><td><pre>CONFIG</pre></td><td>
-<pre>
-CONFIG
-KMS
-</pre></td><td>medium</td></tr>
-<tr>
-<td>kms_type</td><td>defines if keysets are read from the config directly or resolved from a remote/cloud KMS (e.g. Azure Key Vault).</td><td>string</td><td><pre>NONE</pre></td><td>
-<pre>
-NONE
-AZ_KV_SECRETS
-</pre></td><td>medium</td></tr>
-<tr>
-<td>kms_config</td><td>JSON object specifying KMS-specific client authentication settings (currently only supports Azure Key Vault). <pre>kms_type=AZ_KV_SECRETS</pre></td><td>string</td><td>{}</td><td>JSON object defining the KMS-specific client authentication settings, e.g. for azure key vault access:
-<pre>
+            </pre>
+            </td>
+            <td>high</td>
+        </tr>
+        <tr>
+            <td>key_source</td>
+            <td>defines the nature and origin of the keysets:
+                <ul>
+                    <li>plain data keysets in <code>cipher_data_keys (key_source=CONFIG)</code></li>
+                    <li>encrypted data keysets in <code>cipher_data_keys (key_source=CONFIG_ENCRYPTED)</code></li>
+                    <li>plain data keysets residing in a cloud/remote key management system
+                        <code>(key_source=KMS)</code></li>
+                    <li>encrypted data keysets residing in a cloud/remote key management system
+                        <code>(key_source=KMS_ENCRYPTED)</code></li>
+                </ul>
+                When using the KMS options refer to the <code>kms_type</code> and <code>kms_config</code> settings. When using encrypted data
+                keysets refer to the <code>kek_type</code>, <code>kek_config</code> and <code>kek_uri</code> settings as well.
+            </td>
+            <td>string</td>
+            <td>
+                <pre>CONFIG</pre>
+            </td>
+            <td>
+                <pre>CONFIG</pre>
+                <pre>CONFIG_ENCRYPTED</pre>
+                <pre>KMS</pre>
+                <pre>KMS_ENCRYPTED</pre>
+            </td>
+            <td>high
+            </td>
+        </tr>
+        <tr>
+            <td>kms_type</td>
+            <td>defines if:
+                <ul>
+                    <li>data keysets are read from the config directly <code>kms_source=CONFIG | CONFIG_ENCRYPTED</code>
+                    </li>
+                    <li>data keysets are resolved from a remote/cloud key management system (currently only supports
+                        Azure Key Vault) <code>kms_source=KMS | KMS_ENCRYPTED</code>
+                    </li>
+                </ul>
+            </td>
+            <td>string</td>
+            <td>
+                <pre>NONE</pre>
+            </td>
+            <td>
+                <pre>NONE</pre>
+                <pre>AZ_KV_SECRETS</pre>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>kms_config</td>
+            <td>JSON object specifying KMS-specific client authentication settings. Currently only supports Azure Key
+                Vault <code>kms_type=AZ_KV_SECRETS</code></td>
+            <td>string</td>
+            <td>
+                <pre>{}</pre>
+            </td>
+            <td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
+                <pre>
 {
-    "clientId": "...",
-    "tenantId": "...",
-    "clientSecret": "...",
-    "keyVaultUrl": "..."
+  "clientId": "...",
+  "tenantId": "...",
+  "clientSecret": "...",
+  "keyVaultUrl": "..."
 }
-</pre></td><td>medium</td></tr>
-<tr>
-<td>field_mode</td><td>defines how to process complex field types (maps, lists, structs), either as full objects or element-wise</td><td>string</td><td><pre>ELEMENT</pre></td><td>
-<pre>
-ELEMENT
-OBJECT
+    </pre>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>kek_type</td>
+            <td>defines if KMS key encryption - currently only supports Google Cloud KMS - is used for encrypting data
+                keysets and must be specified when using <code>kms_source=CONFIG_ENCRYPTED | KMS_ENCRYPTED</code>
+            </td>
+            <td>string</td>
+            <td>
+                <pre>NONE</pre>
+            </td>
+            <td>
+                <pre>NONE</pre>
+                <pre>GCP</pre>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>kek_config</td>
+            <td>JSON object specifying KMS-specific client authentication settings (currently only supports Google Cloud
+                KMS) <code>kek_type=GCP</code></td>
+            <td>string</td>
+            <td>
+                <pre>{}</pre>
+            </td>
+            <td>JSON object specifying the KMS-specific client authentication settings, e.g. for Google Cloud KMS:
+                <pre>
+{
+  "type": "service_account",
+  "project_id": "...",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY----- ... -----END PRIVATE KEY-----\n",
+  "client_email": "...",
+  "client_id": "...",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "..."
+}
 </pre>
-</td><td>medium</td></tr>
-<tr>
-<td>cipher_algorithm</td><td>cipher algorithm used for data encryption</td><td>string</td><td><pre>TINK/AES_GCM</pre></td><td>
-<pre>
-JCE/AES_GCM
-TINK/AES_GCM
-TINK/AES_GCM_SIV
-</pre>
-</td><td>medium</td></tr>
-<tr>
-<td>cipher_text_encoding</td><td>defines the encoding of the resulting ciphertext bytes (currently only supports BASE64)</td><td>string</td><td><pre>BASE64</pre></td><td><pre>BASE64</pre></td><td>low</td></tr>
-<tr>
-<td>path_delimiter</td><td>path delimiter used as field name separator when referring to nested fields in the input record</td><td>string</td><td><pre>.</pre></td><td>non-empty string</td><td>low</td></tr>
-</tbody></table>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>kek_uri</td>
+            <td>URI referring to the key encryption key stored in the respective remote/cloud KMS, currently only
+                support Google Cloud KMS</td>
+            <td>string</td>
+            <td>
+                <pre>!no default!</pre>
+            </td>
+            <td>a valid and supported Tink key encryption key URI, e.g. pointing to a key in Google Cloud KMS
+                (<code>kek_type=GCP</code>)
+                <pre>gcp-kms://...</pre>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>field_mode</td>
+            <td>defines how to process complex field types (maps, lists, structs), either as full objects or
+                element-wise</td>
+            <td>string</td>
+            <td>
+                <pre>ELEMENT</pre>
+            </td>
+            <td>
+                <pre>ELEMENT</pre>
+                <pre>OBJECT</pre>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>cipher_algorithm</td>
+            <td>default cipher algorithm used for data encryption if not specified for a field in its <code>field_config</code></code></td>
+            <td>string</td>
+            <td>
+                <pre>TINK/AES_GCM</pre>
+            </td>
+            <td>
+                <pre>TINK/AES_GCM</pre>
+                <pre>TINK/AES_GCM_SIV</pre>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>cipher_text_encoding</td>
+            <td>defines the encoding of the resulting ciphertext bytes (currently only supports BASE64)</td>
+            <td>string</td>
+            <td>
+                <pre>BASE64</pre>
+            </td>
+            <td>
+                <pre>BASE64</pre>
+            </td>
+            <td>low</td>
+        </tr>
+        <tr>
+            <td>path_delimiter</td>
+            <td>path delimiter used as field name separator when referring to nested fields in the input record</td>
+            <td>string</td>
+            <td>
+                <pre>.</pre>
+            </td>
+            <td>non-empty string</td>
+            <td>low</td>
+        </tr>
+    </tbody>
+</table>
 
 ### Externalize configuration parameters
 

@@ -25,21 +25,9 @@ public class TinkAesGcm implements CryptoAlgorithm {
   public static final String CIPHER_ALGORITHM = "TINK/AES_GCM";
 
   @Override
-  public byte[] cipher(byte[] plaintext, byte[] key, byte[] associatedData) throws Exception {
-    throw new UnsupportedOperationException(TinkAesGcm.class.getName()
-        + " crypto primitive does not support this interface method!");
-  }
-
-  @Override
   public byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
     Aead aead = keysetHandle.getPrimitive(Aead.class);
     return aead.encrypt(plaintext, associatedData);
-  }
-
-  @Override
-  public byte[] decipher(byte[] ciphertext, byte[] key, byte[] associatedData) throws Exception {
-    throw new UnsupportedOperationException(TinkAesGcm.class.getName()
-        + " crypto primitive does not support this interface method!");
   }
 
   @Override
