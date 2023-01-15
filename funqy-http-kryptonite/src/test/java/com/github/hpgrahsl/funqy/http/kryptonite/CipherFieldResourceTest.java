@@ -64,7 +64,7 @@ public class CipherFieldResourceTest {
         var encPayload = new LinkedHashMap<>();
         encPayload.put("data",OBJ_MAP_1);
         var encRequest = RestAssured.given().body(encPayload);
-        var encResponse = encRequest.post("/encrypt-value-with-config");
+        var encResponse = encRequest.post("/encrypt/value-with-config");
         assertAll(
             () -> assertEquals(HttpStatus.SC_OK, encResponse.getStatusCode())
         );
@@ -74,7 +74,7 @@ public class CipherFieldResourceTest {
         var decPayload = new LinkedHashMap<>();
         decPayload.put("data",OBJECT_MAPPER.readValue(encResponseBody, new TypeReference<Map<String, Object>>() {}));
         var decRequest = RestAssured.given().body(decPayload);
-        var decResponse = decRequest.post("/decrypt-value-with-config");
+        var decResponse = decRequest.post("/decrypt/value-with-config");
         assertAll(
             () -> assertEquals(HttpStatus.SC_OK, decResponse.getStatusCode())
         );
@@ -110,7 +110,7 @@ public class CipherFieldResourceTest {
         Log.debug("HTTP request body (encryption): "+OBJECT_MAPPER.writeValueAsString(encPayload));
         
         var encRequest = RestAssured.given().body(encPayload);
-        var encResponse = encRequest.post("/encrypt-value-with-config");
+        var encResponse = encRequest.post("/encrypt/value-with-config");
         assertAll(
             () -> assertEquals(HttpStatus.SC_OK, encResponse.getStatusCode())
         );
@@ -135,7 +135,7 @@ public class CipherFieldResourceTest {
         Log.debug("HTTP request body (decryption): "+OBJECT_MAPPER.writeValueAsString(decPayload));
 
         var decRequest = RestAssured.given().body(decPayload);
-        var decResponse = decRequest.post("/decrypt-value-with-config");
+        var decResponse = decRequest.post("/decrypt/value-with-config");
         assertAll(
             () -> assertEquals(HttpStatus.SC_OK, decResponse.getStatusCode())
         );
