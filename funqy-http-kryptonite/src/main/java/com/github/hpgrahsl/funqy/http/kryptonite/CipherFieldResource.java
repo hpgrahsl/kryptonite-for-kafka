@@ -94,29 +94,29 @@ public class CipherFieldResource {
         this.kryptonite = configureKryptonite(config);
     }
 
-    @Funq("encrypt-value")
+    @Funq("encrypt/value")
     public String encryptValue(Object value) {
         return encryptData(value, createFieldMetaData(config.cipherAlgorithm, config.cipherDataKeyIdentifier, value));
     }
 
-    @Funq("encrypt-array")
+    @Funq("encrypt/array")
     public String encryptArray(List<?> array) {
         return encryptData(array, createFieldMetaData(config.cipherAlgorithm, config.cipherDataKeyIdentifier, array));
     }
 
-    @Funq("encrypt-array-elements")
+    @Funq("encrypt/array-elements")
     public List<String> encryptArrayElements(List<?> array) {
         return array.stream().map(
                 v -> encryptData(v, createFieldMetaData(config.cipherAlgorithm, config.cipherDataKeyIdentifier, v)))
                 .collect(Collectors.toList());
     }
 
-    @Funq("encrypt-map")
+    @Funq("encrypt/map")
     public String encryptMap(Map<String, ?> map) {
         return encryptData(map, createFieldMetaData(config.cipherAlgorithm, config.cipherDataKeyIdentifier, map));
     }
 
-    @Funq("encrypt-map-entries")
+    @Funq("encrypt/map-entries")
     public Map<String, String> encryptMapEntries(Map<String, ?> map) {
         return map.entrySet().stream()
                 .map(e -> new AbstractMap.SimpleEntry<>(
@@ -127,7 +127,7 @@ public class CipherFieldResource {
                 .collect(LinkedHashMap::new, (lhm, e) -> lhm.put(e.getKey(), e.getValue()), HashMap::putAll);
     }
 
-    @Funq("encrypt-value-with-config")
+    @Funq("encrypt/value-with-config")
     @SuppressWarnings("unchecked")
     public Object encryptValueWithConfig(KryptonitePayload kp) {
 
@@ -150,37 +150,37 @@ public class CipherFieldResource {
         return result;
     }
 
-    @Funq("decrypt-value")
+    @Funq("decrypt/value")
     public Object decryptValue(String value) {
         return decryptData(value);
     }
 
-    @Funq("decrypt-array")
+    @Funq("decrypt/array")
     public List<?> decryptArray(String array) {
         return (List<?>)decryptData(array);
     }
 
-    @Funq("decrypt-array-elements")
+    @Funq("decrypt/array-elements")
     public List<?> decryptArrayElements(List<String> array) {
         return array.stream()
                 .map(this::decryptData)
                 .collect(Collectors.toList());
     }
 
-    @Funq("decrypt-map")
+    @Funq("decrypt/map")
     @SuppressWarnings("unchecked")
     public Map<String, ?> decryptMap(String map) {
         return (Map<String, ?>)decryptData(map);
     }
 
-    @Funq("decrypt-map-entries")
+    @Funq("decrypt/map-entries")
     public Map<String, ?> decryptMapEntries(Map<String, String> map) {
         return map.entrySet().stream()
                 .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(), decryptData(e.getValue())))
                 .collect(LinkedHashMap::new, (lhm, e) -> lhm.put(e.getKey(), e.getValue()), HashMap::putAll);
     }
 
-    @Funq("decrypt-value-with-config")
+    @Funq("decrypt/value-with-config")
     @SuppressWarnings("unchecked")
     public Object decryptValueWithConfig(KryptonitePayload kp) {
 
