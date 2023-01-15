@@ -21,7 +21,7 @@ import javax.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Singleton
-public class CustomConfiguration {
+public class KryptoniteConfiguration {
     
     @ConfigProperty(name="cipher.algorithm", defaultValue = "TINK/AES_GCM")
     public String cipherAlgorithm;
@@ -29,8 +29,8 @@ public class CustomConfiguration {
     @ConfigProperty(name="cipher.data.key.identifier")
     public String cipherDataKeyIdentifier;
 
-    @ConfigProperty(name="secret.key.material")
-    public String secretKeyMaterial;
+    @ConfigProperty(name="cipher.data.keys")
+    public String cipherDataKeys;
 
     @ConfigProperty(name="key.source")
     public CipherFieldResource.KeySource keySource;
@@ -40,6 +40,15 @@ public class CustomConfiguration {
 
     @ConfigProperty(name="kms.config", defaultValue = "{}")
     public String kmsConfig;
+
+    @ConfigProperty(name="kek.type")
+    public CipherFieldResource.KekType kekType;
+
+    @ConfigProperty(name="kek.config", defaultValue = "{}")
+    public String kekConfig;
+
+    @ConfigProperty(name="kek.uri", defaultValue = "gcp-kms://")
+    public String kekUri;
 
     @ConfigProperty(name="dynamic.key.id.prefix", defaultValue = "__#")
     public String dynamicKeyIdPrefix;

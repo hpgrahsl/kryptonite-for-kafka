@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.hpgrahsl.funqy.http.kryptonite.FieldConfig;
 import com.github.hpgrahsl.funqy.http.kryptonite.CipherFieldResource.FieldMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;

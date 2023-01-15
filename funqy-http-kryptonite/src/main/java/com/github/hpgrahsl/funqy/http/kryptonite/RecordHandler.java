@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 public class RecordHandler {
 
-  private final CustomConfiguration config;
+  private final KryptoniteConfiguration config;
   private final SerdeProcessor serdeProcessor;
   private final Kryptonite kryptonite;
 
@@ -37,7 +37,7 @@ public class RecordHandler {
   protected final CipherMode cipherMode;
   protected final Map<String, FieldConfig> fieldConfig;
 
-  public RecordHandler(CustomConfiguration config,
+  public RecordHandler(KryptoniteConfiguration config,
       SerdeProcessor serdeProcessor, Kryptonite kryptonite,
       CipherMode cipherMode,
       Map<String, FieldConfig> fieldConfig) {
@@ -49,7 +49,7 @@ public class RecordHandler {
     this.fieldConfig = fieldConfig;
   }
 
-  public CustomConfiguration getConfig() {
+  public KryptoniteConfiguration getConfig() {
     return config;
   }
 
