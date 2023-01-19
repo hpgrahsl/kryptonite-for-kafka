@@ -485,8 +485,8 @@ cipher.algorithm=TINK/AES_GCM
 #############################################
 ```
 
-**NOTE: This contained secret keys in this `application.properties` file are used for tests and public demos in various different places and are thus compromised by definition. Never use these secret keys to protect sensitive real world data in any of your production workloads!**
+**NOTE: The contained secret keys in this `application.properties` file are used for tests and public demos in various different places and are thus compromised by definition. Never use these secret keys to protect sensitive real world data in any of your production workloads!**
 
-An exported Postman collection can be found in [this file](src/main/resources/META-INF/funqy-kryptonite-http-api-samples.postman_collection.json) `src/main/resources/META-INF/funqy-kryptonite-http-api-samples.postman_collection.json` which contains 16 example requests to play with. Additionally, the same example requests are also available as publicly shared Postman workspace collection. You can fork them to conveniently run the requests in your local environment via the Postman desktop app.
+An exported Postman collection can be found in [this file](src/main/resources/META-INF/funqy-kryptonite-http-api-samples.postman_collection.json) `src/main/resources/META-INF/funqy-kryptonite-http-api-samples.postman_collection.json` which contains 16 example requests to play with. Additionally, the same example requests are also available as [publicly shared Postman workspace collection](https://www.postman.com/hpgrahsl/workspace/kryptonite-for-kafka-http-api-public-samples/collection/25347096-89fc9ca4-c6fb-4925-afab-9a2f469c75bd?ctx=documentation). You can fork them to conveniently run the requests in your local environment via the Postman desktop app by clicking the button below:
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/25347096-89fc9ca4-c6fb-4925-afab-9a2f469c75bd?action=collection%2Ffork&collection-url=entityId%3D25347096-89fc9ca4-c6fb-4925-afab-9a2f469c75bd%26entityType%3Dcollection%26workspaceId%3Ddd103435-bfac-4fc3-aace-daaac567434c)

@@ -22,27 +22,46 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Singleton
 public class KryptoniteConfiguration {
+
+    public enum KeySource {
+        CONFIG,
+        KMS,
+        CONFIG_ENCRYPTED,
+        KMS_ENCRYPTED
+    }
+
+    public enum KmsType {
+        NONE,
+        AZ_KV_SECRETS
+    }
+
+    public enum KekType {
+        NONE,
+        GCP
+    }
     
-    @ConfigProperty(name="cipher.algorithm", defaultValue = "TINK/AES_GCM")
-    public String cipherAlgorithm;
+    public enum FieldMode {
+        ELEMENT,
+        OBJECT
+    }
+    
+    @ConfigProperty(name="cipher.data.keys")
+    public String cipherDataKeys;
 
     @ConfigProperty(name="cipher.data.key.identifier")
     public String cipherDataKeyIdentifier;
 
-    @ConfigProperty(name="cipher.data.keys")
-    public String cipherDataKeys;
-
     @ConfigProperty(name="key.source")
-    public CipherFieldResource.KeySource keySource;
+    public KeySource keySource;
 
     @ConfigProperty(name="kms.type")
-    public CipherFieldResource.KmsType kmsType;
+    public KmsType kmsType;
 
     @ConfigProperty(name="kms.config", defaultValue = "{}")
     public String kmsConfig;
 
     @ConfigProperty(name="kek.type")
-    public CipherFieldResource.KekType kekType;
+    public KekType kekType;
 
     @ConfigProperty(name="kek.config", defaultValue = "{}")
     public String kekConfig;
@@ -57,6 +76,27 @@ public class KryptoniteConfiguration {
     public String pathDelimiter;
 
     @ConfigProperty(name="field.mode")
-    public CipherFieldResource.FieldMode fieldMode;
+    public FieldMode fieldMode;
+
+    @ConfigProperty(name="cipher.algorithm", defaultValue = "TINK/AES_GCM")
+    public String cipherAlgorithm;
+
+    public static KryptoniteConfiguration fromSettings(String cipherDataKeys, String cipherDataKeyIdentifier,
+            KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig,
+            String kekUri, String dynamicKeyIdPrefix, String pathDelimiter, FieldMode fieldMode, String cipherAlgorithm) {
+        var kc = new KryptoniteConfiguration();
+        kc.cipherDataKeys = cipherDataKeys;
+        kc.cipherDataKeyIdentifier = cipherDataKeyIdentifier;
+        kc.keySource = keySource;
+        kc.kmsConfig = kmsConfig;
+        kc.kekType = kekType;
+        kc.kekConfig = kekConfig;
+        kc.kekUri = kekUri;
+        kc.dynamicKeyIdPrefix = dynamicKeyIdPrefix;
+        kc.pathDelimiter = pathDelimiter;
+        kc.fieldMode = fieldMode;
+        kc.cipherAlgorithm = cipherAlgorithm;
+        return kc;
+    }
 
 }

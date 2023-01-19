@@ -18,7 +18,7 @@ package com.github.hpgrahsl.funqy.http.kryptonite;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.github.hpgrahsl.funqy.http.kryptonite.CipherFieldResource.FieldMode;
+import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMode;
 import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
@@ -65,8 +65,7 @@ public class RecordHandler {
       var updatedPath = matchedPath.isEmpty() ? f : matchedPath+pathDelimiter+f;
       var fc = fieldConfig.get(updatedPath);
       if(fc != null) {
-            if(FieldMode.ELEMENT == fc.getFieldMode()
-                    .orElse(getConfig().fieldMode)) {
+            if(FieldMode.ELEMENT == fc.getFieldMode().orElse(getConfig().fieldMode)) {
               if(v instanceof List) {
                 dataNew.put(f, processListField(dataOriginal,(List<?>)dataOriginal.get(f),updatedPath));
               } else if(v instanceof Map) {

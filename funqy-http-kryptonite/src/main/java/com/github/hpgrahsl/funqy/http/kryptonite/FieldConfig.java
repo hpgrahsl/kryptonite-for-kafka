@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMode;
+
 public class FieldConfig {
 
   private String name;
@@ -27,13 +29,13 @@ public class FieldConfig {
   private String keyId;
   private Map<String,Object> schema;
 
-  private CipherFieldResource.FieldMode fieldMode;
+  private FieldMode fieldMode;
 
   public FieldConfig() {
   }
 
   public FieldConfig(String name, String algorithm, String keyId,
-                     Map<String, Object> schema, CipherFieldResource.FieldMode fieldMode) {
+                     Map<String, Object> schema, FieldMode fieldMode) {
     this.name = Objects.requireNonNull(name,"field config's name must not be null");
     this.algorithm = algorithm;
     this.keyId = keyId;
@@ -57,7 +59,7 @@ public class FieldConfig {
     return Optional.ofNullable(schema);
   }
 
-  public Optional<CipherFieldResource.FieldMode> getFieldMode() {
+  public Optional<FieldMode> getFieldMode() {
     return Optional.ofNullable(fieldMode);
   }
 
