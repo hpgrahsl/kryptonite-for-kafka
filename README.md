@@ -6,10 +6,11 @@
 
 ## Overview
 
-Kryptonite is a library to do field-level cryptography for records on their way into and out of [Apache Kafka®](https://kafka.apache.org/). Currently, it targets two main use cases:
+Kryptonite for Kafka is a library to do field-level cryptography for records on their way into and out of [Apache Kafka®](https://kafka.apache.org/). Currently, it targets three main use cases:
 
 1. [data integration scenarios](connect-transform-kryptonite/README.md) based on [Kafka Connect](https://kafka.apache.org/documentation/#connect) by means of a turn-key ready [transformation](https://kafka.apache.org/documentation/#connect_transforms) (SMT) to run encryption / decryption operations on selected fields of records with or without schema
 2. [stream processing scenarios](ksqldb-udfs-kryptonite/README.md) based on [ksqlDB](https://ksqlDB.io) by providing custom [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDF) to encrypt / decrypt selected data columns in STREAMs and TABLEs respectively
+3. [cross language/runtime scenarios](funqy-http-kryptonite/README.md) by running a co-located [Quarkus](http://quarkus.io) [Funqy](https://quarkus.io/guides/funqy) service exposing a lightweight web API to encrypt / decrypt payloads, or fields thereof, from any client application talking HTTP.
 
 ### Build, Installation and Deployment
 
@@ -31,6 +32,12 @@ In order to deploy the UDFs **put the jar into your _'ksql extension directory'_
 
 After that, start using the UDFs, namely `K4KENCRYPT` and `K4KDECRYPT`, to selectively encrypt and decrypt column values in ksqlDB rows of `TABLES` and `STREAMS` respectively. **Read here about the configuration options and how to [apply the UDFs](ksqldb-udfs-kryptonite/README.md) based on simple examples.**
 
+##### Quarkus Funqy HTTP API service
+
+Starting with Kryptonite for Kafka 0.4.0, the pre-built Quarkus application can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
+
+When building from sources and before running the Quarkus application in dev mode (`./mvnw quarkus:dev` or `quarkus dev`), make sure to specify your individual configuration options in `application.properties`. In case you run the pre-built binaries in prod mode (`java -jar target/quarkus-app/quarkus-run.jar`), you have to properly override any of the mandatory/default settings when starting the application. **Read here about the configuration options and how to [use the HTTP API](funqy-http-kryptonite/README.md) based on example requests.**
+
 ### Cipher Algorithm Specifics
 
 The project uses authenticated encryption with associated data ([AEAD](https://en.wikipedia.org/wiki/Authenticated_encryption)) and in particular applies [AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard) in [GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) mode for probabilistic encryption (default) or [SIV](https://en.wikipedia.org/wiki/AES-GCM-SIV) mode for uses cases which either require or at least benefit from deterministic encryption. The preferred and new default way is to configure Kryptonite to use Google's [Tink](https://github.com/google/tink) multi-language, cross-platform open-source cryptography library. Kryptonite for Kafka version 0.4.0+ provides the following cipher algorithms:
@@ -44,14 +51,14 @@ By design, every application of AEAD in probabilistic mode on a specific record 
 
 ## Donate
 
-If you like this project and want to support its further development and maintenance we are happy about your [PayPal donation](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE). 
+If you like this project and want to support its future development and maintenance we are happy about your [PayPal donation](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE). 
 
 ## License Information
 
 This project is licensed according to [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ```
-Copyright (c) 2021. Hans-Peter Grahsl (grahslhp@gmail.com)
+Copyright (c) 2021 - present. Hans-Peter Grahsl (grahslhp@gmail.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
