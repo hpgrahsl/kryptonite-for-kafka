@@ -1,0 +1,220 @@
+openapi: 3.0.3
+info:
+  title: Kryptonite for Kafka's HTTP API
+  description: Open API spec for the Cipher Field Resource based on Quarkus Funqy
+  version: "0.1.0"
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:8080
+    description: (dev mode server)
+tags:
+  - name: encryption
+    description: endpoints for encrypting payloads or fields thereof
+  - name: decryption
+    description: endpoints for decrypting payloads or fields thereof
+paths:
+  /encrypt/value:
+    post:
+      tags:
+        - encryption
+      requestBody:
+        description: The request body may contain any value representing a valid JSON type (string, number, boolean, array, object, null).
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: string
+                - type: number
+                - type: boolean
+                - type: array
+                  items:
+                    type: object
+                - type: object
+                  nullable: true
+      responses:
+        200:
+          description: The Base64 encoded ciphertext using the `CipherFieldResource` encryption settings as stated in `application.properties`.
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /encrypt/array-elements:
+    post:
+      tags:
+        - encryption
+      requestBody:
+        description: The request body may contain a JSON array containing elements with any valid JSON type (string, number, boolean, array, object, null).
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                nullable: true
+      responses:
+        200:
+          description: The JSON array containing the Base64 encoded ciphertexts of all elements using the `CipherFieldResource` encryption settings as stated in `application.properties`.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /encrypt/map-entries:
+    post:
+      tags:
+        - encryption
+      requestBody:
+        description: The request body may contain a JSON object containing properties with any valid JSON type (string, number, boolean, array, object, null).
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        200:
+          description: The JSON object containing the Base64 encoded ciphertexts of all properties using the `CipherFieldResource` encryption settings as stated in `application.properties`.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /encrypt/value-with-config:
+    post:
+      tags:
+        - encryption
+      requestBody:
+        description: The request body may contain a JSON object containing a `data` property of type JSON object which itself may contain properties of any valid JSON type (string, number, boolean, array, object, null). Additionally, the JSON object can define an optional `fieldConfig` property, which is an array containing individual configuration to apply specific encryption settings for particular properties found in the `data` property.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                fieldConfig:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FieldConfig'      
+      responses:
+        200:
+          description: The JSON object containing the Base64 encoded ciphertexts of all properties using the settings as provided in the `fieldConfig` array of the request body and/or the `CipherFieldResource` encryption settings as stated in `application.properties`.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /decrypt/value:
+    post:
+      tags:
+        - decryption
+      requestBody:
+        description: The request body must contain a valid Base64 encoded string representing the ciphertext of an encrypted value.
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        200:
+          description: The response body may contain any valid JSON type (string, number, boolean, array, object, null) as the result of a successful decryption.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: string
+                  - type: number
+                  - type: boolean
+                  - type: array
+                    items:
+                      type: object
+                  - type: object
+                    nullable: true
+
+  /decrypt/array-elements:
+    post:
+      tags:
+        - decryption
+      requestBody:
+        description: The request body may contain a JSON array containing elements of type string. Each element is expected to be a valid Base64 encoded string representing the ciphertext of an encrypted value.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                nullable: true
+      responses:
+        200:
+          description: The JSON array containing elements of any valid JSON type (string, number, boolean, array, object, null) as the result of a successful decryption.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  nullable: true
+
+  /decrypt/map-entries:
+    post:
+      tags:
+        - decryption
+      requestBody:
+        description: The request body may contain a JSON object containing properties of type string. Each property is expected to be a valid Base64 encoded string representing the ciphertext of an encrypted value.
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        200:
+          description: The JSON object containing properties of any valid JSON type (string, number, boolean, array, object, null) as the result of a successful decryption.
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /decrypt/value-with-config:
+    post:
+      tags:
+        - decryption
+      requestBody:
+        description: The request body may contain a JSON object containing a `data` property of type JSON object which itself may contain properties of any valid JSON type (string, number, boolean, array, object, null). Additionally, the JSON object can define an optional `fieldConfig` property, which is an array containing individual configuration to apply specific decryption settings for particular properties found in the `data` property.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: object
+                fieldConfig:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FieldConfig'      
+      responses:
+        200:
+          description: The JSON object containing the properties of any valid JSON type (string, number, boolean, array, object, null) as the result of a successful decryption operation using the settings as provided in the `fieldConfig` array of the request body.
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    FieldConfig:
+      properties:
+        name:
+          type: string
+        algorithm:
+          type: string
+          enum: [TINK/AES_GCM, TINK/AES_GCM_SIV]
+        keyId:
+          type: string
+        schema:
+          type: object
+          nullable: true
+        fieldMode:
+          type: string
+          enum: [OBJECT, ELEMENT]

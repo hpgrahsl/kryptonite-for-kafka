@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.kms;
+package com.github.hpgrahsl.funqy.http.kryptonite;
 
-import com.google.crypto.tink.KeysetHandle;
+import java.util.Set;
 
-public interface KmsKeyEncryption {
+public class KryptonitePayload {
     
-    KeysetHandle getKeyEnryptionKeyHandle();
+    public Object data;
+    public Set<FieldConfig> fieldConfig;
+    
+    @Override
+    public String toString() {
+        return "KryptonitePayload [data=" + data + ", fieldConfig=" + fieldConfig + "]";
+    }
 
 }
