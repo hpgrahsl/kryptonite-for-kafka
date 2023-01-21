@@ -4,3 +4,6 @@ target/
 dependency-reduced-pom.xml
 .DS_Store
 .vscode/
+
+# cloud kms/kek settings for local testing
+credentials.properties

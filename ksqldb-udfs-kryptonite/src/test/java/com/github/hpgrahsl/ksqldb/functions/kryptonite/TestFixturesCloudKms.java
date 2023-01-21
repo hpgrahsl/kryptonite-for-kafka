@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.funqy.http.kryptonite;
+package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import java.io.File;
 import java.io.FileReader;

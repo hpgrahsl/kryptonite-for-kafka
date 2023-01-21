@@ -1,5 +1,3 @@
-package com.github.hpgrahsl.kryptonite.kms;
-
 /*
  * Copyright (c) 2022. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
@@ -15,6 +13,8 @@ package com.github.hpgrahsl.kryptonite.kms;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package com.github.hpgrahsl.kryptonite.kms;
 
 import com.google.crypto.tink.KeysetHandle;
 

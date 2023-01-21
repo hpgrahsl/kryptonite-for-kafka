@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.funqy.http.kryptonite;
+package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
 import java.io.File;
 import java.io.FileReader;
