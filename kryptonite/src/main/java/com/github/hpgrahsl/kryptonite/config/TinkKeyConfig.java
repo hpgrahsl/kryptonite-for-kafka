@@ -28,20 +28,20 @@ public class TinkKeyConfig {
   @JsonIgnore
   public static final int RAW_KEY_BYTES_OFFSET = 2;
 
-  private int primaryKeyId;
+  private long primaryKeyId;
 
   private Set<KeyConfig> key;
 
   public TinkKeyConfig() {
   }
 
-  public TinkKeyConfig(int primaryKeyId,
+  public TinkKeyConfig(long primaryKeyId,
       Set<KeyConfig> key) {
     this.primaryKeyId = primaryKeyId;
     this.key = key;
   }
 
-  public int getPrimaryKeyId() {
+  public long getPrimaryKeyId() {
     return primaryKeyId;
   }
 
@@ -95,13 +95,13 @@ public class TinkKeyConfig {
 
     private KeyData keyData;
     private Status status;
-    private int keyId;
+    private long keyId;
     private String outputPrefixType;
 
     public KeyConfig() {
     }
 
-    public KeyConfig(KeyData keyData, Status status, int keyId, String outputPrefixType) {
+    public KeyConfig(KeyData keyData, Status status, long keyId, String outputPrefixType) {
       this.keyData = keyData;
       this.status = status;
       this.keyId = keyId;
@@ -116,7 +116,7 @@ public class TinkKeyConfig {
       return status;
     }
 
-    public int getKeyId() {
+    public long getKeyId() {
       return keyId;
     }
 

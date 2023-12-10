@@ -46,7 +46,7 @@ public interface TypeSchemaMapper {
           Type.INT8, SchemaBuilder::int8,
           Type.INT16, SchemaBuilder::int16,
           Type.INT32, SchemaBuilder::int32,
-          Type.INT64, SchemaBuilder::int16,
+          Type.INT64, SchemaBuilder::int64,
           Type.FLOAT32, SchemaBuilder::float32,
           Type.FLOAT64, SchemaBuilder::float64,
           Type.STRING, SchemaBuilder::string,

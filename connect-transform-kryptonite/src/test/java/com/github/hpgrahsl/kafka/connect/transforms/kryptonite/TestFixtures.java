@@ -76,14 +76,14 @@ public class TestFixtures {
             + "},"
             + "{\"identifier\":\"key8\","
             + "\"material\":{"
-            + "\"primaryKeyId\":1000000004,"
+            + "\"primaryKeyId\":3015563227,"
             + "\"key\":["
             + "{\"keyData\":"
             + "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesSivKey\","
             + "\"value\":\"EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/\","
             + "\"keyMaterialType\":\"SYMMETRIC\"},"
             + "\"status\":\"ENABLED\","
-            + "\"keyId\":1000000004,"
+            + "\"keyId\":3015563227,"
             + "\"outputPrefixType\":\"TINK\""
             + "}"
             + "]"
@@ -170,7 +170,8 @@ public class TestFixtures {
         TEST_OBJ_SCHEMA_1 = SchemaBuilder.struct()
           .field("id", Schema.STRING_SCHEMA)
           .field("myString", Schema.STRING_SCHEMA)
-          .field("myInt",Schema.INT32_SCHEMA)
+          .field("myInt32",Schema.INT32_SCHEMA)
+          .field("myInt64",Schema.INT64_SCHEMA)
           .field("myBoolean", Schema.BOOLEAN_SCHEMA)
           .field("mySubDoc1", SchemaBuilder.struct().field("myString",Schema.STRING_SCHEMA).build())
           .field("myArray1", SchemaBuilder.array(Schema.STRING_SCHEMA).build())
@@ -181,7 +182,8 @@ public class TestFixtures {
         TEST_OBJ_STRUCT_1 = new Struct(TEST_OBJ_SCHEMA_1)
           .put("id","1234567890")
           .put("myString","some foo bla text")
-          .put("myInt",42)
+          .put("myInt32",42)
+          .put("myInt64",4294967294L)
           .put("myBoolean",true)
           .put("mySubDoc1",new Struct(TEST_OBJ_SCHEMA_1.field("mySubDoc1").schema())
               .put("myString","hello json")
@@ -193,7 +195,8 @@ public class TestFixtures {
           TEST_OBJ_MAP_1 = new LinkedHashMap<>();
           TEST_OBJ_MAP_1.put("id","1234567890");
           TEST_OBJ_MAP_1.put("myString","some foo bla text");
-          TEST_OBJ_MAP_1.put("myInt",42);
+          TEST_OBJ_MAP_1.put("myInt32",42);
+          TEST_OBJ_MAP_1.put("myInt64",4294967294L);
           TEST_OBJ_MAP_1.put("myBoolean",true);
           TEST_OBJ_MAP_1.put("mySubDoc1",Map.of("myString","hello json"));
           TEST_OBJ_MAP_1.put("myArray1",List.of("str_1","str_2","...","str_N"));

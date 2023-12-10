@@ -23,15 +23,15 @@
     <parent>
         <groupId>com.github.hpgrahsl</groupId>
         <artifactId>kryptonite-for-kafka</artifactId>
-        <version>0.4.1</version>
+        <version>0.4.2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>ksqldb-udfs-kryptonite</artifactId>
-    <version>0.2.1</version>
+    <version>0.2.2</version>
     <packaging>jar</packaging>
 
     <properties>
-        <kryptonite.version>0.4.1</kryptonite.version>
+        <kryptonite.version>0.4.2</kryptonite.version>
         <ksql.version>7.3.0</ksql.version>
         <jackson.version>2.14.1</jackson.version>
         <logback.version>1.2.11</logback.version>

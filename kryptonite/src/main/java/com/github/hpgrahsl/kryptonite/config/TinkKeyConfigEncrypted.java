@@ -17,6 +17,8 @@
 package com.github.hpgrahsl.kryptonite.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.Objects;
 import java.util.Set;
 
 public class TinkKeyConfigEncrypted {
@@ -41,11 +43,7 @@ public class TinkKeyConfigEncrypted {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((encryptedKeyset == null) ? 0 : encryptedKeyset.hashCode());
-    result = prime * result + ((keysetInfo == null) ? 0 : keysetInfo.hashCode());
-    return result;
+    return Objects.hash(encryptedKeyset, keysetInfo);
   }
 
   @Override
@@ -90,17 +88,17 @@ public class TinkKeyConfigEncrypted {
 
   public static class KeysetInfo {
 
-    private int primaryKeyId;
+    private long primaryKeyId;
     private Set<KeyInfo> keyInfo;
     
     public KeysetInfo() {}
 
-    public KeysetInfo(int primaryKeyId, Set<KeyInfo> keyInfo) {
+    public KeysetInfo(long primaryKeyId, Set<KeyInfo> keyInfo) {
       this.primaryKeyId = primaryKeyId;
       this.keyInfo = keyInfo;
     }
 
-    public int getPrimaryKeyId() {
+    public long getPrimaryKeyId() {
       return primaryKeyId;
     }
 
@@ -110,11 +108,7 @@ public class TinkKeyConfigEncrypted {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + primaryKeyId;
-      result = prime * result + ((keyInfo == null) ? 0 : keyInfo.hashCode());
-      return result;
+      return Objects.hash(primaryKeyId, keyInfo);
     }
 
     @Override
@@ -152,12 +146,12 @@ public class TinkKeyConfigEncrypted {
 
     private String typeUrl;
     private Status status;
-    private int keyId;
+    private long keyId;
     private String outputPrefixType;
     
     public KeyInfo() {}
 
-    public KeyInfo(String typeUrl, Status status, int keyId, String outputPrefixType) {
+    public KeyInfo(String typeUrl, Status status, long keyId, String outputPrefixType) {
       this.typeUrl = typeUrl;
       this.status = status;
       this.keyId = keyId;
@@ -172,7 +166,7 @@ public class TinkKeyConfigEncrypted {
       return status;
     }
 
-    public int getKeyId() {
+    public long getKeyId() {
       return keyId;
     }
 
@@ -182,13 +176,7 @@ public class TinkKeyConfigEncrypted {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((typeUrl == null) ? 0 : typeUrl.hashCode());
-      result = prime * result + ((status == null) ? 0 : status.hashCode());
-      result = prime * result + keyId;
-      result = prime * result + ((outputPrefixType == null) ? 0 : outputPrefixType.hashCode());
-      return result;
+      return Objects.hash(typeUrl, status, keyId, outputPrefixType);
     }
 
     @Override
