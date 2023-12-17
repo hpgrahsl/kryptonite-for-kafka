@@ -22,21 +22,21 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.4.2</version>
+    <version>0.4.3</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>kryptonite</artifactId>
-  <version>0.4.2</version>
+  <version>0.4.3</version>
   <packaging>jar</packaging>
 
   <properties>
     <google.tink.version>1.7.0</google.tink.version>
-    <kryo.version>5.4.0</kryo.version>
+    <kryo.version>5.5.0</kryo.version>
     <kryo.serializers>0.45</kryo.serializers>
-    <az.keyvault.version>4.5.2</az.keyvault.version>
-    <az.identity.version>1.7.1</az.identity.version>
-    <kafka.version>3.3.1</kafka.version>
-    <junit.version>5.9.1</junit.version>
+    <az.keyvault.version>4.7.3</az.keyvault.version>
+    <az.identity.version>1.11.1</az.identity.version>
+    <kafka.version>3.6.1</kafka.version>
+    <junit.version>5.10.1</junit.version>
   </properties>
 
   <dependencies>
