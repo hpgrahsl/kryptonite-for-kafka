@@ -20,6 +20,7 @@ import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.KeyException;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
+import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import com.google.crypto.tink.KeysetHandle;
 import java.util.HashMap;
 
@@ -57,6 +58,9 @@ public class AzureKeyVault extends AbstractKeyVault {
     try {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
       keysetHandles.put(identifier, createKeysetHandle(OBJECT_MAPPER.readValue(keyConfig,TinkKeyConfig.class)));
+    } catch (KeyNotFoundException e) {
+      throw new KeyNotFoundException("could not find key set handle for identifier '"
+          +identifier+"' in "+ AzureKeyVault.class.getName() + " key vault",e);
     } catch (Exception e) {
       throw new KeyException("invalid key config for identifier '"
           +identifier+"' in "+ AzureKeyVault.class.getName() + " key vault",e);

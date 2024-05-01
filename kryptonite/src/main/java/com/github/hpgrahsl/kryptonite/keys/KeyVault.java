@@ -22,4 +22,6 @@ public interface KeyVault {
 
   KeysetHandle readKeysetHandle(String identifier);
 
+  int numKeysetHandles();
+
 }

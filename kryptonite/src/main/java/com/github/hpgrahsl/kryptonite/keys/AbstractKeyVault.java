@@ -17,10 +17,6 @@
 package com.github.hpgrahsl.kryptonite.keys;
 
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
-import com.azure.core.cryptography.KeyEncryptionKey;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
@@ -37,6 +33,11 @@ public abstract class AbstractKeyVault implements KeyVault {
 
   public AbstractKeyVault(Map<String, KeysetHandle> keysetHandles) {
     this.keysetHandles = keysetHandles;
+  }  
+
+  @Override
+  public int numKeysetHandles() {
+    return keysetHandles.size();
   }
 
   @Override
