@@ -16,15 +16,39 @@
 
 package com.github.hpgrahsl.kryptonite;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
+import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
+import com.github.hpgrahsl.kryptonite.config.DataKeyConfigEncrypted;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
+import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
+import com.github.hpgrahsl.kryptonite.keys.TinkKeyVaultEncrypted;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
+import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
+import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVaultEncrypted;
+import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
+import com.github.hpgrahsl.kryptonite.kms.gcp.GcpKeyEncryption;
 import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.daead.DeterministicAeadConfig;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
 
 public class Kryptonite {
 
@@ -105,6 +129,9 @@ public class Kryptonite {
       "03", CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM)
   );
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(Kryptonite.class);
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   private final AbstractKeyVault keyVault;
 
   public Kryptonite(AbstractKeyVault keyVault) {
@@ -139,6 +166,88 @@ public class Kryptonite {
       );
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(),e);
+    }
+  }
+
+  public static Kryptonite createFromConfig(Map<String,String> config) {
+    try {
+      var keySource = KeySource.valueOf(config.get(KEY_SOURCE));
+      switch (keySource) {
+        case CONFIG:
+          return withTinkKeyVault(config);
+        case CONFIG_ENCRYPTED:
+          return withTinkKeyVaultEncrypted(config);
+        case KMS:
+          return withKmsKeyVault(config);
+        case KMS_ENCRYPTED:
+          return withKmsKeyVaultEncrypted(config);
+        default:
+          throw new ConfigurationException("failed to configure Kryptonite instance due to invalid settings in config map");
+      }
+    } catch (ConfigurationException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new ConfigurationException(e.getMessage(), e);
+    }
+  }
+
+  private static Kryptonite withTinkKeyVault(Map<String,String> config)
+      throws JsonMappingException, JsonProcessingException {
+    var dataKeyConfig = OBJECT_MAPPER.readValue(
+        config.get(CIPHER_DATA_KEYS),
+        new TypeReference<Set<DataKeyConfig>>() {}
+    );
+    var keyConfigs = dataKeyConfig.stream().collect(
+        Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
+    return new Kryptonite(new TinkKeyVault(keyConfigs));
+  }
+
+  private static Kryptonite withTinkKeyVaultEncrypted(Map<String,String> config)
+      throws JsonMappingException, JsonProcessingException {
+    var dataKeyConfig = OBJECT_MAPPER.readValue(
+          config.get(CIPHER_DATA_KEYS),
+          new TypeReference<Set<DataKeyConfigEncrypted>>() {}
+    );
+    var keyConfigs = dataKeyConfig.stream().collect(
+        Collectors.toMap(DataKeyConfigEncrypted::getIdentifier, DataKeyConfigEncrypted::getMaterial));
+    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)));
+  }
+
+  private static Kryptonite withKmsKeyVault(Map<String,String> config) {
+    var kmsType = KmsType.valueOf(config.get(KMS_TYPE));
+    var kmsConfig = config.get(KMS_CONFIG);
+    switch (kmsType) {
+      case AZ_KV_SECRETS:
+        return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(kmsConfig), true));
+      default:
+        throw new ConfigurationException(
+            "error: configuration for a KMS backed tink key vault failed with param '"
+                + KMS_TYPE + "' -> " + kmsType);
+    }
+  }
+
+  private static Kryptonite withKmsKeyVaultEncrypted(Map<String,String> config) {
+    var kmsType = KmsType.valueOf(config.get(KMS_TYPE));
+    var kmsConfig = config.get(KMS_CONFIG);
+    switch (kmsType) {
+      case AZ_KV_SECRETS:
+        return new Kryptonite(
+            new AzureKeyVaultEncrypted(configureKmsKeyEncryption(config), new AzureSecretResolver(kmsConfig), true));
+      default:
+        throw new ConfigurationException(
+            "error: configuration for a KMS backed tink key vault failed with param '" + KMS_TYPE + "' -> " + kmsType);
+    }
+  }
+
+  private static KmsKeyEncryption configureKmsKeyEncryption(Map<String,String> config) {
+    var kekType = KekType.valueOf(config.get(KEK_TYPE));
+    var kekConfig = config.get(KEK_CONFIG);
+    var kekUri = config.get(KEK_URI);
+    switch (kekType) {
+      case GCP:
+        return new GcpKeyEncryption(kekUri, kekConfig);
+      default:
+        throw new ConfigurationException("error: configuration for KMS key encryption failed with param '" + KEK_TYPE + "' -> " + kekType);
     }
   }
 
