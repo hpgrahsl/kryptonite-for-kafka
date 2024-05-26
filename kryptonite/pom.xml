@@ -22,33 +22,34 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.4.2</version>
+    <version>0.5.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>kryptonite</artifactId>
-  <version>0.4.2</version>
+  <version>0.5.0</version>
   <packaging>jar</packaging>
 
   <properties>
-    <google.tink.version>1.7.0</google.tink.version>
-    <kryo.version>5.4.0</kryo.version>
+    <google.tink.java.version>1.13.0</google.tink.java.version>
+    <google.tink.java.gcpkms.version>1.10.0</google.tink.java.gcpkms.version>
+    <kryo.version>5.6.0</kryo.version>
     <kryo.serializers>0.45</kryo.serializers>
-    <az.keyvault.version>4.5.2</az.keyvault.version>
-    <az.identity.version>1.7.1</az.identity.version>
-    <kafka.version>3.3.1</kafka.version>
-    <junit.version>5.9.1</junit.version>
+    <az.keyvault.version>4.8.3</az.keyvault.version>
+    <az.identity.version>1.12.1</az.identity.version>
+    <kafka.version>3.7.0</kafka.version>
+    <junit.version>5.10.2</junit.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>com.google.crypto.tink</groupId>
       <artifactId>tink</artifactId>
-      <version>${google.tink.version}</version>
+      <version>${google.tink.java.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.crypto.tink</groupId>
       <artifactId>tink-gcpkms</artifactId>
-      <version>${google.tink.version}</version>
+      <version>${google.tink.java.gcpkms.version}</version>
     </dependency>  
     <dependency>
       <groupId>com.esotericsoftware</groupId>
