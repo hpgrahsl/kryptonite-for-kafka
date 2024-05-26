@@ -34,4 +34,17 @@ public class KryptoniteSettings {
   public static final String KEK_CONFIG = "kek_config";
   public static final String KEK_URI = "kek_uri";
 
+  public static final String PATH_DELIMITER_DEFAULT = ".";
+  public static final String FIELD_MODE_DEFAULT = "ELEMENT";
+  public static final String CIPHER_ALGORITHM_DEFAULT = "TINK/AES_GCM";
+  public static final String CIPHER_DATA_KEY_IDENTIFIER_DEFAULT = "";
+  public static final String CIPHER_DATA_KEYS_DEFAULT = "[]";
+  public static final String CIPHER_TEXT_ENCODING_DEFAULT = "BASE64";
+  public static final String KEY_SOURCE_DEFAULT = "CONFIG";
+  public static final String KMS_TYPE_DEFAULT = "NONE";
+  public static final String KMS_CONFIG_DEFAULT = "{}";
+  public static final String KEK_TYPE_DEFAULT = "NONE";
+  public static final String KEK_CONFIG_DEFAULT = "{}";
+  public static final String KEK_URI_DEFAULT = "xyz-kms://";
+
 }
