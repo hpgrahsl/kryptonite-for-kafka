@@ -131,6 +131,11 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${surefire.plugin.version}</version>
+        <configuration>
+          <argLine>
+            ${jdk.17.plus.jvm.options}
+          </argLine>
+        </configuration>
       </plugin>
     </plugins>
   </build>
