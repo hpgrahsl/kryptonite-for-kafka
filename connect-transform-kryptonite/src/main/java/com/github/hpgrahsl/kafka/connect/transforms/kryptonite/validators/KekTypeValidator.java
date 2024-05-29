@@ -16,10 +16,11 @@
 
 package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators;
 
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KekType;
 import java.util.Arrays;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
+
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 
 public class KekTypeValidator implements Validator {
 

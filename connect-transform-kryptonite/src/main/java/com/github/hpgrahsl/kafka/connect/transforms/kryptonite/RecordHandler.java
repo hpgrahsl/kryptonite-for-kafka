@@ -19,6 +19,7 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kryptonite.*;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -49,7 +50,7 @@ public abstract class RecordHandler implements FieldPathMatcher {
     this.config = config;
     this.serdeProcessor = serdeProcessor;
     this.kryptonite = kryptonite;
-    this.pathDelimiter = config.getString(CipherField.PATH_DELIMITER);
+    this.pathDelimiter = config.getString(KryptoniteSettings.PATH_DELIMITER);
     this.cipherMode = cipherMode;
     this.fieldConfig = fieldConfig;
   }
@@ -117,15 +118,15 @@ public abstract class RecordHandler implements FieldPathMatcher {
   private FieldMetaData determineFieldMetaData(Object object, String fieldPath) {
     return Optional.ofNullable(fieldConfig.get(fieldPath))
         .map(fc -> new FieldMetaData(
-            fc.getAlgorithm().orElseGet(() -> config.getString(CipherField.CIPHER_ALGORITHM)),
+            fc.getAlgorithm().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_ALGORITHM)),
             Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""),
-            fc.getKeyId().orElseGet(() -> config.getString(CipherField.CIPHER_DATA_KEY_IDENTIFIER))
+            fc.getKeyId().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER))
             )
         ).orElseGet(
             () -> new FieldMetaData(
-                config.getString(CipherField.CIPHER_ALGORITHM),
+                config.getString(KryptoniteSettings.CIPHER_ALGORITHM),
                 Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""),
-                config.getString(CipherField.CIPHER_DATA_KEY_IDENTIFIER)
+                config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER)
             )
         );
   }

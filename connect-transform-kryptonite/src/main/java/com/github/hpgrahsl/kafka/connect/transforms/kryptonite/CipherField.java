@@ -18,20 +18,10 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.*;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
-import com.github.hpgrahsl.kryptonite.config.DataKeyConfigEncrypted;
-import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
-import com.github.hpgrahsl.kryptonite.keys.TinkKeyVaultEncrypted;
-import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVaultEncrypted;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
-import com.github.hpgrahsl.kryptonite.kms.gcp.GcpKeyEncryption;
 import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.cache.LRUCache;
@@ -50,12 +40,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
 import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
+import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
 
 public abstract class CipherField<R extends ConnectRecord<R>> implements Transformation<R> {
 
@@ -68,53 +60,8 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
     OBJECT
   }
 
-  public enum KeySource {
-    CONFIG,
-    KMS,
-    CONFIG_ENCRYPTED,
-    KMS_ENCRYPTED
-  }
-
-  public enum KmsType {
-    NONE,
-    AZ_KV_SECRETS
-  }
-
-  public enum KekType {
-    NONE,
-    GCP
-  }
-
   public static final String OVERVIEW_DOC =
       "Encrypt / Decrypt specified record fields with either probabilistic or deterministic cryptography.";
-
-  public static final String FIELD_CONFIG = "field_config";
-  public static final String PATH_DELIMITER = "path_delimiter";
-  public static final String FIELD_MODE = "field_mode";
-  public static final String CIPHER_ALGORITHM = "cipher_algorithm";
-  public static final String CIPHER_DATA_KEY_IDENTIFIER = "cipher_data_key_identifier";
-  public static final String CIPHER_DATA_KEYS = "cipher_data_keys";
-  public static final String CIPHER_TEXT_ENCODING = "cipher_text_encoding";
-  public static final String CIPHER_MODE = "cipher_mode";
-  public static final String KEY_SOURCE = "key_source";
-  public static final String KMS_TYPE = "kms_type";
-  public static final String KMS_CONFIG = "kms_config";
-  public static final String KEK_TYPE = "kek_type";
-  public static final String KEK_CONFIG = "kek_config";
-  public static final String KEK_URI = "kek_uri";
-
-  private static final String PATH_DELIMITER_DEFAULT = ".";
-  private static final String FIELD_MODE_DEFAULT = "ELEMENT";
-  private static final String CIPHER_ALGORITHM_DEFAULT = "TINK/AES_GCM";
-  public static final String CIPHER_DATA_KEY_IDENTIFIER_DEFAULT = "";
-  private static final String CIPHER_DATA_KEYS_DEFAULT = "[]";
-  private static final String CIPHER_TEXT_ENCODING_DEFAULT = "BASE64";
-  private static final String KEY_SOURCE_DEFAULT = "CONFIG";
-  private static final String KMS_TYPE_DEFAULT = "NONE";
-  private static final String KMS_CONFIG_DEFAULT = "{}";
-  private static final String KEK_TYPE_DEFAULT = "NONE";
-  private static final String KEK_CONFIG_DEFAULT = "{}";
-  private static final String KEK_URI_DEFAULT = "xyz-kms://";
 
   public static final ConfigDef CONFIG_DEF = new ConfigDef()
       .define(FIELD_CONFIG, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new FieldConfigValidator(),
@@ -208,7 +155,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           OBJECT_MAPPER
               .readValue(config.getString(FIELD_CONFIG), new TypeReference<Set<FieldConfig>>() {})
               .stream().collect(Collectors.toMap(FieldConfig::getName, Function.identity()));
-      var kryptonite = configureKryptonite(config);
+      var kryptonite = Kryptonite.createFromConfig(adaptToNormalizedStringsMap(config));
       var serdeProcessor = new KryoSerdeProcessor();
       recordHandlerWithSchema = new SchemaawareRecordHandler(config, serdeProcessor, kryptonite, CipherMode
           .valueOf(
@@ -224,86 +171,23 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
 
   }
 
-  private static Kryptonite configureKryptonite(SimpleConfig config) {
-    try {
-      var keySource = KeySource.valueOf(config.getString(KEY_SOURCE));
-      switch (keySource) {
-        case CONFIG:
-          return configureKryptoniteWithTinkKeyVault(config);
-        case CONFIG_ENCRYPTED:
-          return configureKryptoniteWithTinkKeyVaultEncrypted(config);
-        case KMS:
-          return configureKryptoniteWithKmsKeyVault(config);
-        case KMS_ENCRYPTED:
-          return configureKryptoniteWithKmsKeyVaultEncrypted(config);
-        default:
-          throw new ConfigException("failed to configure cipher field SMT due to invalid settings");
-      }
-    } catch (ConfigException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new ConfigException(e.getMessage(), e);
-    }
-  }
-
-  private static Kryptonite configureKryptoniteWithTinkKeyVault(SimpleConfig config)
-      throws JsonMappingException, JsonProcessingException {
-    var dataKeyConfig = OBJECT_MAPPER.readValue(
-        config.getPassword(CIPHER_DATA_KEYS).value(),
-        new TypeReference<Set<DataKeyConfig>>() {}
+  private static Map<String,String> adaptToNormalizedStringsMap(SimpleConfig config) {
+    return Map.ofEntries(
+      Map.entry(FIELD_CONFIG, config.getString(FIELD_CONFIG)),
+      Map.entry(PATH_DELIMITER, Optional.ofNullable(config.getString(PATH_DELIMITER)).orElse(PATH_DELIMITER_DEFAULT)),
+      Map.entry(FIELD_MODE, Optional.ofNullable(config.getString(FIELD_MODE)).orElse(FIELD_MODE_DEFAULT)),
+      Map.entry(CIPHER_ALGORITHM, Optional.ofNullable(config.getString(CIPHER_ALGORITHM)).orElse(CIPHER_ALGORITHM_DEFAULT)),
+      Map.entry(CIPHER_DATA_KEYS, Optional.ofNullable(config.getPassword(CIPHER_DATA_KEYS).value()).orElse(CIPHER_DATA_KEYS_DEFAULT)),
+      Map.entry(CIPHER_DATA_KEY_IDENTIFIER, Optional.ofNullable(config.getString(CIPHER_DATA_KEY_IDENTIFIER)).orElse(CIPHER_DATA_KEY_IDENTIFIER_DEFAULT)),
+      Map.entry(CIPHER_TEXT_ENCODING, Optional.ofNullable(config.getString(CIPHER_TEXT_ENCODING)).orElse(CIPHER_TEXT_ENCODING_DEFAULT)),
+      Map.entry(CIPHER_MODE, config.getString(CIPHER_MODE)),
+      Map.entry(KEY_SOURCE, Optional.ofNullable(config.getString(KEY_SOURCE)).orElse(KEY_SOURCE_DEFAULT)),
+      Map.entry(KMS_TYPE, Optional.ofNullable(config.getString(KMS_TYPE)).orElse(KMS_TYPE_DEFAULT)),
+      Map.entry(KMS_CONFIG, Optional.ofNullable(config.getPassword(KMS_CONFIG).value()).orElse(KMS_CONFIG_DEFAULT)),
+      Map.entry(KEK_TYPE, Optional.ofNullable(config.getString(KEK_TYPE)).orElse(KEK_TYPE_DEFAULT)),
+      Map.entry(KEK_CONFIG, Optional.ofNullable(config.getPassword(KEK_CONFIG).value()).orElse(KEK_CONFIG_DEFAULT)),
+      Map.entry(KEK_URI, Optional.ofNullable(config.getPassword(KEK_URI).value()).orElse(KEK_URI_DEFAULT))
     );
-    var keyConfigs = dataKeyConfig.stream().collect(
-        Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
-    return new Kryptonite(new TinkKeyVault(keyConfigs));
-  }
-
-  private static Kryptonite configureKryptoniteWithTinkKeyVaultEncrypted(SimpleConfig config)
-      throws JsonMappingException, JsonProcessingException {
-    var dataKeyConfig = OBJECT_MAPPER.readValue(
-          config.getPassword(CIPHER_DATA_KEYS).value(),
-          new TypeReference<Set<DataKeyConfigEncrypted>>() {}
-    );
-    var keyConfigs = dataKeyConfig.stream().collect(
-        Collectors.toMap(DataKeyConfigEncrypted::getIdentifier, DataKeyConfigEncrypted::getMaterial));
-    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)));
-  }
-
-  private static Kryptonite configureKryptoniteWithKmsKeyVault(SimpleConfig config) {
-    var kmsType = KmsType.valueOf(config.getString(KMS_TYPE));
-    var kmsConfig = config.getPassword(KMS_CONFIG).value();
-    switch (kmsType) {
-      case AZ_KV_SECRETS:
-        return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(kmsConfig), true));
-      default:
-        throw new ConfigException(
-            "error: configuration for a KMS backed tink key vault failed with param '"
-                + KMS_TYPE + "' -> " + kmsType);
-    }
-  }
-
-  private static Kryptonite configureKryptoniteWithKmsKeyVaultEncrypted(SimpleConfig config) {
-    var kmsType = KmsType.valueOf(config.getString(KMS_TYPE));
-    var kmsConfig = config.getPassword(KMS_CONFIG).value();
-    switch (kmsType) {
-      case AZ_KV_SECRETS:
-        return new Kryptonite(
-            new AzureKeyVaultEncrypted(configureKmsKeyEncryption(config), new AzureSecretResolver(kmsConfig), true));
-      default:
-        throw new ConfigException(
-            "error: configuration for a KMS backed tink key vault failed with param '" + KMS_TYPE + "' -> " + kmsType);
-    }
-  }
-
-  private static KmsKeyEncryption configureKmsKeyEncryption(SimpleConfig config) {
-    var kekType = KekType.valueOf(config.getString(KEK_TYPE));
-    var kekConfig = config.getPassword(KEK_CONFIG).value();
-    var kekUri = config.getPassword(KEK_URI).value();
-    switch (kekType) {
-      case GCP:
-        return new GcpKeyEncryption(kekUri, kekConfig);
-      default:
-        throw new ConfigException("error: configuration for KMS key encryption failed with param '" + KEK_TYPE + "' -> " + kekType);
-    }
   }
 
   protected abstract Schema operatingSchema(R record);
