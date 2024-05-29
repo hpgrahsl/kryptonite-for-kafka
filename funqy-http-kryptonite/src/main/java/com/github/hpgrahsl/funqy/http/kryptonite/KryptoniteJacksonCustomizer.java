@@ -18,7 +18,7 @@ package com.github.hpgrahsl.funqy.http.kryptonite;
 
 import java.io.IOException;
 
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 import org.apache.kafka.connect.data.Struct;
 

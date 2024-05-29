@@ -16,30 +16,20 @@
 
 package com.github.hpgrahsl.funqy.http.kryptonite;
 
-import javax.inject.Singleton;
+import java.util.Map;
+
+import jakarta.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
+
 @Singleton
 public class KryptoniteConfiguration {
-
-    public enum KeySource {
-        CONFIG,
-        KMS,
-        CONFIG_ENCRYPTED,
-        KMS_ENCRYPTED
-    }
-
-    public enum KmsType {
-        NONE,
-        AZ_KV_SECRETS
-    }
-
-    public enum KekType {
-        NONE,
-        GCP
-    }
-    
+ 
     public enum FieldMode {
         ELEMENT,
         OBJECT
@@ -99,4 +89,19 @@ public class KryptoniteConfiguration {
         return kc;
     }
 
+    public Map<String,String> adaptToNormalizedStringsMap() {
+        return Map.ofEntries(
+            Map.entry(KryptoniteSettings.CIPHER_DATA_KEYS,cipherDataKeys),
+            Map.entry(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER,cipherDataKeyIdentifier),
+            Map.entry(KryptoniteSettings.KEY_SOURCE,keySource.name()),
+            Map.entry(KryptoniteSettings.KMS_TYPE,kmsType.name()),
+            Map.entry(KryptoniteSettings.KMS_CONFIG,kmsConfig),
+            Map.entry(KryptoniteSettings.KEK_TYPE,kekType.name()),
+            Map.entry(KryptoniteSettings.KEK_CONFIG,kekConfig),
+            Map.entry(KryptoniteSettings.KEK_URI,kekUri),
+            Map.entry(KryptoniteSettings.PATH_DELIMITER,pathDelimiter),
+            Map.entry(KryptoniteSettings.FIELD_MODE,fieldMode.name()),
+            Map.entry(KryptoniteSettings.CIPHER_ALGORITHM,cipherAlgorithm)
+        );
+    }
 }

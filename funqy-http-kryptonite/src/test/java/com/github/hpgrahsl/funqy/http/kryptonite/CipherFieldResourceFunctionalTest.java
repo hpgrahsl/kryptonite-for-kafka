@@ -42,12 +42,14 @@ import io.quarkus.logging.Log;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import jakarta.inject.Inject;
 
 @QuarkusTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CipherFieldResourceFunctionalTest {
 
-    public static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    @Inject
+    public ObjectMapper objectMapper;
 
     @Nested
     @TestProfile(ProfileKeySourceConfig.class)
@@ -88,7 +90,7 @@ public class CipherFieldResourceFunctionalTest {
         encFieldConfig.add(new FieldConfig("myBytes", cipherSpec.getName(), keyId2, null, fieldMode));
 
         encPayload.put("fieldConfig", encFieldConfig);
-        Log.debug("HTTP request body (encryption): " + OBJECT_MAPPER.writeValueAsString(encPayload));
+        Log.debug("HTTP request body (encryption): " + objectMapper.writeValueAsString(encPayload));
 
         var encRequest = RestAssured.given().body(encPayload);
         var encResponse = encRequest.post("/encrypt/value-with-config");
@@ -98,7 +100,7 @@ public class CipherFieldResourceFunctionalTest {
         Log.debug("HTTP response body (encryption): " + encResponseBody);
 
         var decPayload = new LinkedHashMap<>();
-        decPayload.put("data", OBJECT_MAPPER.readValue(encResponseBody, new TypeReference<Map<String, Object>>() {
+        decPayload.put("data", objectMapper.readValue(encResponseBody, new TypeReference<Map<String, Object>>() {
         }));
 
         var decFieldConfig = new HashSet<FieldConfig>();
@@ -121,7 +123,7 @@ public class CipherFieldResourceFunctionalTest {
         decFieldConfig.add(new FieldConfig("myBytes", null, null, null, fieldMode));
 
         decPayload.put("fieldConfig", decFieldConfig);
-        Log.debug("HTTP request body (decryption): " + OBJECT_MAPPER.writeValueAsString(decPayload));
+        Log.debug("HTTP request body (decryption): " + objectMapper.writeValueAsString(decPayload));
 
         var decRequest = RestAssured.given().body(decPayload);
         var decResponse = decRequest.post("/decrypt/value-with-config");
@@ -130,7 +132,7 @@ public class CipherFieldResourceFunctionalTest {
         var decResponseBody = decResponse.getBody().asString();
         Log.debug("HTTP response body (decryption): " + decResponseBody);
 
-        var actualDecrypted = OBJECT_MAPPER.readValue(decResponseBody, new TypeReference<Map<String, Object>>() {
+        var actualDecrypted = objectMapper.readValue(decResponseBody, new TypeReference<Map<String, Object>>() {
         });
         Log.debug("ASSERTING all fields");
         assertAllResultingFieldsSchemalessRecord(TestFixtures.TEST_OBJ_MAP_1, actualDecrypted);
