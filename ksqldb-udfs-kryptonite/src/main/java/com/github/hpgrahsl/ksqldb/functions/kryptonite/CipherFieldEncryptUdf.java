@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -62,7 +63,7 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
   public <T> String encryptField(
           @UdfParameter(value = "data", description = "the data to encrypt") final T data
   ) {
-    return encryptComplexField(data,"",defaultCipherDataKeyIdentifier,CustomUdfConfig.CIPHER_ALGORITHM_DEFAULT);
+    return encryptComplexField(data,"",defaultCipherDataKeyIdentifier,KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
   }
 
   @Udf(description = "🔒 encrypt primitive or complex field data in object mode using the specified key identifier and cipher algorithm")
@@ -85,7 +86,7 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
           @UdfParameter(value = "typeCapture", description = "param for target type inference (use STRING for object mode encryption, use MAP | ARRAY | STRUCT for element mode encryption)")
           final V typeCapture
   ) {
-    return encryptComplexField(data,typeCapture,defaultCipherDataKeyIdentifier,CustomUdfConfig.CIPHER_ALGORITHM_DEFAULT);
+    return encryptComplexField(data,typeCapture,defaultCipherDataKeyIdentifier,KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
   }
 
   @SuppressWarnings({"unchecked"})

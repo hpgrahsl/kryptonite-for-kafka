@@ -21,36 +21,29 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KekType;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KeySource;
-import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.KmsType;
-import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
-import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig.KeyConfig;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.source.SourceRecord;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -63,7 +56,6 @@ public class CipherFieldSmtFunctionalTest {
     @ParameterizedTest
     @MethodSource("com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherFieldSmtFunctionalTest#generateValidParamsWithoutCloudKms")
     @DisplayName("apply SMT decrypt(encrypt(plaintext)) = plaintext for schemaless record with param combinations")
-    @SuppressWarnings("unchecked")
     void encryptDecryptSchemalessRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
       
@@ -73,7 +65,6 @@ public class CipherFieldSmtFunctionalTest {
     @ParameterizedTest
     @MethodSource("com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherFieldSmtFunctionalTest#generateValidParamsWithoutCloudKms")
     @DisplayName("apply SMT decrypt(encrypt(plaintext)) = plaintext for schemaful record with param combinations")
-    @SuppressWarnings("unchecked")
     void encryptDecryptSchemafulRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
         
@@ -86,7 +77,6 @@ public class CipherFieldSmtFunctionalTest {
     @ParameterizedTest
     @MethodSource("com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherFieldSmtFunctionalTest#generateValidParamsWithCloudKms")
     @DisplayName("apply SMT decrypt(encrypt(plaintext)) = plaintext for schemaless record with param combinations")
-    @SuppressWarnings("unchecked")
     void encryptDecryptSchemalessRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
       
@@ -96,7 +86,6 @@ public class CipherFieldSmtFunctionalTest {
     @ParameterizedTest
     @MethodSource("com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherFieldSmtFunctionalTest#generateValidParamsWithCloudKms")
     @DisplayName("apply SMT decrypt(encrypt(plaintext)) = plaintext for schemaful record with param combinations")
-    @SuppressWarnings("unchecked")
     void encryptDecryptSchemafulRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
         
@@ -104,12 +93,13 @@ public class CipherFieldSmtFunctionalTest {
     }
   }
 
+  @SuppressWarnings("unchecked")
   void performSchemalessRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
       
       var encProps = new HashMap<String, Object>();
-      encProps.put(CipherField.CIPHER_MODE, "ENCRYPT");
-      encProps.put(CipherField.FIELD_CONFIG,
+      encProps.put(KryptoniteSettings.CIPHER_MODE, "ENCRYPT");
+      encProps.put(KryptoniteSettings.FIELD_CONFIG,
               "["
               + "    {\"name\":\"id\",\"keyId\":\""+keyId1+"\"},"
               + "    {\"name\":\"myString\",\"keyId\":\""+keyId2+"\"},"
@@ -122,16 +112,16 @@ public class CipherFieldSmtFunctionalTest {
               + "    {\"name\":\"myBytes\",\"keyId\":\""+keyId2+"\"}"
               + "]"
       );
-      encProps.put(CipherField.CIPHER_ALGORITHM,cipherSpec.getName());
-      encProps.put(CipherField.CIPHER_DATA_KEYS,cipherDataKeys);
-      encProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,keyId1);
-      encProps.put(CipherField.FIELD_MODE,fieldMode.name());
-      encProps.put(CipherField.KEY_SOURCE,keySource.name());
-      encProps.put(CipherField.KMS_TYPE,kmsType.name());
-      encProps.put(CipherField.KMS_CONFIG,kmsConfig);
-      encProps.put(CipherField.KEK_TYPE,kekType.name());
-      encProps.put(CipherField.KEK_CONFIG,kekConfig);
-      encProps.put(CipherField.KEK_URI,kekUri);
+      encProps.put(KryptoniteSettings.CIPHER_ALGORITHM,cipherSpec.getName());
+      encProps.put(KryptoniteSettings.CIPHER_DATA_KEYS,cipherDataKeys);
+      encProps.put(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER,keyId1);
+      encProps.put(KryptoniteSettings.FIELD_MODE,fieldMode.name());
+      encProps.put(KryptoniteSettings.KEY_SOURCE,keySource.name());
+      encProps.put(KryptoniteSettings.KMS_TYPE,kmsType.name());
+      encProps.put(KryptoniteSettings.KMS_CONFIG,kmsConfig);
+      encProps.put(KryptoniteSettings.KEK_TYPE,kekType.name());
+      encProps.put(KryptoniteSettings.KEK_CONFIG,kekConfig);
+      encProps.put(KryptoniteSettings.KEK_URI,kekUri);
   
       var encryptTransform = new CipherField.Value<SourceRecord>();
       encryptTransform.configure(encProps);
@@ -163,8 +153,8 @@ public class CipherFieldSmtFunctionalTest {
       }
   
       var decProps = new HashMap<String, Object>();
-      decProps.put(CipherField.CIPHER_MODE, "DECRYPT");
-      decProps.put(CipherField.FIELD_CONFIG,
+      decProps.put(KryptoniteSettings.CIPHER_MODE, "DECRYPT");
+      decProps.put(KryptoniteSettings.FIELD_CONFIG,
           "["
               + "    {\"name\":\"id\"},"
               + "    {\"name\":\"myString\"},"
@@ -177,15 +167,15 @@ public class CipherFieldSmtFunctionalTest {
               + "    {\"name\":\"myBytes\"}"
               + "]"
       );
-      decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));
-      decProps.put(CipherField.CIPHER_DATA_KEYS,encProps.get(CipherField.CIPHER_DATA_KEYS));
-      decProps.put(CipherField.FIELD_MODE,fieldMode.name());
-      decProps.put(CipherField.KEY_SOURCE,encProps.get(CipherField.KEY_SOURCE));
-      decProps.put(CipherField.KMS_TYPE,encProps.get(CipherField.KMS_TYPE));
-      decProps.put(CipherField.KMS_CONFIG,encProps.get(CipherField.KMS_CONFIG));
-      decProps.put(CipherField.KEK_TYPE,encProps.get(CipherField.KEK_TYPE));
-      decProps.put(CipherField.KEK_CONFIG,encProps.get(CipherField.KEK_CONFIG));
-      decProps.put(CipherField.KEK_URI,encProps.get(CipherField.KEK_URI));
+      decProps.put(KryptoniteSettings.CIPHER_ALGORITHM,encProps.get(KryptoniteSettings.CIPHER_ALGORITHM));
+      decProps.put(KryptoniteSettings.CIPHER_DATA_KEYS,encProps.get(KryptoniteSettings.CIPHER_DATA_KEYS));
+      decProps.put(KryptoniteSettings.FIELD_MODE,fieldMode.name());
+      decProps.put(KryptoniteSettings.KEY_SOURCE,encProps.get(KryptoniteSettings.KEY_SOURCE));
+      decProps.put(KryptoniteSettings.KMS_TYPE,encProps.get(KryptoniteSettings.KMS_TYPE));
+      decProps.put(KryptoniteSettings.KMS_CONFIG,encProps.get(KryptoniteSettings.KMS_CONFIG));
+      decProps.put(KryptoniteSettings.KEK_TYPE,encProps.get(KryptoniteSettings.KEK_TYPE));
+      decProps.put(KryptoniteSettings.KEK_CONFIG,encProps.get(KryptoniteSettings.KEK_CONFIG));
+      decProps.put(KryptoniteSettings.KEK_URI,encProps.get(KryptoniteSettings.KEK_URI));
   
       var decryptTransform = new CipherField.Value<SinkRecord>();
       decryptTransform.configure(decProps);
@@ -199,8 +189,8 @@ public class CipherFieldSmtFunctionalTest {
   void performSchemafulRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
 var encProps = new HashMap<String, Object>();
-      encProps.put(CipherField.CIPHER_MODE, "ENCRYPT");
-      encProps.put(CipherField.FIELD_CONFIG,
+      encProps.put(KryptoniteSettings.CIPHER_MODE, "ENCRYPT");
+      encProps.put(KryptoniteSettings.FIELD_CONFIG,
           "["
               + "    {\"name\":\"id\"},"
               + "    {\"name\":\"myString\",\"keyId\":\""+keyId1+"\"},"
@@ -214,16 +204,16 @@ var encProps = new HashMap<String, Object>();
               + "    {\"name\":\"myBytes\",\"keyId\":\""+keyId1+"\"}"
               + "]"
       );
-      encProps.put(CipherField.CIPHER_ALGORITHM,cipherSpec.getName());
-      encProps.put(CipherField.CIPHER_DATA_KEYS,cipherDataKeys);
-      encProps.put(CipherField.CIPHER_DATA_KEY_IDENTIFIER,keyId1);
-      encProps.put(CipherField.FIELD_MODE,fieldMode.name());
-      encProps.put(CipherField.KEY_SOURCE,keySource.name());
-      encProps.put(CipherField.KMS_TYPE,kmsType.name());
-      encProps.put(CipherField.KMS_CONFIG,kmsConfig);
-      encProps.put(CipherField.KEK_TYPE,kekType.name());
-      encProps.put(CipherField.KEK_CONFIG,kekConfig);
-      encProps.put(CipherField.KEK_URI,kekUri);
+      encProps.put(KryptoniteSettings.CIPHER_ALGORITHM,cipherSpec.getName());
+      encProps.put(KryptoniteSettings.CIPHER_DATA_KEYS,cipherDataKeys);
+      encProps.put(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER,keyId1);
+      encProps.put(KryptoniteSettings.FIELD_MODE,fieldMode.name());
+      encProps.put(KryptoniteSettings.KEY_SOURCE,keySource.name());
+      encProps.put(KryptoniteSettings.KMS_TYPE,kmsType.name());
+      encProps.put(KryptoniteSettings.KMS_CONFIG,kmsConfig);
+      encProps.put(KryptoniteSettings.KEK_TYPE,kekType.name());
+      encProps.put(KryptoniteSettings.KEK_CONFIG,kekConfig);
+      encProps.put(KryptoniteSettings.KEK_URI,kekUri);
   
       var encryptTransform = new CipherField.Value<SourceRecord>();
       encryptTransform.configure(encProps);
@@ -256,8 +246,8 @@ var encProps = new HashMap<String, Object>();
       }
   
       var decProps = new HashMap<String, Object>();
-      decProps.put(CipherField.CIPHER_MODE, "DECRYPT");
-      decProps.put(CipherField.FIELD_CONFIG,
+      decProps.put(KryptoniteSettings.CIPHER_MODE, "DECRYPT");
+      decProps.put(KryptoniteSettings.FIELD_CONFIG,
           "["
               + "    {\"name\":\"id\",\"schema\": {\"type\": \"STRING\"}},"
               + "    {\"name\":\"myString\",\"schema\": {\"type\": \"STRING\"}},"
@@ -271,15 +261,15 @@ var encProps = new HashMap<String, Object>();
               + "    {\"name\":\"myBytes\",\"schema\": {\"type\": \"BYTES\"}}"
               + "]"
       );
-      decProps.put(CipherField.CIPHER_ALGORITHM,encProps.get(CipherField.CIPHER_ALGORITHM));
-      decProps.put(CipherField.CIPHER_DATA_KEYS,encProps.get(CipherField.CIPHER_DATA_KEYS));
-      decProps.put(CipherField.FIELD_MODE,fieldMode.name());
-      decProps.put(CipherField.KEY_SOURCE,encProps.get(CipherField.KEY_SOURCE));
-      decProps.put(CipherField.KMS_TYPE,encProps.get(CipherField.KMS_TYPE));
-      decProps.put(CipherField.KMS_CONFIG,encProps.get(CipherField.KMS_CONFIG));
-      decProps.put(CipherField.KEK_TYPE,encProps.get(CipherField.KEK_TYPE));
-      decProps.put(CipherField.KEK_CONFIG,encProps.get(CipherField.KEK_CONFIG));
-      decProps.put(CipherField.KEK_URI,encProps.get(CipherField.KEK_URI));
+      decProps.put(KryptoniteSettings.CIPHER_ALGORITHM,encProps.get(KryptoniteSettings.CIPHER_ALGORITHM));
+      decProps.put(KryptoniteSettings.CIPHER_DATA_KEYS,encProps.get(KryptoniteSettings.CIPHER_DATA_KEYS));
+      decProps.put(KryptoniteSettings.FIELD_MODE,fieldMode.name());
+      decProps.put(KryptoniteSettings.KEY_SOURCE,encProps.get(KryptoniteSettings.KEY_SOURCE));
+      decProps.put(KryptoniteSettings.KMS_TYPE,encProps.get(KryptoniteSettings.KMS_TYPE));
+      decProps.put(KryptoniteSettings.KMS_CONFIG,encProps.get(KryptoniteSettings.KMS_CONFIG));
+      decProps.put(KryptoniteSettings.KEK_TYPE,encProps.get(KryptoniteSettings.KEK_TYPE));
+      decProps.put(KryptoniteSettings.KEK_CONFIG,encProps.get(KryptoniteSettings.KEK_CONFIG));
+      decProps.put(KryptoniteSettings.KEK_URI,encProps.get(KryptoniteSettings.KEK_URI));
   
       var decryptTransform = new CipherField.Value<SinkRecord>();
       decryptTransform.configure(decProps);
@@ -305,7 +295,7 @@ var encProps = new HashMap<String, Object>();
   void assertAllResultingFieldsSchemafulRecord(Struct expected, Struct actual) {
     assertAll(
         Stream.concat(
-            Stream.of(() -> assertEquals(expected.schema(),actual.schema())),
+            Stream.<Executable>of(() -> assertEquals(expected.schema(),actual.schema())),
             expected.schema().fields().stream().map(
                 f -> f.schema().equals(Schema.BYTES_SCHEMA)
                     ? () -> assertArrayEquals((byte[])expected.get(f.name()),(byte[])actual.get(f.name()))

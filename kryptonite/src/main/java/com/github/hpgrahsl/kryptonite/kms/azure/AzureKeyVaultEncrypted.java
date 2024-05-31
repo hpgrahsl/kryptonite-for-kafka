@@ -21,6 +21,7 @@ import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.KeyException;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
+import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
@@ -68,6 +69,9 @@ public class AzureKeyVaultEncrypted extends AbstractKeyVault {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
       Aead kekAead = kmsKeyEncryption.getKeyEnryptionKeyHandle().getPrimitive(Aead.class);
       keysetHandles.put(identifier, createKeysetHandle(OBJECT_MAPPER.readValue(keyConfig, TinkKeyConfigEncrypted.class), kekAead));
+    } catch (KeyNotFoundException e) {
+      throw new KeyNotFoundException("could not find key set handle for identifier '"
+          +identifier+"' in "+ AzureKeyVaultEncrypted.class.getName() + " key vault",e);
     } catch (Exception e) {
       throw new KeyException("could not fetch Azure secret for key identifier'"
           +identifier+"' into "+ AzureKeyVaultEncrypted.class.getName() + " key vault",e);

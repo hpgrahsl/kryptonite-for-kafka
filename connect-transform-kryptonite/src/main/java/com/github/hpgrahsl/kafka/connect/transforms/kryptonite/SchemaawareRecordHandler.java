@@ -19,6 +19,7 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -53,7 +54,7 @@ public class SchemaawareRecordHandler extends RecordHandler {
       if(fc != null) {
           LOGGER.trace("matched field '{}'",updatedPath);
           if(FieldMode.ELEMENT == fc.getFieldMode()
-                  .orElse(FieldMode.valueOf(getConfig().getString(CipherField.FIELD_MODE)))) {
+                  .orElse(FieldMode.valueOf(getConfig().getString(KryptoniteSettings.FIELD_MODE)))) {
             if(f.schema().type() == Type.ARRAY){
               LOGGER.trace("processing {} field element-wise",Type.ARRAY);
               dataNew.put(schemaNew.field(f.name()), processListField((List<?>)dataOriginal.get(f.name()),updatedPath));

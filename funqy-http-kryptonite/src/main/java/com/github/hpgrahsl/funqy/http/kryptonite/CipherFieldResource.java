@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMode;
 import com.github.hpgrahsl.kryptonite.CipherMode;

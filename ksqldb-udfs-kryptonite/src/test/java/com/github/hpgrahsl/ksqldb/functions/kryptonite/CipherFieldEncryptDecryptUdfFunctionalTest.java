@@ -17,6 +17,7 @@
 package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import io.confluent.ksql.function.KsqlFunctionException;
@@ -24,11 +25,11 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -54,8 +55,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         @DisplayName("apply UDF on struct data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForStruct(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
-                CustomUdfConfig.KeySource keySource, CustomUdfConfig.KmsType kmsType, String kmsConfig,
-                CustomUdfConfig.KekType kekType, String kekConfig, String kekUri) {
+                KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
+                KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
             
             performTestForStruct(fieldMode, cipherDataKeys, defaultKeyIdentifier, keyIdentifier, cipherAlgorithm,
                                     keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
@@ -66,8 +67,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         @DisplayName("apply UDF on map data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForMap(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
-                CustomUdfConfig.KeySource keySource, CustomUdfConfig.KmsType kmsType, String kmsConfig,
-                CustomUdfConfig.KekType kekType, String kekConfig, String kekUri) {
+                KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
+                KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
             
             performTestForMap(fieldMode, cipherDataKeys, defaultKeyIdentifier, keyIdentifier, cipherAlgorithm,
                                     keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
@@ -84,8 +85,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         @DisplayName("apply UDF on struct data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForStruct(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
-                CustomUdfConfig.KeySource keySource, CustomUdfConfig.KmsType kmsType, String kmsConfig,
-                CustomUdfConfig.KekType kekType, String kekConfig, String kekUri) {
+                KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
+                KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
             
             performTestForStruct(fieldMode, cipherDataKeys, defaultKeyIdentifier, keyIdentifier, cipherAlgorithm, 
                                     keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
@@ -96,8 +97,8 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         @DisplayName("apply UDF on map data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForMap(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
-                CustomUdfConfig.KeySource keySource, CustomUdfConfig.KmsType kmsType, String kmsConfig,
-                CustomUdfConfig.KekType kekType, String kekConfig, String kekUri) {
+                KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
+                KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
             
             performTestForMap(fieldMode, cipherDataKeys, defaultKeyIdentifier, keyIdentifier, cipherAlgorithm,
                                     keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
@@ -109,12 +110,12 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         return List.of(
                 Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_CONFIG, "keyA", "keyB",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG, CustomUdfConfig.KmsType.NONE, "{}",
-                        CustomUdfConfig.KekType.NONE, "{}", ""),
+                        KryptoniteSettings.KeySource.CONFIG, KryptoniteSettings.KmsType.NONE, "{}",
+                        KryptoniteSettings.KekType.NONE, "{}", ""),
                 Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_CONFIG, "key9", "key8",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG, CustomUdfConfig.KmsType.NONE, "{}",
-                        CustomUdfConfig.KekType.NONE, "{}", "")
+                        KryptoniteSettings.KeySource.CONFIG, KryptoniteSettings.KmsType.NONE, "{}",
+                        KryptoniteSettings.KekType.NONE, "{}", "")
         );
     }
 
@@ -123,48 +124,48 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         return List.of(
                 Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED, "keyX", "keyY",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG_ENCRYPTED, CustomUdfConfig.KmsType.NONE, "{}",
-                        CustomUdfConfig.KekType.GCP,
+                        KryptoniteSettings.KeySource.CONFIG_ENCRYPTED, KryptoniteSettings.KmsType.NONE, "{}",
+                        KryptoniteSettings.KekType.GCP,
                         credentials.getProperty("test.kek.config"), credentials.getProperty("test.kek.uri")),
                 Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED, "key1", "key0",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.CONFIG_ENCRYPTED, CustomUdfConfig.KmsType.NONE, "{}",
-                        CustomUdfConfig.KekType.GCP,
+                        KryptoniteSettings.KeySource.CONFIG_ENCRYPTED, KryptoniteSettings.KmsType.NONE, "{}",
+                        KryptoniteSettings.KekType.GCP,
                         credentials.getProperty("test.kek.config"), credentials.getProperty("test.kek.uri")),
                 Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "keyA", "keyB",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS, CustomUdfConfig.KmsType.AZ_KV_SECRETS,
-                        credentials.getProperty("test.kms.config"), CustomUdfConfig.KekType.NONE, "{}", ""),
+                        KryptoniteSettings.KeySource.KMS, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
+                        credentials.getProperty("test.kms.config"), KryptoniteSettings.KekType.NONE, "{}", ""),
                 Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "key9", "key8",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS, CustomUdfConfig.KmsType.AZ_KV_SECRETS,
-                        credentials.getProperty("test.kms.config"), CustomUdfConfig.KekType.NONE, "{}", ""),
+                        KryptoniteSettings.KeySource.KMS, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
+                        credentials.getProperty("test.kms.config"), KryptoniteSettings.KekType.NONE, "{}", ""),
                 Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "keyX", "keyY",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS_ENCRYPTED, CustomUdfConfig.KmsType.AZ_KV_SECRETS,
+                        KryptoniteSettings.KeySource.KMS_ENCRYPTED, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
                         credentials.getProperty("test.kms.config.encrypted"),
-                        CustomUdfConfig.KekType.GCP, credentials.getProperty("test.kek.config"),
+                        KryptoniteSettings.KekType.GCP, credentials.getProperty("test.kek.config"),
                         credentials.getProperty("test.kek.uri")),
                 Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "key1", "key0",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        CustomUdfConfig.KeySource.KMS_ENCRYPTED, CustomUdfConfig.KmsType.AZ_KV_SECRETS,
+                        KryptoniteSettings.KeySource.KMS_ENCRYPTED, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
                         credentials.getProperty("test.kms.config.encrypted"),
-                        CustomUdfConfig.KekType.GCP, credentials.getProperty("test.kek.config"),
+                        KryptoniteSettings.KekType.GCP, credentials.getProperty("test.kek.config"),
                         credentials.getProperty("test.kek.uri"))
         );
     }
 
     void performTestForMap(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
             String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
-            CustomUdfConfig.KeySource keySource, CustomUdfConfig.KmsType kmsType, String kmsConfig,
-            CustomUdfConfig.KekType kekType, String kekConfig, String kekUri) {
+            KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
+            KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
 
         var cfeUDF = new CipherFieldEncryptUdf();
         var fnEncrypt = cfeUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfeUDF.configure(
                 Map.of(
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),cipherDataKeys,
-                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt,CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier,
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier,
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_KEY_SOURCE),keySource.name(),
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_KMS_TYPE),kmsType.name(),
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_KMS_CONFIG),kmsConfig,
@@ -246,15 +247,15 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
 
     void performTestForStruct(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
             String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
-            CustomUdfConfig.KeySource keySource, CustomUdfConfig.KmsType kmsType, String kmsConfig,
-            CustomUdfConfig.KekType kekType, String kekConfig, String kekUri) {
+            KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
+            KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
 
         var cfeUDF = new CipherFieldEncryptUdf();
         var fnEncrypt = cfeUDF.getClass().getDeclaredAnnotation(UdfDescription.class).name();
         cfeUDF.configure(
                 Map.of(
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEYS),cipherDataKeys,
-                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt,CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier,
+                        CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER),defaultKeyIdentifier,
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_KEY_SOURCE),keySource.name(),
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_KMS_TYPE),kmsType.name(),
                         CustomUdfConfig.getPrefixedConfigParam(fnEncrypt, CustomUdfConfig.CONFIG_PARAM_KMS_CONFIG),kmsConfig,
@@ -379,7 +380,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
     void assertAllResultingFieldsSchemafulRecord(Struct expected, Struct actual) {
         assertAll(
                 Stream.concat(
-                        Stream.of(() -> assertEquals(expected.schema(), actual.schema())),
+                        Stream.<Executable>of(() -> assertEquals(expected.schema(), actual.schema())),
                         expected.schema().fields().stream().map(
                                 f -> (f.schema().equals(Schema.OPTIONAL_BYTES_SCHEMA)
                                         || f.schema().equals(Schema.BYTES_SCHEMA))
