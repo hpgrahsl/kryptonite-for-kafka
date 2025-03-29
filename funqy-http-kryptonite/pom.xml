@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
@@ -11,16 +13,18 @@
   <version>0.2.0</version>
   <name>funqy-http-kryptonite</name>
   <properties>
-    <compiler-plugin.version>3.12.1</compiler-plugin.version>
-    <kafka.version>3.7.0</kafka.version>
+    <compiler-plugin.version>3.14.0</compiler-plugin.version>
+    <kafka.version>4.0.0</kafka.version>
+    <protobuf.version>4.28.2</protobuf.version>
     <kryptonite.version>0.5.0</kryptonite.version>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.10.2</quarkus.platform.version>
-    <surefire-plugin.version>3.2.3</surefire-plugin.version>
+    <quarkus.platform.version>3.21.0</quarkus.platform.version>
+    <skipITs>true</skipITs>
+    <surefire-plugin.version>3.5.2</surefire-plugin.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -41,6 +45,11 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-funqy-http</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>${protobuf.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
