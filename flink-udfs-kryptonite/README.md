@@ -10,7 +10,7 @@ Kryptonite for Kafka provides a set of [Flink](https://flink.apache.org/) [user-
 
 ### Build and Deployment
 
-Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest artefacts. Starting with Kryptonite for Kafka 0.4.0, the pre-built Flink UDFs can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
+Either you build this project from sources via Maven or you can download pre-built, self-contained packages of the latest artefacts. Starting with Kryptonite for Kafka 0.5.0, the pre-built Flink UDFs can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
 
 In order to deploy the UDFs **put the jar into the _'flink libraries directory'_** that is configured to be scanned during bootstrap of your Flink cluster.
 
@@ -25,7 +25,7 @@ After that, start using the available UDFs:
 
 to selectively encrypt or decrypt column values in your Flink `TABLE` rows.
 
-Verify a successful deployment by checking all available user functions e.g. from within an interactive [Flink SQL Client](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/dev/table/sqlclient/) session, which should output both all Kryptonite for Kafka related user-defined functions like so:
+Verify a successful deployment by checking all available user functions e.g. from within an interactive [Flink SQL Client](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/dev/table/sqlclient/) session, which should output all Kryptonite for Kafka related user-defined functions like so:
 
 ```
 Flink SQL> SHOW USER FUNCTIONS;
@@ -476,12 +476,12 @@ SELECT * FROM my_sample_data_json_enc_e LIMIT 2;
  LQE7msoBhw9wO7Pw8xzx4GLA6Yps1~ MAE7msoBqh8cbURb4h7pdrb+7R+mQ~ JAE7msoBUf2KqxNQrqzEIVQSkKhkp~ JAE7msoBaD4t7uwxOzkrlZwNjr2Fc~ (PwE7msoB5NON1KMGAYElltvydr53~ [KAE7msoBZtQ9PO3XnnIC/nw3F30M~ {k1=JAE7msoBzNtlA7qXfiOBfB6Ku~
 ```
 
-Applying the `K4K_DECRYPT`,`K4K_DECRYPT_ARRAY`,`K4K_DECRYPT_MAP` UDF in the following `SELECT` statement shows how to decrypt the column values for all rows to get back the original values.
+Applying the `K4K_DECRYPT`,`K4K_DECRYPT_ARRAY`, and `K4K_DECRYPT_MAP` UDF in the following `SELECT` statement shows how to decrypt the column values for all rows to get back the original values.
 
-_Important to note here is the fact, that the 2nd function parameter is needed to support Flink SQL to properly infer the actual return type for decrypted values like so:
+_Important to note here is the fact, that the 2nd function parameter is needed to support Flink SQL to properly infer the actual return type for decrypted values like so:_
 
 * for simple fields there is no difference whether they have been encrypted in object or in element mode
-* for `ROW` fields encrypted in element mode, it's necessary to process them individually and re-assemble the struct manually
+* for `ROW` fields encrypted in element mode, it's necessary to process them individually and re-assemble the structured type manually
 * for `ARRAY` fields encrypted in element mode, the UDF processes the array elements one by one which means the expected target type after decryption is specified to be that of a single element in said array
 * for `MAP` fields encrypted in element mode, the UDF processes the map entries one by one which means the expected target type after decryption is specified to be that of a single map entry value in said map
 

@@ -35,7 +35,7 @@ After that, start using the UDFs, namely `K4KENCRYPT` and `K4KDECRYPT`, to selec
 
 ##### Flink UDFs
 
-Starting with Kryptonite for Kafka 0.4.0, the pre-built Flink UDFs can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
+Starting with Kryptonite for Kafka 0.5.0, the pre-built Flink UDFs can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
 
 In order to deploy the UDFs **put the jar into the _'flink libraries directory'_** that is configured to be scanned during bootstrap of your Flink cluster.
 
