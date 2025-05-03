@@ -9,8 +9,9 @@
 Kryptonite for Kafka is a library to do field-level cryptography for records on their way into and out of [Apache Kafka®](https://kafka.apache.org/). Currently, it targets three main use cases:
 
 1. [data integration scenarios](connect-transform-kryptonite/README.md) based on [Kafka Connect](https://kafka.apache.org/documentation/#connect) by means of a turn-key ready [transformation](https://kafka.apache.org/documentation/#connect_transforms) (SMT) to run encryption / decryption operations on selected fields of records with or without schema
-2. [stream processing scenarios](ksqldb-udfs-kryptonite/README.md) based on [ksqlDB](https://ksqlDB.io) by providing custom [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDF) to encrypt / decrypt selected data columns in STREAMs and TABLEs respectively
-3. [cross language/runtime scenarios](funqy-http-kryptonite/README.md) by running a co-located [Quarkus](http://quarkus.io) [Funqy](https://quarkus.io/guides/funqy) service exposing a lightweight web API to encrypt / decrypt payloads, or fields thereof, from any client application talking HTTP.
+2. [stream processing scenarios](ksqldb-udfs-kryptonite/README.md) based on [ksqlDB](https://ksqlDB.io) by providing custom [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDFs) to encrypt / decrypt selected data columns in STREAMs and TABLEs respectively
+3. [stream processing scenarios](flink-udfs-kryptonite/README.md) based on [Flink](https://flink.apache.org/) Table API / Flink SQL by providing custom [user-defined functions](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/dev/table/functions/udfs/) (UDFs) to encrypt / decrypt selected data columns in Flink TABLEs 
+4. [cross language/runtime scenarios](funqy-http-kryptonite/README.md) by running a co-located [Quarkus](http://quarkus.io) [Funqy](https://quarkus.io/guides/funqy) service exposing a lightweight web API to encrypt / decrypt payloads, or fields thereof, from any client application talking HTTP.
 
 ### Build, Installation and Deployment
 
@@ -31,6 +32,14 @@ Starting with Kryptonite for Kafka 0.4.0, the pre-built ksqlDB UDFs can be downl
 In order to deploy the UDFs **put the jar into your _'ksql extension directory'_** that is configured to be scanned during bootstrap of the ksqlDB server process(es).
 
 After that, start using the UDFs, namely `K4KENCRYPT` and `K4KDECRYPT`, to selectively encrypt and decrypt column values in ksqlDB rows of `TABLES` and `STREAMS` respectively. **Read here about the configuration options and how to [apply the UDFs](ksqldb-udfs-kryptonite/README.md) based on simple examples.**
+
+##### Flink UDFs
+
+Starting with Kryptonite for Kafka 0.5.0, the pre-built Flink UDFs can be downloaded directly from the [release pages](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
+
+In order to deploy the UDFs **put the jar into the _'flink libraries directory'_** that is configured to be scanned during bootstrap of your Flink cluster.
+
+After that, start using the available UDFs, namely `K4K_ENCRYPT, K4K_ENCRYPT_ARRAY, K4K_ENCRYPT_MAP` and `K4K_DECRYPT, K4K_DECRYPT_ARRAY, K4K_DECRYPT_MAP`, to selectively encrypt and decrypt column values in your Flink `TABLE` rows. **Read here about the configuration options and how to [apply the UDFs](flink-udfs-kryptonite/README.md) based on simple examples.**
 
 ##### Quarkus Funqy HTTP API service
 
