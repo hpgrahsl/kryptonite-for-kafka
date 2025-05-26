@@ -6,7 +6,7 @@
 
 ## Overview
 
-Kryptonite for Kafka is a library to do field-level cryptography for records on their way into and out of [Apache Kafka®](https://kafka.apache.org/). Currently, it targets three main use cases:
+Kryptonite for Kafka is a library to do field-level cryptography for records on their way into and out of [Apache Kafka®](https://kafka.apache.org/). Currently, it targets the following main use cases:
 
 1. [data integration scenarios](connect-transform-kryptonite/README.md) based on [Kafka Connect](https://kafka.apache.org/documentation/#connect) by means of a turn-key ready [transformation](https://kafka.apache.org/documentation/#connect_transforms) (SMT) to run encryption / decryption operations on selected fields of records with or without schema
 2. [stream processing scenarios](ksqldb-udfs-kryptonite/README.md) based on [ksqlDB](https://ksqlDB.io) by providing custom [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDFs) to encrypt / decrypt selected data columns in STREAMs and TABLEs respectively
