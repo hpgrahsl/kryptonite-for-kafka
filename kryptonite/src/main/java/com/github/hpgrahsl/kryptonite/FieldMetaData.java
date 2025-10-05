@@ -16,6 +16,8 @@
 
 package com.github.hpgrahsl.kryptonite;
 
+import java.util.Objects;
+
 public class FieldMetaData {
 
   private String algorithm;
@@ -24,13 +26,31 @@ public class FieldMetaData {
 
   private String keyId;
 
+  private String tweak;
+
+  private String encoding;
+
   public FieldMetaData() {
   }
 
-  public FieldMetaData(String algorithm, String dataType, String keyId) {
-    this.algorithm = algorithm;
-    this.dataType = dataType;
-    this.keyId = keyId;
+  public FieldMetaData(String algorithm, String dataType, String keyId, String tweak, String encoding) {
+    this.algorithm = Objects.requireNonNull(algorithm, "algorithm must not be null");
+    this.dataType = Objects.requireNonNull(dataType, "dataType must not be null");
+    this.keyId = Objects.requireNonNull(keyId, "keyId must not be null");
+    this.tweak = Objects.requireNonNull(tweak, "tweak must not be null");
+    this.encoding = Objects.requireNonNull(encoding, "encoding must not be null");
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  private FieldMetaData(Builder builder) {
+    this.algorithm = builder.algorithm;
+    this.dataType = builder.dataType;
+    this.keyId = builder.keyId;
+    this.tweak = builder.tweak;
+    this.encoding = builder.encoding;
   }
 
   public String getAlgorithm() {
@@ -45,13 +65,72 @@ public class FieldMetaData {
     return keyId;
   }
 
+  public String getTweak() {
+    return tweak;
+  }
+
+  public String getEncoding() {
+    return encoding;
+  }
+
   @Override
   public String toString() {
     return "FieldMetaData{" +
         "algorithm='" + algorithm + '\'' +
         ", dataType='" + dataType + '\'' +
         ", keyId='" + keyId + '\'' +
+        ", tweak='" + tweak + '\'' +
+        ", encoding='" + encoding + '\'' +
         '}';
+  }
+
+  //TODO: add static validation methods for semantic correctness of fields and ensure they are called from builder and constructor
+
+  public static final class Builder {
+
+    private String algorithm;
+
+    private String dataType;
+
+    private String keyId;
+
+    private String tweak;
+
+    private String encoding;
+
+    private Builder() {
+    }
+
+    //TODO: builder should perform semantic validation for all fields
+
+    public Builder algorithm(String algorithm) {
+      this.algorithm = Objects.requireNonNull(algorithm, "algorithm must not be null");
+      return this;
+    }
+
+    public Builder dataType(String dataType) {
+      this.dataType = Objects.requireNonNull(dataType, "dataType must not be null");
+      return this;
+    }
+
+    public Builder keyId(String keyId) {
+      this.keyId = Objects.requireNonNull(keyId, "keyId must not be null");
+      return this;
+    }
+
+    public Builder tweak(String tweak) {
+      this.tweak = Objects.requireNonNull(tweak, "tweak must not be null");
+      return this;
+    }
+
+    public Builder encoding(String encoding) {
+      this.encoding = Objects.requireNonNull(encoding, "encoding must not be null");
+      return this;
+    }
+
+    public FieldMetaData build() {
+      return new FieldMetaData(this);
+    }
   }
 
 }

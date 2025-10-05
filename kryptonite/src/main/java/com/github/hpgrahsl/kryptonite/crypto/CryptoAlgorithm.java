@@ -26,10 +26,22 @@ public interface CryptoAlgorithm {
 
   byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception;
 
+  default byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle) throws Exception {
+    return cipherFPE(plaintext, keysetHandle, null);
+  }
+
+  byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, byte[] tweak) throws Exception;
+
   default byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle) throws Exception {
     return decipher(ciphertext, keysetHandle, null);
   }
 
   byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception;
+
+  default byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle) throws Exception {
+    return decipherFPE(ciphertext, keysetHandle, null);
+  }
+
+  byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, byte[] tweak) throws Exception;
 
 }

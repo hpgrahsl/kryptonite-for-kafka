@@ -44,7 +44,6 @@ public class TestFixtures {
                         + "\"outputPrefixType\":\"TINK\""
                         + "}"
                         + "]"
-                        + "}"
                         + "}";
 
     public static final String CIPHER_DATA_KEY_CONFIG_KEY_B = 
@@ -59,7 +58,6 @@ public class TestFixtures {
                         + "\"outputPrefixType\":\"TINK\""
                         + "}"
                         + "]"
-                        + "}"
                         + "}";
 
     public static final String CIPHER_DATA_KEY_CONFIG_KEY_9 = 
@@ -74,7 +72,6 @@ public class TestFixtures {
                         + "\"outputPrefixType\":\"TINK\""
                         + "}"
                         + "]"
-                        + "}"
                         + "}";
 
     public static final String CIPHER_DATA_KEY_CONFIG_KEY_8 =
@@ -89,7 +86,6 @@ public class TestFixtures {
                         + "\"outputPrefixType\":\"TINK\""
                         + "}"
                         + "]"
-                        + "}"
                         + "}";
         
     public static final String CIPHER_DATA_KEYS_CONFIG = "["

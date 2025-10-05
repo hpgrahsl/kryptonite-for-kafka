@@ -26,6 +26,7 @@ public class KryptoniteSettings {
   public static final String CIPHER_DATA_KEY_IDENTIFIER = "cipher_data_key_identifier";
   public static final String CIPHER_DATA_KEYS = "cipher_data_keys";
   public static final String CIPHER_TEXT_ENCODING = "cipher_text_encoding";
+  public static final String CIPHER_FPE_TWEAK = "cipher_fpe_tweak";
   public static final String CIPHER_MODE = "cipher_mode";
   public static final String KEY_SOURCE = "key_source";
   public static final String KMS_TYPE = "kms_type";
@@ -40,6 +41,7 @@ public class KryptoniteSettings {
   public static final String CIPHER_DATA_KEY_IDENTIFIER_DEFAULT = "";
   public static final String CIPHER_DATA_KEYS_DEFAULT = "[]";
   public static final String CIPHER_TEXT_ENCODING_DEFAULT = "BASE64";
+  public static final String CIPHER_FPE_TWEAK_DEFAULT = "";
   public static final String KEY_SOURCE_DEFAULT = "CONFIG";
   public static final String KMS_TYPE_DEFAULT = "NONE";
   public static final String KMS_CONFIG_DEFAULT = "{}";

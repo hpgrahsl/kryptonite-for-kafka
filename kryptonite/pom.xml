@@ -32,6 +32,7 @@
   <properties>
     <google.tink.java.version>1.17.0</google.tink.java.version>
     <google.tink.java.gcpkms.version>1.10.0</google.tink.java.gcpkms.version>
+    <mysto.fpe.version>1.2.0</mysto.fpe.version>
     <kryo.version>5.6.2</kryo.version>
     <kryo.serializers>0.45</kryo.serializers>
     <az.keyvault.version>4.8.7</az.keyvault.version>
@@ -50,7 +51,12 @@
       <groupId>com.google.crypto.tink</groupId>
       <artifactId>tink-gcpkms</artifactId>
       <version>${google.tink.java.gcpkms.version}</version>
-    </dependency>  
+    </dependency>
+    <dependency>
+      <groupId>io.github.mysto</groupId>
+      <artifactId>ff3</artifactId>
+      <version>${mysto.fpe.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.esotericsoftware</groupId>
       <artifactId>kryo</artifactId>

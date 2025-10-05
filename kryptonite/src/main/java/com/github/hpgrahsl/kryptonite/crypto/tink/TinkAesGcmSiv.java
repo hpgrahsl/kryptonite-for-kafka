@@ -19,6 +19,7 @@ package com.github.hpgrahsl.kryptonite.crypto.tink;
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
 import com.google.crypto.tink.DeterministicAead;
 import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.RegistryConfiguration;
 
 public class TinkAesGcmSiv implements CryptoAlgorithm {
 
@@ -26,14 +27,24 @@ public class TinkAesGcmSiv implements CryptoAlgorithm {
 
   @Override
   public byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
-    DeterministicAead daead = keysetHandle.getPrimitive(DeterministicAead.class);
+    DeterministicAead daead = keysetHandle.getPrimitive(RegistryConfiguration.get(), DeterministicAead.class);
     return daead.encryptDeterministically(plaintext, associatedData);
   }
 
   @Override
   public byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
-    DeterministicAead daead = keysetHandle.getPrimitive(DeterministicAead.class);
+    DeterministicAead daead = keysetHandle.getPrimitive(RegistryConfiguration.get(), DeterministicAead.class);
     return daead.decryptDeterministically(ciphertext, associatedData);
+  }
+
+  @Override
+  public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
+    throw new UnsupportedOperationException("unsupported method 'cipherFPE' for " + CIPHER_ALGORITHM);
+  }
+
+  @Override
+  public byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
+    throw new UnsupportedOperationException("unsupported method 'decipherFPE' for " + CIPHER_ALGORITHM);
   }
 
 }

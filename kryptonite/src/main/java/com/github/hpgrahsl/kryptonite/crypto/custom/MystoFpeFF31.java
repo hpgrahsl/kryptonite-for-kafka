@@ -14,37 +14,34 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.crypto.tink;
+package com.github.hpgrahsl.kryptonite.crypto.custom;
 
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
-import com.google.crypto.tink.Aead;
+import com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.FpeKeysetHandle;
 import com.google.crypto.tink.KeysetHandle;
-import com.google.crypto.tink.RegistryConfiguration;
 
-public class TinkAesGcm implements CryptoAlgorithm {
+public class MystoFpeFF31 implements CryptoAlgorithm {
 
-  public static final String CIPHER_ALGORITHM = "TINK/AES_GCM";
+  public static final String CIPHER_ALGORITHM = "CUSTOM/MYSTO_FPE_FF3_1";
 
   @Override
   public byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
-    Aead aead = keysetHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
-    return aead.encrypt(plaintext, associatedData);
+    throw new UnsupportedOperationException("unsupported method 'cipher' for " + CIPHER_ALGORITHM);
   }
 
   @Override
   public byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
-    Aead aead = keysetHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
-    return aead.decrypt(ciphertext, associatedData);
+    throw new UnsupportedOperationException("unsupported method 'decipher' for " + CIPHER_ALGORITHM);
   }
 
   @Override
   public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
-    throw new UnsupportedOperationException("unsupported method 'cipherFPE' for " + CIPHER_ALGORITHM);
+    return FpeKeysetHandle.getPrimitive(keysetHandle).encrypt(plaintext, tweak);
   }
 
   @Override
   public byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
-    throw new UnsupportedOperationException("unsupported method 'decipherFPE' for " + CIPHER_ALGORITHM);
+    return FpeKeysetHandle.getPrimitive(keysetHandle).decrypt(ciphertext, tweak);
   }
 
 }

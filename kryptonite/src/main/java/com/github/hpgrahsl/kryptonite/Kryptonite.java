@@ -27,6 +27,7 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
@@ -55,26 +56,31 @@ public class Kryptonite {
   public static final class CipherSpec {
 
     public static final String TYPE_TINK = "TINK";
+    public static final String TYPE_CUSTOM = "CUSTOM";
 
     private final String type;
     private final String name;
     private final CryptoAlgorithm algorithm;
+    private final boolean isCipherFPE;
 
-    public CipherSpec(String type, String name, CryptoAlgorithm algorithm) {
+    public CipherSpec(String type, String name, CryptoAlgorithm algorithm, boolean isCipherFPE) {
       this.type = Objects.requireNonNull(type,"cipher spec type must not be null");
       this.name = Objects.requireNonNull(name, "cipher spec name must not be null");
       this.algorithm = Objects.requireNonNull(algorithm, "cipher spec algorithm must not be null");
+      this.isCipherFPE = isCipherFPE;
     }
 
     public static CipherSpec fromName(String name) {
       Objects.requireNonNull(name,"name must not be null");
       switch(name) {
         case TinkAesGcm.CIPHER_ALGORITHM:
-          return new CipherSpec(CipherSpec.TYPE_TINK, TinkAesGcm.CIPHER_ALGORITHM, new TinkAesGcm());
+          return new CipherSpec(CipherSpec.TYPE_TINK, TinkAesGcm.CIPHER_ALGORITHM, new TinkAesGcm(), false);
         case TinkAesGcmSiv.CIPHER_ALGORITHM:
-          return new CipherSpec(CipherSpec.TYPE_TINK, TinkAesGcmSiv.CIPHER_ALGORITHM, new TinkAesGcmSiv());
+          return new CipherSpec(CipherSpec.TYPE_TINK, TinkAesGcmSiv.CIPHER_ALGORITHM, new TinkAesGcmSiv(), false);
+        case MystoFpeFF31.CIPHER_ALGORITHM:
+          return new CipherSpec(CipherSpec.TYPE_CUSTOM, MystoFpeFF31.CIPHER_ALGORITHM, new MystoFpeFF31(), true);
         default:
-          throw new IllegalArgumentException("invalid name "+name+" to create CipherSpec");
+          throw new IllegalArgumentException("invalid name '"+name+"' to create CipherSpec for");
       }
     }
 
@@ -88,6 +94,10 @@ public class Kryptonite {
 
     public CryptoAlgorithm getAlgorithm() {
       return algorithm;
+    }
+
+    public boolean isCipherFPE() {
+      return isCipherFPE;
     }
 
     @Override
@@ -112,6 +122,7 @@ public class Kryptonite {
       return "CipherSpec{" +
           "type='" + type + '\'' +
           ", name='" + name + '\'' +
+          ", isCipherFPE=" + isCipherFPE +
           '}';
     }
 
@@ -121,12 +132,14 @@ public class Kryptonite {
 
   public static final Map<CipherSpec,String> CIPHERSPEC_ID_LUT = Map.of(
       CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"02",
-      CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"03"
+      CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"03",
+      CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),"04"
   );
 
   public static final Map<String,CipherSpec> ID_CIPHERSPEC_LUT = Map.of(
       "02", CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-      "03", CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM)
+      "03", CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
+      "04", CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM)
   );
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Kryptonite.class);
@@ -156,6 +169,17 @@ public class Kryptonite {
     }
   }
 
+  public byte[] cipherFieldFPE(byte[] plaintext, FieldMetaData fieldMetaData) {
+    try {
+      var cipherSpec = CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase());
+      var keysetHandle = keyVault.readKeysetHandle(fieldMetaData.getKeyId());
+      var tweakBytes = fieldMetaData.getTweak() != null ? fieldMetaData.getTweak().getBytes() : null;
+      return cipherSpec.getAlgorithm().cipherFPE(plaintext, keysetHandle, tweakBytes);
+    } catch (Exception e) {
+      throw new KryptoniteException(e.getMessage(),e);
+    }
+  }
+
   public byte[] decipherField(EncryptedField encryptedField) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(encryptedField.getMetaData().getAlgorithmId());
@@ -164,6 +188,16 @@ public class Kryptonite {
           keyVault.readKeysetHandle(encryptedField.getMetaData().getKeyId()),
           encryptedField.associatedData()
       );
+    } catch (Exception e) {
+      throw new KryptoniteException(e.getMessage(),e);
+    }
+  }
+
+  public byte[] decipherFieldFPE(byte[] ciphertext, FieldMetaData fieldMetaData) {
+    try {
+      var cipherSpec = CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase());
+      var tweakBytes = fieldMetaData.getTweak() != null ? fieldMetaData.getTweak().getBytes() : null;
+      return cipherSpec.getAlgorithm().decipherFPE(ciphertext, keyVault.readKeysetHandle(fieldMetaData.getKeyId()), tweakBytes);
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(),e);
     }
