@@ -28,7 +28,6 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
-import com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.FpeParameters;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2025. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
