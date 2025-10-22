@@ -28,6 +28,7 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
+import com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.FpeParameters;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
@@ -173,8 +174,9 @@ public class Kryptonite {
     try {
       var cipherSpec = CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase());
       var keysetHandle = keyVault.readKeysetHandle(fieldMetaData.getKeyId());
-      var tweakBytes = fieldMetaData.getTweak() != null ? fieldMetaData.getTweak().getBytes() : null;
-      return cipherSpec.getAlgorithm().cipherFPE(plaintext, keysetHandle, tweakBytes);
+      var tweakBytes = fieldMetaData.getFpeTweak() != null ? fieldMetaData.getFpeTweak().getBytes() : null;
+      var alphabet = fieldMetaData.getFpeAlphabet();
+      return cipherSpec.getAlgorithm().cipherFPE(plaintext, keysetHandle, alphabet, tweakBytes);
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(),e);
     }
@@ -196,8 +198,9 @@ public class Kryptonite {
   public byte[] decipherFieldFPE(byte[] ciphertext, FieldMetaData fieldMetaData) {
     try {
       var cipherSpec = CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase());
-      var tweakBytes = fieldMetaData.getTweak() != null ? fieldMetaData.getTweak().getBytes() : null;
-      return cipherSpec.getAlgorithm().decipherFPE(ciphertext, keyVault.readKeysetHandle(fieldMetaData.getKeyId()), tweakBytes);
+      var tweakBytes = fieldMetaData.getFpeTweak() != null ? fieldMetaData.getFpeTweak().getBytes() : null;
+      var alphabet = fieldMetaData.getFpeAlphabet();
+      return cipherSpec.getAlgorithm().decipherFPE(ciphertext, keyVault.readKeysetHandle(fieldMetaData.getKeyId()), alphabet, tweakBytes);
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(),e);
     }

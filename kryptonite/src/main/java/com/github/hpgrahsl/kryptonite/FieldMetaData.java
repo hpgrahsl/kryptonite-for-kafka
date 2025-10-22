@@ -26,18 +26,21 @@ public class FieldMetaData {
 
   private String keyId;
 
-  private String tweak;
+  private String fpeTweak;
+
+  private String fpeAlphabet;
 
   private String encoding;
 
   public FieldMetaData() {
   }
 
-  public FieldMetaData(String algorithm, String dataType, String keyId, String tweak, String encoding) {
+  public FieldMetaData(String algorithm, String dataType, String keyId, String fpeTweak, String fpeAlphabet, String encoding) {
     this.algorithm = Objects.requireNonNull(algorithm, "algorithm must not be null");
     this.dataType = Objects.requireNonNull(dataType, "dataType must not be null");
     this.keyId = Objects.requireNonNull(keyId, "keyId must not be null");
-    this.tweak = Objects.requireNonNull(tweak, "tweak must not be null");
+    this.fpeTweak = Objects.requireNonNull(fpeTweak, "fpeTweak must not be null");
+    this.fpeAlphabet = Objects.requireNonNull(fpeAlphabet, "fpeAlphabet must not be null");
     this.encoding = Objects.requireNonNull(encoding, "encoding must not be null");
   }
 
@@ -49,7 +52,8 @@ public class FieldMetaData {
     this.algorithm = builder.algorithm;
     this.dataType = builder.dataType;
     this.keyId = builder.keyId;
-    this.tweak = builder.tweak;
+    this.fpeTweak = builder.fpeTweak;
+    this.fpeAlphabet = builder.fpeAlphabet;
     this.encoding = builder.encoding;
   }
 
@@ -65,8 +69,12 @@ public class FieldMetaData {
     return keyId;
   }
 
-  public String getTweak() {
-    return tweak;
+  public String getFpeTweak() {
+    return fpeTweak;
+  }
+
+  public String getFpeAlphabet() {
+    return fpeAlphabet;
   }
 
   public String getEncoding() {
@@ -79,7 +87,8 @@ public class FieldMetaData {
         "algorithm='" + algorithm + '\'' +
         ", dataType='" + dataType + '\'' +
         ", keyId='" + keyId + '\'' +
-        ", tweak='" + tweak + '\'' +
+        ", fpeTweak='" + fpeTweak + '\'' +
+        ", fpeAlphabet='" + fpeAlphabet + '\'' +
         ", encoding='" + encoding + '\'' +
         '}';
   }
@@ -94,7 +103,9 @@ public class FieldMetaData {
 
     private String keyId;
 
-    private String tweak;
+    private String fpeTweak;
+
+    private String fpeAlphabet;
 
     private String encoding;
 
@@ -118,8 +129,13 @@ public class FieldMetaData {
       return this;
     }
 
-    public Builder tweak(String tweak) {
-      this.tweak = Objects.requireNonNull(tweak, "tweak must not be null");
+    public Builder fpeTweak(String fpeTweak) {
+      this.fpeTweak = Objects.requireNonNull(fpeTweak, "fpeTweak must not be null");
+      return this;
+    }
+
+    public Builder fpeAlphabet(String fpeAlphabet) {
+      this.fpeAlphabet = Objects.requireNonNull(fpeAlphabet, "fpeAlphabet must not be null");
       return this;
     }
 

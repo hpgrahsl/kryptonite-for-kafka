@@ -87,67 +87,67 @@ public class TestFixtures {
                         + "}"
                         + "]"
                         + "}";
-        
+
+    public static final String CIPHER_DATA_KEY_CONFIG_FPE_KEY_C = "{\n" + //
+                "    \"primaryKeyId\": 2000001,\n" + //
+                "    \"key\": [\n" + //
+                "        {\n" + //
+                "            \"keyData\": {\n" + //
+                "                \"typeUrl\": \"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\",\n" + //
+                "                \"value\": \"VU5O0VBE6+bIygj2z/BiVg==\",\n" + //
+                "                \"keyMaterialType\": \"SYMMETRIC\"\n" + //
+                "            },\n" + //
+                "            \"status\": \"ENABLED\",\n" + //
+                "            \"keyId\": 2000001,\n" + //
+                "            \"outputPrefixType\": \"RAW\"\n" + //
+                "        }\n" + //
+                "    ]\n" + //
+                "}";
+
+    public static final String CIPHER_DATA_KEY_CONFIG_FPE_KEY_D = "{\n" + //
+                "    \"primaryKeyId\": 2000002,\n" + //
+                "    \"key\": [\n" + //
+                "        {\n" + //
+                "            \"keyData\": {\n" + //
+                "                \"typeUrl\": \"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\",\n" + //
+                "                \"value\": \"GA0CtxRfjqN/9tW4CmnzY+SU9k5EbBJ4\",\n" + //
+                "                \"keyMaterialType\": \"SYMMETRIC\"\n" + //
+                "            },\n" + //
+                "            \"status\": \"ENABLED\",\n" + //
+                "            \"keyId\": 2000002,\n" + //
+                "            \"outputPrefixType\": \"RAW\"\n" + //
+                "        }\n" + //
+                "    ]\n" + //
+                "}";
+
+    public static final String CIPHER_DATA_KEY_CONFIG_FPE_KEY_E = "{\n" + //
+                "    \"primaryKeyId\": 2000003,\n" + //
+                "    \"key\": [\n" + //
+                "        {\n" + //
+                "            \"keyData\": {\n" + //
+                "                \"typeUrl\": \"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\",\n" + //
+                "                \"value\": \"vJDWFED3R04F6blW1FxZMg/JF8qSfY5+WJLPjSYeW9w=\",\n" + //
+                "                \"keyMaterialType\": \"SYMMETRIC\"\n" + //
+                "            },\n" + //
+                "            \"status\": \"ENABLED\",\n" + //
+                "            \"keyId\": 2000003,\n" + //
+                "            \"outputPrefixType\": \"RAW\"\n" + //
+                "        }\n" + //
+                "    ]\n" + //
+                "}";
+    
     public static final String CIPHER_DATA_KEYS_CONFIG = "["
             + "{\"identifier\":\"keyA\","
-            + "\"material\":{"
-            + "\"primaryKeyId\":1000000001,"
-            + "\"key\":["
-            + "{\"keyData\":"
-            + "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesGcmKey\","
-            + "\"value\":\"GhDRulECKAC8/19NMXDjeCjK\","
-            + "\"keyMaterialType\":\"SYMMETRIC\"},"
-            + "\"status\":\"ENABLED\","
-            + "\"keyId\":1000000001,"
-            + "\"outputPrefixType\":\"TINK\""
-            + "}"
-            + "]"
-            + "}"
+            + "\"material\":" + CIPHER_DATA_KEY_CONFIG_KEY_A
             + "},"
             + "{\"identifier\":\"keyB\","
-            + "\"material\":{"
-            + "\"primaryKeyId\":1000000002,"
-            + "\"key\":["
-            + "{\"keyData\":"
-            + "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesGcmKey\","
-            + "\"value\":\"GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==\","
-            + "\"keyMaterialType\":\"SYMMETRIC\"},"
-            + "\"status\":\"ENABLED\","
-            + "\"keyId\":1000000002,"
-            + "\"outputPrefixType\":\"TINK\""
-            + "}"
-            + "]"
-            + "}"
+            + "\"material\":" + CIPHER_DATA_KEY_CONFIG_KEY_B
             + "},"
             + "{\"identifier\":\"key9\","
-            + "\"material\":{"
-            + "\"primaryKeyId\":1000000003,"
-            + "\"key\":["
-            + "{\"keyData\":"
-            + "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesSivKey\","
-            + "\"value\":\"EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz\","
-            + "\"keyMaterialType\":\"SYMMETRIC\"},"
-            + "\"status\":\"ENABLED\","
-            + "\"keyId\":1000000003,"
-            + "\"outputPrefixType\":\"TINK\""
-            + "}"
-            + "]"
-            + "}"
+            + "\"material\":" + CIPHER_DATA_KEY_CONFIG_KEY_9
             + "},"
             + "{\"identifier\":\"key8\","
-            + "\"material\":{"
-            + "\"primaryKeyId\":1000000004,"
-            + "\"key\":["
-            + "{\"keyData\":"
-            + "{\"typeUrl\":\"type.googleapis.com/google.crypto.tink.AesSivKey\","
-            + "\"value\":\"EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/\","
-            + "\"keyMaterialType\":\"SYMMETRIC\"},"
-            + "\"status\":\"ENABLED\","
-            + "\"keyId\":1000000004,"
-            + "\"outputPrefixType\":\"TINK\""
-            + "}"
-            + "]"
-            + "}"
+            + "\"material\":" + CIPHER_DATA_KEY_CONFIG_KEY_8
             + "}"
             + "]";
 

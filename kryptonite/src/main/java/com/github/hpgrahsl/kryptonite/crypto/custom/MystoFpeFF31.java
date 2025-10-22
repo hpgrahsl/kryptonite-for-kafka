@@ -18,6 +18,7 @@ package com.github.hpgrahsl.kryptonite.crypto.custom;
 
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.FpeKeysetHandle;
+import com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.FpeParameters;
 import com.google.crypto.tink.KeysetHandle;
 
 public class MystoFpeFF31 implements CryptoAlgorithm {
@@ -35,13 +36,13 @@ public class MystoFpeFF31 implements CryptoAlgorithm {
   }
 
   @Override
-  public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
-    return FpeKeysetHandle.getPrimitive(keysetHandle).encrypt(plaintext, tweak);
+  public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception {
+    return FpeKeysetHandle.getPrimitive(keysetHandle, FpeParameters.create(alphabet)).encrypt(plaintext, tweak);
   }
 
   @Override
-  public byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
-    return FpeKeysetHandle.getPrimitive(keysetHandle).decrypt(ciphertext, tweak);
+  public byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception {
+    return FpeKeysetHandle.getPrimitive(keysetHandle, FpeParameters.create(alphabet)).decrypt(ciphertext, tweak);
   }
 
 }

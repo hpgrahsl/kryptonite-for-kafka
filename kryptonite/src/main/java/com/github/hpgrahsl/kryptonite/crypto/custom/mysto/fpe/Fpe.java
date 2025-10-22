@@ -1,7 +1,5 @@
 package com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe;
 
-import java.security.GeneralSecurityException;
-
 /**
  * Format-Preserving Encryption (FPE) primitive interface.
  *
@@ -12,23 +10,21 @@ import java.security.GeneralSecurityException;
 public interface Fpe {
 
     /**
-     * Encrypts the plaintext using format-preserving encryption with a custom tweak.
+     * Encrypts the plaintext using format-preserving encryption.
      *
      * @param plaintext the data to encrypt
      * @param tweak the tweak value to use for this encryption operation
-     * @return the encrypted ciphertext in the same format as plaintext
-     * @throws GeneralSecurityException if encryption fails
+     * @return the resulting ciphertext
      */
-    byte[] encrypt(byte[] plaintext, byte[] tweak) throws GeneralSecurityException;
+    byte[] encrypt(byte[] plaintext, byte[] tweak) throws Exception;
 
     /**
-     * Decrypts the ciphertext using format-preserving encryption with a custom tweak.
+     * Decrypts the ciphertext using format-preserving encryption.
      *
      * @param ciphertext the encrypted data to decrypt
-     * @param tweak the tweak value that was used for encryption
-     * @return the decrypted plaintext
-     * @throws GeneralSecurityException if decryption fails
+     * @param tweak the tweak value to use for this decryption operation (MUST match the tweak used during encryption!)
+     * @return the resulting plaintext
      */
-    byte[] decrypt(byte[] ciphertext, byte[] tweak) throws GeneralSecurityException;
+    byte[] decrypt(byte[] ciphertext, byte[] tweak) throws Exception;
 
 }

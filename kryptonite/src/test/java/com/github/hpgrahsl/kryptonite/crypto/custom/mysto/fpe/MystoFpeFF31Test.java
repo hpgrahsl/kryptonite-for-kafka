@@ -17,6 +17,7 @@
 package com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -25,6 +26,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.github.hpgrahsl.kryptonite.KryptoniteException;
+import com.github.hpgrahsl.kryptonite.TestFixtures;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import com.google.crypto.tink.CleartextKeysetHandle;
 import com.google.crypto.tink.JsonKeysetReader;
@@ -32,60 +35,49 @@ import com.google.crypto.tink.JsonKeysetReader;
 public class MystoFpeFF31Test {
 
   @ParameterizedTest
-  @MethodSource("com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.MystoFpeFF31Test#generateValidPlaintextAndAssociatedDataBytes")
+  @MethodSource("com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.MystoFpeFF31Test#generateValidInputParameters")
   @DisplayName("apply probabilistic decrypt(encrypt(plaintext)) = plaintext with valid input data")  
-  void testFpeEncryptDecryptValidInput(String jsonKeyset, byte[] plaintext, byte[] tweak) throws Exception {
+  void testFpeEncryptDecryptValidInput(String jsonKeyset, byte[] plaintext, String alphabet, byte[] tweak) throws Exception {
     var keysetHandle = CleartextKeysetHandle.read(
         JsonKeysetReader.withString(jsonKeyset));
     var cryptoAlgo = new MystoFpeFF31();
-    byte[] encrypted = cryptoAlgo.cipherFPE(plaintext, keysetHandle, tweak);
-    System.out.println("encrypted: " + new String(encrypted, StandardCharsets.UTF_8));
-    byte[] decrypted = cryptoAlgo.decipherFPE(encrypted, keysetHandle, tweak);
-    System.out.println("decrypted: " + new String(decrypted, StandardCharsets.UTF_8));
+    byte[] encrypted = cryptoAlgo.cipherFPE(plaintext, keysetHandle, alphabet, tweak);
+    byte[] decrypted = cryptoAlgo.decipherFPE(encrypted, keysetHandle, alphabet, tweak);
     assertArrayEquals(plaintext, decrypted, "error: decryption did not result in original plaintext");
   }
 
-  // @Test
-  // @DisplayName("apply probabilistic encrypt(plaintext) with incompatible keyset")  
-  // void testProbabilisticEncryptIncompatibleKeyset() throws Exception {
-  //   var keysetHandle = CleartextKeysetHandle.read(
-  //       JsonKeysetReader.withString(TestFixtures.CIPHER_DATA_KEY_CONFIG_KEY_9));
-  //   var cryptoAlgo = new TinkAesGcm();
-    
-  //   assertThrows(GeneralSecurityException.class,
-  //     () -> {
-  //       cryptoAlgo.cipher(new byte[] {0x42,0x23}, keysetHandle, null);
-  //     }
-  //   );
-  // }
+  @ParameterizedTest
+  @MethodSource("com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.MystoFpeFF31Test#generateInvalidInputParameters")
+  @DisplayName("apply probabilistic decrypt(encrypt(plaintext)) = plaintext with valid input data")  
+  void testFpeEncryptDecryptInvalidInput(String jsonKeyset, byte[] plaintext, String alphabet, byte[] tweak) throws Exception {
+    var keysetHandle = CleartextKeysetHandle.read(
+        JsonKeysetReader.withString(jsonKeyset));
+    var cryptoAlgo = new MystoFpeFF31();
+    assertThrows(KryptoniteException.class, () -> cryptoAlgo.cipherFPE(plaintext, keysetHandle, alphabet, tweak));
+  }
 
-  // @Test
-  // @DisplayName("apply probabilistic encrypt(plaintext) with missing input")  
-  // void testProbabilisticEncryptMissingInput() throws Exception {
-  //   var keysetHandle = CleartextKeysetHandle.read(
-  //       JsonKeysetReader.withString(TestFixtures.CIPHER_DATA_KEY_CONFIG_KEY_A));
-  //   var cryptoAlgo = new TinkAesGcm();
-  //   assertThrows(NullPointerException.class,
-  //     () -> {
-  //       cryptoAlgo.cipher(null, keysetHandle, null);
-  //     }
-  //   );
-  // }
-
-  static List<Arguments> generateValidPlaintextAndAssociatedDataBytes() {
+  static List<Arguments> generateValidInputParameters() {
     return List.of(
-      Arguments.of("{\"primaryKeyId\":1000000,\"key\":[{\"keyData\":{\"typeUrl\":\"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\"," +
-        "\"value\":\"AAAACjAxMjM0NTY3ODn1eZd2B4i6bZ7fQV1UtdwTmv6cmSSX9QKxcRQoryb+uw==\"," +
-        "\"keyMaterialType\":\"SYMMETRIC\"},\"status\":\"ENABLED\",\"keyId\":1000000,\"outputPrefixType\":\"RAW\"}]}","1234432112344321".getBytes(StandardCharsets.UTF_8),null),
-      Arguments.of("{\"primaryKeyId\":1000000,\"key\":[{\"keyData\":{\"typeUrl\":\"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\"," +
-        "\"value\":\"AAAACjAxMjM0NTY3ODn1eZd2B4i6bZ7fQV1UtdwTmv6cmSSX9QKxcRQoryb+uw==\"," +
-        "\"keyMaterialType\":\"SYMMETRIC\"},\"status\":\"ENABLED\",\"keyId\":1000000,\"outputPrefixType\":\"RAW\"}]}","1234432112344321".getBytes(StandardCharsets.UTF_8),"mytweak".getBytes())
-      
-        // Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_KEY_A,"some data".getBytes(StandardCharsets.UTF_8),null),
-      // Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_KEY_A,"more data".getBytes(StandardCharsets.UTF_8),"meta data".getBytes(StandardCharsets.UTF_8)),
-      // Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_KEY_B,"".getBytes(StandardCharsets.UTF_8),null),
-      // Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_KEY_B,"some data".getBytes(StandardCharsets.UTF_8),null),
-      // Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_KEY_B,"more data".getBytes(StandardCharsets.UTF_8),"meta data".getBytes(StandardCharsets.UTF_8))
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, null),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,"HAPPYPIDAY".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_UPPERCASE,"mytweak".getBytes()),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_E,"As I was going to St.Ives!".getBytes(StandardCharsets.UTF_8),FpeParameters.ALPHABET_ALPHANUMERIC_EXTENDED, "0123456".getBytes())
+    );
+  }
+
+  static List<Arguments> generateInvalidInputParameters() {
+    return List.of(
+      //input text too short for alphabet in use
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"2025".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, null),
+      //input text too long for alphabet in use
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000554460007000800055446000700080005544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, null),
+      //tweak too short
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, "foo".getBytes()),
+      //tweak too long
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, "000000000".getBytes()),
+      //custom alphabet contains duplicate characters
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), "aAbBcCdd", "0000000".getBytes()),
+      //input text contains characters not part of alphabet
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,"happyBIRTHDAY".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_LOWERCASE,"mytweak".getBytes())
     );
   }
 

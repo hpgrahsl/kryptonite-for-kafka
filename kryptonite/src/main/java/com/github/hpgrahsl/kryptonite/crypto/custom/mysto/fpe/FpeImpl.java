@@ -1,83 +1,62 @@
 package com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe;
 
+import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.privacylogistics.FF3Cipher;
 
-import java.security.GeneralSecurityException;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * Implementation of the FPE primitive using FF3-1 algorithm based on Mysto's FPE library.
  */
 public class FpeImpl implements Fpe {
 
-    private static final String DEFAULT_TWEAK = "0000000000000000";
-
-    private final FF3Cipher fpe;
     private final String alphabet;
+    private final byte[] tweak;
+    private final FpeValidator validator;
+    private final FF3Cipher ff3;
 
-    public FpeImpl(FpeKey key) throws GeneralSecurityException {
-        this.alphabet = key.getAlphabet();
-
+    public FpeImpl(FpeKey fpeKey, FpeParameters parameters) {
         try {
-            // Ensure key is the right size (256 bits = 32 bytes for FF3)
-            byte[] keyBytes = key.getKeyValue();
-
-            // FF3 requires 256-bit keys, pad or truncate if necessary
-            byte[] adjustedKey = new byte[32];
-            if (keyBytes.length >= 32) {
-                System.arraycopy(keyBytes, 0, adjustedKey, 0, 32);
-            } else {
-                System.arraycopy(keyBytes, 0, adjustedKey, 0, keyBytes.length);
-                // Pad with zeros
-                Arrays.fill(adjustedKey, keyBytes.length, 32, (byte) 0);
+            Objects.requireNonNull(parameters, () -> "FpeParameters must not be null");
+            Objects.requireNonNull(fpeKey, () -> "FpeKey must not be null");
+            validator = new FpeValidator(parameters);
+            alphabet = parameters.getAlphabet();
+            tweak = parameters.getTweak();
+            byte[] keyBytes = fpeKey.getKeyMaterial();
+            if (keyBytes.length != 16 && keyBytes.length != 24 && keyBytes.length != 32) {
+                throw new IllegalArgumentException(
+                    String.format("Invalid key size: %d bytes. FF3 requires 128-bit (16 bytes), " +
+                        "192-bit (24 bytes), or 256-bit (32 bytes) keys.", keyBytes.length));
             }
-
-            // Convert key bytes to hex string
-            String keyHex = bytesToHex(adjustedKey);
-
-            this.fpe = new FF3Cipher(keyHex, DEFAULT_TWEAK, alphabet);
-
+            this.ff3 = new FF3Cipher(keyBytes, tweak, alphabet);
         } catch (Exception e) {
-            throw new GeneralSecurityException("Failed to initialize FPE", e);
-        }
-    }
-
-    private static String bytesToHex(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X", b));
-        }
-        return sb.toString();
-    }
-
-    @Override
-    public byte[] encrypt(byte[] plaintext, byte[] tweak) throws GeneralSecurityException {
-        try {
-            String plaintextStr = new String(plaintext);
-            String tweakStr = getTweakString(tweak);
-            String ciphertext = fpe.encrypt(plaintextStr, tweakStr);
-            return ciphertext.getBytes();
-        } catch (Exception e) {
-            throw new GeneralSecurityException("FPE encryption failed", e);
+            throw new KryptoniteException("failed to initialize FPE cipher FF3", e);
         }
     }
 
     @Override
-    public byte[] decrypt(byte[] ciphertext, byte[] tweak) throws GeneralSecurityException {
+    public byte[] encrypt(byte[] plaintext, byte[] tweak) throws Exception {
         try {
-            String ciphertextStr = new String(ciphertext);
-            String tweakStr = getTweakString(tweak);
-            String plaintext = fpe.decrypt(ciphertextStr, tweakStr);
-            return plaintext.getBytes();
+            String plaintextStr = new String(plaintext,StandardCharsets.UTF_8);
+            validator.validateCharactersInAlphabet(plaintextStr);
+            String ciphertext = ff3.encrypt(plaintextStr, tweak != null ? tweak : this.tweak);
+            return ciphertext.getBytes(StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new GeneralSecurityException("FPE decryption failed", e);
+            throw new KryptoniteException("FPE encryption using FF3 failed", e);
         }
     }
 
-    private String getTweakString(byte[] tweak) {
-        if (tweak == null || tweak.length == 0) {
-            return DEFAULT_TWEAK;
+    @Override
+    public byte[] decrypt(byte[] ciphertext, byte[] tweak) throws Exception {
+        try {
+            String ciphertextStr = new String(ciphertext,StandardCharsets.UTF_8);
+            validator.validateCharactersInAlphabet(ciphertext);
+            String plaintext = ff3.decrypt(ciphertextStr, tweak != null ? tweak : this.tweak);
+            return plaintext.getBytes(StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new KryptoniteException("FPE decryption using FF3 failed", e);
         }
-        return bytesToHex(tweak);
     }
+
 }

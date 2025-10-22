@@ -38,12 +38,12 @@ public class TinkAesGcmSiv implements CryptoAlgorithm {
   }
 
   @Override
-  public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
+  public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception {
     throw new UnsupportedOperationException("unsupported method 'cipherFPE' for " + CIPHER_ALGORITHM);
   }
 
   @Override
-  public byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, byte[] tweak) throws Exception {
+  public byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception {
     throw new UnsupportedOperationException("unsupported method 'decipherFPE' for " + CIPHER_ALGORITHM);
   }
 
