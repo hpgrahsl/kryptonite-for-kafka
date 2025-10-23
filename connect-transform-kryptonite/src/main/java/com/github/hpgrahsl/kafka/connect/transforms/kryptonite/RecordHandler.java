@@ -19,7 +19,9 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kryptonite.*;
+import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -28,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -69,27 +72,69 @@ public abstract class RecordHandler implements FieldPathMatcher {
       var fieldMetaData = determineFieldMetaData(object,matchedPath);
       LOGGER.trace("field meta-data for path '{}' {}",matchedPath,fieldMetaData);
       if (CipherMode.ENCRYPT == cipherMode) {
-        var valueBytes = serdeProcessor.objectToBytes(object);
-        var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-        LOGGER.debug("encrypted field: {}",encryptedField);
-        var output = new Output(new ByteArrayOutputStream());
-        KryoInstance.get().writeObject(output,encryptedField);
-        var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
-        LOGGER.trace("encoded field: {}",encodedField);
-        return encodedField;
+        if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
+          return encryptFPE(object, fieldMetaData);  
+        } 
+        return encrypt(object, fieldMetaData);
       } else {
-        var decodedField = Base64.getDecoder().decode((String)object);
-        LOGGER.trace("decoded field: {}",decodedField);
-        var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);
-        var plaintext = kryptonite.decipherField(encryptedField);
-        LOGGER.trace("decrypted field: {}",plaintext);
-        var restoredField = serdeProcessor.bytesToObject(plaintext);
-        LOGGER.debug("restored field: {}",restoredField);
-        return restoredField;
+        if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
+          return decryptFPE(object, fieldMetaData);  
+        }
+        return decrypt(object);
       }
     } catch (Exception e) {
       throw new DataException("error: "+cipherMode+" of field path '"+matchedPath+"' having data '"+object+ "' failed unexpectedly",e);
     }
+  }
+
+  public Object encrypt(Object object, FieldMetaData fieldMetaData) {
+    LOGGER.trace("object to be encrypted: {}", object);
+    var valueBytes = serdeProcessor.objectToBytes(object);
+    var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
+    LOGGER.debug("encrypted field: {}", encryptedField);
+    var output = new Output(new ByteArrayOutputStream());
+    KryoInstance.get().writeObject(output, encryptedField);
+    // TODO: the base 64 encoding should be optional / is configurable
+    // so that raw bytes can handled as well (e.g. in binary fields and binary serialization formats)
+    var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
+    LOGGER.trace("returning encoded field: {}", encodedField);
+    return encodedField;
+  }
+
+  public String encryptFPE(Object object, FieldMetaData fieldMetaData) {
+    LOGGER.trace("object to be FPE encrypted: {}", object);
+    // NOTE: null is by definition not encryptable with FPE ciphers
+    if (object == null) {
+      return null;
+    }
+    var plaintext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
+    var ciphertext = new String(kryptonite.cipherFieldFPE(plaintext, fieldMetaData),StandardCharsets.UTF_8);
+    LOGGER.debug("FPE encrypted field: {}", ciphertext);
+    return ciphertext;
+  }
+
+  public Object decrypt(Object object) {
+    // TODO: the base 64 decoding should be optional / is configurable
+    // so that raw bytes can handled as well (e.g. in binary fields and binary serialization formats)
+    var decodedField = Base64.getDecoder().decode((String) object);
+    LOGGER.trace("decoded field: {}", decodedField);
+    var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);  
+    var plaintext = kryptonite.decipherField(encryptedField);
+    LOGGER.trace("decrypted field: {}", plaintext);
+    var restoredField = serdeProcessor.bytesToObject(plaintext);
+    LOGGER.debug("restored field: {}", restoredField);
+    return restoredField;
+  }
+
+  public String decryptFPE(Object object, FieldMetaData fieldMetaData) {
+    // NOTE: null is by definition not decryptable with FPE ciphers
+    if (object == null) {
+      return null;
+    }
+    var ciphertext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
+    var plaintext = new String(kryptonite.decipherFieldFPE(ciphertext, fieldMetaData),StandardCharsets.UTF_8);
+    LOGGER.debug("FPE decrypted field: {}", plaintext);
+    return plaintext;
   }
 
   public List<?> processListField(List<?> list,String matchedPath) {
@@ -116,19 +161,44 @@ public abstract class RecordHandler implements FieldPathMatcher {
   }
 
   private FieldMetaData determineFieldMetaData(Object object, String fieldPath) {
-    return Optional.ofNullable(fieldConfig.get(fieldPath))
-        .map(fc -> new FieldMetaData(
-            fc.getAlgorithm().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_ALGORITHM)),
-            Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""),
-            fc.getKeyId().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER))
-            )
+    
+    var fieldMetaData = Optional.ofNullable(fieldConfig.get(fieldPath))
+          .map(fc -> 
+            FieldMetaData.builder()
+              .algorithm(fc.getAlgorithm().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_ALGORITHM)))
+              .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
+              .keyId(fc.getKeyId().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER)))
+              .fpeTweak(fc.getFpeTweak().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_FPE_TWEAK)))
+              .fpeAlphabet(determineAlphabetFromFieldConfig(fc))
+              .encoding(fc.getEncoding().orElse(config.getString(KryptoniteSettings.CIPHER_TEXT_ENCODING)))
+              .build()
         ).orElseGet(
-            () -> new FieldMetaData(
-                config.getString(KryptoniteSettings.CIPHER_ALGORITHM),
-                Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""),
-                config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER)
-            )
+            () -> FieldMetaData.builder()
+              .algorithm(config.getString(KryptoniteSettings.CIPHER_ALGORITHM))
+              .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
+              .keyId(config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER))
+              .fpeTweak(config.getString(KryptoniteSettings.CIPHER_FPE_TWEAK))
+              .fpeAlphabet(getAlphabetFromGlobalConfig())
+              .encoding(config.getString(KryptoniteSettings.CIPHER_TEXT_ENCODING))
+              .build()
         );
+
+      return fieldMetaData;
+  }
+
+  private String determineAlphabetFromFieldConfig(FieldConfig fieldConfig) {
+    var alphabetType = fieldConfig.getFpeAlphabetType().orElseGet(
+      () -> AlphabetTypeFPE.valueOf(config.getString(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE))
+    );
+    return AlphabetTypeFPE.CUSTOM == alphabetType
+      ? fieldConfig.getFpeAlphabetCustom().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT))
+      : alphabetType.getAlphabet();
+  }
+
+  private String getAlphabetFromGlobalConfig() {
+    return config.getString(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE) == AlphabetTypeFPE.CUSTOM.name()
+                    ? config.getString(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM)
+                    : AlphabetTypeFPE.valueOf(config.getString(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE)).getAlphabet();
   }
 
 }

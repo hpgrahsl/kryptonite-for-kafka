@@ -16,6 +16,7 @@
 
 package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators;
 
+import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import java.util.Set;
@@ -26,14 +27,15 @@ public class CipherNameValidator implements Validator {
 
   private static final Set<String> VALID_CIPHERS = Set.of(
       TinkAesGcm.CIPHER_ALGORITHM,
-      TinkAesGcmSiv.CIPHER_ALGORITHM
+      TinkAesGcmSiv.CIPHER_ALGORITHM,
+      MystoFpeFF31.CIPHER_ALGORITHM
   );
 
   @Override
   public void ensureValid(String name, Object o) {
     var value = (String)o;
     if (!VALID_CIPHERS.contains(value)) {
-      throw new ConfigException(name, o, "Must be an AEAD cipher from the following ones: "
+      throw new ConfigException(name, o, "Must be one of the following ciphers: "
           + String.join(",", VALID_CIPHERS));
     }
   }

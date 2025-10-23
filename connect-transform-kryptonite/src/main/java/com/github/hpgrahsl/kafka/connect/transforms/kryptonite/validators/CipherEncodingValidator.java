@@ -18,12 +18,16 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators;
 
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.CipherEncoding;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
 
 public class CipherEncodingValidator implements Validator {
 
-  private static final Set<String> VALID_ENCODINGS = Set.of(CipherEncoding.BASE64.name());
+  private static final Set<String> VALID_ENCODINGS = 
+    Stream.of(CipherEncoding.values()).map(Enum::name).collect(Collectors.toSet());
 
   @Override
   public void ensureValid(String name, Object o) {

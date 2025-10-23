@@ -22,15 +22,15 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connect-transform-kryptonite</artifactId>
-  <version>0.5.0</version>
+  <version>0.6.0</version>
   <packaging>jar</packaging>
 
   <properties>
-    <kryptonite.version>0.5.0</kryptonite.version>
+    <kryptonite.version>0.6.0</kryptonite.version>
     <kafka.version>4.0.0</kafka.version>
     <jackson.version>2.18.3</jackson.version>
     <logback.version>1.2.13</logback.version>
