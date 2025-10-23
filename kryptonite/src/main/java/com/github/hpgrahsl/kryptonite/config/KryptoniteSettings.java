@@ -19,6 +19,28 @@ public class KryptoniteSettings {
     GCP
   }
 
+  public enum AlphabetTypeFPE {
+    
+    DIGITS("0123456789"),
+    ALPHANUMERIC("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"),
+    ALPHANUMERIC_EXTENDED("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz _,.!?@%$&§\"'°^-+*/;:#(){}[]<>=~|"),
+    UPPERCASE("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+    LOWERCASE("abcdefghijklmnopqrstuvwxyz"),
+    HEXADECIMAL("0123456789ABCDEF"),
+    CUSTOM(null); //defined via separate configuration property
+
+    private final String alphabet;
+
+    AlphabetTypeFPE(String alphabet) {
+      this.alphabet = alphabet;
+    } 
+
+    public String getAlphabet() {
+      return alphabet;
+    }
+
+  }
+
   public static final String FIELD_CONFIG = "field_config";
   public static final String PATH_DELIMITER = "path_delimiter";
   public static final String FIELD_MODE = "field_mode";
@@ -27,7 +49,8 @@ public class KryptoniteSettings {
   public static final String CIPHER_DATA_KEYS = "cipher_data_keys";
   public static final String CIPHER_TEXT_ENCODING = "cipher_text_encoding";
   public static final String CIPHER_FPE_TWEAK = "cipher_fpe_tweak";
-  public static final String CIPHER_FPE_ALPHABET = "cipher_fpe_alphabet";
+  public static final String CIPHER_FPE_ALPHABET_TYPE = "cipher_fpe_alphabet_type";
+  public static final String CIPHER_FPE_ALPHABET_CUSTOM = "cipher_fpe_alphabet_custom";
   public static final String CIPHER_MODE = "cipher_mode";
   public static final String KEY_SOURCE = "key_source";
   public static final String KMS_TYPE = "kms_type";
@@ -43,7 +66,8 @@ public class KryptoniteSettings {
   public static final String CIPHER_DATA_KEYS_DEFAULT = "[]";
   public static final String CIPHER_TEXT_ENCODING_DEFAULT = "BASE64";
   public static final String CIPHER_FPE_TWEAK_DEFAULT = "";
-  public static final String CIPHER_FPE_ALPHABET_DEFAULT = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  public static final String CIPHER_FPE_ALPHABET_TYPE_DEFAULT = "ALPHANUMERIC";
+  public static final String CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT = "";
   public static final String KEY_SOURCE_DEFAULT = "CONFIG";
   public static final String KMS_TYPE_DEFAULT = "NONE";
   public static final String KMS_CONFIG_DEFAULT = "{}";

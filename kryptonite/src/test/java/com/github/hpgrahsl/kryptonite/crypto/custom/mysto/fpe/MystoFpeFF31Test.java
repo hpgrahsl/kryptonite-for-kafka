@@ -28,6 +28,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.TestFixtures;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import com.google.crypto.tink.CleartextKeysetHandle;
 import com.google.crypto.tink.JsonKeysetReader;
@@ -58,26 +59,26 @@ public class MystoFpeFF31Test {
 
   static List<Arguments> generateValidInputParameters() {
     return List.of(
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, null),
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,"HAPPYPIDAY".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_UPPERCASE,"mytweak".getBytes()),
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_E,"As I was going to St.Ives!".getBytes(StandardCharsets.UTF_8),FpeParameters.ALPHABET_ALPHANUMERIC_EXTENDED, "0123456".getBytes())
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), AlphabetTypeFPE.DIGITS.getAlphabet(), null),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,"HAPPYPIDAY".getBytes(StandardCharsets.UTF_8), AlphabetTypeFPE.UPPERCASE.getAlphabet(), "mytweak".getBytes()),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_E,"As I was going to St.Ives!".getBytes(StandardCharsets.UTF_8),AlphabetTypeFPE.ALPHANUMERIC_EXTENDED.getAlphabet(), "0123456".getBytes())
     );
   }
 
   static List<Arguments> generateInvalidInputParameters() {
     return List.of(
       //input text too short for alphabet in use
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"2025".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, null),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"2025".getBytes(StandardCharsets.UTF_8), AlphabetTypeFPE.DIGITS.getAlphabet(), null),
       //input text too long for alphabet in use
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000554460007000800055446000700080005544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, null),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000554460007000800055446000700080005544600070008000".getBytes(StandardCharsets.UTF_8), AlphabetTypeFPE.DIGITS.getAlphabet(), null),
       //tweak too short
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, "foo".getBytes()),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), AlphabetTypeFPE.DIGITS.getAlphabet(), "foo".getBytes()),
       //tweak too long
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_DIGITS, "000000000".getBytes()),
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), AlphabetTypeFPE.DIGITS.getAlphabet(), "000000000".getBytes()),
       //custom alphabet contains duplicate characters
       Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,"5544600070008000".getBytes(StandardCharsets.UTF_8), "aAbBcCdd", "0000000".getBytes()),
       //input text contains characters not part of alphabet
-      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,"happyBIRTHDAY".getBytes(StandardCharsets.UTF_8), FpeParameters.ALPHABET_LOWERCASE,"mytweak".getBytes())
+      Arguments.of(TestFixtures.CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,"happyBIRTHDAY".getBytes(StandardCharsets.UTF_8), AlphabetTypeFPE.LOWERCASE.getAlphabet(),"mytweak".getBytes())
     );
   }
 

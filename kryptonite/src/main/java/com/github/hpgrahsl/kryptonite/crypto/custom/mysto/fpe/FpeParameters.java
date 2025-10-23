@@ -19,29 +19,15 @@ package com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
+
 /**
  * Parameters for FPE encryption operations.
  *
  * Separates algorithm configuration (alphabet) from key material,
- * allowing the same key to be used with different alphabets.
+ * allowing the same key to be used with different alphabets and tweaks.
  */
 public class FpeParameters {
-
-    public enum Alphabet {
-        DIGITS,
-        ALPHABET_ALPHANUMERIC,
-        ALPHABET_ALPHANUMERIC_EXTENDED,
-        UPPERCASE,
-        LOWERCASE,
-        HEXADECIMAL
-    }
-
-    public static final String ALPHABET_DIGITS = "0123456789";
-    public static final String ALPHABET_ALPHANUMERIC = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    public static final String ALPHABET_ALPHANUMERIC_EXTENDED = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz _,.!?@%$&§\"'°^-+*/;:#(){}[]<>=";
-    public static final String ALPHABET_UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    public static final String ALPHABET_LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
-    public static final String ALPHABET_HEXADECIMAL = "0123456789ABCDEF";
 
     public static final byte[] DEFAULT_TWEAK = new byte[]{0x0,0x0,0x0,0x0,0x0,0x0,0x0};
 
@@ -61,8 +47,8 @@ public class FpeParameters {
             throw new IllegalArgumentException("error: alphabet must contain at least 2 characters");
         }
         this.alphabet = alphabet;
-        if (tweak == null || tweak.length != 7) {
-            throw new IllegalArgumentException("error: tweak must be exactly 7 bytes (56 bits)");
+        if (tweak == null || (tweak.length != 7 && tweak.length != 8)) {
+            throw new IllegalArgumentException("error: tweak must be either 7 bytes (56 bits) or 8 bytes (64 bits) long");
         }
         this.tweak = tweak;
     }
@@ -91,42 +77,42 @@ public class FpeParameters {
      * Creates FPE parameters for digits (0-9).
      */
     public static FpeParameters digits() {
-        return new FpeParameters(ALPHABET_DIGITS, DEFAULT_TWEAK);
+        return new FpeParameters(AlphabetTypeFPE.DIGITS.getAlphabet(), DEFAULT_TWEAK);
     }
 
     /**
      * Creates FPE parameters for alphanumeric characters.
      */
     public static FpeParameters alphanumeric() {
-        return new FpeParameters(ALPHABET_ALPHANUMERIC, DEFAULT_TWEAK);
+        return new FpeParameters(AlphabetTypeFPE.ALPHANUMERIC.getAlphabet(), DEFAULT_TWEAK);
     }
 
     /**
      * Creates FPE parameters for alphanumeric characters.
      */
     public static FpeParameters alphanumericExtended() {
-        return new FpeParameters(ALPHABET_ALPHANUMERIC_EXTENDED, DEFAULT_TWEAK);
+        return new FpeParameters(AlphabetTypeFPE.ALPHANUMERIC_EXTENDED.getAlphabet(), DEFAULT_TWEAK);
     }
 
     /**
      * Creates FPE parameters for uppercase letters.
      */
     public static FpeParameters uppercase() {
-        return new FpeParameters(ALPHABET_UPPERCASE, DEFAULT_TWEAK);
+        return new FpeParameters(AlphabetTypeFPE.UPPERCASE.getAlphabet(), DEFAULT_TWEAK);
     }
 
     /**
      * Creates FPE parameters for lowercase letters.
      */
     public static FpeParameters lowercase() {
-        return new FpeParameters(ALPHABET_LOWERCASE, DEFAULT_TWEAK);
+        return new FpeParameters(AlphabetTypeFPE.LOWERCASE.getAlphabet(), DEFAULT_TWEAK);
     }
 
     /**
      * Creates FPE parameters for hexadecimal characters.
      */
     public static FpeParameters hexadecimal() {
-        return new FpeParameters(ALPHABET_HEXADECIMAL, DEFAULT_TWEAK);
+        return new FpeParameters(AlphabetTypeFPE.HEXADECIMAL.getAlphabet(), DEFAULT_TWEAK);
     }
 
     @Override
