@@ -65,7 +65,7 @@ public class KryptoniteSettings {
   public static final String CIPHER_DATA_KEY_IDENTIFIER_DEFAULT = "";
   public static final String CIPHER_DATA_KEYS_DEFAULT = "[]";
   public static final String CIPHER_TEXT_ENCODING_DEFAULT = "BASE64";
-  public static final String CIPHER_FPE_TWEAK_DEFAULT = "";
+  public static final String CIPHER_FPE_TWEAK_DEFAULT = "0000000";
   public static final String CIPHER_FPE_ALPHABET_TYPE_DEFAULT = "ALPHANUMERIC";
   public static final String CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT = "";
   public static final String KEY_SOURCE_DEFAULT = "CONFIG";
