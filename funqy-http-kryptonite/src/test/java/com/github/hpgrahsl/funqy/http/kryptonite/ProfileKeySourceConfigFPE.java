@@ -52,7 +52,7 @@ public class ProfileKeySourceConfigFPE implements QuarkusTestProfile {
                 CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),"keyC","keyD",null
             ),
             Arguments.of(
-                CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),"keyD","keyC","MYTWEAK"
+                CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),"keyD","keyE","MYTWEAK"
             )
         );
     }
