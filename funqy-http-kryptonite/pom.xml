@@ -6,17 +6,17 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0</version>
   </parent>
   <groupId>com.github.hpgrahsl</groupId>
   <artifactId>funqy-http-kryptonite</artifactId>
-  <version>0.2.0</version>
+  <version>0.3.0</version>
   <name>funqy-http-kryptonite</name>
   <properties>
     <compiler-plugin.version>3.14.0</compiler-plugin.version>
     <kafka.version>4.0.0</kafka.version>
     <protobuf.version>4.28.2</protobuf.version>
-    <kryptonite.version>0.5.0</kryptonite.version>
+    <kryptonite.version>0.6.0</kryptonite.version>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -25,6 +25,7 @@
     <quarkus.platform.version>3.21.0</quarkus.platform.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.5.2</surefire-plugin.version>
+    <jvm.args>--add-opens=java.base/java.util=ALL-UNNAMED</jvm.args>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -55,11 +56,28 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
       <version>${kryptonite.version}</version>
+      <!-- Log4j is excluded to avoid conflicts with Quarkus logging -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>connect-api</artifactId>
       <version>${kafka.version}</version>
+    </dependency>
+    <!-- Using log4j-to-slf4j bridge to redirect Log4j2 API calls (from ff3 library) to SLF4J/JBoss LogManager -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-to-slf4j</artifactId>
+      <version>2.24.3</version>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

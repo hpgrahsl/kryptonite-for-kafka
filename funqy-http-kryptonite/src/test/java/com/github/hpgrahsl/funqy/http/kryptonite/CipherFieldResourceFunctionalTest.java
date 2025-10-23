@@ -71,23 +71,23 @@ public class CipherFieldResourceFunctionalTest {
         encPayload.put("data", TestFixtures.TEST_OBJ_MAP_1);
 
         var encFieldConfig = new HashSet<FieldConfig>();
-        encFieldConfig.add(new FieldConfig("id", cipherSpec.getName(), keyId1, null, fieldMode));
-        encFieldConfig.add(new FieldConfig("myString", cipherSpec.getName(), keyId2, null, fieldMode));
-        encFieldConfig.add(new FieldConfig("myInt", cipherSpec.getName(), keyId1, null, fieldMode));
-        encFieldConfig.add(new FieldConfig("myBoolean", cipherSpec.getName(), keyId2, null, fieldMode));
+        encFieldConfig.add(FieldConfig.builder().name("id").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
+        encFieldConfig.add(FieldConfig.builder().name("myString").algorithm(cipherSpec.getName()).keyId(keyId2).fieldMode(fieldMode).build());
+        encFieldConfig.add(FieldConfig.builder().name("myInt").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
+        encFieldConfig.add(FieldConfig.builder().name("myBoolean").algorithm(cipherSpec.getName()).keyId(keyId2).fieldMode(fieldMode).build());
         if(fieldMode == FieldMode.OBJECT) {
-            encFieldConfig.add(new FieldConfig("mySubDoc1", cipherSpec.getName(), keyId1, null, fieldMode));
-            encFieldConfig.add(new FieldConfig("mySubDoc2", cipherSpec.getName(), keyId1, null, fieldMode));
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc1").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc2").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
         } else {
-            encFieldConfig.add(new FieldConfig("mySubDoc1", cipherSpec.getName(), keyId1, null, null));
-            encFieldConfig.add(new FieldConfig("mySubDoc1.myString", cipherSpec.getName(), keyId1, null, fieldMode));
-            encFieldConfig.add(new FieldConfig("mySubDoc2", cipherSpec.getName(), keyId1, null, null));
-            encFieldConfig.add(new FieldConfig("mySubDoc2.k1", cipherSpec.getName(), keyId1, null,  fieldMode));
-            encFieldConfig.add(new FieldConfig("mySubDoc2.k2", cipherSpec.getName(), keyId1, null,  fieldMode));
-            encFieldConfig.add(new FieldConfig("mySubDoc2.k3", cipherSpec.getName(), keyId1, null,  fieldMode));
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc1").algorithm(cipherSpec.getName()).keyId(keyId1).build());
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc1.myString").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc2").algorithm(cipherSpec.getName()).keyId(keyId1).build());
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc2.k1").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc2.k2").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
+            encFieldConfig.add(FieldConfig.builder().name("mySubDoc2.k3").algorithm(cipherSpec.getName()).keyId(keyId1).fieldMode(fieldMode).build());
         }
-        encFieldConfig.add(new FieldConfig("myArray1", cipherSpec.getName(), keyId2, null, fieldMode)); 
-        encFieldConfig.add(new FieldConfig("myBytes", cipherSpec.getName(), keyId2, null, fieldMode));
+        encFieldConfig.add(FieldConfig.builder().name("myArray1").algorithm(cipherSpec.getName()).keyId(keyId2).fieldMode(fieldMode).build());
+        encFieldConfig.add(FieldConfig.builder().name("myBytes").algorithm(cipherSpec.getName()).keyId(keyId2).fieldMode(fieldMode).build());
 
         encPayload.put("fieldConfig", encFieldConfig);
         Log.debug("HTTP request body (encryption): " + objectMapper.writeValueAsString(encPayload));
@@ -104,23 +104,23 @@ public class CipherFieldResourceFunctionalTest {
         }));
 
         var decFieldConfig = new HashSet<FieldConfig>();
-        decFieldConfig.add(new FieldConfig("id", null, null, null, fieldMode));
-        decFieldConfig.add(new FieldConfig("myString", null, null, null, fieldMode));
-        decFieldConfig.add(new FieldConfig("myInt", null, null, null, fieldMode));
-        decFieldConfig.add(new FieldConfig("myBoolean", null, null, null, fieldMode));
+        decFieldConfig.add(FieldConfig.builder().name("id").fieldMode(fieldMode).build());
+        decFieldConfig.add(FieldConfig.builder().name("myString").fieldMode(fieldMode).build());
+        decFieldConfig.add(FieldConfig.builder().name("myInt").fieldMode(fieldMode).build());
+        decFieldConfig.add(FieldConfig.builder().name("myBoolean").fieldMode(fieldMode).build());
         if(fieldMode == FieldMode.OBJECT) {
-            decFieldConfig.add(new FieldConfig("mySubDoc1", cipherSpec.getName(), null, null, fieldMode));
-            decFieldConfig.add(new FieldConfig("mySubDoc2", cipherSpec.getName(), null, null, fieldMode));
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc1").algorithm(cipherSpec.getName()).fieldMode(fieldMode).build());
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc2").algorithm(cipherSpec.getName()).fieldMode(fieldMode).build());
         } else {
-            decFieldConfig.add(new FieldConfig("mySubDoc1", cipherSpec.getName(), null, null, null));
-            decFieldConfig.add(new FieldConfig("mySubDoc1.myString", cipherSpec.getName(), null, null, fieldMode));
-            decFieldConfig.add(new FieldConfig("mySubDoc2", cipherSpec.getName(), null, null, null));
-            decFieldConfig.add(new FieldConfig("mySubDoc2.k1", cipherSpec.getName(), null, null,  fieldMode));
-            decFieldConfig.add(new FieldConfig("mySubDoc2.k2", cipherSpec.getName(), null, null,  fieldMode));
-            decFieldConfig.add(new FieldConfig("mySubDoc2.k3", cipherSpec.getName(), null, null,  fieldMode));
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc1").algorithm(cipherSpec.getName()).build());
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc1.myString").algorithm(cipherSpec.getName()).fieldMode(fieldMode).build());
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc2").algorithm(cipherSpec.getName()).build());
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc2.k1").algorithm(cipherSpec.getName()).fieldMode(fieldMode).build());
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc2.k2").algorithm(cipherSpec.getName()).fieldMode(fieldMode).build());
+            decFieldConfig.add(FieldConfig.builder().name("mySubDoc2.k3").algorithm(cipherSpec.getName()).fieldMode(fieldMode).build());
         }
-        decFieldConfig.add(new FieldConfig("myArray1", null, null, null, fieldMode));
-        decFieldConfig.add(new FieldConfig("myBytes", null, null, null, fieldMode));
+        decFieldConfig.add(FieldConfig.builder().name("myArray1").fieldMode(fieldMode).build());
+        decFieldConfig.add(FieldConfig.builder().name("myBytes").fieldMode(fieldMode).build());
 
         decPayload.put("fieldConfig", decFieldConfig);
         Log.debug("HTTP request body (decryption): " + objectMapper.writeValueAsString(decPayload));

@@ -17,12 +17,14 @@
 package com.github.hpgrahsl.funqy.http.kryptonite;
 
 import java.util.Map;
+import java.util.Optional;
 
 import jakarta.inject.Singleton;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
@@ -40,6 +42,18 @@ public class KryptoniteConfiguration {
 
     @ConfigProperty(name="cipher.data.key.identifier")
     public String cipherDataKeyIdentifier;
+
+    @ConfigProperty(name="cipher.text.encoding", defaultValue = "BASE64")
+    public String cipherTextEncoding;
+    
+    @ConfigProperty(name="cipher.fpe.tweak", defaultValue = "0000000")
+    public String cipherFpeTweak;
+
+    @ConfigProperty(name="cipher.fpe.alphabet.type")
+    public AlphabetTypeFPE cipherFpeAlphabetType;
+
+    @ConfigProperty(name="cipher.fpe.alphabet.custom")
+    public Optional<String> cipherFpeAlphabetCustom;
 
     @ConfigProperty(name="key.source")
     public KeySource keySource;
@@ -72,11 +86,16 @@ public class KryptoniteConfiguration {
     public String cipherAlgorithm;
 
     public static KryptoniteConfiguration fromSettings(String cipherDataKeys, String cipherDataKeyIdentifier,
+            String cipherTextEncoding, String cipherFpeTweak, AlphabetTypeFPE cipherFpeAlphabetType, String cipherFpeAlphabetCustom, 
             KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig,
             String kekUri, String dynamicKeyIdPrefix, String pathDelimiter, FieldMode fieldMode, String cipherAlgorithm) {
         var kc = new KryptoniteConfiguration();
         kc.cipherDataKeys = cipherDataKeys;
         kc.cipherDataKeyIdentifier = cipherDataKeyIdentifier;
+        kc.cipherTextEncoding = cipherTextEncoding;
+        kc.cipherFpeTweak = cipherFpeTweak;
+        kc.cipherFpeAlphabetType = cipherFpeAlphabetType;
+        kc.cipherFpeAlphabetCustom = Optional.of(cipherFpeAlphabetCustom);
         kc.keySource = keySource;
         kc.kmsConfig = kmsConfig;
         kc.kekType = kekType;
@@ -93,6 +112,10 @@ public class KryptoniteConfiguration {
         return Map.ofEntries(
             Map.entry(KryptoniteSettings.CIPHER_DATA_KEYS,cipherDataKeys),
             Map.entry(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER,cipherDataKeyIdentifier),
+            Map.entry(KryptoniteSettings.CIPHER_TEXT_ENCODING,cipherTextEncoding),
+            Map.entry(KryptoniteSettings.CIPHER_FPE_TWEAK,cipherFpeTweak),
+            Map.entry(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE,cipherFpeAlphabetType.name()),
+            Map.entry(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM,cipherFpeAlphabetCustom.orElse("")),
             Map.entry(KryptoniteSettings.KEY_SOURCE,keySource.name()),
             Map.entry(KryptoniteSettings.KMS_TYPE,kmsType.name()),
             Map.entry(KryptoniteSettings.KMS_CONFIG,kmsConfig),
