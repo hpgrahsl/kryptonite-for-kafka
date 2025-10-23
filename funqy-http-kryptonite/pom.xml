@@ -15,7 +15,7 @@
   <properties>
     <compiler-plugin.version>3.14.0</compiler-plugin.version>
     <kafka.version>4.0.0</kafka.version>
-    <protobuf.version>4.28.2</protobuf.version>
+    <protobuf.version>4.32.1</protobuf.version>
     <kryptonite.version>0.6.0</kryptonite.version>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

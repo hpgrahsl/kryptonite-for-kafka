@@ -20,15 +20,15 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.hpgrahsl</groupId>
   <artifactId>kryptonite-for-kafka</artifactId>
-  <version>0.5.0</version>
+  <version>0.6.0</version>
   <packaging>pom</packaging>
 
   <modules>
     <module>kryptonite</module>
     <module>connect-transform-kryptonite</module>
-    <module>ksqldb-udfs-kryptonite</module>
+    <!-- <module>ksqldb-udfs-kryptonite</module> -->
     <module>funqy-http-kryptonite</module>
-    <module>flink-udfs-kryptonite</module>
+    <!-- <module>flink-udfs-kryptonite</module> -->
   </modules>
 
   <description>Client-Side Field Level Cryptography for Kafka (unofficial community project)</description>
