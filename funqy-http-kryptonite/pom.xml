@@ -14,7 +14,7 @@
   <name>funqy-http-kryptonite</name>
   <properties>
     <compiler-plugin.version>3.14.0</compiler-plugin.version>
-    <kafka.version>4.0.0</kafka.version>
+    <kafka.version>4.1.0</kafka.version>
     <protobuf.version>4.32.1</protobuf.version>
     <kryptonite.version>0.6.0</kryptonite.version>
     <maven.compiler.release>17</maven.compiler.release>
@@ -22,7 +22,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.21.0</quarkus.platform.version>
+    <quarkus.platform.version>3.21.4</quarkus.platform.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.5.2</surefire-plugin.version>
     <jvm.args>--add-opens=java.base/java.util=ALL-UNNAMED</jvm.args>
