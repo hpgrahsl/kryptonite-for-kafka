@@ -16,10 +16,7 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.Optional;
-
 import org.apache.flink.table.functions.FunctionContext;
-import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 
@@ -72,11 +69,8 @@ public class EncryptArrayUdf extends AbstractCipherFieldUdf {
         }
         var dataEnc = new String[array.length];
         for(int s = 0; s < array.length; s++) {
-            dataEnc[s] = encryptData(array[s],new FieldMetaData(
-                            KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT,
-                            Optional.ofNullable(array[s]).map(o -> o.getClass().getName()).orElse(""),
-                            defaultCipherDataKeyIdentifier)
-                        );
+            var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, dataEnc, defaultCipherDataKeyIdentifier);
+            dataEnc[s] = encryptData(array[s],fmd);
         }
         return dataEnc;
     }

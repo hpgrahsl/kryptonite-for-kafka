@@ -19,6 +19,7 @@ package com.github.hpgrahsl.flink.functions.kryptonite;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.ScalarFunction;
@@ -81,6 +82,14 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
 
     protected String getConfigurationSetting(String key) {
         return udfConfiguration.get(key);
+    }
+
+    protected FieldMetaData createFieldMetaData(String cipherAlgorithm, Object data, String cipherDataKeyIdentifier) {
+        return FieldMetaData.builder()
+            .algorithm(cipherAlgorithm)
+            .dataType(Optional.ofNullable(data).map(o -> o.getClass().getName()).orElse(""))
+            .keyId(cipherDataKeyIdentifier)
+            .build();
     }
 
 }
