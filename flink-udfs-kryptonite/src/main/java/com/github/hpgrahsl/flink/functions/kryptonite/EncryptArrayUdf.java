@@ -28,49 +28,86 @@ public class EncryptArrayUdf extends AbstractCipherFieldUdf {
     public void open(FunctionContext context) throws Exception {
         super.open(context);
         var cipherDataKeyIdentifier = getConfigurationSetting(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER);
-        if (cipherDataKeyIdentifier == null || KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER_DEFAULT.equals(cipherDataKeyIdentifier)) {
-            throw new KryptoniteException("missing required setting for "+ KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER_DEFAULT
-                + " which is neither defined by environment variables nor by job parameters");
+        if (cipherDataKeyIdentifier == null
+                || KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER_DEFAULT.equals(cipherDataKeyIdentifier)) {
+            throw new KryptoniteException(
+                    "missing required setting for " + KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER_DEFAULT
+                            + " which is neither defined by environment variables nor by job parameters");
         }
         defaultCipherDataKeyIdentifier = cipherDataKeyIdentifier;
     }
 
     public String[] eval(final String[] data) {
-        return process(data);
+        return process(data, null, null);
+    }
+
+    public String[] eval(final String[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
     public String[] eval(final Boolean[] data) {
-        return process(data);
+        return process(data, null, null);
+    }
+
+    public String[] eval(final Boolean[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
     public String[] eval(final Integer[] data) {
-        return process(data);
+        return process(data, null, null);
+    }
+
+    public String[] eval(final Integer[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
     public String[] eval(final Long[] data) {
-        return process(data);
+        return process(data, null, null);
     }
 
+    public String[] eval(final Long[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
+    }
+
+    // about 2 sec delay before processing starts when adding these two
     public String[] eval(final Float[] data) {
-        return process(data);
+        return process(data, null, null);
     }
 
+    public String[] eval(final Float[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
+    }
+
+    // delays for about 10 sec before processing starts when adding two more
     public String[] eval(final Double[] data) {
-        return process(data);
+        return process(data, null, null);
     }
 
-    public String[] eval(final Byte[] data) {
-        return process(data);
+    public String[] eval(final Double[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
-    private <T> String[] process(T[] array) {
-        if(array == null ) {
+    // delays for about 4(!) mins before processing starts when adding two more
+    // public String[] eval(final Byte[] data) {
+    // return process(data, null, null);
+    // }
+
+    // public String[] eval(final Byte[] data, String cipherDataKeyIdentifier,
+    // String cipherAlgorithm) {
+    // return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
+    // }
+
+    private <T> String[] process(T[] array, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        if (array == null) {
             return null;
         }
         var dataEnc = new String[array.length];
-        for(int s = 0; s < array.length; s++) {
-            var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, dataEnc, defaultCipherDataKeyIdentifier);
-            dataEnc[s] = encryptData(array[s],fmd);
+        for (int s = 0; s < array.length; s++) {
+            var fmd = createFieldMetaData(
+                    cipherAlgorithm == null ? KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT : cipherAlgorithm,
+                    dataEnc,
+                    cipherDataKeyIdentifier == null ? defaultCipherDataKeyIdentifier : cipherDataKeyIdentifier);
+            dataEnc[s] = encryptData(array[s], fmd);
         }
         return dataEnc;
     }
