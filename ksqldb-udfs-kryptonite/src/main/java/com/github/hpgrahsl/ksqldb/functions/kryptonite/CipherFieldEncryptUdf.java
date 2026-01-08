@@ -102,11 +102,11 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
           final String cipherAlgorithm
   ) {
     if(!hasSupportedComplexType(data) || (hasSupportedComplexType(data) && typeCapture instanceof String)) {
-      var fieldMetaData = new FieldMetaData(
-              cipherAlgorithm,
-              Optional.ofNullable(data).map(o -> o.getClass().getName()).orElse(""),
-              keyIdentifier
-      );
+      var fieldMetaData = FieldMetaData.builder()
+              .algorithm(cipherAlgorithm)
+              .dataType(Optional.ofNullable(data).map(o -> o.getClass().getName()).orElse(""))
+              .keyId(keyIdentifier)
+              .build();
       return (V) encryptData(data,fieldMetaData);
     }
     if(hasSupportedComplexType(data) && typeCapture.getClass().equals(data.getClass())) {
@@ -124,10 +124,11 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
 
   private List<String> encryptListInElementMode(Object data, String keyIdentifier, String cipherAlgorithm) {
     return ((List<?>)data).stream().map(
-            e -> encryptData(e,new FieldMetaData(
-                    cipherAlgorithm,
-                    Optional.ofNullable(e).map(o -> o.getClass().getName()).orElse(""),
-                    keyIdentifier))
+            e -> encryptData(e,FieldMetaData.builder()
+                    .algorithm(cipherAlgorithm)
+                    .dataType(Optional.ofNullable(e).map(o -> o.getClass().getName()).orElse(""))
+                    .keyId(keyIdentifier)
+                    .build())
     ).collect(Collectors.toList());
   }
 
@@ -135,11 +136,11 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
     return ((Map<?,?>)data).entrySet().stream().map(
             e -> new AbstractMap.SimpleEntry<>(
                     e.getKey(),
-                    encryptData(e.getValue(),new FieldMetaData(
-                            cipherAlgorithm,
-                            Optional.ofNullable(e.getValue()).map(o -> o.getClass().getName()).orElse(""),
-                            keyIdentifier)
-                    )
+                    encryptData(e.getValue(),FieldMetaData.builder()
+                            .algorithm(cipherAlgorithm)
+                            .dataType(Optional.ofNullable(e.getValue()).map(o -> o.getClass().getName()).orElse(""))
+                            .keyId(keyIdentifier)
+                            .build())
             )
     ).collect(LinkedHashMap::new,(lhm,e) -> lhm.put(e.getKey(),e.getValue()), HashMap::putAll);
   }
@@ -156,12 +157,11 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
     original.schema().fields().forEach(
             f -> redacted.put(
                     f.name(),
-                    encryptData(original.get(f.name()),new FieldMetaData(
-                                    cipherAlgorithm,
-                                    Optional.ofNullable(original.get(f.name())).map(o -> o.getClass().getName()).orElse(""),
-                                    keyIdentifier
-                            )
-                    )
+                    encryptData(original.get(f.name()),FieldMetaData.builder()
+                                    .algorithm(cipherAlgorithm)
+                                    .dataType(Optional.ofNullable(original.get(f.name())).map(o -> o.getClass().getName()).orElse(""))
+                                    .keyId(keyIdentifier)
+                                    .build())
             )
     );
     return redacted;
