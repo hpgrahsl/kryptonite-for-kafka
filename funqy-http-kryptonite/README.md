@@ -276,7 +276,7 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
 
 ### Format Preserving Encryption (FPE)
 
-Starting with version 0.6.0, the Kryptonite HTTP API supports **Format Preserving Encryption (FPE)** using the FF3-1 algorithm. Unlike standard AEAD encryption (AES-GCM/AES-GCM-SIV) which produces variable-length ciphertext, FPE maintains the original format and length of the plaintext data.
+Starting with version 0.6.0, Kryptonite for Kafka supports **[Format Preserving Encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) (FPE)** using the FF3-1 algorithm. Unlike the already supported standard AEAD encryption schemes (AES-GCM/AES-GCM-SIV) which produces variable-length ciphertext, FPE maintains the original format and length of the plaintext data.
 
 #### Key Characteristics of FPE
 

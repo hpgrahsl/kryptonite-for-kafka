@@ -311,6 +311,7 @@ Here is an example for how to specify the mandatory configuration settings for t
 ```yaml
     environment:
       - cipher_data_keys=[{"identifier":"my-demo-secret-key","material":{"primaryKeyId":1234567890,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.AesGcmKey","value":"<BASE64_ENCODED_KEY_HERE>","keyMaterialType":"SYMMETRIC"},"status":"ENABLED","keyId":1234567890,"outputPrefixType":"TINK"}]}}]
+     - cipher_data_key_identifier=my-demo-secret-key
 ```
 
 You can add further configuration settings to the compose definition as you see fit. After making sure that all the mandatory configuration properties are set, start using the UDFs to encrypt and decrypt column values in Flink table rows.
@@ -548,7 +549,7 @@ FROM my_sample_data_json_enc_e LIMIT 2;
 
 ### Format Preserving Encryption (FPE)
 
-Starting with version 0.6.0, Kryptonite for Kafka provides **Format Preserving Encryption (FPE)** UDFs using the FF3-1 algorithm. Unlike standard AEAD encryption which produces variable-length ciphertext, FPE maintains the original format and length of the plaintext data.
+Starting with version 0.6.0, Kryptonite for Kafka supports **[Format Preserving Encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) (FPE)** using the FF3-1 algorithm. Unlike the already supported standard AEAD encryption schemes (AES-GCM/AES-GCM-SIV) which produces variable-length ciphertext, FPE maintains the original format and length of the plaintext data.
 
 #### Key Characteristics of FPE
 
