@@ -40,6 +40,9 @@ dynamic.key.id.prefix=__#
 path.delimiter=.
 field.mode=ELEMENT
 cipher.algorithm=TINK/AES_GCM
+cipher.fpe.tweak=0000000
+cipher.fpe.alphabet.type=ALPHANUMERIC
+cipher.fpe.alphabet.custom=
 #############################################
 ```
 
@@ -228,8 +231,198 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             <pre>gcp-kms://...</pre>
             </td>
         </tr>
+        <tr>
+            <td>cipher.algorithm</td>
+            <td>default cipher algorithm used for data encryption if not specified in the field-specific configuration</td>
+            <td>string</td>
+            <td><pre>TINK/AES_GCM</pre></td>
+            <td>
+                <pre>TINK/AES_GCM</pre>
+                <pre>TINK/AES_GCM_SIV</pre>
+                <pre>CUSTOM/MYSTO_FPE_FF3_1</pre>
+            </td>
+        </tr>
+        <tr>
+            <td>cipher.fpe.tweak</td>
+            <td>default tweak value for Format Preserving Encryption (FPE) if not specified in field-specific configuration. The tweak provides additional cryptographic variation - different tweaks produce different ciphertexts for the same plaintext.</td>
+            <td>string</td>
+            <td><pre>0000000</pre></td>
+            <td>any 7 character string value</td>
+        </tr>
+        <tr>
+            <td>cipher.fpe.alphabet.type</td>
+            <td>default alphabet type for Format Preserving Encryption (FPE) if not specified in field-specific configuration. Defines the character set used for encryption - ciphertext will only contain characters from this alphabet.</td>
+            <td>string</td>
+            <td><pre>ALPHANUMERIC</pre></td>
+            <td>
+                <pre>DIGITS</pre>
+                <pre>UPPERCASE</pre>
+                <pre>LOWERCASE</pre>
+                <pre>ALPHANUMERIC</pre>
+                <pre>ALPHANUMERIC_EXTENDED</pre>
+                <pre>HEXADECIMAL</pre>
+                <pre>CUSTOM</pre>
+            </td>
+        </tr>
+        <tr>
+            <td>cipher.fpe.alphabet.custom</td>
+            <td>custom alphabet for Format Preserving Encryption (FPE) when <code>cipher.fpe.alphabet.type=CUSTOM</code>. Specifies the exact set of characters to use for encryption (e.g., "01" for binary, "0123456789ABCDEF" for hexadecimal).</td>
+            <td>string</td>
+            <td><pre></pre></td>
+            <td>any non-empty string defining a custom character set (minimum 2 unique characters)</td>
+        </tr>
     </tbody>
 </table>
+
+### Format Preserving Encryption (FPE)
+
+Starting with version 0.6.0, the Kryptonite HTTP API supports **Format Preserving Encryption (FPE)** using the FF3-1 algorithm. Unlike standard AEAD encryption (AES-GCM/AES-GCM-SIV) which produces variable-length ciphertext, FPE maintains the original format and length of the plaintext data.
+
+#### Key Characteristics of FPE
+
+- **Format Preservation**: Encrypted data maintains the same format and length as the original plaintext
+- **Character Set Preservation**: The ciphertext uses the same character set (alphabet) as the plaintext
+- **Use Cases**: Ideal for scenarios where encrypted data must conform to specific formats, such as:
+  - Credit card numbers (CCN)
+  - Social security numbers (SSN)
+  - Phone numbers
+  - Postal codes
+  - Application fields with strict format constraints
+
+#### FPE Configuration
+
+To use FPE via the HTTP API, you can specify FPE-specific parameters in the `fieldConfig` array when calling the `/encrypt/value-with-config` or `/decrypt/value-with-config` endpoints:
+
+- **algorithm**: Set to `CUSTOM/MYSTO_FPE_FF3_1` (required for FPE)
+- **fpeAlphabetType**: Specifies the character set for encryption (required for FPE)
+- **fpeTweak** (optional): A tweak value for additional cryptographic variation (uses default if not specified)
+- **fpeAlphabetCustom** (optional): Required only when `fpeAlphabetType=CUSTOM`
+
+#### Supported Alphabet Types
+
+| Alphabet Type | Characters | Example Use Case |
+|--------------|------------|------------------|
+| `DIGITS` | `0123456789` | Credit card numbers, SSN, numeric IDs |
+| `UPPERCASE` | `A-Z` | Uppercase text data |
+| `LOWERCASE` | `a-z` | Lowercase text data |
+| `ALPHANUMERIC` | `0-9A-Za-z` | Mixed alphanumeric codes |
+| `ALPHANUMERIC_EXTENDED` | `0-9A-Za-z _,.!?@%$&§"'°^-+*/;:#(){}[]<>=~\|` | Text with special characters |
+| `HEXADECIMAL` | `0-9A-F` | Hexadecimal strings |
+| `CUSTOM` | User-defined via `fpeAlphabetCustom` | Custom character sets (e.g., binary: `01`) |
+
+#### FPE HTTP API Example
+
+**Encryption Request** to `/encrypt/value-with-config`:
+
+```json
+{
+  "data": {
+    "customerId": "CUST-12345",
+    "creditCardNumber": "4455202014528870",
+    "ssn": "230564998"
+  },
+  "fieldConfig": [
+    {
+      "name": "creditCardNumber",
+      "algorithm": "CUSTOM/MYSTO_FPE_FF3_1",
+      "keyId": "myFpeKey",
+      "fpeAlphabetType": "DIGITS"
+    },
+    {
+      "name": "ssn",
+      "algorithm": "CUSTOM/MYSTO_FPE_FF3_1",
+      "keyId": "myFpeKey",
+      "fpeAlphabetType": "DIGITS"
+    }
+  ]
+}
+```
+
+**Encryption Response**:
+
+```json
+{
+    "customerId": "CUST-12345",
+    "creditCardNumber": "0472659418391244",
+    "ssn": "348538193"
+}
+```
+
+Notice how the encrypted fields maintain their original format and length!
+
+**Decryption Request** to `/decrypt/value-with-config`:
+
+```json
+{
+  "data": {
+    "customerId": "CUST-12345",
+    "creditCardNumber": "0472659418391244",
+    "ssn": "348538193"
+  },
+  "fieldConfig": [
+    {
+      "name": "creditCardNumber",
+      "algorithm": "CUSTOM/MYSTO_FPE_FF3_1",
+      "keyId": "myFpeKey",
+      "fpeAlphabetType": "DIGITS"
+    },
+    {
+      "name": "ssn",
+      "algorithm": "CUSTOM/MYSTO_FPE_FF3_1",
+      "keyId": "myFpeKey",
+      "fpeAlphabetType": "DIGITS"
+    }
+  ]
+}
+```
+
+**Decryption Response**:
+
+```json
+{
+    "customerId": "CUST-12345",
+    "creditCardNumber": "4455202014528870",
+    "ssn": "230564998"
+}
+```
+
+#### FPE Keyset Configuration
+
+FPE requires special keyset material with a custom type URL. Add FPE keysets to your `cipher.data.keys` configuration:
+
+```json
+[
+  {
+    "identifier": "myFpeKey",
+    "material": {
+      "primaryKeyId": 2000001,
+      "key": [
+        {
+          "keyData": {
+            "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey",
+            "value": "<BASE64_ENCODED_FPE_KEY_HERE>",
+            "keyMaterialType": "SYMMETRIC"
+          },
+          "status": "ENABLED",
+          "keyId": 2000001,
+          "outputPrefixType": "RAW"
+        }
+      ]
+    }
+  }
+]
+```
+
+**Key differences from standard AEAD keysets:**
+- `typeUrl`: Must be `io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey`
+- `outputPrefixType`: Should be `RAW` (not `TINK`)
+
+#### FPE Considerations
+
+- **Minimum Length**: FPE requires input data to meet minimum length requirements based on the alphabet size
+- **Consistent Configuration**: The same `fpeAlphabetType`, `fpeAlphabetCustom`, and `fpeTweak` must be used for both encryption and decryption
+- **Security vs Format**: While FPE preserves format, it may offer slightly different security properties compared to standard AEAD encryption
+- **Tweak Parameter**: The optional `fpeTweak` adds cryptographic variation, allowing different ciphertext for the same plaintext when different tweaks are used
 
 ### OpenAPI specification
 
@@ -447,7 +640,7 @@ components:
           type: string
         algorithm:
           type: string
-          enum: [TINK/AES_GCM, TINK/AES_GCM_SIV]
+          enum: [TINK/AES_GCM, TINK/AES_GCM_SIV, CUSTOM/MYSTO_FPE_FF3_1]
         keyId:
           type: string
         schema:
@@ -456,6 +649,16 @@ components:
         fieldMode:
           type: string
           enum: [OBJECT, ELEMENT]
+        fpeTweak:
+          type: string
+          description: Tweak value for Format Preserving Encryption (optional)
+        fpeAlphabetType:
+          type: string
+          enum: [DIGITS, UPPERCASE, LOWERCASE, ALPHANUMERIC, ALPHANUMERIC_EXTENDED, HEXADECIMAL, CUSTOM]
+          description: Alphabet type for Format Preserving Encryption (required when using FPE)
+        fpeAlphabetCustom:
+          type: string
+          description: Custom alphabet for Format Preserving Encryption (required when fpeAlphabetType=CUSTOM)
 ```
 
 ### HTTP API Usage Examples:
@@ -468,7 +671,7 @@ The example requests are using a demo configuration as `application.properties`:
 #############################################
 #
 # MANDATORY config settings
-cipher.data.keys=[{"identifier":"keyA","material":{"primaryKeyId":1000000001,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.AesGcmKey","value":"GhDRulECKAC8/19NMXDjeCjK","keyMaterialType":"SYMMETRIC"},"status":"ENABLED","keyId":1000000001,"outputPrefixType":"TINK"}]}},{"identifier":"keyB","material":{"primaryKeyId":1000000002,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.AesGcmKey","value":"GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==","keyMaterialType":"SYMMETRIC"},"status":"ENABLED","keyId":1000000002,"outputPrefixType":"TINK"}]}},{"identifier":"key9","material":{"primaryKeyId":1000000003,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.AesSivKey","value":"EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz","keyMaterialType":"SYMMETRIC"},"status":"ENABLED","keyId":1000000003,"outputPrefixType":"TINK"}]}},{"identifier":"key8","material":{"primaryKeyId":1000000004,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.AesSivKey","value":"EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/","keyMaterialType":"SYMMETRIC"},"status":"ENABLED","keyId":1000000004,"outputPrefixType":"TINK"}]}}]
+cipher.data.keys=[ { "identifier": "keyA", "material": { "primaryKeyId": 1000000001, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "GhDRulECKAC8/19NMXDjeCjK", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000001, "outputPrefixType": "TINK" } ] } }, { "identifier": "keyB", "material": { "primaryKeyId": 1000000002, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000002, "outputPrefixType": "TINK" } ] } }, { "identifier": "key9", "material": { "primaryKeyId": 1000000003, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey", "value": "EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000003, "outputPrefixType": "TINK" } ] } }, { "identifier": "key8", "material": { "primaryKeyId": 1000000004, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey", "value": "EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000004, "outputPrefixType": "TINK" } ] } }, { "identifier": "keyC", "material": { "primaryKeyId": 2000001, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "VU5O0VBE6+bIygj2z/BiVg==", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000001, "outputPrefixType": "RAW" } ] } }, { "identifier": "keyD", "material": { "primaryKeyId": 2000002, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "GA0CtxRfjqN/9tW4CmnzY+SU9k5EbBJ4", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000002, "outputPrefixType": "RAW" } ] } }, { "identifier": "keyE", "material": { "primaryKeyId": 2000003, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "vJDWFED3R04F6blW1FxZMg/JF8qSfY5+WJLPjSYeW9w=", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000003, "outputPrefixType": "RAW" } ] } } ]
 cipher.data.key.identifier=keyA
 #
 # OPTIONAL config settings with the following defaults
@@ -482,6 +685,9 @@ dynamic.key.id.prefix=__#
 path.delimiter=.
 field.mode=ELEMENT
 cipher.algorithm=TINK/AES_GCM
+cipher.fpe.tweak=0000000
+cipher.fpe.alphabet.type=ALPHANUMERIC
+cipher.fpe.alphabet.custom=
 #############################################
 ```
 
