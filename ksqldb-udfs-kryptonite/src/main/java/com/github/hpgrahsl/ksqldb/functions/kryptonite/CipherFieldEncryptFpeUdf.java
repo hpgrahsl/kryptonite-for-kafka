@@ -60,8 +60,8 @@ public class CipherFieldEncryptFpeUdf extends AbstractCipherFieldFpeUdf implemen
     }
 
     @Udf(description = "🔒 encrypt field data using FPE with configured defaults")
-    public <T> String encryptField(
-            @UdfParameter(value = "data", description = "the data to encrypt") final T data
+    public String encryptField(
+            @UdfParameter(value = "data", description = "the data to encrypt") final String data
     ) {
         if (data == null) {
             return null;
@@ -71,9 +71,9 @@ public class CipherFieldEncryptFpeUdf extends AbstractCipherFieldFpeUdf implemen
     }
 
     @Udf(description = "🔒 encrypt field data using FPE with specified key identifier and cipher algorithm")
-    public <T> String encryptField(
+    public String encryptField(
             @UdfParameter(value = "data", description = "the data to encrypt")
-            final T data,
+            final String data,
             @UdfParameter(value = "keyIdentifier", description = "the key identifier")
             final String keyIdentifier,
             @UdfParameter(value = "cipherAlgorithm", description = "the cipher algorithm")
@@ -91,9 +91,9 @@ public class CipherFieldEncryptFpeUdf extends AbstractCipherFieldFpeUdf implemen
     }
 
     @Udf(description = "🔒 encrypt field data using FPE with specified key identifier, cipher algorithm, and tweak")
-    public <T> String encryptField(
+    public String encryptField(
             @UdfParameter(value = "data", description = "the data to encrypt")
-            final T data,
+            final String data,
             @UdfParameter(value = "keyIdentifier", description = "the key identifier")
             final String keyIdentifier,
             @UdfParameter(value = "cipherAlgorithm", description = "the cipher algorithm")
@@ -113,9 +113,9 @@ public class CipherFieldEncryptFpeUdf extends AbstractCipherFieldFpeUdf implemen
     }
 
     @Udf(description = "🔒 encrypt field data using FPE with specified key identifier, cipher algorithm, tweak, and alphabet type")
-    public <T> String encryptField(
+    public String encryptField(
             @UdfParameter(value = "data", description = "the data to encrypt")
-            final T data,
+            final String data,
             @UdfParameter(value = "keyIdentifier", description = "the key identifier")
             final String keyIdentifier,
             @UdfParameter(value = "cipherAlgorithm", description = "the cipher algorithm")
@@ -137,9 +137,9 @@ public class CipherFieldEncryptFpeUdf extends AbstractCipherFieldFpeUdf implemen
     }
 
     @Udf(description = "🔒 encrypt field data using FPE with all parameters including custom alphabet")
-    public <T> String encryptField(
+    public String encryptField(
             @UdfParameter(value = "data", description = "the data to encrypt")
-            final T data,
+            final String data,
             @UdfParameter(value = "keyIdentifier", description = "the key identifier")
             final String keyIdentifier,
             @UdfParameter(value = "cipherAlgorithm", description = "the cipher algorithm")
