@@ -6,7 +6,17 @@
 
 ## ksqlDB User-Defined Functions (UDFs)
 
-Kryptonite for Kafka provides two [ksqlDB](https://ksqlDB.io) [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDFs) named `K4KENCRYPT` and `K4KDECRYPT`. The simple examples below show how to install, configure and apply the UDFs to selectively encrypt or decrypt column values in ksqlDB `STREAMS` and `TABLES`.
+Kryptonite for Kafka provides user-defined functions for [ksqlDB](https://ksqlDB.io):
+
+**AEAD Encryption (AES-GCM/AES-GCM-SIV):**
+- `K4KENCRYPT` - Encrypt field data
+- `K4KDECRYPT` - Decrypt field data
+
+**Format Preserving Encryption (FPE FF3-1):**
+- `K4KENCRYPTFPE` - Encrypt field data while preserving format
+- `K4KDECRYPTFPE` - Decrypt FPE-encrypted field data
+
+The simple examples below show how to install, configure and apply the UDFs to selectively encrypt or decrypt column values in ksqlDB `STREAMS` and `TABLES`.
 
 ### Build and Deployment
 
@@ -21,10 +31,12 @@ ksql> SHOW FUNCTIONS;
 
 Function Name         | Category
 --------------------------------------------
-...                   | ...                              
-K4KDECRYPT            | cryptography       
+...                   | ...
+K4KDECRYPT            | cryptography
+K4KDECRYPTFPE         | cryptography
 K4KENCRYPT            | cryptography
-...                   | ...          
+K4KENCRYPTFPE         | cryptography
+...                   | ...
 --------------------------------------------
 ```
 
@@ -656,3 +668,268 @@ Limit Reached
 Query terminated
 ```
 
+### Format Preserving Encryption (FPE)
+
+Starting with version 0.6.0, Kryptonite for Kafka provides **Format Preserving Encryption (FPE)** UDFs using the FF3-1 algorithm. Unlike standard AEAD encryption which produces variable-length Base64-encoded ciphertext, FPE maintains the original format and length of the plaintext data.
+
+#### Key Characteristics of FPE
+
+- **Format Preservation**: Encrypted data maintains the same format and length as the original plaintext
+- **Character Set Preservation**: The ciphertext uses the same character set (alphabet) as the plaintext
+- **Use Cases**: Ideal for scenarios where encrypted data must conform to specific formats, such as:
+  - Credit card numbers (CCN)
+  - Social security numbers (SSN)
+  - Phone numbers
+  - Account numbers
+  - Database columns with strict format constraints
+
+#### Available FPE UDFs
+
+- `K4KENCRYPTFPE` - Encrypt field data using Format Preserving Encryption
+- `K4KDECRYPTFPE` - Decrypt FPE-encrypted field data
+
+#### FPE UDF Function Signatures
+
+**K4KENCRYPTFPE** provides five overloaded signatures:
+
+```sql
+-- Uses defaults from configuration
+K4KENCRYPTFPE(data)
+
+-- Specify key identifier and algorithm
+K4KENCRYPTFPE(data, keyIdentifier, cipherAlgorithm)
+
+-- Specify key identifier, algorithm, and tweak
+K4KENCRYPTFPE(data, keyIdentifier, cipherAlgorithm, fpeTweak)
+
+-- Specify key identifier, algorithm, tweak, and alphabet type
+K4KENCRYPTFPE(data, keyIdentifier, cipherAlgorithm, fpeTweak, fpeAlphabetType)
+
+-- Specify all parameters including custom alphabet (only when fpeAlphabetType='CUSTOM')
+K4KENCRYPTFPE(data, keyIdentifier, cipherAlgorithm, fpeTweak, fpeAlphabetType, fpeAlphabetCustom)
+```
+
+**K4KDECRYPTFPE** provides the same five signatures for decryption.
+
+#### Supported Alphabet Types
+
+| Alphabet Type | Characters | Example Use Case |
+|--------------|------------|------------------|
+| `DIGITS` | `0123456789` | Credit card numbers, SSN, numeric IDs |
+| `UPPERCASE` | `A-Z` | Uppercase text data |
+| `LOWERCASE` | `a-z` | Lowercase text data |
+| `ALPHANUMERIC` | `0-9A-Za-z` | Mixed alphanumeric codes |
+| `ALPHANUMERIC_EXTENDED` | `0-9A-Za-z _,.!?@%$&§"'°^-+*/;:#(){}[]<>=~\|` | Text with special characters |
+| `HEXADECIMAL` | `0-9A-F` | Hexadecimal strings |
+| `CUSTOM` | User-defined via `fpeAlphabetCustom` | Custom character sets (e.g., binary: `01`) |
+
+#### FPE Configuration
+
+Add FPE-specific configuration parameters to your ksqlDB server properties:
+
+```properties
+# FPE UDF Configuration
+ksql.functions.k4kencryptfpe.cipher.data.keys=[<FPE_KEYSET_JSON>]
+ksql.functions.k4kencryptfpe.cipher.data.key.identifier=myFpeKey
+ksql.functions.k4kencryptfpe.cipher.fpe.tweak=0000000
+ksql.functions.k4kencryptfpe.cipher.fpe.alphabet.type=ALPHANUMERIC
+ksql.functions.k4kencryptfpe.cipher.fpe.alphabet.custom=
+
+ksql.functions.k4kdecryptfpe.cipher.data.keys=[<FPE_KEYSET_JSON>]
+ksql.functions.k4kdecryptfpe.cipher.data.key.identifier=myFpeKey
+ksql.functions.k4kdecryptfpe.cipher.fpe.tweak=0000000
+ksql.functions.k4kdecryptfpe.cipher.fpe.alphabet.type=ALPHANUMERIC
+ksql.functions.k4kdecryptfpe.cipher.fpe.alphabet.custom=
+```
+
+#### FPE Keyset Configuration
+
+FPE requires special keyset material with a custom type URL:
+
+```json
+[
+  {
+    "identifier": "myFpeKey",
+    "material": {
+      "primaryKeyId": 2000001,
+      "key": [
+        {
+          "keyData": {
+            "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey",
+            "value": "<BASE64_ENCODED_FPE_KEY_HERE>",
+            "keyMaterialType": "SYMMETRIC"
+          },
+          "status": "ENABLED",
+          "keyId": 2000001,
+          "outputPrefixType": "RAW"
+        }
+      ]
+    }
+  }
+]
+```
+
+**Key differences from standard AEAD keysets:**
+- `typeUrl`: Must be `io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey`
+- `outputPrefixType`: Should be `RAW` (not `TINK`)
+
+#### FPE SQL Example
+
+Let's encrypt sensitive data while preserving format. First, create a stream with plaintext data:
+
+```sql
+-- Stream with plaintext sensitive data
+CREATE STREAM customer_data_plaintext (
+    customer_id VARCHAR,
+    credit_card_number VARCHAR,
+    ssn VARCHAR,
+    account_code VARCHAR
+) WITH (
+    KAFKA_TOPIC='customer_data_plain',
+    VALUE_FORMAT='JSON'
+);
+```
+
+Create a target stream where encrypted data will maintain the same format:
+
+```sql
+-- Stream with FPE-encrypted data (same VARCHAR types, format preserved!)
+CREATE STREAM customer_data_fpe_encrypted (
+    customer_id VARCHAR,
+    credit_card_number VARCHAR,
+    ssn VARCHAR,
+    account_code VARCHAR
+) WITH (
+    KAFKA_TOPIC='customer_data_fpe_enc',
+    VALUE_FORMAT='JSON'
+);
+```
+
+##### Encrypting with FPE
+
+Insert data using FPE UDFs to encrypt while preserving format:
+
+```sql
+INSERT INTO customer_data_fpe_encrypted
+SELECT
+    customer_id,
+    -- Encrypt 16-digit CCN using DIGITS alphabet
+    K4KENCRYPTFPE(
+        credit_card_number,
+        'myFpeKey',
+        'CUSTOM/MYSTO_FPE_FF3_1',
+        'CCN_FIELD',
+        'DIGITS'
+    ) AS credit_card_number,
+    -- Encrypt 9-digit SSN using DIGITS alphabet with different tweak
+    K4KENCRYPTFPE(
+        ssn,
+        'myFpeKey',
+        'CUSTOM/MYSTO_FPE_FF3_1',
+        'SSN_FIELD',
+        'DIGITS'
+    ) AS ssn,
+    -- Encrypt alphanumeric account code
+    K4KENCRYPTFPE(
+        account_code,
+        'myFpeKey',
+        'CUSTOM/MYSTO_FPE_FF3_1',
+        'ACCT_FIELD',
+        'ALPHANUMERIC'
+    ) AS account_code
+FROM customer_data_plaintext
+EMIT CHANGES;
+```
+
+After encryption, the data maintains its format:
+
+```sql
+SELECT * FROM customer_data_fpe_encrypted EMIT CHANGES LIMIT 2;
+```
+
+```text
++-------------+--------------------+-----------+--------------+
+|CUSTOMER_ID  |CREDIT_CARD_NUMBER  |SSN        |ACCOUNT_CODE  |
++-------------+--------------------+-----------+--------------+
+|CUST001      |7823956140762231    |845721369  |B9Xk2mP1qR    |
+|CUST002      |3104827659341205    |192837465  |Zq3R7nM4wT    |
++-------------+--------------------+-----------+--------------+
+```
+
+Notice how:
+- Credit card numbers remain 16 digits
+- SSNs remain 9 digits
+- Account codes maintain alphanumeric format and length
+
+##### Decrypting FPE Data
+
+Decrypt using the same parameters used for encryption:
+
+```sql
+SELECT
+    customer_id,
+    -- Decrypt CCN with matching parameters
+    K4KDECRYPTFPE(
+        credit_card_number,
+        'myFpeKey',
+        'CUSTOM/MYSTO_FPE_FF3_1',
+        'CCN_FIELD',
+        'DIGITS'
+    ) AS credit_card_number,
+    -- Decrypt SSN with matching parameters
+    K4KDECRYPTFPE(
+        ssn,
+        'myFpeKey',
+        'CUSTOM/MYSTO_FPE_FF3_1',
+        'SSN_FIELD',
+        'DIGITS'
+    ) AS ssn,
+    -- Decrypt account code with matching parameters
+    K4KDECRYPTFPE(
+        account_code,
+        'myFpeKey',
+        'CUSTOM/MYSTO_FPE_FF3_1',
+        'ACCT_FIELD',
+        'ALPHANUMERIC'
+    ) AS account_code
+FROM customer_data_fpe_encrypted
+EMIT CHANGES LIMIT 2;
+```
+
+```text
++-------------+--------------------+-----------+--------------+
+|CUSTOMER_ID  |CREDIT_CARD_NUMBER  |SSN        |ACCOUNT_CODE  |
++-------------+--------------------+-----------+--------------+
+|CUST001      |4455202014528870    |230564998  |A1Bc3De5Fg    |
+|CUST002      |5189374625012468    |987654321  |Xy7Mn2Pq9K    |
++-------------+--------------------+-----------+--------------+
+```
+
+##### Using Custom Alphabets
+
+For binary data or custom character sets:
+
+```sql
+-- Encrypt binary string using CUSTOM alphabet
+SELECT
+    K4KENCRYPTFPE(
+        '01101000010001101000',
+        'myFpeKey',
+        'CUSTOM/MYSTO_FPE_FF3_1',
+        'BINARY_FIELD',
+        'CUSTOM',
+        '01'  -- custom alphabet: only 0 and 1
+    ) AS encrypted_binary
+FROM source_stream;
+
+-- Result: '10010111001110010111' -- still only 0s and 1s, same length!
+```
+
+#### FPE Important Considerations
+
+- **Consistent Configuration**: The same `fpeAlphabetType`, `fpeAlphabetCustom`, and `fpeTweak` must be used for both encryption and decryption
+- **Tweak Parameter**: Different tweaks produce different ciphertext for the same plaintext - use consistent tweaks per field
+- **Minimum Length**: FPE requires input data to meet minimum length requirements based on the alphabet size
+- **Performance**: FPE may be slightly slower than standard AEAD encryption
+- **Format Constraints**: Ensure your data conforms to the chosen alphabet (e.g., all digits for `DIGITS` alphabet)
+- **Null Handling**: FPE cannot encrypt null values - nulls are passed through unchanged

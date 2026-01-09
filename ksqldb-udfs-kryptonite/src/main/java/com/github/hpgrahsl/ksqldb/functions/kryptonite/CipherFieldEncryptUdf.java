@@ -48,8 +48,8 @@ import io.confluent.ksql.function.udf.UdfParameter;
 
 @UdfDescription(
     name = "k4kencrypt",
-    description = "🔒 encrypt field data ... hopefully without fighting 🐲 🐉",
-    version = "0.1.2",
+    description = "🔒 encrypt field data",
+    version = "0.4.0",
     author = "H.P. Grahsl (@hpgrahsl)",
     category = "cryptography"
 )
