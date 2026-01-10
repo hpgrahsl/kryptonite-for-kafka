@@ -229,6 +229,135 @@ Struct{
 }
 ```
 
+## Format Preserving Encryption (FPE)
+
+Starting with version 0.6.0, Kryptonite for Kafka supports **[Format Preserving Encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) (FPE)** using the FF3-1 algorithm. Unlike the already supported standard AEAD encryption schemes (AES-GCM/AES-GCM-SIV) which produces variable-length ciphertext, FPE maintains the original format and length of the plaintext data.
+
+### Key Characteristics of FPE
+
+- **Format Preservation**: Encrypted data maintains the same format and length as the original plaintext
+- **Character Set Preservation**: The ciphertext uses the same character set (alphabet) as the plaintext
+- **Use Cases**: Ideal for scenarios where encrypted data must conform to specific formats, such as:
+  - Credit card numbers (CCN)
+  - Social security numbers (SSN)
+  - Phone numbers
+  - Postal codes
+  - Database columns with strict format constraints
+
+### FPE Configuration
+
+To use FPE, configure the following parameters in your `field_config`:
+
+- **algorithm**: Set to `CUSTOM/MYSTO_FPE_FF3_1` (required for FPE)
+- **fpeAlphabetType**: Specifies the character set for encryption (required for FPE)
+- **fpeTweak** (optional): A tweak value for additional cryptographic variation (default: `0000000`)
+- **fpeAlphabetCustom** (optional): Required only when `fpeAlphabetType=CUSTOM`
+
+#### Supported Alphabet Types
+
+| Alphabet Type | Characters | Example Use Case |
+|--------------|------------|------------------|
+| `DIGITS` | `0123456789` | Credit card numbers, SSN, numeric IDs |
+| `UPPERCASE` | `A-Z` | Uppercase text data |
+| `LOWERCASE` | `a-z` | Lowercase text data |
+| `ALPHANUMERIC` | `0-9A-Za-z` | Mixed alphanumeric codes |
+| `ALPHANUMERIC_EXTENDED` | `0-9A-Za-z _,.!?@%$&§"'°^-+*/;:#(){}[]<>=~\|` | Text with special characters |
+| `HEXADECIMAL` | `0-9A-F` | Hexadecimal strings |
+| `CUSTOM` | User-defined via `fpeAlphabetCustom` | Custom character sets (e.g., binary: `01`) |
+
+### FPE Example: Encrypting Sensitive Data
+
+Let's assume you have a record with sensitive fields that must maintain their format:
+
+```json5
+{
+  "customerId": "CUST-12345",
+  "creditCardNumber": "4455202014528870",
+  "ssn": "230564998",
+  "email": "customer@example.com"
+}
+```
+
+To encrypt the credit card number and SSN using FPE while preserving their numeric format:
+
+```json5
+{
+  //...
+  "transforms":"cipher",
+  "transforms.cipher.type":"com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value",
+  "transforms.cipher.cipher_mode": "ENCRYPT",
+  "transforms.cipher.cipher_data_keys": "[{\"identifier\":\"my-fpe-key-456\",\"material\":{<FPE_TINK_KEYSET_SPEC_JSON_HERE>}}]",
+  "transforms.cipher.cipher_data_key_identifier": "my-fpe-key-456",
+  "transforms.cipher.field_config": "[{\"name\":\"creditCardNumber\",\"algorithm\":\"CUSTOM/MYSTO_FPE_FF3_1\",\"fpeAlphabetType\":\"DIGITS\"},{\"name\":\"ssn\",\"algorithm\":\"CUSTOM/MYSTO_FPE_FF3_1\",\"fpeAlphabetType\":\"DIGITS\"}]",
+  "transforms.cipher.field_mode": "OBJECT",
+  //...
+}
+```
+
+After encryption, the record maintains the numeric format:
+
+```json5
+{
+  "customerId": "CUST-12345",
+  "creditCardNumber": "7823956140762231",  // Still 16 digits!
+  "ssn": "845721369",  // Still 9 digits!
+  "email": "customer@example.com"
+}
+```
+
+### FPE Decryption
+
+**Decryption requires the exact same FPE configuration** i.e. algorithm, alphabet type, and (optional) tweak:
+
+```json5
+{
+  //...
+  "transforms":"cipher",
+  "transforms.cipher.type":"com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value",
+  "transforms.cipher.cipher_mode": "DECRYPT",
+  "transforms.cipher.cipher_data_keys": "[{\"identifier\":\"my-fpe-key-456\",\"material\":{<FPE_TINK_KEYSET_SPEC_JSON_HERE>}}]",
+  "transforms.cipher.field_config": "[{\"name\":\"creditCardNumber\",\"schema\":{\"type\":\"STRING\"},\"algorithm\":\"CUSTOM/MYSTO_FPE_FF3_1\",\"fpeAlphabetType\":\"DIGITS\"},{\"name\":\"ssn\",\"schema\":{\"type\":\"STRING\"},\"algorithm\":\"CUSTOM/MYSTO_FPE_FF3_1\",\"fpeAlphabetType\":\"DIGITS\"}]",
+  "transforms.cipher.field_mode": "OBJECT",
+  //...
+}
+```
+
+### FPE Keyset Configuration
+
+FPE requires special keyset material with a custom type URL. Here's an example keyset for FPE:
+
+```json5
+{
+  "identifier": "my-fpe-key-456",
+  "material": {
+    "primaryKeyId": 2000001,
+    "key": [
+      {
+        "keyData": {
+          "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey",
+          "value": "<BASE64_ENCODED_FPE_KEY_HERE>",
+          "keyMaterialType": "SYMMETRIC"
+        },
+        "status": "ENABLED",
+        "keyId": 2000001,
+        "outputPrefixType": "RAW"
+      }
+    ]
+  }
+}
+```
+
+**Key differences from standard AEAD keysets:**
+- `typeUrl`: Must be `io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey` (not `type.googleapis.com/google.crypto.tink.AesGcmKey`)
+- `outputPrefixType`: Should be `RAW` (not `TINK`)
+
+### FPE Considerations
+
+- **Minimum Length**: FPE requires input data to meet minimum length requirements based on the alphabet size. Ensure your data is long enough for the chosen alphabet. In case it's not, you'll get an exception hinting at the length violation at runtime.
+- **Consistent Configuration**: The exact same `fpeAlphabetType`, `fpeAlphabetCustom`, and `fpeTweak` must be used for both encryption and decryption in order for FPE to work correctly.
+- **Security vs Format**: While FPE preserves format, it offers different - usually weaker - security properties compared to standard AEAD encryption based on AES ciphers.
+- **Tweak Parameter**: The optional `fpeTweak` adds cryptographic variation, resulting in different ciphertext for the same plaintext when different tweaks are used.
+
 ## Configuration Parameters
 
 <table>
@@ -508,18 +637,58 @@ Struct{
             <td>
                 <pre>TINK/AES_GCM</pre>
                 <pre>TINK/AES_GCM_SIV</pre>
+                <pre>CUSTOM/MYSTO_FPE_FF3_1</pre>
             </td>
             <td>medium</td>
         </tr>
         <tr>
+            <td>cipher_fpe_tweak</td>
+            <td>default tweak value for Format Preserving Encryption (FPE) if not specified for a field in its <code>field_config</code>. The tweak provides additional cryptographic variation - different tweaks produce different ciphertexts for the same plaintext.</td>
+            <td>string</td>
+            <td>
+                <pre>0000000</pre>
+            </td>
+            <td>any string value (typically 7 characters)</td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>cipher_fpe_alphabet_type</td>
+            <td>default alphabet type for Format Preserving Encryption (FPE) if not specified for a field in its <code>field_config</code>. Defines the character set to be used. Note that the plaintext may only contain characters from this set. As a result, the ciphertext after FPE encryption will be composed of the same set of characters.</td>
+            <td>string</td>
+            <td>
+                <pre>ALPHANUMERIC</pre>
+            </td>
+            <td>
+                <pre>DIGITS</pre>
+                <pre>UPPERCASE</pre>
+                <pre>LOWERCASE</pre>
+                <pre>ALPHANUMERIC</pre>
+                <pre>ALPHANUMERIC_EXTENDED</pre>
+                <pre>HEXADECIMAL</pre>
+                <pre>CUSTOM</pre>
+            </td>
+            <td>medium</td>
+        </tr>
+        <tr>
+            <td>cipher_fpe_alphabet_custom</td>
+            <td>custom alphabet for Format Preserving Encryption (FPE) when <code>cipher_fpe_alphabet_type=CUSTOM</code>. Specifies the exact set of characters to use for encryption (e.g., "01" for binary, "0123456789ABCDEF" for hexadecimal).</td>
+            <td>string</td>
+            <td>
+                <pre></pre>
+            </td>
+            <td>any non-empty string defining a custom character set (minimum 2 unique characters)</td>
+            <td>medium</td>
+        </tr>
+        <tr>
             <td>cipher_text_encoding</td>
-            <td>defines the encoding of the resulting ciphertext bytes (currently only supports BASE64)</td>
+            <td>defines the encoding of the resulting ciphertext bytes.</td>
             <td>string</td>
             <td>
                 <pre>BASE64</pre>
             </td>
             <td>
                 <pre>BASE64</pre>
+                <pre>RAW_BYTES</pre>
             </td>
             <td>low</td>
         </tr>

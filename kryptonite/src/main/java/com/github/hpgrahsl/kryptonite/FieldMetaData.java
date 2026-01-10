@@ -16,6 +16,8 @@
 
 package com.github.hpgrahsl.kryptonite;
 
+import java.util.Objects;
+
 public class FieldMetaData {
 
   private String algorithm;
@@ -24,13 +26,35 @@ public class FieldMetaData {
 
   private String keyId;
 
+  private String fpeTweak;
+
+  private String fpeAlphabet;
+
+  private String encoding;
+
   public FieldMetaData() {
   }
 
-  public FieldMetaData(String algorithm, String dataType, String keyId) {
-    this.algorithm = algorithm;
-    this.dataType = dataType;
-    this.keyId = keyId;
+  public FieldMetaData(String algorithm, String dataType, String keyId, String fpeTweak, String fpeAlphabet, String encoding) {
+    this.algorithm = Objects.requireNonNull(algorithm, "algorithm must not be null");
+    this.dataType = Objects.requireNonNull(dataType, "dataType must not be null");
+    this.keyId = Objects.requireNonNull(keyId, "keyId must not be null");
+    this.fpeTweak = Objects.requireNonNull(fpeTweak, "fpeTweak must not be null");
+    this.fpeAlphabet = Objects.requireNonNull(fpeAlphabet, "fpeAlphabet must not be null");
+    this.encoding = Objects.requireNonNull(encoding, "encoding must not be null");
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  private FieldMetaData(Builder builder) {
+    this.algorithm = builder.algorithm;
+    this.dataType = builder.dataType;
+    this.keyId = builder.keyId;
+    this.fpeTweak = builder.fpeTweak;
+    this.fpeAlphabet = builder.fpeAlphabet;
+    this.encoding = builder.encoding;
   }
 
   public String getAlgorithm() {
@@ -45,13 +69,84 @@ public class FieldMetaData {
     return keyId;
   }
 
+  public String getFpeTweak() {
+    return fpeTweak;
+  }
+
+  public String getFpeAlphabet() {
+    return fpeAlphabet;
+  }
+
+  public String getEncoding() {
+    return encoding;
+  }
+
   @Override
   public String toString() {
     return "FieldMetaData{" +
         "algorithm='" + algorithm + '\'' +
         ", dataType='" + dataType + '\'' +
         ", keyId='" + keyId + '\'' +
+        ", fpeTweak='" + fpeTweak + '\'' +
+        ", fpeAlphabet='" + fpeAlphabet + '\'' +
+        ", encoding='" + encoding + '\'' +
         '}';
+  }
+
+  //TODO: add static validation methods for semantic correctness of fields and ensure they are called from builder and constructor
+
+  public static final class Builder {
+
+    private String algorithm;
+
+    private String dataType;
+
+    private String keyId;
+
+    private String fpeTweak;
+
+    private String fpeAlphabet;
+
+    private String encoding;
+
+    private Builder() {
+    }
+
+    //TODO: builder should perform semantic validation for all fields
+
+    public Builder algorithm(String algorithm) {
+      this.algorithm = Objects.requireNonNull(algorithm, "algorithm must not be null");
+      return this;
+    }
+
+    public Builder dataType(String dataType) {
+      this.dataType = Objects.requireNonNull(dataType, "dataType must not be null");
+      return this;
+    }
+
+    public Builder keyId(String keyId) {
+      this.keyId = Objects.requireNonNull(keyId, "keyId must not be null");
+      return this;
+    }
+
+    public Builder fpeTweak(String fpeTweak) {
+      this.fpeTweak = Objects.requireNonNull(fpeTweak, "fpeTweak must not be null");
+      return this;
+    }
+
+    public Builder fpeAlphabet(String fpeAlphabet) {
+      this.fpeAlphabet = Objects.requireNonNull(fpeAlphabet, "fpeAlphabet must not be null");
+      return this;
+    }
+
+    public Builder encoding(String encoding) {
+      this.encoding = Objects.requireNonNull(encoding, "encoding must not be null");
+      return this;
+    }
+
+    public FieldMetaData build() {
+      return new FieldMetaData(this);
+    }
   }
 
 }

@@ -162,9 +162,73 @@ public class TestFixtures {
             + "    }"
             + "]";
 
+    public static final String CIPHER_DATA_KEYS_CONFIG_FPE = "["
+            + "    {"
+            + "        \"identifier\": \"keyC\","
+            + "        \"material\": {"
+            + "            \"primaryKeyId\": 2000001,"
+            + "            \"key\": ["
+            + "                {"
+            + "                    \"keyData\": {"
+            + "                        \"typeUrl\": \"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\","
+            + "                        \"value\": \"VU5O0VBE6+bIygj2z/BiVg==\","
+            + "                        \"keyMaterialType\": \"SYMMETRIC\""
+            + "                    },"
+            + "                    \"status\": \"ENABLED\","
+            + "                    \"keyId\": 2000001,"
+            + "                    \"outputPrefixType\": \"RAW\""
+            + "                }"
+            + "            ]"
+            + "        }"
+            + "    },"
+            + "    {"
+            + "        \"identifier\": \"keyD\","
+            + "        \"material\": {"
+            + "            \"primaryKeyId\": 2000002,"
+            + "            \"key\": ["
+            + "                {"
+            + "                    \"keyData\": {"
+            + "                        \"typeUrl\": \"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\","
+            + "                        \"value\": \"GA0CtxRfjqN/9tW4CmnzY+SU9k5EbBJ4\","
+            + "                        \"keyMaterialType\": \"SYMMETRIC\""
+            + "                    },"
+            + "                    \"status\": \"ENABLED\","
+            + "                    \"keyId\": 2000002,"
+            + "                    \"outputPrefixType\": \"RAW\""
+            + "                }"
+            + "            ]"
+            + "        }"
+            + "    },"
+            + "    {"
+            + "        \"identifier\": \"keyE\","
+            + "        \"material\": {"
+            + "            \"primaryKeyId\": 2000003,"
+            + "            \"key\": ["
+            + "                {"
+            + "                    \"keyData\": {"
+            + "                        \"typeUrl\": \"io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\","
+            + "                        \"value\": \"vJDWFED3R04F6blW1FxZMg/JF8qSfY5+WJLPjSYeW9w=\","
+            + "                        \"keyMaterialType\": \"SYMMETRIC\""
+            + "                    },"
+            + "                    \"status\": \"ENABLED\","
+            + "                    \"keyId\": 2000003,"
+            + "                    \"outputPrefixType\": \"RAW\""
+            + "                }"
+            + "            ]"
+            + "        }"
+            + "    }"
+            + "]";
+
     static Map<String, Object> TEST_OBJ_MAP_1;
+    static Map<String, String> TEST_OBJ_MAP_1_FPE;
     static Schema TEST_OBJ_SCHEMA_1;
     static Struct TEST_OBJ_STRUCT_1;
+
+    // FPE test fixtures for List, Map, and Struct
+    static List<String> TEST_LIST_CCNS;
+    static Map<String, String> TEST_MAP_PHONE_NUMBERS;
+    static Schema TEST_STRUCT_ALPHABET_SCHEMA;
+    static Struct TEST_STRUCT_ALPHABET;
 
     static {
         TEST_OBJ_MAP_1 = new LinkedHashMap<>();
@@ -176,6 +240,16 @@ public class TestFixtures {
         TEST_OBJ_MAP_1.put("myArray1", List.of("str_1", "str_2", "...", "str_N"));
         TEST_OBJ_MAP_1.put("mySubDoc2", Map.of("k1", 9, "k2", 8, "k3", 7));
         TEST_OBJ_MAP_1.put("myBytes", "S2Fma2Egcm9ja3Mh");
+
+        TEST_OBJ_MAP_1_FPE = new LinkedHashMap<>();
+        TEST_OBJ_MAP_1_FPE.put("myCCN", "4455202014528870");
+        TEST_OBJ_MAP_1_FPE.put("mySSN", "230564998");
+        TEST_OBJ_MAP_1_FPE.put("myText1", "HAPPYBIRTHDAY");
+        TEST_OBJ_MAP_1_FPE.put("myText2", "happybirthday");
+        TEST_OBJ_MAP_1_FPE.put("myText3", "AsIWasGoingToStIvesWith7Wives");
+        TEST_OBJ_MAP_1_FPE.put("myText4", "2 * 3 = 6 + 3 = 9 / 3 = 3");
+        TEST_OBJ_MAP_1_FPE.put("myText5", "12CF8809FF10AAE0");
+        TEST_OBJ_MAP_1_FPE.put("myText6", "01101000010001101000");
 
         TEST_OBJ_SCHEMA_1 = SchemaBuilder.struct()
                 .field("id", Schema.OPTIONAL_STRING_SCHEMA)
@@ -202,6 +276,43 @@ public class TestFixtures {
                 .put("myArray1", List.of("str_1", "str_2", "...", "str_N"))
                 .put("mySubDoc2", Map.of("k1", 9, "k2", 8, "k3", 7))
                 .put("myBytes", new byte[] { 75, 97, 102, 107, 97, 32, 114, 111, 99, 107, 115, 33 });
+
+        TEST_LIST_CCNS = List.of(
+                "4455202014528870",
+                "5142789456321098",
+                "378282246310005",
+                "6011111111111117",
+                "4012888888881881"
+        );
+
+        TEST_MAP_PHONE_NUMBERS = new LinkedHashMap<>();
+        TEST_MAP_PHONE_NUMBERS.put("USA", "15551234567");
+        TEST_MAP_PHONE_NUMBERS.put("UK", "447700900123");
+        TEST_MAP_PHONE_NUMBERS.put("Germany", "4915512345678");
+        TEST_MAP_PHONE_NUMBERS.put("Japan", "819012345678");
+        TEST_MAP_PHONE_NUMBERS.put("Australia", "61412345678");
+
+        TEST_STRUCT_ALPHABET_SCHEMA = SchemaBuilder.struct()
+                .field("ccn", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("ssn", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("uppercase", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("lowercase", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("alphanumeric", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("extended", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("hexadecimal", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("binary", Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build();
+
+        TEST_STRUCT_ALPHABET = new Struct(TEST_STRUCT_ALPHABET_SCHEMA)
+                .put("ccn", "4455202014528870")
+                .put("ssn", "230564998")
+                .put("uppercase", "HAPPYBIRTHDAY")
+                .put("lowercase", "happybirthday")
+                .put("alphanumeric", "AsIWasGoingToStIvesWith7Wives")
+                .put("extended", "2 * 3 = 6 + 3 = 9 / 3 = 3")
+                .put("hexadecimal", "12CF8809FF10AAE0")
+                .put("binary", "01101000010001101000");
     }
 
 }

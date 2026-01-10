@@ -16,12 +16,10 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.Optional;
 import org.apache.flink.table.annotation.DataTypeHint;
 import org.apache.flink.table.annotation.InputGroup;
 import org.apache.flink.table.functions.FunctionContext;
 
-import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 
@@ -41,11 +39,7 @@ public class EncryptUdf extends AbstractCipherFieldUdf {
     }
 
     public String eval(@DataTypeHint(inputGroup = InputGroup.ANY) final Object data) {
-        var fmd = new FieldMetaData(
-            KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT,
-            Optional.ofNullable(data).map(o -> o.getClass().getName()).orElse(""),
-            defaultCipherDataKeyIdentifier
-        );
+        var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, data, defaultCipherDataKeyIdentifier);
         return encryptData(data,fmd);
     }
 
@@ -55,11 +49,7 @@ public class EncryptUdf extends AbstractCipherFieldUdf {
         if (cipherDataKeyIdentifier == null || cipherAlgorithm == null) {
             throw new IllegalArgumentException("error: cipher data key identifier and/or cipher algorithm must not be null");
         }
-        var fmd = new FieldMetaData(
-            cipherAlgorithm,
-            Optional.ofNullable(data).map(o -> o.getClass().getName()).orElse(""),
-            cipherDataKeyIdentifier
-        );
+        var fmd = createFieldMetaData(cipherAlgorithm, data, cipherDataKeyIdentifier);
         return encryptData(data,fmd);
     }
 

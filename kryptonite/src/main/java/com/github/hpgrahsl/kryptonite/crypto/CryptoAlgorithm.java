@@ -26,10 +26,30 @@ public interface CryptoAlgorithm {
 
   byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception;
 
+  default byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle) throws Exception {
+    return cipherFPE(plaintext, keysetHandle, null, null);
+  }
+
+  default byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet) throws Exception {
+    return cipherFPE(plaintext, keysetHandle, alphabet, null);
+  }
+
+  byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception;
+
   default byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle) throws Exception {
     return decipher(ciphertext, keysetHandle, null);
   }
 
   byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception;
+
+  default byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle) throws Exception {
+    return decipherFPE(ciphertext, keysetHandle, null, null);
+  }
+  
+  default byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, String alphabet) throws Exception {
+    return decipherFPE(ciphertext, keysetHandle, alphabet, null);
+  }
+
+  byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception;
 
 }

@@ -22,20 +22,20 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.5.0</version>
+    <version>0.6.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>flink-udfs-kryptonite</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <packaging>jar</packaging>
 
   <properties>
-    <kryptonite.version>0.5.0</kryptonite.version>
-    <flink.version>1.20.1</flink.version>
-    <kafka.version>4.0.0</kafka.version>
-    <jackson.version>2.18.3</jackson.version>
+    <kryptonite.version>0.6.0</kryptonite.version>
+    <flink.version>1.20.3</flink.version>
+    <kafka.version>4.1.0</kafka.version>
+    <jackson.version>2.20.0</jackson.version>
     <logback.version>1.2.13</logback.version>
-    <junit.version>5.10.2</junit.version>
+    <junit.version>5.14.0</junit.version>
   </properties>
 
   <dependencies>

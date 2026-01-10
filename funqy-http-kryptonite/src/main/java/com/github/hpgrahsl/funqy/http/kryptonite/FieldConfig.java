@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMode;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 
 public class FieldConfig {
 
@@ -28,19 +29,24 @@ public class FieldConfig {
   private String algorithm;
   private String keyId;
   private Map<String,Object> schema;
+  private String fpeTweak;
+  private AlphabetTypeFPE fpeAlphabetType;
+  private String fpeAlphabetCustom;
+  private String encoding;
 
   private FieldMode fieldMode;
 
-  public FieldConfig() {
-  }
-
-  public FieldConfig(String name, String algorithm, String keyId,
-                     Map<String, Object> schema, FieldMode fieldMode) {
+  private FieldConfig(String name, String algorithm, String keyId,
+                     Map<String, Object> schema, FieldMode fieldMode, String fpeTweak, AlphabetTypeFPE fpeAlphabetType, String fpeAlphabetCustom, String encoding) {
     this.name = Objects.requireNonNull(name,"field config's name must not be null");
     this.algorithm = algorithm;
     this.keyId = keyId;
     this.schema = schema;
     this.fieldMode = fieldMode;
+    this.fpeTweak = fpeTweak;
+    this.fpeAlphabetType = fpeAlphabetType;
+    this.fpeAlphabetCustom = fpeAlphabetCustom;
+    this.encoding = encoding;
   }
 
   public String getName() {
@@ -63,17 +69,45 @@ public class FieldConfig {
     return Optional.ofNullable(fieldMode);
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    FieldConfig that = (FieldConfig) o;
-    return Objects.equals(name, that.name) && Objects.equals(algorithm, that.algorithm) && Objects.equals(keyId, that.keyId) && Objects.equals(schema, that.schema) && fieldMode == that.fieldMode;
+  public Optional<String> getFpeTweak() {
+    return Optional.ofNullable(fpeTweak);
+  }
+
+  public Optional<AlphabetTypeFPE> getFpeAlphabetType() {
+    return Optional.ofNullable(fpeAlphabetType);
+  }
+
+  public Optional<String> getFpeAlphabetCustom() {
+    return Optional.ofNullable(fpeAlphabetCustom);
+  }
+
+  public Optional<String> getEncoding() {
+    return Optional.ofNullable(encoding);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, algorithm, keyId, schema, fieldMode);
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    FieldConfig other = (FieldConfig) obj;
+    if (name == null) {
+      if (other.name != null)
+        return false;
+    } else if (!name.equals(other.name))
+      return false;
+    return true;
   }
 
   @Override
@@ -84,7 +118,79 @@ public class FieldConfig {
             ", keyId='" + keyId + '\'' +
             ", schema=" + schema +
             ", fieldMode=" + fieldMode +
+            ", fpeTweak='" + fpeTweak + '\'' +
+            ", fpeAlphabetType='" + fpeAlphabetType + '\'' +
+            ", fpeAlphabetCustom='" + fpeAlphabetCustom + '\'' +
+            ", encoding='" + encoding + '\'' +
             '}';
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static class Builder {
+    private String name;
+    private String algorithm;
+    private String keyId;
+    private Map<String, Object> schema;
+    private String fpeTweak;
+    private AlphabetTypeFPE fpeAlphabetType;
+    private String fpeAlphabetCustom;
+    private String encoding;
+    private FieldMode fieldMode;
+
+    private Builder() {
+    }
+
+    public Builder name(String name) {
+      this.name = name;
+      return this;
+    }
+
+    public Builder algorithm(String algorithm) {
+      this.algorithm = algorithm;
+      return this;
+    }
+
+    public Builder keyId(String keyId) {
+      this.keyId = keyId;
+      return this;
+    }
+
+    public Builder schema(Map<String, Object> schema) {
+      this.schema = schema;
+      return this;
+    }
+
+    public Builder fpeTweak(String fpeTweak) {
+      this.fpeTweak = fpeTweak;
+      return this;
+    }
+
+    public Builder fpeAlphabetType(AlphabetTypeFPE fpeAlphabetType) {
+      this.fpeAlphabetType = fpeAlphabetType;
+      return this;
+    }
+
+    public Builder fpeAlphabetCustomer(String fpeAlphabetCustom) {
+      this.fpeAlphabetCustom = fpeAlphabetCustom;
+      return this;
+    }
+
+    public Builder encoding(String encoding) {
+      this.encoding = encoding;
+      return this;
+    }
+
+    public Builder fieldMode(FieldMode fieldMode) {
+      this.fieldMode = fieldMode;
+      return this;
+    }
+
+    public FieldConfig build() {
+      return new FieldConfig(name, algorithm, keyId, schema, fieldMode, fpeTweak, fpeAlphabetType, fpeAlphabetCustom, encoding);
+    }
   }
 
 }

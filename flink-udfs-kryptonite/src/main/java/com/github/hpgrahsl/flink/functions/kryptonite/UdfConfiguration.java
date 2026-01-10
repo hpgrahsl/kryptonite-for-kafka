@@ -55,6 +55,26 @@ public class UdfConfiguration {
                 KryptoniteSettings.CIPHER_ALGORITHM,
                 KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
         configuration.putIfAbsent(KryptoniteSettings.CIPHER_ALGORITHM, cipherAlgorithm);
+
+        var cipherTextEncoding = context.getJobParameter(
+            KryptoniteSettings.CIPHER_TEXT_ENCODING,
+            KryptoniteSettings.CIPHER_TEXT_ENCODING_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.CIPHER_TEXT_ENCODING, cipherTextEncoding);
+        
+        var cipherFpeTweak = context.getJobParameter(
+            KryptoniteSettings.CIPHER_FPE_TWEAK,
+            KryptoniteSettings.CIPHER_FPE_TWEAK_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.CIPHER_FPE_TWEAK, cipherFpeTweak);
+
+        var cipherFpeAlphabetType = context.getJobParameter(
+            KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE,
+            KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE, cipherFpeAlphabetType);
+
+        var cipherFpeAlphabetCustom = context.getJobParameter(
+            KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM,
+            KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM, cipherFpeAlphabetCustom);
         
         var keySource = context.getJobParameter(
             KryptoniteSettings.KEY_SOURCE,
@@ -112,6 +132,26 @@ public class UdfConfiguration {
         var cipherAlgorithm = System.getenv(KryptoniteSettings.CIPHER_ALGORITHM);
         if (cipherAlgorithm != null) {
             configuration.put(KryptoniteSettings.CIPHER_ALGORITHM, cipherAlgorithm);
+        }
+
+        var cipherTextEncoding = System.getenv(KryptoniteSettings.CIPHER_TEXT_ENCODING);
+        if (cipherTextEncoding != null) {
+            configuration.put(KryptoniteSettings.CIPHER_TEXT_ENCODING, cipherTextEncoding);
+        }
+
+        var cipherFpeTweak = System.getenv(KryptoniteSettings.CIPHER_FPE_TWEAK);
+        if (cipherFpeTweak != null) {
+            configuration.put(KryptoniteSettings.CIPHER_FPE_TWEAK, cipherFpeTweak);
+        }
+
+        var cipherFpeAlphabetType = System.getenv(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE);
+        if (cipherFpeAlphabetType != null) {
+            configuration.put(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE, cipherFpeAlphabetType);
+        }
+
+        var cipherFpeAlphabetCustom = System.getenv(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM);
+        if (cipherFpeAlphabetCustom != null) {
+            configuration.put(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM, cipherFpeAlphabetCustom);
         }
 
         var keySource = System.getenv(KryptoniteSettings.KEY_SOURCE);

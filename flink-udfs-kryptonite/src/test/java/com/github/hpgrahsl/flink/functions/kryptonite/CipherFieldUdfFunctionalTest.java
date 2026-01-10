@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class CipherFieldEncryptDecryptUdfFunctionalTest {
+public class CipherFieldUdfFunctionalTest {
 
     enum FieldMode {
         OBJECT,
@@ -49,7 +49,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
     class WithoutCloudKmsConfig {
 
         @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldEncryptDecryptUdfFunctionalTest#generateValidParamsWithoutCloudKms")
+        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldUdfFunctionalTest#generateValidParamsWithoutCloudKms")
         @DisplayName("apply UDF on row data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForRow(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
@@ -61,7 +61,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         }
 
         @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldEncryptDecryptUdfFunctionalTest#generateValidParamsWithoutCloudKms")
+        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldUdfFunctionalTest#generateValidParamsWithoutCloudKms")
         @DisplayName("apply UDF on map data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForMap(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
@@ -79,7 +79,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
     class WithCloudKmsConfig {
 
         @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldEncryptDecryptUdfFunctionalTest#generateValidParamsWithCloudKms")
+        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldUdfFunctionalTest#generateValidParamsWithCloudKms")
         @DisplayName("apply UDF on row data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForRow(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
@@ -91,7 +91,7 @@ public class CipherFieldEncryptDecryptUdfFunctionalTest {
         }
 
         @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldEncryptDecryptUdfFunctionalTest#generateValidParamsWithCloudKms")
+        @MethodSource("com.github.hpgrahsl.flink.functions.kryptonite.CipherFieldUdfFunctionalTest#generateValidParamsWithCloudKms")
         @DisplayName("apply UDF on map data in object mode to verify decrypt(encrypt(plaintext)) = plaintext with various param combinations")
         void encryptDecryptUdfForMap(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
                 String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,

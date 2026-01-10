@@ -52,7 +52,8 @@ import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
 public abstract class CipherField<R extends ConnectRecord<R>> implements Transformation<R> {
 
   public enum CipherEncoding {
-    BASE64
+    BASE64,
+    RAW_BYTES
   }
 
   public enum FieldMode {
@@ -77,7 +78,13 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       .define(CIPHER_DATA_KEY_IDENTIFIER, Type.STRING, CIPHER_DATA_KEY_IDENTIFIER_DEFAULT,
           ConfigDef.Importance.HIGH, "secret key identifier to be used as default data encryption key for all fields which don't refer to a field-specific secret key identifier")
       .define(CIPHER_TEXT_ENCODING, Type.STRING, CIPHER_TEXT_ENCODING_DEFAULT, new CipherEncodingValidator(),
-          ConfigDef.Importance.LOW, "defines the encoding of the resulting ciphertext bytes (currently only supports 'base64')")
+          ConfigDef.Importance.LOW, "defines the encoding of the resulting ciphertext bytes (currently supports 'BASE64' and 'RAW_BYTES')")
+      .define(CIPHER_FPE_TWEAK, Type.STRING, CIPHER_FPE_TWEAK_DEFAULT,
+          ConfigDef.Importance.LOW, "defines the default tweak used for field-preserving encryption ciphers (must be a 7 or 8 bytes string)")
+      .define(CIPHER_FPE_ALPHABET_TYPE, Type.STRING, CIPHER_FPE_ALPHABET_TYPE_DEFAULT,
+          ConfigDef.Importance.MEDIUM, "defines the default alphabet type used for field-preserving encryption ciphers (currently supports 'DIGITS', 'ALPHANUMERIC', 'ALPHANUMERIC_EXTENDED', 'UPPERCASE', 'LOWERCASE', 'HEXADECIMAL', 'CUSTOM')")
+      .define(CIPHER_FPE_ALPHABET_CUSTOM, Type.STRING, CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT,
+          ConfigDef.Importance.LOW, "defines the actual custom alphabet used for field-preserving encryption ciphers (mandatory if "+CIPHER_FPE_ALPHABET_TYPE_DEFAULT+") is set to 'CUSTOM')")
       .define(CIPHER_MODE, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new CipherModeValidator(),
           ConfigDef.Importance.HIGH, "defines whether the data should get encrypted or decrypted")
       .define(KEY_SOURCE, Type.STRING, KEY_SOURCE_DEFAULT, new KeySourceValidator(), ConfigDef.Importance.HIGH,
@@ -180,6 +187,9 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       Map.entry(CIPHER_DATA_KEYS, Optional.ofNullable(config.getPassword(CIPHER_DATA_KEYS).value()).orElse(CIPHER_DATA_KEYS_DEFAULT)),
       Map.entry(CIPHER_DATA_KEY_IDENTIFIER, Optional.ofNullable(config.getString(CIPHER_DATA_KEY_IDENTIFIER)).orElse(CIPHER_DATA_KEY_IDENTIFIER_DEFAULT)),
       Map.entry(CIPHER_TEXT_ENCODING, Optional.ofNullable(config.getString(CIPHER_TEXT_ENCODING)).orElse(CIPHER_TEXT_ENCODING_DEFAULT)),
+      Map.entry(CIPHER_FPE_TWEAK,Optional.ofNullable(config.getString(CIPHER_FPE_TWEAK)).orElse(CIPHER_FPE_TWEAK_DEFAULT)),
+      Map.entry(CIPHER_FPE_ALPHABET_TYPE,Optional.ofNullable(config.getString(CIPHER_FPE_ALPHABET_TYPE)).orElse(CIPHER_FPE_ALPHABET_TYPE_DEFAULT)),
+      Map.entry(CIPHER_FPE_ALPHABET_CUSTOM,Optional.ofNullable(config.getString(CIPHER_FPE_ALPHABET_CUSTOM)).orElse(CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT)),
       Map.entry(CIPHER_MODE, config.getString(CIPHER_MODE)),
       Map.entry(KEY_SOURCE, Optional.ofNullable(config.getString(KEY_SOURCE)).orElse(KEY_SOURCE_DEFAULT)),
       Map.entry(KMS_TYPE, Optional.ofNullable(config.getString(KMS_TYPE)).orElse(KMS_TYPE_DEFAULT)),

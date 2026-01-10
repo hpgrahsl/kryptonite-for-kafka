@@ -69,6 +69,7 @@ public class CipherFieldSmtFunctionalTest {
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
         
       performSchemafulRecordTest(cipherDataKeys, fieldMode, cipherSpec, keyId1, keyId2, keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
+    }
   }
 
   @Nested
@@ -188,7 +189,7 @@ public class CipherFieldSmtFunctionalTest {
 
   void performSchemafulRecordTest(String cipherDataKeys,FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2, 
         KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig, String kekUri) {
-var encProps = new HashMap<String, Object>();
+      var encProps = new HashMap<String, Object>();
       encProps.put(KryptoniteSettings.CIPHER_MODE, "ENCRYPT");
       encProps.put(KryptoniteSettings.FIELD_CONFIG,
           "["
@@ -278,7 +279,6 @@ var encProps = new HashMap<String, Object>();
       ).value();
   
       assertAllResultingFieldsSchemafulRecord(TestFixtures.TEST_OBJ_STRUCT_1,decryptedRecord);
-    }
   }
   
 

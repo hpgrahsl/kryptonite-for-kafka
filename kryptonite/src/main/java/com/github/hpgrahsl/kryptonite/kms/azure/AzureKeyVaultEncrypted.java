@@ -25,6 +25,7 @@ import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.RegistryConfiguration;
 
 import java.util.HashMap;
 
@@ -67,7 +68,7 @@ public class AzureKeyVaultEncrypted extends AbstractKeyVault {
   private void fetchIntoKeyCache(String identifier) {
     try {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
-      Aead kekAead = kmsKeyEncryption.getKeyEnryptionKeyHandle().getPrimitive(Aead.class);
+      Aead kekAead = kmsKeyEncryption.getKeyEnryptionKeyHandle().getPrimitive(RegistryConfiguration.get(), Aead.class);
       keysetHandles.put(identifier, createKeysetHandle(OBJECT_MAPPER.readValue(keyConfig, TinkKeyConfigEncrypted.class), kekAead));
     } catch (KeyNotFoundException e) {
       throw new KeyNotFoundException("could not find key set handle for identifier '"

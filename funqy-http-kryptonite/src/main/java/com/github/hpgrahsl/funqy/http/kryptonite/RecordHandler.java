@@ -20,10 +20,13 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMode;
 import com.github.hpgrahsl.kryptonite.*;
+import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -87,22 +90,60 @@ public class RecordHandler {
     try {
       var fieldMetaData = determineFieldMetaData(objectOriginal,object,matchedPath);
       if (CipherMode.ENCRYPT == cipherMode) {
-        var valueBytes = serdeProcessor.objectToBytes(object);
-        var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-        var output = new Output(new ByteArrayOutputStream());
-        KryoInstance.get().writeObject(output,encryptedField);
-        var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
-        return encodedField;
+        if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
+          return encryptFPE(object, fieldMetaData);  
+        } 
+        return encrypt(object, fieldMetaData);
       } else {
-        var decodedField = Base64.getDecoder().decode((String)object);
-        var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);
-        var plaintext = kryptonite.decipherField(encryptedField);
-        var restoredField = serdeProcessor.bytesToObject(plaintext);
-        return restoredField;
+        if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
+          return decryptFPE(object, fieldMetaData);  
+        }
+        return decrypt(object);
       }
     } catch (Exception e) {
       throw new KryptoniteException("error: "+cipherMode+" of field path '"+matchedPath+"' having data '"+object+ "' failed unexpectedly",e);
     }
+  }
+
+  public Object encrypt(Object object, FieldMetaData fieldMetaData) {
+    var valueBytes = serdeProcessor.objectToBytes(object);
+    var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
+    var output = new Output(new ByteArrayOutputStream());
+    KryoInstance.get().writeObject(output, encryptedField);
+    // TODO: the base 64 encoding should be optional / is configurable
+    // so that raw bytes be can handled as well (e.g. in binary fields and binary serialization formats)
+    var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
+    return encodedField;
+  }
+
+  public String encryptFPE(Object object, FieldMetaData fieldMetaData) {
+    // NOTE: null is by definition not encryptable with FPE ciphers
+    if (object == null) {
+      return null;
+    }
+    var plaintext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
+    var ciphertext = new String(kryptonite.cipherFieldFPE(plaintext, fieldMetaData),StandardCharsets.UTF_8);
+    return ciphertext;
+  }
+
+  public Object decrypt(Object object) {
+    // TODO: the base 64 decoding should be optional / is configurable
+    // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
+    var decodedField = Base64.getDecoder().decode((String) object);
+    var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);  
+    var plaintext = kryptonite.decipherField(encryptedField);
+    var restoredField = serdeProcessor.bytesToObject(plaintext);
+    return restoredField;
+  }
+
+  public String decryptFPE(Object object, FieldMetaData fieldMetaData) {
+    // NOTE: null is by definition not decryptable with FPE ciphers
+    if (object == null) {
+      return null;
+    }
+    var ciphertext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
+    var plaintext = new String(kryptonite.decipherFieldFPE(ciphertext, fieldMetaData),StandardCharsets.UTF_8);
+    return plaintext;
   }
 
   public List<?> processListField(Map<String,Object> objectOriginal,List<?> list,String matchedPath) {
@@ -131,53 +172,76 @@ public class RecordHandler {
         }).collect(LinkedHashMap::new,(lhm,e) -> lhm.put(e.getKey(),e.getValue()), HashMap::putAll);
   }
 
-  private FieldMetaData determineFieldMetaData(Map<String,Object> objectOriginal,Object object, String fieldPath) {
+  private FieldMetaData determineFieldMetaData(Map<String,Object> objectOriginal, Object object, String fieldPath) {
     
     var fieldMetaData = Optional.ofNullable(fieldConfig.get(fieldPath))
-            .map(fc -> new FieldMetaData(
-                fc.getAlgorithm().orElseGet(() -> config.cipherAlgorithm),
-                Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""),
-                fc.getKeyId().orElseGet(() -> config.cipherDataKeyIdentifier)
-                )
-            ).orElseGet(
-                () -> new FieldMetaData(
-                    config.cipherAlgorithm,
-                    Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""),
-                    config.cipherDataKeyIdentifier
-                )
-            );
-      
+          .map(fc -> 
+            FieldMetaData.builder()
+              .algorithm(fc.getAlgorithm().orElseGet(() -> config.cipherAlgorithm))
+              .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
+              .keyId(fc.getKeyId().orElseGet(() -> config.cipherDataKeyIdentifier))
+              .fpeTweak(fc.getFpeTweak().orElseGet(() -> config.cipherFpeTweak))
+              .fpeAlphabet(determineAlphabetFromFieldConfig(fc))
+              .encoding(fc.getEncoding().orElse(config.cipherTextEncoding))
+              .build()
+        ).orElseGet(
+            () -> FieldMetaData.builder()
+              .algorithm(config.cipherAlgorithm)
+              .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
+              .keyId(config.cipherDataKeyIdentifier)
+              .fpeTweak(config.cipherFpeTweak)
+              .fpeAlphabet(getAlphabetFromGlobalConfig())
+              .encoding(config.cipherTextEncoding)
+              .build()
+        );  
+    
     if(!fieldMetaData.getKeyId().startsWith(config.dynamicKeyIdPrefix)) {
         return fieldMetaData;
     }
 
     var extractedKeyIdentifier = extractKeyIdentifierFromPayload(objectOriginal, fieldMetaData.getKeyId().replace(config.dynamicKeyIdPrefix, ""));
+    
+    return FieldMetaData.builder()
+      .algorithm(fieldMetaData.getAlgorithm())
+      .dataType(fieldMetaData.getDataType())
+      .keyId(extractedKeyIdentifier.orElseGet(() -> config.cipherDataKeyIdentifier))
+      .fpeTweak(fieldMetaData.getFpeTweak())
+      .fpeAlphabet(fieldMetaData.getFpeAlphabet())
+      .encoding(fieldMetaData.getEncoding())
+      .build();
+  }
 
-    return new FieldMetaData( 
-      fieldMetaData.getAlgorithm(),
-      fieldMetaData.getDataType(),
-      extractedKeyIdentifier.orElseGet(() -> config.cipherDataKeyIdentifier)
-    );
+  private String determineAlphabetFromFieldConfig(FieldConfig fieldConfig) {
+    var alphabetType = fieldConfig.getFpeAlphabetType().orElse(config.cipherFpeAlphabetType);
+    if(alphabetType == AlphabetTypeFPE.CUSTOM) {
+      return fieldConfig.getFpeAlphabetCustom().orElse(config.cipherFpeAlphabetCustom.orElse(""));
+    }
+    return alphabetType.getAlphabet();
+  }
 
+  private String getAlphabetFromGlobalConfig() {
+    return config.cipherFpeAlphabetType == AlphabetTypeFPE.CUSTOM
+                    ? config.cipherFpeAlphabetCustom.orElse("")
+                    : config.cipherFpeAlphabetType.getAlphabet();
   }
  
   @SuppressWarnings("unchecked")
   private Optional<String> extractKeyIdentifierFromPayload(Map<String, Object> payload, String fieldPath) {
     if(!fieldPath.contains(config.pathDelimiter)) {
       Object value = payload.get(fieldPath);
-      if(value instanceof String) {
-        return Optional.of((String)value);
-      }
-      throw new RuntimeException("error: key identifier extraction failed"
+      if(! (value instanceof String)) {
+        throw new RuntimeException("error: key identifier extraction failed"
         + " -> either the dynamic key identifier has an invalid field path set or the payload itself doesn't contain the specified field(s)");
+      }
+      return Optional.of((String)value);
     }
     String[] fields = fieldPath.split("\\"+config.pathDelimiter);
     Object field = payload.get(fields[0]);
-    if(field instanceof Map) {
-      return extractKeyIdentifierFromPayload((Map<String,Object>)field, String.join(config.pathDelimiter, Arrays.copyOfRange(fields, 1, fields.length)));
+    if(!(field instanceof Map)) {
+      throw new RuntimeException("error: key identifier extraction failed"
+      + " -> either the dynamic key identifier has an invalid field path set or the payload itself doesn't contain the specified field(s)");  
     }
-    throw new RuntimeException("error: key identifier extraction failed"
-      + " -> either the dynamic key identifier has an invalid field path set or the payload itself doesn't contain the specified field(s)");
+    return extractKeyIdentifierFromPayload((Map<String,Object>)field, String.join(config.pathDelimiter, Arrays.copyOfRange(fields, 1, fields.length)));
   }
 
 }

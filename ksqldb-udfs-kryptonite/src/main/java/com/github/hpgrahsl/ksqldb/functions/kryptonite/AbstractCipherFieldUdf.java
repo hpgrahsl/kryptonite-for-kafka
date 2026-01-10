@@ -18,11 +18,8 @@ package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import java.util.Map;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
-import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
-import static com.github.hpgrahsl.ksqldb.functions.kryptonite.CustomUdfConfig.*;
 
 import io.confluent.ksql.function.udf.UdfDescription;
 
@@ -40,40 +37,7 @@ public abstract class AbstractCipherFieldUdf {
     }
 
     public void configure(Map<String, ?> configMap, UdfDescription udfDescription) {
-        var functionName = udfDescription.name();
-        
-        var cipherDataKeyIdentifierConfig = (String)configMap.get(getPrefixedConfigParam(functionName,CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER));
-        var cipherDataKeyIdentifier = cipherDataKeyIdentifierConfig != null ? cipherDataKeyIdentifierConfig : CIPHER_DATA_KEY_IDENTIFIER_DEFAULT;
-        
-        var keySourceConfig = (String)configMap.get(getPrefixedConfigParam(functionName,CONFIG_PARAM_KEY_SOURCE));
-        var keySource = keySourceConfig != null ? keySourceConfig : KEY_SOURCE_DEFAULT;
-        
-        var kmsTypeConfig = (String)configMap.get(getPrefixedConfigParam(functionName, CONFIG_PARAM_KMS_TYPE));
-        var kmsType = kmsTypeConfig != null ? kmsTypeConfig : KMS_TYPE_DEFAULT;
-        
-        var kmsConfigConfig = (String)configMap.get(getPrefixedConfigParam(functionName, CONFIG_PARAM_KMS_CONFIG));
-        var kmsConfig = kmsConfigConfig != null ? kmsConfigConfig : KMS_CONFIG_DEFAULT;
-        
-        var kekTypeConfig = (String)configMap.get(getPrefixedConfigParam(functionName, CONFIG_PARAM_KEK_TYPE));
-        var kekType = kekTypeConfig != null ? kekTypeConfig : KEK_TYPE_DEFAULT;
-        
-        var kekConfigConfig = (String)configMap.get(getPrefixedConfigParam(functionName, CONFIG_PARAM_KEK_CONFIG));
-        var kekConfig = kekConfigConfig != null ? kekConfigConfig : KEK_CONFIG_DEFAULT;
-        
-        var kekUriConfig = (String)configMap.get(getPrefixedConfigParam(functionName, CONFIG_PARAM_KEK_URI));
-        var kekUri = kekUriConfig != null ? kekUriConfig : "";
-
-        var normalizedStringsMap = Map.ofEntries(
-                Map.entry(KryptoniteSettings.CIPHER_DATA_KEYS,(String)configMap.get(getPrefixedConfigParam(functionName, CONFIG_PARAM_CIPHER_DATA_KEYS))),
-                Map.entry(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER,cipherDataKeyIdentifier),
-                Map.entry(KryptoniteSettings.KEY_SOURCE,keySource),
-                Map.entry(KryptoniteSettings.KMS_TYPE,kmsType),
-                Map.entry(KryptoniteSettings.KMS_CONFIG,kmsConfig),
-                Map.entry(KryptoniteSettings.KEK_TYPE,kekType),
-                Map.entry(KryptoniteSettings.KEK_CONFIG,kekConfig),
-                Map.entry(KryptoniteSettings.KEK_URI,kekUri)
-        );
-        kryptonite = Kryptonite.createFromConfig(normalizedStringsMap);
+        kryptonite = CustomUdfConfig.KryptoniteUtil.createKryptoniteFromConfig(configMap, udfDescription.name());
     }
 
 }

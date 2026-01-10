@@ -20,6 +20,7 @@ import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.RegistryConfiguration;
 
 import java.security.GeneralSecurityException;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class TinkKeyVaultEncrypted extends AbstractKeyVault {
 
   protected static Map<String,KeysetHandle> createKeysetHandles(Map<String, TinkKeyConfigEncrypted> keyConfigsEncrypted, KmsKeyEncryption kmsKeyEncryption) {
     try {
-      Aead kekAead = kmsKeyEncryption.getKeyEnryptionKeyHandle().getPrimitive(Aead.class);
+      Aead kekAead = kmsKeyEncryption.getKeyEnryptionKeyHandle().getPrimitive(RegistryConfiguration.get(), Aead.class);
       return keyConfigsEncrypted.entrySet().stream()
         .map(me -> Map.entry(me.getKey(), createKeysetHandle(me.getValue(), kekAead)))
         .collect(Collectors.toMap(Entry::getKey,Entry::getValue));

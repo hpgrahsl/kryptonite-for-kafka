@@ -31,7 +31,6 @@ import org.apache.flink.table.types.KeyValueDataType;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
 
-import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 
@@ -54,16 +53,11 @@ public class EncryptMapUdf extends AbstractCipherFieldUdf {
         if (data == null || !(data instanceof Map)) {
             return null;
         }
+        var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, data, defaultCipherDataKeyIdentifier);
         return ((Map<?, ?>) data).entrySet().stream().map(
                 e -> new AbstractMap.SimpleEntry<>(
-                        e.getKey(),
-                        encryptData(
-                                e.getValue(),
-                                new FieldMetaData(
-                                        KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT,
-                                        Optional.ofNullable(e.getValue()).map(o -> o.getClass().getName()).orElse(""),
-                                        defaultCipherDataKeyIdentifier))))
-                .collect(LinkedHashMap::new, (lhm, e) -> lhm.put(e.getKey(), e.getValue()), HashMap::putAll);
+                        e.getKey(),encryptData(e.getValue(),fmd)
+                )).collect(LinkedHashMap::new, (lhm, e) -> lhm.put(e.getKey(), e.getValue()), HashMap::putAll);
     }
 
     @Override
