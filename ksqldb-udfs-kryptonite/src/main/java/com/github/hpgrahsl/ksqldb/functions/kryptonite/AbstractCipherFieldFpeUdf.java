@@ -83,7 +83,10 @@ public abstract class AbstractCipherFieldFpeUdf {
             String fpeAlphabetType,
             String fpeAlphabetCustom) {
 
-        // Use config defaults if parameters are null
+        // If any of the specified parameters is null, try to first get
+        // it from the UDF configuration settings, if still null use the libraries defaults
+        // where reasonably applicable.
+        
         if (cipherAlgorithm == null) {
             cipherAlgorithm = getConfigurationSetting(CONFIG_PARAM_CIPHER_ALGORITHM);
             if (cipherAlgorithm == null) {

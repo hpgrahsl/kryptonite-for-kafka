@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
+import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 
@@ -53,7 +54,7 @@ public class CipherFieldEncryptFpeUdf extends AbstractCipherFieldFpeUdf implemen
     private String defaultCipherDataKeyIdentifier;
 
     @Override
-    public void configure(java.util.Map<String, ?> map) {
+    public void configure(Map<String, ?> map) {
         try {
             super.configure(map, this.getClass().getAnnotation(UdfDescription.class));
             var cipherDataKeyIdentifier = getConfigurationSetting(CustomUdfConfig.CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER);
@@ -64,9 +65,12 @@ public class CipherFieldEncryptFpeUdf extends AbstractCipherFieldFpeUdf implemen
             }
             defaultCipherDataKeyIdentifier = cipherDataKeyIdentifier;
             LOGGER.info("initialized UDF with default key identifier: {}", defaultCipherDataKeyIdentifier);
-        } catch (Exception exc) {
+        } catch (KryptoniteException exc) {
             LOGGER.error("failed to initialize UDF", exc);
             throw exc;
+        } catch (Exception exc) {
+            LOGGER.error("failed to initialize UDF", exc);
+            throw new KryptoniteException("failed to initialize UDF", exc);
         }
     }
 
