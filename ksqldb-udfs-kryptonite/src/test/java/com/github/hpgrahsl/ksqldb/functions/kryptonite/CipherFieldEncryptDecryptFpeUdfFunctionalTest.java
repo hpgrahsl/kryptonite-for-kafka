@@ -21,127 +21,374 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import io.confluent.ksql.function.udf.UdfDescription;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.api.Test;
 
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DisplayName("FPE Encrypt/Decrypt UDF Functional Tests")
 public class CipherFieldEncryptDecryptFpeUdfFunctionalTest {
 
-    @Nested
-    class WithoutCloudKmsConfig {
+    private CipherFieldEncryptFpeUdf encUdf;
+    private CipherFieldDecryptFpeUdf decUdf;
+    private String keyId1;
+    private String keyId2;
+    private String tweak;
+    private String cipherAlgorithm;
 
-        @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.ksqldb.functions.kryptonite.CipherFieldEncryptDecryptFpeUdfFunctionalTest#generateValidParamsWithoutCloudKms")
-        @DisplayName("apply UDF on data to verify decrypt(encrypt(plaintext)) = plaintext with various FPE param combinations")
-        void encryptDecryptFpeUdfTest(String cipherDataKeys, String defaultKeyIdentifier,
-                String keyId1, String keyId2, String tweak, Kryptonite.CipherSpec cipherAlgorithm,
-                KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
-                KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
+    @BeforeEach
+    void setUp() {
+        // Test configuration
+        keyId1 = "keyD";
+        keyId2 = "keyE";
+        tweak = "MYTWEAK";
+        cipherAlgorithm = Kryptonite.CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM).getName();
 
-            performTest(cipherDataKeys, defaultKeyIdentifier, keyId1, keyId2, tweak, cipherAlgorithm,
-                        keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
-        }
-
-    }
-
-    void performTest(String cipherDataKeys, String defaultKeyIdentifier,
-            String keyId1, String keyId2, String tweak, Kryptonite.CipherSpec cipherAlgorithm,
-            KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
-            KryptoniteSettings.KekType kekType, String kekConfig, String kekUri) {
-
-        // Arrange - Configure encryption UDF
-        var encUdf = new CipherFieldEncryptFpeUdf();
+        // Initialize encrypt UDF
+        encUdf = new CipherFieldEncryptFpeUdf();
         var encConfigMap = createConfigMap(
                 encUdf.getClass().getAnnotation(UdfDescription.class).name(),
-                cipherDataKeys, defaultKeyIdentifier, keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
+                TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE,
+                "keyC",
+                KryptoniteSettings.KeySource.CONFIG,
+                KryptoniteSettings.KmsType.NONE,
+                KryptoniteSettings.KMS_CONFIG_DEFAULT,
+                KryptoniteSettings.KekType.NONE,
+                KryptoniteSettings.KEK_CONFIG_DEFAULT,
+                KryptoniteSettings.KEK_URI_DEFAULT
+        );
         encUdf.configure(encConfigMap);
 
-        // Arrange - Configure decryption UDF
-        var decUdf = new CipherFieldDecryptFpeUdf();
+        // Initialize decrypt UDF
+        decUdf = new CipherFieldDecryptFpeUdf();
         var decConfigMap = createConfigMap(
                 decUdf.getClass().getAnnotation(UdfDescription.class).name(),
-                cipherDataKeys, defaultKeyIdentifier, keySource, kmsType, kmsConfig, kekType, kekConfig, kekUri);
+                TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE,
+                "keyC",
+                KryptoniteSettings.KeySource.CONFIG,
+                KryptoniteSettings.KmsType.NONE,
+                KryptoniteSettings.KMS_CONFIG_DEFAULT,
+                KryptoniteSettings.KekType.NONE,
+                KryptoniteSettings.KEK_CONFIG_DEFAULT,
+                KryptoniteSettings.KEK_URI_DEFAULT
+        );
         decUdf.configure(decConfigMap);
+    }
 
-        // Act & Assert - Test DIGITS alphabet (CCN)
-        var ccnPlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myCCN");
-        var ccnEncrypted = encUdf.encryptField(ccnPlaintext, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.DIGITS.name());
-        assertNotNull(ccnEncrypted);
-        assertEquals(ccnPlaintext.length(), ccnEncrypted.length(), "CCN length should be preserved");
-        assertTrue(ccnEncrypted.matches("\\d+"), "CCN should contain only digits");
-        var ccnDecrypted = decUdf.decryptField(ccnEncrypted, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.DIGITS.name());
-        assertEquals(ccnPlaintext, ccnDecrypted, "CCN decryption should match original");
+    @Nested
+    @DisplayName("String Field Encryption/Decryption")
+    class StringFieldTests {
 
-        // Act & Assert - Test DIGITS alphabet (SSN)
-        var ssnPlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("mySSN");
-        var ssnEncrypted = encUdf.encryptField(ssnPlaintext, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.DIGITS.name());
-        assertNotNull(ssnEncrypted);
-        assertEquals(ssnPlaintext.length(), ssnEncrypted.length(), "SSN length should be preserved");
-        assertTrue(ssnEncrypted.matches("\\d+"), "SSN should contain only digits");
-        var ssnDecrypted = decUdf.decryptField(ssnEncrypted, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.DIGITS.name());
-        assertEquals(ssnPlaintext, ssnDecrypted, "SSN decryption should match original");
+        @Test
+        @DisplayName("should encrypt/decrypt CCN with DIGITS alphabet")
+        void testCreditCardNumberWithDigits() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myCCN");
 
-        // Act & Assert - Test UPPERCASE alphabet
-        var uppercasePlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText1");
-        var uppercaseEncrypted = encUdf.encryptField(uppercasePlaintext, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.UPPERCASE.name());
-        assertNotNull(uppercaseEncrypted);
-        assertEquals(uppercasePlaintext.length(), uppercaseEncrypted.length(), "Uppercase text length should be preserved");
-        assertTrue(uppercaseEncrypted.matches("[A-Z]+"), "Uppercase text should contain only uppercase letters");
-        var uppercaseDecrypted = decUdf.decryptField(uppercaseEncrypted, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.UPPERCASE.name());
-        assertEquals(uppercasePlaintext, uppercaseDecrypted, "Uppercase text decryption should match original");
+            var encrypted = encUdf.encryptField(plaintext, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
 
-        // Act & Assert - Test LOWERCASE alphabet
-        var lowercasePlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText2");
-        var lowercaseEncrypted = encUdf.encryptField(lowercasePlaintext, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.LOWERCASE.name());
-        assertNotNull(lowercaseEncrypted);
-        assertEquals(lowercasePlaintext.length(), lowercaseEncrypted.length(), "Lowercase text length should be preserved");
-        assertTrue(lowercaseEncrypted.matches("[a-z]+"), "Lowercase text should contain only lowercase letters");
-        var lowercaseDecrypted = decUdf.decryptField(lowercaseEncrypted, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.LOWERCASE.name());
-        assertEquals(lowercasePlaintext, lowercaseDecrypted, "Lowercase text decryption should match original");
+            assertNotNull(encrypted, "Encrypted CCN should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "CCN length should be preserved");
+            assertTrue(encrypted.matches("\\d+"), "Encrypted CCN should contain only digits");
 
-        // Act & Assert - Test ALPHANUMERIC alphabet
-        var alphanumericPlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText3");
-        var alphanumericEncrypted = encUdf.encryptField(alphanumericPlaintext, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.ALPHANUMERIC.name());
-        assertNotNull(alphanumericEncrypted);
-        assertEquals(alphanumericPlaintext.length(), alphanumericEncrypted.length(), "Alphanumeric text length should be preserved");
-        assertTrue(alphanumericEncrypted.matches("[0-9A-Za-z]+"), "Alphanumeric text should contain only alphanumeric characters");
-        var alphanumericDecrypted = decUdf.decryptField(alphanumericEncrypted, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.ALPHANUMERIC.name());
-        assertEquals(alphanumericPlaintext, alphanumericDecrypted, "Alphanumeric text decryption should match original");
+            var decrypted = decUdf.decryptField(encrypted, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
 
-        // Act & Assert - Test ALPHANUMERIC_EXTENDED alphabet
-        var extendedPlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText4");
-        var extendedEncrypted = encUdf.encryptField(extendedPlaintext, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.ALPHANUMERIC_EXTENDED.name());
-        assertNotNull(extendedEncrypted);
-        assertEquals(extendedPlaintext.length(), extendedEncrypted.length(), "Extended text length should be preserved");
-        var extendedDecrypted = decUdf.decryptField(extendedEncrypted, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.ALPHANUMERIC_EXTENDED.name());
-        assertEquals(extendedPlaintext, extendedDecrypted, "Extended text decryption should match original");
+            assertEquals(plaintext, decrypted, "Decrypted CCN should match original");
+        }
 
-        // Act & Assert - Test HEXADECIMAL alphabet
-        var hexPlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText5");
-        var hexEncrypted = encUdf.encryptField(hexPlaintext, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.HEXADECIMAL.name());
-        assertNotNull(hexEncrypted);
-        assertEquals(hexPlaintext.length(), hexEncrypted.length(), "Hexadecimal text length should be preserved");
-        assertTrue(hexEncrypted.matches("[0-9A-F]+"), "Hexadecimal text should contain only hex characters");
-        var hexDecrypted = decUdf.decryptField(hexEncrypted, keyId1, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.HEXADECIMAL.name());
-        assertEquals(hexPlaintext, hexDecrypted, "Hexadecimal text decryption should match original");
+        @Test
+        @DisplayName("should encrypt/decrypt SSN with DIGITS alphabet")
+        void testSocialSecurityNumberWithDigits() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("mySSN");
 
-        // Act & Assert - Test CUSTOM alphabet (binary)
-        var binaryPlaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText6");
-        var binaryEncrypted = encUdf.encryptField(binaryPlaintext, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.CUSTOM.name(), "01");
-        assertNotNull(binaryEncrypted);
-        assertEquals(binaryPlaintext.length(), binaryEncrypted.length(), "Binary text length should be preserved");
-        assertTrue(binaryEncrypted.matches("[01]+"), "Binary text should contain only 0 and 1");
-        var binaryDecrypted = decUdf.decryptField(binaryEncrypted, keyId2, cipherAlgorithm.getName(), tweak, AlphabetTypeFPE.CUSTOM.name(), "01");
-        assertEquals(binaryPlaintext, binaryDecrypted, "Binary text decryption should match original");
+            var encrypted = encUdf.encryptField(plaintext, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertNotNull(encrypted, "Encrypted SSN should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "SSN length should be preserved");
+            assertTrue(encrypted.matches("\\d+"), "Encrypted SSN should contain only digits");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted SSN should match original");
+        }
+
+        @Test
+        @DisplayName("should encrypt/decrypt text with UPPERCASE alphabet")
+        void testTextWithUppercase() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText1");
+
+            var encrypted = encUdf.encryptField(plaintext, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.UPPERCASE.name());
+
+            assertNotNull(encrypted, "Encrypted text should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "Text length should be preserved");
+            assertTrue(encrypted.matches("[A-Z]+"), "Encrypted text should contain only uppercase letters");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.UPPERCASE.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted text should match original");
+        }
+
+        @Test
+        @DisplayName("should encrypt/decrypt text with LOWERCASE alphabet")
+        void testTextWithLowercase() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText2");
+
+            var encrypted = encUdf.encryptField(plaintext, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.LOWERCASE.name());
+
+            assertNotNull(encrypted, "Encrypted text should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "Text length should be preserved");
+            assertTrue(encrypted.matches("[a-z]+"), "Encrypted text should contain only lowercase letters");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.LOWERCASE.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted text should match original");
+        }
+
+        @Test
+        @DisplayName("should encrypt/decrypt text with ALPHANUMERIC alphabet")
+        void testTextWithAlphanumeric() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText3");
+
+            var encrypted = encUdf.encryptField(plaintext, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.ALPHANUMERIC.name());
+
+            assertNotNull(encrypted, "Encrypted text should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "Text length should be preserved");
+            assertTrue(encrypted.matches("[0-9A-Za-z]+"), "Encrypted text should contain only alphanumeric characters");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.ALPHANUMERIC.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted text should match original");
+        }
+
+        @Test
+        @DisplayName("should encrypt/decrypt text with ALPHANUMERIC_EXTENDED alphabet")
+        void testTextWithAlphanumericExtended() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText4");
+
+            var encrypted = encUdf.encryptField(plaintext, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.ALPHANUMERIC_EXTENDED.name());
+
+            assertNotNull(encrypted, "Encrypted text should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "Text length should be preserved");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.ALPHANUMERIC_EXTENDED.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted text should match original");
+        }
+
+        @Test
+        @DisplayName("should encrypt/decrypt text with HEXADECIMAL alphabet")
+        void testTextWithHexadecimal() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText5");
+
+            var encrypted = encUdf.encryptField(plaintext, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.HEXADECIMAL.name());
+
+            assertNotNull(encrypted, "Encrypted text should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "Text length should be preserved");
+            assertTrue(encrypted.matches("[0-9A-F]+"), "Encrypted text should contain only hexadecimal characters");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.HEXADECIMAL.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted text should match original");
+        }
+
+        @Test
+        @DisplayName("should encrypt/decrypt binary text with CUSTOM alphabet")
+        void testBinaryTextWithCustomAlphabet() {
+            var plaintext = TestFixtures.TEST_OBJ_MAP_1_FPE.get("myText6");
+            var customAlphabet = "01";
+
+            var encrypted = encUdf.encryptField(plaintext, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.CUSTOM.name(), customAlphabet);
+
+            assertNotNull(encrypted, "Encrypted binary text should not be null");
+            assertEquals(plaintext.length(), encrypted.length(), "Binary text length should be preserved");
+            assertTrue(encrypted.matches("[01]+"), "Encrypted binary text should contain only 0 and 1");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.CUSTOM.name(), customAlphabet);
+
+            assertEquals(plaintext, decrypted, "Decrypted binary text should match original");
+        }
+    }
+
+    @Nested
+    @DisplayName("List<String> Field Encryption/Decryption")
+    class ListFieldTests {
+
+        @Test
+        @DisplayName("should encrypt/decrypt list of CCNs with DIGITS alphabet")
+        void testListOfCreditCardNumbers() {
+            var plaintext = TestFixtures.TEST_LIST_CCNS;
+
+            var encrypted = encUdf.encryptField(plaintext, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertNotNull(encrypted, "Encrypted CCN list should not be null");
+            assertEquals(plaintext.size(), encrypted.size(), "List size should be preserved");
+
+            for (int i = 0; i < plaintext.size(); i++) {
+                assertNotNull(encrypted.get(i), "Encrypted CCN at index " + i + " should not be null");
+                assertEquals(plaintext.get(i).length(), encrypted.get(i).length(),
+                        "CCN length should be preserved at index " + i);
+                assertTrue(encrypted.get(i).matches("\\d+"),
+                        "Encrypted CCN should contain only digits at index " + i);
+            }
+
+            var decrypted = decUdf.decryptField(encrypted, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted CCN list should match original");
+        }
+    }
+
+    @Nested
+    @DisplayName("Map<?,String> Field Encryption/Decryption")
+    class MapFieldTests {
+
+        @Test
+        @DisplayName("should encrypt/decrypt map of phone numbers with DIGITS alphabet")
+        void testMapOfPhoneNumbers() {
+            var plaintext = TestFixtures.TEST_MAP_PHONE_NUMBERS;
+
+            var encrypted = encUdf.encryptField(plaintext, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertNotNull(encrypted, "Encrypted phone map should not be null");
+            assertEquals(plaintext.size(), encrypted.size(), "Map size should be preserved");
+            assertEquals(plaintext.keySet(), encrypted.keySet(), "Map keys should be preserved");
+
+            for (String key : plaintext.keySet()) {
+                assertNotNull(encrypted.get(key), "Encrypted phone number for " + key + " should not be null");
+                assertEquals(plaintext.get(key).length(), encrypted.get(key).length(),
+                        "Phone number length should be preserved for " + key);
+                assertTrue(encrypted.get(key).matches("\\d+"),
+                        "Encrypted phone number should contain only digits for " + key);
+            }
+
+            var decrypted = decUdf.decryptField(encrypted, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertEquals(plaintext, decrypted, "Decrypted phone map should match original");
+        }
+    }
+
+    @Nested
+    @DisplayName("Struct Field Encryption/Decryption")
+    class StructFieldTests {
+
+        @Test
+        @DisplayName("should encrypt/decrypt struct with DIGITS fields")
+        void testStructWithDigitsFields() {
+            var schema = SchemaBuilder.struct()
+                    .field("ccn", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("ssn", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("phone", Schema.OPTIONAL_STRING_SCHEMA)
+                    .optional()
+                    .build();
+
+            var plaintext = new Struct(schema)
+                    .put("ccn", "4455202014528870")
+                    .put("ssn", "230564998")
+                    .put("phone", "15551234567");
+
+            var encrypted = encUdf.encryptField(plaintext, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertNotNull(encrypted, "Encrypted struct should not be null");
+            assertEquals(plaintext.schema().fields().size(), encrypted.schema().fields().size(),
+                    "Struct field count should be preserved");
+
+            assertEquals(plaintext.getString("ccn").length(), encrypted.getString("ccn").length(),
+                    "CCN length should be preserved");
+            assertTrue(encrypted.getString("ccn").matches("\\d+"), "CCN should contain only digits");
+
+            assertEquals(plaintext.getString("ssn").length(), encrypted.getString("ssn").length(),
+                    "SSN length should be preserved");
+            assertTrue(encrypted.getString("ssn").matches("\\d+"), "SSN should contain only digits");
+
+            assertEquals(plaintext.getString("phone").length(), encrypted.getString("phone").length(),
+                    "Phone length should be preserved");
+            assertTrue(encrypted.getString("phone").matches("\\d+"), "Phone should contain only digits");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertNotNull(decrypted, "Decrypted struct should not be null");
+            assertEquals(plaintext.getString("ccn"), decrypted.getString("ccn"),
+                    "Decrypted CCN should match original");
+            assertEquals(plaintext.getString("ssn"), decrypted.getString("ssn"),
+                    "Decrypted SSN should match original");
+            assertEquals(plaintext.getString("phone"), decrypted.getString("phone"),
+                    "Decrypted phone should match original");
+        }
+
+        @Test
+        @DisplayName("should encrypt/decrypt struct with UPPERCASE fields")
+        void testStructWithUppercaseFields() {
+            var schema = SchemaBuilder.struct()
+                    .field("code1", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("code2", Schema.OPTIONAL_STRING_SCHEMA)
+                    .optional()
+                    .build();
+
+            var plaintext = new Struct(schema)
+                    .put("code1", "HAPPYBIRTHDAY")
+                    .put("code2", "SECRETCODE");
+
+            var encrypted = encUdf.encryptField(plaintext, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.UPPERCASE.name());
+
+            assertNotNull(encrypted, "Encrypted struct should not be null");
+            assertEquals(plaintext.getString("code1").length(), encrypted.getString("code1").length(),
+                    "Code1 length should be preserved");
+            assertTrue(encrypted.getString("code1").matches("[A-Z]+"), "Code1 should contain only uppercase letters");
+
+            assertEquals(plaintext.getString("code2").length(), encrypted.getString("code2").length(),
+                    "Code2 length should be preserved");
+            assertTrue(encrypted.getString("code2").matches("[A-Z]+"), "Code2 should contain only uppercase letters");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId2, cipherAlgorithm, tweak, AlphabetTypeFPE.UPPERCASE.name());
+
+            assertEquals(plaintext.getString("code1"), decrypted.getString("code1"),
+                    "Decrypted code1 should match original");
+            assertEquals(plaintext.getString("code2"), decrypted.getString("code2"),
+                    "Decrypted code2 should match original");
+        }
+
+        @Test
+        @DisplayName("should only encrypt string fields in struct")
+        void testStructWithMixedFieldTypes() {
+            var schema = SchemaBuilder.struct()
+                    .field("ccn", Schema.OPTIONAL_STRING_SCHEMA)
+                    .field("amount", Schema.OPTIONAL_INT32_SCHEMA)
+                    .field("active", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                    .optional()
+                    .build();
+
+            var plaintext = new Struct(schema)
+                    .put("ccn", "4455202014528870")
+                    .put("amount", 12345)
+                    .put("active", true);
+
+            var encrypted = encUdf.encryptField(plaintext, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertNotNull(encrypted, "Encrypted struct should not be null");
+
+            // String field should be encrypted
+            assertNotEquals(plaintext.getString("ccn"), encrypted.getString("ccn"),
+                    "CCN should be encrypted");
+            assertEquals(plaintext.getString("ccn").length(), encrypted.getString("ccn").length(),
+                    "CCN length should be preserved");
+
+            // Non-string fields should remain unchanged
+            assertEquals(plaintext.getInt32("amount"), encrypted.getInt32("amount"),
+                    "Integer field should not be encrypted");
+            assertEquals(plaintext.getBoolean("active"), encrypted.getBoolean("active"),
+                    "Boolean field should not be encrypted");
+
+            var decrypted = decUdf.decryptField(encrypted, keyId1, cipherAlgorithm, tweak, AlphabetTypeFPE.DIGITS.name());
+
+            assertEquals(plaintext.getString("ccn"), decrypted.getString("ccn"),
+                    "Decrypted CCN should match original");
+        }
     }
 
     private Map<String, String> createConfigMap(String functionName, String cipherDataKeys,
@@ -164,15 +411,4 @@ public class CipherFieldEncryptDecryptFpeUdfFunctionalTest {
         configMap.put(CustomUdfConfig.getPrefixedConfigParam(functionName, CustomUdfConfig.CONFIG_PARAM_CIPHER_FPE_ALPHABET_CUSTOM), KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT);
         return configMap;
     }
-
-    static Stream<Arguments> generateValidParamsWithoutCloudKms() {
-        return Stream.of(
-                Arguments.of(
-                        TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE, "keyC", "keyD", "keyE", "MYTWEAK",
-                        Kryptonite.CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),
-                        KryptoniteSettings.KeySource.CONFIG, KryptoniteSettings.KmsType.NONE,
-                        KryptoniteSettings.KMS_CONFIG_DEFAULT, KryptoniteSettings.KekType.NONE,
-                        KryptoniteSettings.KEK_CONFIG_DEFAULT, KryptoniteSettings.KEK_URI_DEFAULT));
-    }
-
 }

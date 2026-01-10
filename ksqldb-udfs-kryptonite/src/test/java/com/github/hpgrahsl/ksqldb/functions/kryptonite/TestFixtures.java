@@ -224,6 +224,12 @@ public class TestFixtures {
     static Schema TEST_OBJ_SCHEMA_1;
     static Struct TEST_OBJ_STRUCT_1;
 
+    // FPE test fixtures for List, Map, and Struct
+    static List<String> TEST_LIST_CCNS;
+    static Map<String, String> TEST_MAP_PHONE_NUMBERS;
+    static Schema TEST_STRUCT_ALPHABET_SCHEMA;
+    static Struct TEST_STRUCT_ALPHABET;
+
     static {
         TEST_OBJ_MAP_1 = new LinkedHashMap<>();
         TEST_OBJ_MAP_1.put("id", "1234567890");
@@ -270,6 +276,43 @@ public class TestFixtures {
                 .put("myArray1", List.of("str_1", "str_2", "...", "str_N"))
                 .put("mySubDoc2", Map.of("k1", 9, "k2", 8, "k3", 7))
                 .put("myBytes", new byte[] { 75, 97, 102, 107, 97, 32, 114, 111, 99, 107, 115, 33 });
+
+        TEST_LIST_CCNS = List.of(
+                "4455202014528870",
+                "5142789456321098",
+                "378282246310005",
+                "6011111111111117",
+                "4012888888881881"
+        );
+
+        TEST_MAP_PHONE_NUMBERS = new LinkedHashMap<>();
+        TEST_MAP_PHONE_NUMBERS.put("USA", "15551234567");
+        TEST_MAP_PHONE_NUMBERS.put("UK", "447700900123");
+        TEST_MAP_PHONE_NUMBERS.put("Germany", "4915512345678");
+        TEST_MAP_PHONE_NUMBERS.put("Japan", "819012345678");
+        TEST_MAP_PHONE_NUMBERS.put("Australia", "61412345678");
+
+        TEST_STRUCT_ALPHABET_SCHEMA = SchemaBuilder.struct()
+                .field("ccn", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("ssn", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("uppercase", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("lowercase", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("alphanumeric", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("extended", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("hexadecimal", Schema.OPTIONAL_STRING_SCHEMA)
+                .field("binary", Schema.OPTIONAL_STRING_SCHEMA)
+                .optional()
+                .build();
+
+        TEST_STRUCT_ALPHABET = new Struct(TEST_STRUCT_ALPHABET_SCHEMA)
+                .put("ccn", "4455202014528870")
+                .put("ssn", "230564998")
+                .put("uppercase", "HAPPYBIRTHDAY")
+                .put("lowercase", "happybirthday")
+                .put("alphanumeric", "AsIWasGoingToStIvesWith7Wives")
+                .put("extended", "2 * 3 = 6 + 3 = 9 / 3 = 3")
+                .put("hexadecimal", "12CF8809FF10AAE0")
+                .put("binary", "01101000010001101000");
     }
 
 }
