@@ -20,7 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -58,7 +57,10 @@ public class CipherFieldService {
         try {
             var fieldMetaData = createFieldMetaData(data);
             if (CipherSpec.fromName(config.cipherAlgorithm.toUpperCase()).isCipherFPE()) {
-                return encryptFPE(data, fieldMetaData);  
+                if (!(data instanceof String)) {
+                    throw new KryptoniteException("FPE encryption only supports data of type String");
+                }
+                return encryptFPE((String) data, fieldMetaData); 
             } 
             return encryptNonFPE(data, fieldMetaData);
         } catch (Exception exc) {
@@ -75,12 +77,12 @@ public class CipherFieldService {
         return encodedField;
     }
 
-    private String encryptFPE(Object data, FieldMetaData fieldMetaData) {
+    private String encryptFPE(String data, FieldMetaData fieldMetaData) {
         // NOTE: null is by definition not encryptable with FPE ciphers
         if (data == null) {
             return null;
         }
-        var plaintext = Objects.toString(data).getBytes(StandardCharsets.UTF_8);
+        var plaintext = data.getBytes(StandardCharsets.UTF_8);
         var ciphertext = new String(kryptonite.cipherFieldFPE(plaintext, fieldMetaData), StandardCharsets.UTF_8);
         return ciphertext;
     }
@@ -98,6 +100,9 @@ public class CipherFieldService {
     }
 
     private Object decryptNonFPE(String data, FieldMetaData fieldMetaData) {
+        if (data == null) {
+            return null;
+        }
         var encryptedField = KryoInstance.get().readObject(
                 new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
         var plaintext = kryptonite.decipherField(encryptedField);
@@ -105,12 +110,11 @@ public class CipherFieldService {
         return restored;
     }
 
-    private Object decryptFPE(String object, FieldMetaData fieldMetaData) {
-        // NOTE: null is by definition not decryptable with FPE ciphers
-        if (object == null) {
+    private Object decryptFPE(String data, FieldMetaData fieldMetaData) {
+        if (data == null) {
             return null;
         }
-        var ciphertext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
+        var ciphertext = data.getBytes(StandardCharsets.UTF_8);
         var plaintext = new String(kryptonite.decipherFieldFPE(ciphertext, fieldMetaData), StandardCharsets.UTF_8);
         return plaintext;
     }
