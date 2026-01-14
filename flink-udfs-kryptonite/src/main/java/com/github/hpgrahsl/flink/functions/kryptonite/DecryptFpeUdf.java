@@ -46,59 +46,59 @@ public class DecryptFpeUdf extends AbstractCipherFieldFpeUdf {
         return decryptData(data,fmd);
     }
 
-    public String eval(
+    public @Nullable String eval(
             @Nullable String data,
             String cipherDataKeyIdentifier, String cipherAlgorithm) {
         if (cipherDataKeyIdentifier == null || cipherAlgorithm == null) {
             throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm must not be null");
+                    "cipher data key identifier and/or cipher algorithm must not be null");
         }
         var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, null, null, null);
         return decryptData(data,fmd);
     }
 
-    public String eval(
+    public @Nullable String eval(
             @Nullable final String data,
             String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak) {
         if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null) {
             throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm and/or fpeTweak must not be null");
+                    "cipher data key identifier and/or cipher algorithm and/or fpeTweak must not be null");
         }
         var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, null, null);                
         return decryptData(data,fmd);
     }
 
-    public String eval(
+    public @Nullable String eval(
             @Nullable final String data,
             String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak,
             String fpeAlphabetType) {
         if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null
                 || fpeAlphabetType == null) {
             throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm and/or fpeTweak "
+                    "cipher data key identifier and/or cipher algorithm and/or fpeTweak "
                             + "and/or fpeAlphabetType must not be null");
         }
         var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, fpeAlphabetType, null);                
         return decryptData(data,fmd);
     }
 
-    public String eval(
+    public @Nullable String eval(
             @Nullable final String data,
             String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak,
             String fpeAlphabetType, String fpeAlphabetCustom) {
         if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null
                 || fpeAlphabetType == null || fpeAlphabetCustom == null) {
             throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm and/or fpeTweak "
+                    "cipher data key identifier and/or cipher algorithm and/or fpeTweak "
                             + "and/or fpeAlphabetType and/or fpeAlphabetCustom must not be null");
         }        
         if (!AlphabetTypeFPE.CUSTOM.name().equalsIgnoreCase(fpeAlphabetType)) {
             throw new IllegalArgumentException(
-                    "error: fpeAlphabetCustom can only be set if fpeAlphabetType is set to "+AlphabetTypeFPE.CUSTOM.name());
+                    "fpeAlphabetCustom can only be set if fpeAlphabetType is set to "+AlphabetTypeFPE.CUSTOM.name());
         }
-        if (fpeAlphabetType.isEmpty()) {
+        if (fpeAlphabetCustom.isEmpty()) {
             throw new IllegalArgumentException(
-                    "error: fpeAlphabetCustom must not be empty when fpeAlphabetType is set to "+AlphabetTypeFPE.CUSTOM.name());
+                    "fpeAlphabetCustom must not be empty when fpeAlphabetType is set to "+AlphabetTypeFPE.CUSTOM.name());
         }
         var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, fpeAlphabetType, fpeAlphabetCustom);
         return decryptData(data,fmd);

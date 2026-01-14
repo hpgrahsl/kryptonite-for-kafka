@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2025. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
+
+import javax.annotation.Nullable;
 
 import org.apache.flink.table.annotation.DataTypeHint;
 import org.apache.flink.table.annotation.InputGroup;
@@ -38,16 +40,16 @@ public class EncryptUdf extends AbstractCipherFieldUdf {
         defaultCipherDataKeyIdentifier = cipherDataKeyIdentifier;
     }
 
-    public String eval(@DataTypeHint(inputGroup = InputGroup.ANY) final Object data) {
+    public String eval(@Nullable @DataTypeHint(inputGroup = InputGroup.ANY) final Object data) {
         var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, data, defaultCipherDataKeyIdentifier);
         return encryptData(data,fmd);
     }
 
     public String eval(
-        @DataTypeHint(inputGroup = InputGroup.ANY) final Object data,
+        @Nullable @DataTypeHint(inputGroup = InputGroup.ANY) final Object data,
         String cipherDataKeyIdentifier, String cipherAlgorithm) {
         if (cipherDataKeyIdentifier == null || cipherAlgorithm == null) {
-            throw new IllegalArgumentException("error: cipher data key identifier and/or cipher algorithm must not be null");
+            throw new IllegalArgumentException("cipher data key identifier and/or cipher algorithm must not be null");
         }
         var fmd = createFieldMetaData(cipherAlgorithm, data, cipherDataKeyIdentifier);
         return encryptData(data,fmd);

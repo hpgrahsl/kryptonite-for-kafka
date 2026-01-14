@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2025. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,14 +26,22 @@ import org.apache.flink.table.catalog.DataTypeFactory;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
 
+/**
+ * @deprecated use {@link DecryptArrayWithSchemaUdf} instead
+ * which allows to specify the target array type via a schema string
+ */
+@Deprecated(forRemoval = true)
 public class DecryptArrayUdf extends AbstractCipherFieldUdf {
 
     @SuppressWarnings("unchecked")
-    public @Nullable <T> T[] eval(@Nullable final String[] data, final T typeCapture) {
+    public @Nullable <T> T[] eval(@Nullable final String[] data, final T elementTypeCapture) {
         if (data == null) {
             return null;
         }
-        var result = (T[]) Array.newInstance(typeCapture.getClass(), data.length);
+        if (elementTypeCapture == null) {
+            throw new IllegalArgumentException("elementTypeCapture must not be null");
+        }
+        var result = (T[]) Array.newInstance(elementTypeCapture.getClass(), data.length);
         for (int s = 0; s < data.length; s++) {
             result[s] = (T) decryptData(data[s]);
         }

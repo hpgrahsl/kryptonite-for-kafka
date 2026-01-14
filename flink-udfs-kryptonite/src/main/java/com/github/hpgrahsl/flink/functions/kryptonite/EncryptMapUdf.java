@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2025. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.AbstractMap;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +29,7 @@ import org.apache.flink.table.types.KeyValueDataType;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
 
+import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 
@@ -49,15 +48,32 @@ public class EncryptMapUdf extends AbstractCipherFieldUdf {
         defaultCipherDataKeyIdentifier = cipherDataKeyIdentifier;
     }
 
-    public @Nullable Map<?, String> eval(@Nullable final Object data) {
-        if (data == null || !(data instanceof Map)) {
+    public @Nullable Map<?, String> eval(@Nullable final Map<?, ?> data) {
+        if (data == null) {
             return null;
         }
         var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, data, defaultCipherDataKeyIdentifier);
-        return ((Map<?, ?>) data).entrySet().stream().map(
-                e -> new AbstractMap.SimpleEntry<>(
-                        e.getKey(),encryptData(e.getValue(),fmd)
-                )).collect(LinkedHashMap::new, (lhm, e) -> lhm.put(e.getKey(), e.getValue()), HashMap::putAll);
+        return encryptMapValues(data, fmd);
+    }
+
+    public @Nullable Map<?, String> eval(@Nullable final Map<?, ?> data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        if (data == null) {
+            return null;
+        }
+        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null) {
+            throw new IllegalArgumentException("cipher data key identifier and/or cipher algorithm must not be null");
+        }
+        var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, data, defaultCipherDataKeyIdentifier);
+        return encryptMapValues(data, fmd);
+    }
+
+    private Map<?, String> encryptMapValues(final Map<?, ?> data, final FieldMetaData fmd) {
+        Map<Object, String> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : data.entrySet()) {
+            String encryptedValue = encryptData(entry.getValue(), fmd);
+            result.put(entry.getKey(), encryptedValue);
+        }
+        return result;
     }
 
     @Override
@@ -65,10 +81,10 @@ public class EncryptMapUdf extends AbstractCipherFieldUdf {
         return TypeInference.newBuilder()
                 .inputTypeStrategy(
                         InputTypeStrategies.sequence(
-                                InputTypeStrategies.ANY // SHOULD BE LIMITED to "any map" i.e. MAP<K,V>
+                                InputTypeStrategies.ANY
                         ))
-                .outputTypeStrategy(ctx -> {
-                    var targetKeyType = ((KeyValueDataType) ctx.getArgumentDataTypes().get(0)).getKeyDataType();
+                .outputTypeStrategy(callContext -> {
+                    var targetKeyType = ((KeyValueDataType) callContext.getArgumentDataTypes().get(0)).getKeyDataType();
                     return Optional.of(DataTypes.MAP(targetKeyType, DataTypes.STRING()));
                 })
                 .build();
