@@ -106,7 +106,12 @@ public class EncryptArrayUdf extends AbstractCipherFieldUdf {
         if (array == null) {
             return null;
         }
+        
         var dataEnc = new String[array.length];
+        if (dataEnc.length == 0) {
+            return dataEnc;
+        }
+        
         var fmd = createFieldMetaData(
                     cipherAlgorithm == null ? KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT : cipherAlgorithm,
                     dataEnc[0],

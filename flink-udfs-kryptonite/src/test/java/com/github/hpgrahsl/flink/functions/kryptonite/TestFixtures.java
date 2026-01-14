@@ -223,7 +223,45 @@ public class TestFixtures {
     static Row TEST_OBJ_ROW_1;
     static Row TEST_OBJ_ROW_1_FPE;
 
+    // Test data for unit tests
+    public static final String TEST_STRING = "Hello, Kryptonite!";
+    public static final Integer TEST_INT = 42;
+    public static final Long TEST_LONG = 1234567890123L;
+    public static final Boolean TEST_BOOLEAN = true;
+    public static final Double TEST_DOUBLE = 3.14159;
+    public static final Float TEST_FLOAT = 2.71828f;
+    public static final byte[] TEST_BYTES = new byte[] { 75, 97, 102, 107, 97, 32, 114, 111, 99, 107, 115, 33 };
+
+    // Array test data
+    public static final String[] TEST_STRING_ARRAY = new String[] { "kafka", "flink", "kryptonite" };
+    public static final Integer[] TEST_INT_ARRAY = new Integer[] { 1, 2, 3, 4, 5 };
+    public static final Long[] TEST_LONG_ARRAY = new Long[] { 100L, 200L, 300L };
+    public static final Boolean[] TEST_BOOLEAN_ARRAY = new Boolean[] { true, false, true };
+    public static final Double[] TEST_DOUBLE_ARRAY = new Double[] { 1.1, 2.2, 3.3 };
+    public static final Float[] TEST_FLOAT_ARRAY = new Float[] { 1.1f, 2.2f, 3.3f };
+
+    // Map test data
+    public static final Map<String, String> TEST_MAP_STRING_STRING = Map.of("key1", "value1", "key2", "value2", "key3", "value3");
+    public static final Map<String, Integer> TEST_MAP_STRING_INT = Map.of("a", 1, "b", 2, "c", 3);
+    public static final Map<Integer, String> TEST_MAP_INT_STRING = Map.of(1, "one", 2, "two", 3, "three");
+    public static final Map<String, Boolean> TEST_MAP_STRING_BOOLEAN = Map.of("isActive", true, "isEnabled", false);
+
+    // Row test data
+    public static Row TEST_ROW_SIMPLE;
+    public static Row TEST_ROW_MIXED_TYPES;
+
     static {
+        TEST_ROW_SIMPLE = Row.withNames();
+        TEST_ROW_SIMPLE.setField("name", "Alice");
+        TEST_ROW_SIMPLE.setField("age", 30);
+        TEST_ROW_SIMPLE.setField("active", true);
+
+        TEST_ROW_MIXED_TYPES = Row.withNames();
+        TEST_ROW_MIXED_TYPES.setField("id", "user123");
+        TEST_ROW_MIXED_TYPES.setField("count", 42);
+        TEST_ROW_MIXED_TYPES.setField("score", 98.5);
+        TEST_ROW_MIXED_TYPES.setField("enabled", false);
+
         TEST_OBJ_MAP_1 = new LinkedHashMap<>();
         TEST_OBJ_MAP_1.put("id", "1234567890");
         TEST_OBJ_MAP_1.put("myString", "keyB");

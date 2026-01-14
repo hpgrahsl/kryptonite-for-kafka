@@ -63,7 +63,7 @@ public class EncryptMapUdf extends AbstractCipherFieldUdf {
         if (cipherDataKeyIdentifier == null || cipherAlgorithm == null) {
             throw new IllegalArgumentException("cipher data key identifier and/or cipher algorithm must not be null");
         }
-        var fmd = createFieldMetaData(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT, data, defaultCipherDataKeyIdentifier);
+        var fmd = createFieldMetaData(cipherAlgorithm, data, cipherDataKeyIdentifier);
         return encryptMapValues(data, fmd);
     }
 
