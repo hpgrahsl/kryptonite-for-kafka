@@ -23,7 +23,7 @@
     <parent>
         <groupId>com.github.hpgrahsl</groupId>
         <artifactId>kryptonite-for-kafka</artifactId>
-        <version>0.5.0</version>
+        <version>0.6.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>ksqldb-udfs-kryptonite</artifactId>
@@ -105,6 +105,12 @@
             <groupId>com.github.hpgrahsl</groupId>
             <artifactId>kryptonite</artifactId>
             <version>${kryptonite.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>connect-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- KSQL dependencies -->
         <dependency>

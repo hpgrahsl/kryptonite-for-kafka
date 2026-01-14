@@ -32,7 +32,6 @@
   <properties>
     <kryptonite.version>0.6.0</kryptonite.version>
     <flink.version>1.20.3</flink.version>
-    <kafka.version>4.1.0</kafka.version>
     <jackson.version>2.20.0</jackson.version>
     <logback.version>1.2.13</logback.version>
     <junit.version>5.14.0</junit.version>
@@ -43,6 +42,12 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
       <version>${kryptonite.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.flink</groupId>
+          <artifactId>flink-core</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
 			<groupId>org.apache.flink</groupId>
@@ -74,11 +79,6 @@
 			<version>${flink.version}</version>
       <scope>provided</scope>
 		</dependency>
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>connect-api</artifactId>
-      <version>${kafka.version}</version>
-    </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
