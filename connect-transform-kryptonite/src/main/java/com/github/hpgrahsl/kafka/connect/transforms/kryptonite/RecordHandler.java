@@ -22,9 +22,13 @@ import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
+import com.github.hpgrahsl.kryptonite.converters.Row2StructTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.TypeConverterChain;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+
 import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +45,8 @@ public abstract class RecordHandler implements FieldPathMatcher {
   private final AbstractConfig config;
   private final SerdeProcessor serdeProcessor;
   private final Kryptonite kryptonite;
+  private final TypeConverterChain typeConverterChain;
+  private final Map<String, Schema> schemaCache;
 
   protected final String pathDelimiter;
   protected final CipherMode cipherMode;
@@ -53,9 +59,45 @@ public abstract class RecordHandler implements FieldPathMatcher {
     this.config = config;
     this.serdeProcessor = serdeProcessor;
     this.kryptonite = kryptonite;
+    this.schemaCache = new HashMap<>();
+    this.typeConverterChain = new TypeConverterChain(new Row2StructTypeConverter());
     this.pathDelimiter = config.getString(KryptoniteSettings.PATH_DELIMITER);
     this.cipherMode = cipherMode;
     this.fieldConfig = fieldConfig;
+    initializeSchemaCache();
+  }
+
+    /**
+   * Initializes the schema cache by parsing schema definitions from field configurations.
+   * This method is called once during construction to pre-parse all schemas.
+   */
+  private void initializeSchemaCache() {
+    for (Map.Entry<String, FieldConfig> entry : fieldConfig.entrySet()) {
+      String fieldPath = entry.getKey();
+      FieldConfig fc = entry.getValue();
+
+      fc.getSchema().ifPresent(schemaMap -> {
+        try {
+          Schema schema = SchemaParser.parseSchema(schemaMap);
+          schemaCache.put(fieldPath, schema);
+          LOGGER.trace("cached schema for field '{}': {}", fieldPath, schema);
+        } catch (DataException e) {
+          LOGGER.error("failed to parse schema for field '{}': {}", fieldPath, e.getMessage());
+          throw e;
+        }
+      });
+    }
+    LOGGER.info("initialized schema cache with {} entries", schemaCache.size());
+  }
+
+  /**
+   * Gets the cached schema for a given field path.
+   *
+   * @param fieldPath the field path
+   * @return Optional containing the schema if cached, empty otherwise
+   */
+  protected Optional<Schema> getCachedSchema(String fieldPath) {
+    return Optional.ofNullable(schemaCache.get(fieldPath));
   }
 
   public AbstractConfig getConfig() {
@@ -73,14 +115,14 @@ public abstract class RecordHandler implements FieldPathMatcher {
       LOGGER.trace("field meta-data for path '{}' {}",matchedPath,fieldMetaData);
       if (CipherMode.ENCRYPT == cipherMode) {
         if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
-          return encryptFPE(object, fieldMetaData);  
-        } 
+          return encryptFPE(object, fieldMetaData);
+        }
         return encrypt(object, fieldMetaData);
       } else {
         if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
-          return decryptFPE(object, fieldMetaData);  
+          return decryptFPE(object, fieldMetaData);
         }
-        return decrypt(object);
+        return decrypt(object, matchedPath);
       }
     } catch (Exception e) {
       throw new DataException("error: "+cipherMode+" of field path '"+matchedPath+"' having data '"+object+ "' failed unexpectedly",e);
@@ -94,8 +136,8 @@ public abstract class RecordHandler implements FieldPathMatcher {
     LOGGER.debug("encrypted field: {}", encryptedField);
     var output = new Output(new ByteArrayOutputStream());
     KryoInstance.get().writeObject(output, encryptedField);
-    // TODO: the base 64 encoding should be optional / is configurable
-    // so that raw bytes can handled as well (e.g. in binary fields and binary serialization formats)
+    // NOTE: at some point the base 64 decoding should be optional / configurable
+    // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
     var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
     LOGGER.trace("returning encoded field: {}", encodedField);
     return encodedField;
@@ -113,27 +155,35 @@ public abstract class RecordHandler implements FieldPathMatcher {
     return ciphertext;
   }
 
-  public Object decrypt(Object object) {
-    // TODO: the base 64 decoding should be optional / is configurable
-    // so that raw bytes can handled as well (e.g. in binary fields and binary serialization formats)
-    var decodedField = Base64.getDecoder().decode((String) object);
-    LOGGER.trace("decoded field: {}", decodedField);
-    var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);  
-    var plaintext = kryptonite.decipherField(encryptedField);
-    LOGGER.trace("decrypted field: {}", plaintext);
-    var restoredField = serdeProcessor.bytesToObject(plaintext);
-    LOGGER.debug("restored field: {}", restoredField);
-    return restoredField;
-  }
-
-  public String decryptFPE(Object object, FieldMetaData fieldMetaData) {
-    // NOTE: null is by definition not decryptable with FPE ciphers
+  public Object decrypt(Object object, String fieldPath) {
     if (object == null) {
       return null;
     }
+    LOGGER.debug("object to be decrypted: {}", object);
+    // NOTE: at some point the base 64 decoding should be optional / configurable
+    // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
+    var decodedField = Base64.getDecoder().decode((String) object);
+    LOGGER.trace("decoded field: {}", decodedField);
+    var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);
+    var plaintext = kryptonite.decipherField(encryptedField);
+    LOGGER.trace("decrypted field: {}", plaintext);
+    var restoredField = serdeProcessor.bytesToObject(plaintext);
+    LOGGER.trace("restored field: {}", restoredField);
+    var metadata = new HashMap<String,Object>();
+    metadata.put(Row2StructTypeConverter.FIELD_CONFIG_SCHEMA_METADATA, getCachedSchema(fieldPath).orElse(null));
+    var convertedField = typeConverterChain.apply(restoredField, metadata);
+    LOGGER.trace("converted field: {}", convertedField);
+    return convertedField;
+  }
+
+  public String decryptFPE(Object object, FieldMetaData fieldMetaData) {
+    if (object == null) {
+      return null;
+    }
+    LOGGER.debug("object to be decrypted: {}", object);
     var ciphertext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
     var plaintext = new String(kryptonite.decipherFieldFPE(ciphertext, fieldMetaData),StandardCharsets.UTF_8);
-    LOGGER.debug("FPE decrypted field: {}", plaintext);
+    LOGGER.trace("FPE decrypted field: {}", plaintext);
     return plaintext;
   }
 
