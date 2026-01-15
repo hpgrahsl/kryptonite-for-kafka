@@ -44,7 +44,7 @@ public class SchemalessRecordHandler extends RecordHandler {
   @Override
   public Object matchFields(Schema schemaOriginal, Object objectOriginal, Schema schemaNew,
       Object objectNew, String matchedPath) {
-    LOGGER.debug("checking fields in record {}",objectOriginal);
+    LOGGER.trace("checking fields in record {}",objectOriginal);
     var dataOriginal = (Map<String, Object>)objectOriginal;
     var dataNew =  (Map<String, Object>)objectNew;
     dataOriginal.forEach((f,v) -> {

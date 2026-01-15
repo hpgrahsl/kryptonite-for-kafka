@@ -45,7 +45,7 @@ public class SchemaawareRecordHandler extends RecordHandler {
   @Override
   public Object matchFields(Schema schemaOriginal, Object objectOriginal, Schema schemaNew,
       Object objectNew, String matchedPath) {
-    LOGGER.debug("checking fields in record {}",objectOriginal);
+    LOGGER.trace("checking fields in record {}",objectOriginal);
     var dataOriginal = (Struct)objectOriginal;
     var dataNew = (Struct)objectNew;
     schemaOriginal.fields().forEach(f -> {

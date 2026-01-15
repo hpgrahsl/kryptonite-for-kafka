@@ -65,15 +65,15 @@ public class SchemaRewriter {
   }
 
   public Schema adaptSchema(Schema original, String matchedPath) {
-    LOGGER.debug("adapting original schema for {} mode",cipherMode);
+    LOGGER.trace("adapting original schema for {} mode",cipherMode);
     var builder  = SchemaUtil.copySchemaBasics(original);
     for (var field : original.fields()) {
       var updatedPath = matchedPath.isEmpty() ? field.name() : matchedPath + pathDelimiter + field.name();
       if (fieldConfig.containsKey(updatedPath)) {
-        LOGGER.debug("adapting schema for matched field '{}'",updatedPath);
+        LOGGER.trace("adapting schema for matched field '{}'",updatedPath);
         adaptField(derivePrimaryType(field,updatedPath),builder,field,updatedPath);
       } else {
-        LOGGER.debug("copying schema for non-matched field '{}'",updatedPath);
+        LOGGER.trace("copying schema for non-matched field '{}'",updatedPath);
         builder.field(field.name(), field.schema());
       }
     }

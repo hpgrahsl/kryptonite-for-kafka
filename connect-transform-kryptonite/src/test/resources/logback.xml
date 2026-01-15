@@ -6,7 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.github.hpgrahsl.kafka.connect.transforms" level="DEBUG" />
+    <logger name="com.github.hpgrahsl.kafka.connect.transforms" level="TRACE" />
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
