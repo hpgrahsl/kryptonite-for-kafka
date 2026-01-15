@@ -20,6 +20,8 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.Field
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.converters.Row2StructTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.TypeConverterChain;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -28,6 +30,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,11 +38,14 @@ public class SchemaawareRecordHandler extends RecordHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaawareRecordHandler.class);
 
+  protected TypeConverterChain typeConverterChain;
+
   public SchemaawareRecordHandler(AbstractConfig config,
                                   SerdeProcessor serdeProcessor, Kryptonite kryptonite,
                                   CipherMode cipherMode,
                                   Map<String, FieldConfig> fieldConfig) {
     super(config, serdeProcessor, kryptonite, cipherMode, fieldConfig);
+    typeConverterChain = new TypeConverterChain(new Row2StructTypeConverter());
   }
 
   @Override
@@ -83,6 +89,16 @@ public class SchemaawareRecordHandler extends RecordHandler {
         }
     });
     return dataNew;
+  }
+
+  @Override
+  public Object decrypt(Object object, String fieldPath) {
+    var decryptedField = super.decrypt(object, fieldPath);
+    var metadata = new HashMap<String,Object>();
+    metadata.put(Row2StructTypeConverter.FIELD_CONFIG_SCHEMA_METADATA, getCachedSchema(fieldPath).orElse(null));
+    var convertedField = typeConverterChain.apply(decryptedField, metadata);
+    LOGGER.trace("converted field: {}", convertedField);
+    return convertedField;
   }
 
 }

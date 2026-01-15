@@ -20,6 +20,8 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.Field
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.converters.Row2MapTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.TypeConverterChain;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -33,11 +35,14 @@ public class SchemalessRecordHandler extends RecordHandler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemalessRecordHandler.class);
 
+  protected TypeConverterChain typeConverterChain;
+
   public SchemalessRecordHandler(AbstractConfig config,
                                  SerdeProcessor serdeProcessor, Kryptonite kryptonite,
                                  CipherMode cipherMode,
                                  Map<String, FieldConfig> fieldConfig) {
     super(config, serdeProcessor, kryptonite, cipherMode, fieldConfig);
+    typeConverterChain = new TypeConverterChain(new Row2MapTypeConverter());
   }
 
   @SuppressWarnings("unchecked")
@@ -74,6 +79,14 @@ public class SchemalessRecordHandler extends RecordHandler {
           }
     });
     return dataNew;
+  }
+
+  @Override
+  public Object decrypt(Object object, String fieldPath) {
+    var decryptedField = super.decrypt(object, fieldPath);
+    var convertedField = typeConverterChain.apply(decryptedField);
+    LOGGER.trace("converted field: {}", convertedField);
+    return convertedField;
   }
 
 }

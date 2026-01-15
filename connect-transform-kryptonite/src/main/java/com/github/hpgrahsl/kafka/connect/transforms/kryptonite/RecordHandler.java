@@ -22,8 +22,6 @@ import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.converters.Row2StructTypeConverter;
-import com.github.hpgrahsl.kryptonite.converters.TypeConverterChain;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
@@ -45,12 +43,11 @@ public abstract class RecordHandler implements FieldPathMatcher {
   private final AbstractConfig config;
   private final SerdeProcessor serdeProcessor;
   private final Kryptonite kryptonite;
-  private final TypeConverterChain typeConverterChain;
-  private final Map<String, Schema> schemaCache;
-
+  
   protected final String pathDelimiter;
   protected final CipherMode cipherMode;
   protected final Map<String, FieldConfig> fieldConfig;
+  protected final Map<String, Schema> schemaCache;
 
   public RecordHandler(AbstractConfig config,
       SerdeProcessor serdeProcessor, Kryptonite kryptonite,
@@ -60,7 +57,6 @@ public abstract class RecordHandler implements FieldPathMatcher {
     this.serdeProcessor = serdeProcessor;
     this.kryptonite = kryptonite;
     this.schemaCache = new HashMap<>();
-    this.typeConverterChain = new TypeConverterChain(new Row2StructTypeConverter());
     this.pathDelimiter = config.getString(KryptoniteSettings.PATH_DELIMITER);
     this.cipherMode = cipherMode;
     this.fieldConfig = fieldConfig;
@@ -68,7 +64,7 @@ public abstract class RecordHandler implements FieldPathMatcher {
   }
 
     /**
-   * Initializes the schema cache by parsing schema definitions from field configurations.
+   * Initializes the schema cache by parsing (optional) schema definitions from field configurations.
    * This method is called once during construction to pre-parse all schemas.
    */
   private void initializeSchemaCache() {
@@ -149,7 +145,11 @@ public abstract class RecordHandler implements FieldPathMatcher {
     if (object == null) {
       return null;
     }
-    var plaintext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
+    if (!(object instanceof String)) {
+      throw new DataException("FPE encryption only supported for String data types but found: "
+          + object.getClass().getName());
+    }
+    var plaintext = ((String)object).getBytes(StandardCharsets.UTF_8);
     var ciphertext = new String(kryptonite.cipherFieldFPE(plaintext, fieldMetaData),StandardCharsets.UTF_8);
     LOGGER.debug("FPE encrypted field: {}", ciphertext);
     return ciphertext;
@@ -169,19 +169,19 @@ public abstract class RecordHandler implements FieldPathMatcher {
     LOGGER.trace("decrypted field: {}", plaintext);
     var restoredField = serdeProcessor.bytesToObject(plaintext);
     LOGGER.trace("restored field: {}", restoredField);
-    var metadata = new HashMap<String,Object>();
-    metadata.put(Row2StructTypeConverter.FIELD_CONFIG_SCHEMA_METADATA, getCachedSchema(fieldPath).orElse(null));
-    var convertedField = typeConverterChain.apply(restoredField, metadata);
-    LOGGER.trace("converted field: {}", convertedField);
-    return convertedField;
+    return restoredField;
   }
 
   public String decryptFPE(Object object, FieldMetaData fieldMetaData) {
     if (object == null) {
       return null;
     }
+    if (!(object instanceof String)) {
+      throw new DataException("FPE decryption only supported for String data types but found: "
+          + object.getClass().getName());
+    }
     LOGGER.debug("object to be decrypted: {}", object);
-    var ciphertext = Objects.toString(object).getBytes(StandardCharsets.UTF_8);
+    var ciphertext = ((String)object).getBytes(StandardCharsets.UTF_8);
     var plaintext = new String(kryptonite.decipherFieldFPE(ciphertext, fieldMetaData),StandardCharsets.UTF_8);
     LOGGER.trace("FPE decrypted field: {}", plaintext);
     return plaintext;
