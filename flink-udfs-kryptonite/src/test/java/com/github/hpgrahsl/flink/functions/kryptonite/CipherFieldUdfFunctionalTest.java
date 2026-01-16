@@ -183,7 +183,7 @@ public class CipherFieldUdfFunctionalTest {
 
             assertAll(
                     () -> assertTrue(encryptedData.get("mySubDoc1") instanceof Map),
-                    () -> assertTrue(encryptedData.get("myArray1") instanceof List),
+                    () -> assertTrue(encryptedData.get("myArray1") instanceof String[]),
                     () -> assertTrue(encryptedData.get("mySubDoc2") instanceof Map));
         } else {
             encryptedData = TestFixtures.TEST_OBJ_MAP_1.entrySet().stream()
@@ -395,9 +395,17 @@ public class CipherFieldUdfFunctionalTest {
     void assertAllResultingFieldsMapRecord(Map<String, Object> expected, Map<String, Object> actual) {
         assertAll(
                 expected.entrySet().stream().map(
-                        e -> e.getValue() instanceof byte[]
-                                ? () -> assertArrayEquals((byte[]) e.getValue(), (byte[]) actual.get(e.getKey()))
-                                : () -> assertEquals(e.getValue(), actual.get(e.getKey()))));
+                        e -> {
+                                if (e.getValue() instanceof byte[]) {
+                                    return () -> assertArrayEquals((byte[]) e.getValue(), (byte[]) actual.get(e.getKey()));
+                                } else if (e.getValue() instanceof String[]) {
+                                    return () -> assertArrayEquals((String[]) e.getValue(), (String[]) actual.get(e.getKey()));
+                                } else {
+                                    return () -> assertEquals(e.getValue(), actual.get(e.getKey()));
+                                } 
+                            }
+                )
+        );
     }
 
     void assertAllResultingFieldsRowRecord(Row expected, Row actual) {

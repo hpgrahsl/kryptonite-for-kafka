@@ -30,6 +30,8 @@ import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
+import com.github.hpgrahsl.kryptonite.converters.List2ArrayTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.Map2RowTypeConverter;
 import com.github.hpgrahsl.kryptonite.converters.Struct2RowTypeConverter;
 import com.github.hpgrahsl.kryptonite.converters.TypeConverterChain;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
@@ -54,7 +56,7 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
             udfConfiguration = UdfConfiguration.load(context);
             kryptonite = Kryptonite.createFromConfig(udfConfiguration);
             serdeProcessor = new KryoSerdeProcessor();
-            typeConverterChain = new TypeConverterChain(new Struct2RowTypeConverter());
+            typeConverterChain = new TypeConverterChain(new Struct2RowTypeConverter(), new Map2RowTypeConverter(), new List2ArrayTypeConverter());
         } catch (Exception e) {
             throw new KryptoniteException(
                     "failed to initialize the function with the given configuration " + udfConfiguration, e);

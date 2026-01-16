@@ -11,7 +11,6 @@ import com.github.hpgrahsl.kryptonite.KryptoniteException;
 /**
  * Type converter that converts Flink Row objects to Kafka Connect Struct objects.
  * This converter requires a target schema for the conversion.
- * This converter is stateless and thread-safe.
  */
 public class Row2StructTypeConverter implements TypeConverter {
 
@@ -57,8 +56,9 @@ public class Row2StructTypeConverter implements TypeConverter {
     public Object convert(Object obj, Map<String, Object> metadata) {
         Objects.requireNonNull(metadata, "metadata must not be null");
         var dynamicSchema = metadata.get(FIELD_CONFIG_SCHEMA_METADATA);
-        if (dynamicSchema == null) {
-            throw new KryptoniteException("metadata must contain schema under key " + FIELD_CONFIG_SCHEMA_METADATA);
+        if (dynamicSchema == null || !(dynamicSchema instanceof Schema)) {
+            throw new KryptoniteException(FIELD_CONFIG_SCHEMA_METADATA
+                +" metadata must refer to a Schema object, got: " + dynamicSchema.getClass().getName());
         }
         return Row2StructConverter.convertToStruct((Row) obj, (Schema) dynamicSchema);
     }
