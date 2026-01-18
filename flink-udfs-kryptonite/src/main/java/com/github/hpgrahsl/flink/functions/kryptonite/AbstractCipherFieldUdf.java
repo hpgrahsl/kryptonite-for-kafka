@@ -30,19 +30,14 @@ import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kryptonite.converters.List2ArrayTypeConverter;
-import com.github.hpgrahsl.kryptonite.converters.Map2RowTypeConverter;
-import com.github.hpgrahsl.kryptonite.converters.Struct2RowTypeConverter;
-import com.github.hpgrahsl.kryptonite.converters.TypeConverterChain;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
 public abstract class AbstractCipherFieldUdf extends ScalarFunction {
 
-    private transient Kryptonite kryptonite;
-    private transient SerdeProcessor serdeProcessor;
-    private transient TypeConverterChain typeConverterChain;
+    protected transient Kryptonite kryptonite;
+    protected transient SerdeProcessor serdeProcessor;
     private transient Map<String, String> udfConfiguration;
 
     @Override
@@ -56,7 +51,6 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
             udfConfiguration = UdfConfiguration.load(context);
             kryptonite = Kryptonite.createFromConfig(udfConfiguration);
             serdeProcessor = new KryoSerdeProcessor();
-            typeConverterChain = new TypeConverterChain(new Struct2RowTypeConverter(), new Map2RowTypeConverter(), new List2ArrayTypeConverter());
         } catch (Exception e) {
             throw new KryptoniteException(
                     "failed to initialize the function with the given configuration " + udfConfiguration, e);
@@ -85,7 +79,7 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
                     new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
             var plaintext = kryptonite.decipherField(encryptedField);
             var restored = serdeProcessor.bytesToObject(plaintext);
-            return typeConverterChain.apply(restored);
+            return restored;
         } catch (Exception exc) {
             throw new KryptoniteException("failed to decrypt data", exc);
         }

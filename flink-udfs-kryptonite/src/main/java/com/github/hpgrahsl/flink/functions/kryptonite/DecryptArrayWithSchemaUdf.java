@@ -26,7 +26,6 @@ import javax.annotation.Nullable;
 
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.catalog.DataTypeFactory;
-import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
@@ -36,24 +35,7 @@ import org.apache.flink.table.types.logical.LogicalType;
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.TypeUtils;
 
-public class DecryptArrayWithSchemaUdf extends AbstractCipherFieldUdf {
-
-    private static final int SCHEMA_LRU_CACHE_SIZE = 32;
-
-    // used as LRU cache for parsed schemas (schema string -> parsed DataType)
-    private transient Map<String, DataType> schemaCache;
-
-    @Override
-    public void open(FunctionContext context) throws Exception {
-        super.open(context);
-        schemaCache = Collections.synchronizedMap(
-                new LinkedHashMap<String, DataType>(SCHEMA_LRU_CACHE_SIZE, 0.75f, true) {
-                    @Override
-                    protected boolean removeEldestEntry(Map.Entry<String, DataType> eldest) {
-                        return size() > SCHEMA_LRU_CACHE_SIZE;
-                    }
-                });
-    }
+public class DecryptArrayWithSchemaUdf extends AbstractCipherFieldWithSchemaUdf {
 
     public @Nullable Object eval(@Nullable final String[] data, final String schemaString) {
         if (data == null) {
@@ -76,7 +58,7 @@ public class DecryptArrayWithSchemaUdf extends AbstractCipherFieldUdf {
         Class<?> elementClass = TypeUtils.getDefaultConversionClass(elementType);
         var result = Array.newInstance(elementClass, data.length);
         for (int s = 0; s < data.length; s++) {
-            Array.set(result, s, decryptData(data[s]));
+            Array.set(result, s, decryptData(data[s],DataTypes.of(elementType)));
         }
         return result;
     }
@@ -99,18 +81,6 @@ public class DecryptArrayWithSchemaUdf extends AbstractCipherFieldUdf {
                     return Optional.of(SchemaParser.parseType(schemaStringOpt.get().trim()));
                 })
                 .build();
-    }
-
-    /**
-     * Retrieves a cached parsed schema or parses and caches it if not present.
-     * The cache uses LRU (Least Recently Used) eviction policy when it reaches
-     * the maximum size of {@value #SCHEMA_LRU_CACHE_SIZE} entries.
-     *
-     * @param schemaString the schema definition string to parse and cache
-     * @return the parsed {@link DataType} corresponding to the schema string
-     */
-    private DataType getCachedSchema(String schemaString) {
-        return schemaCache.computeIfAbsent(schemaString, SchemaParser::parseType);
     }
 
 }
