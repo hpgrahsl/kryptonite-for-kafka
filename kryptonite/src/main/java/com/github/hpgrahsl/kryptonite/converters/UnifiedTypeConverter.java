@@ -70,11 +70,11 @@ public class UnifiedTypeConverter {
      * Handles Kafka Connect Struct, Flink Row, or existing Map.
      * Nested structures are recursively converted to nested Maps.
      *
-     * @param source the source object (Struct, Row, Map, List, array, or primitive)
+     * @param source the source object must be either of type Struct, Row, or Map
+     * (contained values of the respective entries can be of any supported type)
      * @return the converted Map, or null if source is null
      * @throws KryptoniteException if the source type is not supported
      */
-    @SuppressWarnings("unchecked")
     public Map<String, Object> toMap(Object source) {
         if (source == null) {
             return null;
@@ -100,7 +100,8 @@ public class UnifiedTypeConverter {
      * Convert any supported source object to a Kafka Connect Struct.
      * The target schema dictates the structure and types of the result.
      *
-     * @param source the source object (Struct, Row, or Map)
+     * @param source the source object must be either of type Struct, Row, or Map
+     * (contained values of the respective entries can be of any supported type)
      * @param targetSchema the Kafka Connect Schema describing the target structure
      * @return the converted Struct, or null if source is null
      * @throws KryptoniteException if the source type is not supported or conversion fails
@@ -116,7 +117,6 @@ public class UnifiedTypeConverter {
         }
 
         if (source instanceof Struct) {
-            // Already a Struct - validate/convert if schemas differ
             return structToStructConverter((Struct) source, targetSchema);
         }
 
@@ -136,7 +136,8 @@ public class UnifiedTypeConverter {
      * Convert any supported source object to a Flink Row.
      * The target DataType dictates the structure and types of the result.
      *
-     * @param source the source object (Struct, Row, or Map)
+     * @param source the source object must be either of type Struct, Row, or Map
+     * (contained values of the respective entries can be of any supported type)
      * @param targetType the Flink DataType describing the target structure
      * @return the converted Row, or null if source is null
      * @throws KryptoniteException if the source type is not supported or conversion fails
@@ -152,7 +153,6 @@ public class UnifiedTypeConverter {
         }
 
         if (source instanceof Row) {
-            // Already a Row - validate/convert if types differ
             return rowToRowConverter((Row) source, targetType);
         }
 
@@ -198,7 +198,8 @@ public class UnifiedTypeConverter {
 
     /**
      * Convert any value (primitive or complex) to a schema-less Map representation.
-     * Use this method when converting to a generic Map structure.
+     * Use this method when converting deserialized values back to a generic Map structure
+     * which is used in the HTTP API service.
      *
      * @param value the value to convert (can be primitive, array, List, Map, Struct, Row)
      * @return the converted value (primitives pass through, complex types become Maps/Lists)
@@ -250,7 +251,6 @@ public class UnifiedTypeConverter {
      * @param targetSchema the target schema for the value
      * @return the converted value
      */
-    @SuppressWarnings("unchecked")
     Object toStructValue(Object value, Schema targetSchema) {
         if (value == null) {
             return null;
@@ -267,7 +267,6 @@ public class UnifiedTypeConverter {
                 return toStructMap(value, targetSchema.keySchema(), targetSchema.valueSchema());
 
             default:
-                // Primitives - apply type coercion
                 return PrimitiveTypeConverter.toConnectType(value, targetSchema);
         }
     }
@@ -279,7 +278,6 @@ public class UnifiedTypeConverter {
      * @param targetType the target DataType for the value
      * @return the converted value
      */
-    @SuppressWarnings("unchecked")
     Object toRowValue(Object value, DataType targetType) {
         if (value == null) {
             return null;
@@ -303,14 +301,12 @@ public class UnifiedTypeConverter {
                 return toRowMap(value, keyType, valueType);
 
             default:
-                // Primitives - apply type coercion
                 return PrimitiveTypeConverter.toFlinkType(value, targetType);
         }
     }
 
     // ==================== Private helper methods ====================
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> mapToMapConverter(Map<?, ?> source) {
         java.util.LinkedHashMap<String, Object> result = new java.util.LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : source.entrySet()) {
@@ -318,6 +314,22 @@ public class UnifiedTypeConverter {
             result.put(key, toMapValue(entry.getValue()));
         }
         return result;
+    }
+
+    private Struct structToStructConverter(Struct source, Schema targetSchema) {
+        // If schemas are identical, return as-is
+        if (source.schema().equals(targetSchema)) {
+            return source;
+        }
+        // Otherwise fail
+        throw new KryptoniteException("Cannot convert to Struct: "+
+            "conversion failed due to mismatch of source schema vs. provided target schema!");
+    }
+
+    private Row rowToRowConverter(Row source, DataType targetType) {
+        // Convert through Map as intermediate for type coercion
+        Map<String, Object> intermediate = rowToMapConverter.convert(source);
+        return mapToRowConverter.convert(intermediate, targetType);
     }
 
     private List<Object> listToMapList(List<?> list) {
@@ -335,22 +347,6 @@ public class UnifiedTypeConverter {
             result.add(toMapValue(java.lang.reflect.Array.get(array, i)));
         }
         return result;
-    }
-
-    private Struct structToStructConverter(Struct source, Schema targetSchema) {
-        // If schemas are identical, return as-is
-        if (source.schema().equals(targetSchema)) {
-            return source;
-        }
-        // Otherwise, convert through Map as intermediate
-        Map<String, Object> intermediate = structToMapConverter.convert(source);
-        return mapToStructConverter.convert(intermediate, targetSchema);
-    }
-
-    private Row rowToRowConverter(Row source, DataType targetType) {
-        // Convert through Map as intermediate for type coercion
-        Map<String, Object> intermediate = rowToMapConverter.convert(source);
-        return mapToRowConverter.convert(intermediate, targetType);
     }
 
     private List<Object> toStructList(Object value, Schema elementSchema) {
@@ -373,7 +369,6 @@ public class UnifiedTypeConverter {
         return result;
     }
 
-    @SuppressWarnings("unchecked")
     private Map<Object, Object> toStructMap(Object value, Schema keySchema, Schema valueSchema) {
         if (!(value instanceof Map<?, ?>)) {
             throw new KryptoniteException(
@@ -471,7 +466,6 @@ public class UnifiedTypeConverter {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Map<Object, Object> toRowMap(Object value, DataType keyType, DataType valueType) {
         if (!(value instanceof Map<?, ?>)) {
             throw new KryptoniteException(
