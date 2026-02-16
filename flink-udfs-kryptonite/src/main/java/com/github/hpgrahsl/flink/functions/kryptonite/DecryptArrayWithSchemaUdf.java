@@ -17,9 +17,6 @@
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
 import java.lang.reflect.Array;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
