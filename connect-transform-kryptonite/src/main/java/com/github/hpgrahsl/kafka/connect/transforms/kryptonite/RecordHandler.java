@@ -18,6 +18,7 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
 import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
@@ -63,8 +64,10 @@ public abstract class RecordHandler implements FieldPathMatcher {
     initializeSchemaCache();
   }
 
-    /**
+  /**
    * Initializes the schema cache by parsing (optional) schema definitions from field configurations.
+   * For fields in ELEMENT mode with ARRAY/MAP schemas, caches the element/value schema instead
+   * of the collection schema, since element-wise processing requires the element schema for conversion.
    * This method is called once during construction to pre-parse all schemas.
    */
   private void initializeSchemaCache() {
@@ -75,6 +78,21 @@ public abstract class RecordHandler implements FieldPathMatcher {
       fc.getSchema().ifPresent(schemaMap -> {
         try {
           Schema schema = SchemaParser.parseSchema(schemaMap);
+
+          var fieldMode = fc.getFieldMode()
+            .orElse(FieldMode.valueOf(config.getString(KryptoniteSettings.FIELD_MODE)));
+          // For ELEMENT mode with collection schemas, cache the element/value schema
+          // instead of the collection schema for proper conversion during decryption
+          if (fieldMode == FieldMode.ELEMENT) {
+            if (schema.type() == Schema.Type.ARRAY) {
+              schema = schema.valueSchema();
+              LOGGER.trace("caching element schema for ARRAY field '{}' in ELEMENT mode", fieldPath);
+            } else if (schema.type() == Schema.Type.MAP) {
+              schema = schema.valueSchema();
+              LOGGER.trace("caching value schema for MAP field '{}' in ELEMENT mode", fieldPath);
+            }
+          }
+
           schemaCache.put(fieldPath, schema);
           LOGGER.trace("cached schema for field '{}': {}", fieldPath, schema);
         } catch (DataException e) {
