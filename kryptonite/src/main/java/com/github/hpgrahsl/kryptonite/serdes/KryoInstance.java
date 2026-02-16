@@ -43,8 +43,7 @@ public class KryoInstance {
       Kryo kryo = new Kryo();
       try {
         kryo.setWarnUnregisteredClasses(true);
-        // NOTE: this is a breaking change when modifying this setting !!!
-        // kryo.setRegistrationRequired(false);
+        // NOTE: this is a breaking change
         kryo.setRegistrationRequired(true);
         kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
         // NOTE: pre-register kryptonite for kafka specific classes and if applicable

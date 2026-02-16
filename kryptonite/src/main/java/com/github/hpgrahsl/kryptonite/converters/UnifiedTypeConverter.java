@@ -16,10 +16,20 @@
 
 package com.github.hpgrahsl.kryptonite.converters;
 
+import java.lang.reflect.Array;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.ArrayType;
+import org.apache.flink.table.types.logical.MapType;
 import org.apache.flink.types.Row;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -236,6 +246,13 @@ public class UnifiedTypeConverter {
             return listToMapList((List<?>) value);
         }
 
+        // Preserve primitive arrays as-is (byte[], int[], long[], etc.)
+        // They are already valid schemaless types and should not be converted to ArrayList
+        if (value.getClass().isArray() && value.getClass().getComponentType().isPrimitive()) {
+            return value;
+        }
+
+        // Convert object arrays to List for consistency
         if (value.getClass().isArray()) {
             return arrayToMapList(value);
         }
@@ -290,14 +307,14 @@ public class UnifiedTypeConverter {
                 return toRow(value, targetType);
 
             case ARRAY:
-                var arrayType = (org.apache.flink.table.types.logical.ArrayType) logicalType;
+                var arrayType = (ArrayType) logicalType;
                 var elementType = arrayType.getElementType();
-                return toRowArray(value, org.apache.flink.table.api.DataTypes.of(elementType));
+                return toRowArray(value, DataTypes.of(elementType));
 
             case MAP:
-                var mapType = (org.apache.flink.table.types.logical.MapType) logicalType;
-                var keyType = org.apache.flink.table.api.DataTypes.of(mapType.getKeyType());
-                var valueType = org.apache.flink.table.api.DataTypes.of(mapType.getValueType());
+                var mapType = (MapType) logicalType;
+                var keyType = DataTypes.of(mapType.getKeyType());
+                var valueType = DataTypes.of(mapType.getValueType());
                 return toRowMap(value, keyType, valueType);
 
             default:
@@ -308,7 +325,7 @@ public class UnifiedTypeConverter {
     // ==================== Private helper methods ====================
 
     private Map<String, Object> mapToMapConverter(Map<?, ?> source) {
-        java.util.LinkedHashMap<String, Object> result = new java.util.LinkedHashMap<>();
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : source.entrySet()) {
             String key = entry.getKey() != null ? entry.getKey().toString() : null;
             result.put(key, toMapValue(entry.getValue()));
@@ -333,7 +350,7 @@ public class UnifiedTypeConverter {
     }
 
     private List<Object> listToMapList(List<?> list) {
-        java.util.ArrayList<Object> result = new java.util.ArrayList<>(list.size());
+        ArrayList<Object> result = new ArrayList<>(list.size());
         for (Object element : list) {
             result.add(toMapValue(element));
         }
@@ -341,25 +358,25 @@ public class UnifiedTypeConverter {
     }
 
     private List<Object> arrayToMapList(Object array) {
-        int length = java.lang.reflect.Array.getLength(array);
-        java.util.ArrayList<Object> result = new java.util.ArrayList<>(length);
+        int length = Array.getLength(array);
+        ArrayList<Object> result = new ArrayList<>(length);
         for (int i = 0; i < length; i++) {
-            result.add(toMapValue(java.lang.reflect.Array.get(array, i)));
+            result.add(toMapValue(Array.get(array, i)));
         }
         return result;
     }
 
     private List<Object> toStructList(Object value, Schema elementSchema) {
-        java.util.ArrayList<Object> result = new java.util.ArrayList<>();
+        ArrayList<Object> result = new ArrayList<>();
 
         if (value instanceof List<?>) {
             for (Object element : (List<?>) value) {
                 result.add(toStructValue(element, elementSchema));
             }
         } else if (value.getClass().isArray()) {
-            int length = java.lang.reflect.Array.getLength(value);
+            int length = Array.getLength(value);
             for (int i = 0; i < length; i++) {
-                result.add(toStructValue(java.lang.reflect.Array.get(value, i), elementSchema));
+                result.add(toStructValue(Array.get(value, i), elementSchema));
             }
         } else {
             throw new KryptoniteException(
@@ -375,7 +392,7 @@ public class UnifiedTypeConverter {
                 "Cannot convert to Map: expected Map, got " + value.getClass().getName());
         }
 
-        java.util.LinkedHashMap<Object, Object> result = new java.util.LinkedHashMap<>();
+        LinkedHashMap<Object, Object> result = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
             Object convertedKey = toStructValue(entry.getKey(), keySchema);
             Object convertedValue = toStructValue(entry.getValue(), valueSchema);
@@ -385,16 +402,16 @@ public class UnifiedTypeConverter {
     }
 
     private Object toRowArray(Object value, DataType elementType) {
-        java.util.ArrayList<Object> tempList = new java.util.ArrayList<>();
+        ArrayList<Object> tempList = new ArrayList<>();
 
         if (value instanceof List<?>) {
             for (Object element : (List<?>) value) {
                 tempList.add(toRowValue(element, elementType));
             }
         } else if (value.getClass().isArray()) {
-            int length = java.lang.reflect.Array.getLength(value);
+            int length = Array.getLength(value);
             for (int i = 0; i < length; i++) {
-                tempList.add(toRowValue(java.lang.reflect.Array.get(value, i), elementType));
+                tempList.add(toRowValue(Array.get(value, i), elementType));
             }
         } else {
             throw new KryptoniteException(
@@ -403,9 +420,9 @@ public class UnifiedTypeConverter {
 
         // Create properly typed array based on the element DataType
         Class<?> componentClass = getJavaClassForDataType(elementType);
-        Object typedArray = java.lang.reflect.Array.newInstance(componentClass, tempList.size());
+        Object typedArray = Array.newInstance(componentClass, tempList.size());
         for (int i = 0; i < tempList.size(); i++) {
-            java.lang.reflect.Array.set(typedArray, i, tempList.get(i));
+            Array.set(typedArray, i, tempList.get(i));
         }
         return typedArray;
     }
@@ -439,13 +456,13 @@ public class UnifiedTypeConverter {
             case DOUBLE:
                 return Double.class;
             case DECIMAL:
-                return java.math.BigDecimal.class;
+                return BigDecimal.class;
             case DATE:
-                return java.time.LocalDate.class;
+                return LocalDate.class;
             case TIME_WITHOUT_TIME_ZONE:
-                return java.time.LocalTime.class;
+                return LocalTime.class;
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                return java.time.LocalDateTime.class;
+                return LocalDateTime.class;
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
                 return java.time.Instant.class;
             case VARBINARY:
@@ -455,10 +472,10 @@ public class UnifiedTypeConverter {
                 return Row.class;
             case ARRAY:
                 // For nested arrays, get the element type and create array class
-                var arrayType = (org.apache.flink.table.types.logical.ArrayType) logicalType;
-                var nestedElementType = org.apache.flink.table.api.DataTypes.of(arrayType.getElementType());
+                var arrayType = (ArrayType) logicalType;
+                var nestedElementType = DataTypes.of(arrayType.getElementType());
                 Class<?> nestedClass = getJavaClassForDataType(nestedElementType);
-                return java.lang.reflect.Array.newInstance(nestedClass, 0).getClass();
+                return Array.newInstance(nestedClass, 0).getClass();
             case MAP:
                 return Map.class;
             default:
@@ -472,7 +489,7 @@ public class UnifiedTypeConverter {
                 "Cannot convert to Map: expected Map, got " + value.getClass().getName());
         }
 
-        java.util.LinkedHashMap<Object, Object> result = new java.util.LinkedHashMap<>();
+        LinkedHashMap<Object, Object> result = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
             Object convertedKey = toRowValue(entry.getKey(), keyType);
             Object convertedValue = toRowValue(entry.getValue(), valueType);
