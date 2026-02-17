@@ -25,6 +25,7 @@
 
   <modules>
     <module>kryptonite</module>
+    <module>kryptonite-serdes-converters</module>
     <module>connect-transform-kryptonite</module>
     <module>ksqldb-udfs-kryptonite</module>
     <module>funqy-http-kryptonite</module>

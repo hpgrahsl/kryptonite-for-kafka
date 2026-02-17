@@ -25,49 +25,59 @@
     <version>0.6.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>kryptonite</artifactId>
-  <version>0.6.0</version>
+  <artifactId>kryptonite-serdes-converters</artifactId>
+  <version>0.1.0</version>
   <packaging>jar</packaging>
 
   <properties>
-    <google.tink.java.version>1.19.0</google.tink.java.version>
-    <google.tink.java.gcpkms.version>1.10.0</google.tink.java.gcpkms.version>
-    <mysto.fpe.version>1.2.0</mysto.fpe.version>
-    <az.keyvault.version>4.10.3</az.keyvault.version>
-    <az.identity.version>1.18.1</az.identity.version>
+    <kryo.version>5.6.2</kryo.version>
+    <kryo.serializers>0.45</kryo.serializers>
+    <kafka.version>4.1.0</kafka.version>
+    <flink.version>1.20.3</flink.version>
     <junit.version>5.14.0</junit.version>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>com.google.crypto.tink</groupId>
-      <artifactId>tink</artifactId>
-      <version>${google.tink.java.version}</version>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.google.crypto.tink</groupId>
-      <artifactId>tink-gcpkms</artifactId>
-      <version>${google.tink.java.gcpkms.version}</version>
+      <groupId>com.esotericsoftware</groupId>
+      <artifactId>kryo</artifactId>
+      <version>${kryo.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.mysto</groupId>
-      <artifactId>ff3</artifactId>
-      <version>${mysto.fpe.version}</version>
-    </dependency>
-    <!-- <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-security-keyvault-keys</artifactId>
-      <version>${az.keyvault.version}</version>
-    </dependency> -->
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-security-keyvault-secrets</artifactId>
-      <version>${az.keyvault.version}</version>
+      <groupId>de.javakaffee</groupId>
+      <artifactId>kryo-serializers</artifactId>
+      <version>${kryo.serializers}</version>
     </dependency>
     <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-identity</artifactId>
-      <version>${az.identity.version}</version>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>connect-api</artifactId>
+      <version>${kafka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-core</artifactId>
+      <version>${flink.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.esotericsoftware.kryo</groupId>
+          <artifactId>kryo</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-api-java</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-table-common</artifactId>
+      <version>${flink.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -85,35 +95,13 @@
         <version>${compiler.plugin.version}</version>
         <configuration>
           <compilerArgs>
-            <arg>-Xlint:all</arg>
+            <arg>-Xlint:all,-processing</arg>
             <arg>-Werror</arg>
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
           <release>${maven.compiler.release}</release>
-          <compilerArgs>
-            <!--<arg>-parameters</arg>-->
-          </compilerArgs>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>${assembly.plugin.version}</version>
-        <executions>
-            <execution>
-                <phase>package</phase>
-                <goals>
-                    <goal>single</goal>
-                </goals>
-                <configuration>
-                    <descriptors>
-                      <descriptor>src/main/resources/kryptonite-distribution.xml</descriptor>
-                    </descriptors>
-                    <appendAssemblyId>false</appendAssemblyId>
-                </configuration>
-            </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
