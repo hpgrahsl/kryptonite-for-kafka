@@ -41,7 +41,7 @@
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
     </dependency>
     <dependency>
       <groupId>com.esotericsoftware</groupId>
