@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2021. Hans-Peter Grahsl (grahslhp@gmail.com)
+  ~ Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -25,32 +25,31 @@
     <version>0.6.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>kryptonite</artifactId>
-  <version>0.6.0</version>
+  <artifactId>kryptonite-kms-azure</artifactId>
+  <version>0.1.0</version>
   <packaging>jar</packaging>
 
   <properties>
-    <google.tink.java.version>1.19.0</google.tink.java.version>
-    <mysto.fpe.version>1.2.0</mysto.fpe.version>
-    <jackson.version>2.18.4</jackson.version>
+    <az.keyvault.version>4.10.3</az.keyvault.version>
+    <az.identity.version>1.18.1</az.identity.version>
     <junit.version>5.14.0</junit.version>
   </properties>
 
   <dependencies>
     <dependency>
-      <groupId>com.google.crypto.tink</groupId>
-      <artifactId>tink</artifactId>
-      <version>${google.tink.java.version}</version>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite</artifactId>
+      <version>${project.parent.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.mysto</groupId>
-      <artifactId>ff3</artifactId>
-      <version>${mysto.fpe.version}</version>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-security-keyvault-secrets</artifactId>
+      <version>${az.keyvault.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>${jackson.version}</version>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
+      <version>${az.identity.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -68,35 +67,13 @@
         <version>${compiler.plugin.version}</version>
         <configuration>
           <compilerArgs>
-            <arg>-Xlint:all</arg>
+            <arg>-Xlint:all,-processing</arg>
             <arg>-Werror</arg>
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
           <release>${maven.compiler.release}</release>
-          <compilerArgs>
-            <!--<arg>-parameters</arg>-->
-          </compilerArgs>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>${assembly.plugin.version}</version>
-        <executions>
-            <execution>
-                <phase>package</phase>
-                <goals>
-                    <goal>single</goal>
-                </goals>
-                <configuration>
-                    <descriptors>
-                      <descriptor>src/main/resources/kryptonite-distribution.xml</descriptor>
-                    </descriptors>
-                    <appendAssemblyId>false</appendAssemblyId>
-                </configuration>
-            </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>

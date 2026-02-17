@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
- package com.github.hpgrahsl.kryptonite;
+package com.github.hpgrahsl.kryptonite;
 
 import java.io.File;
 import java.io.FileReader;
@@ -31,7 +31,6 @@ import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVaultConfig;
-import com.github.hpgrahsl.kryptonite.kms.gcp.GcpKeyEncryption;
 
 public class TestFixturesCloudKms {
 
@@ -59,7 +58,15 @@ public class TestFixturesCloudKms {
             var kekUri = cloudKmsCredentials.getProperty("test.kek.gcp.uri");
             switch (kekType) {
                 case GCP:
-                    return new GcpKeyEncryption(kekUri, kekConfig);
+                    var provider = java.util.ServiceLoader.load(
+                        com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider.class
+                    ).stream()
+                        .map(java.util.ServiceLoader.Provider::get)
+                        .filter(p -> p.kekType().equals(kekType.name()))
+                        .findFirst()
+                        .orElseThrow(() -> new ConfigurationException(
+                            "no KMS key encryption provider found for type '" + kekType + "'"));
+                    return provider.createKeyEncryption(kekUri, kekConfig);
                 default:
                     throw new ConfigurationException("error: configuration for KMS key encryption failed for kek type '"+kekType+"'");
             }

@@ -25,6 +25,8 @@
 
   <modules>
     <module>kryptonite</module>
+    <module>kryptonite-kms-azure</module>
+    <module>kryptonite-kms-gcp</module>
     <module>kryptonite-serdes-converters</module>
     <module>connect-transform-kryptonite</module>
     <module>ksqldb-udfs-kryptonite</module>

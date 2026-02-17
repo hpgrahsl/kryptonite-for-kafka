@@ -17,6 +17,7 @@
     <protobuf.version>4.32.1</protobuf.version>
     <kryptonite.version>0.6.0</kryptonite.version>
     <kryptonite.serdes.converters.version>0.1.0</kryptonite.serdes.converters.version>
+    <kryptonite.kms.version>0.1.0</kryptonite.kms.version>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -67,6 +68,16 @@
           <artifactId>log4j-core</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-azure</artifactId>
+      <version>${kryptonite.kms.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-gcp</artifactId>
+      <version>${kryptonite.kms.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
