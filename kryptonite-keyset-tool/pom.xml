@@ -25,7 +25,7 @@
     <version>0.6.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>keyset-cli</artifactId>
+  <artifactId>kryptonite-keyset-tool</artifactId>
   <version>0.1.0</version>
   <packaging>jar</packaging>
 
