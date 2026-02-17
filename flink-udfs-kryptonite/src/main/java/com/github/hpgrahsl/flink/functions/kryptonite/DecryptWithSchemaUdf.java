@@ -25,22 +25,15 @@ import org.apache.flink.table.catalog.DataTypeFactory;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
 
-/**
- * @deprecated use {@link DecryptWithSchemaUdf} instead
- * which allows to specify the target type via a schema string
- */
-@Deprecated(forRemoval = true)
-public class DecryptUdf extends AbstractCipherFieldUdf {
+import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 
-    @SuppressWarnings("unchecked")
-    public @Nullable <T> T eval(@Nullable final String data, final T typeCapture) {
+public class DecryptWithSchemaUdf extends AbstractCipherFieldUdf {
+
+    public @Nullable Object eval(@Nullable final String data, final String schemaString) {
         if(data == null) {
             return null;
         }
-        if (typeCapture == null) {
-            throw new IllegalArgumentException("typeCapture must not be null");
-        }
-        return (T) decryptData(data);
+        return decryptData(data);
     }
 
     @Override
@@ -48,11 +41,19 @@ public class DecryptUdf extends AbstractCipherFieldUdf {
         return TypeInference.newBuilder()
                 .inputTypeStrategy(InputTypeStrategies.sequence(
                         InputTypeStrategies.explicit(DataTypes.STRING()),
-                        InputTypeStrategies.ANY))
-                .outputTypeStrategy(ctx -> {
-                    var targetType = ctx.getArgumentDataTypes().get(1);
-                    return Optional.of(targetType);
-                }).build();
+                        InputTypeStrategies.explicit(DataTypes.STRING())))
+                .outputTypeStrategy(callContext -> {
+                    if (!callContext.isArgumentLiteral(1) || callContext.isArgumentNull(1)) {
+                        throw new IllegalArgumentException(
+                                "2nd argument (schemaString) must be a string literal, not a column reference or expression");
+                    }
+                    Optional<String> schemaStringOpt = callContext.getArgumentValue(1, String.class);
+                    if (!schemaStringOpt.isPresent()) {
+                        throw new IllegalArgumentException("schemaString parameter must be a non-null string literal");
+                    }
+                    return Optional.of(SchemaParser.parseType(schemaStringOpt.get().trim()));
+                })
+                .build();
     }
 
 }

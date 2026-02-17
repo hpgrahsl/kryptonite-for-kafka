@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2025. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,14 +30,22 @@ import org.apache.flink.table.types.KeyValueDataType;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
 
+/**
+ * @deprecated use {@link DecryptMapWithSchemaUdf} instead
+ * which allows to specify the target map type via a schema string
+ */
+@Deprecated(forRemoval = true)
 public class DecryptMapUdf extends AbstractCipherFieldUdf {
 
     @SuppressWarnings("unchecked")
-    public @Nullable <V> Map<?,V> eval(@Nullable final Object data, final V valueType) { 
-        if(data == null || !(data instanceof Map)) {
+    public @Nullable <V> Map<?,V> eval(@Nullable final Map<?,String> data, final V valueTypeCapture) { 
+        if(data == null) {
             return null;
         }
-        return ((Map<?,String>)data).entrySet().stream()
+        if (valueTypeCapture == null) {
+            throw new IllegalArgumentException("valueTypeCapture must not be null");
+        }
+        return data.entrySet().stream()
               .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),(V)decryptData(e.getValue())))
               .collect(LinkedHashMap::new,(lhm, e) -> lhm.put(e.getKey(),e.getValue()), HashMap::putAll);
     }
@@ -47,7 +55,7 @@ public class DecryptMapUdf extends AbstractCipherFieldUdf {
 		return TypeInference.newBuilder()
 				.inputTypeStrategy(
                     InputTypeStrategies.sequence(
-                        InputTypeStrategies.ANY, //SHOULD BE LIMITED to "any map" i.e. MAP<K,V>
+                        InputTypeStrategies.ANY,
                         InputTypeStrategies.ANY
                     )
                 )

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2025. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
+
+import javax.annotation.Nullable;
 
 import org.apache.flink.table.functions.FunctionContext;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
@@ -37,62 +39,65 @@ public class EncryptArrayUdf extends AbstractCipherFieldUdf {
         defaultCipherDataKeyIdentifier = cipherDataKeyIdentifier;
     }
 
-    public String[] eval(final String[] data) {
+    public @Nullable String[] eval(@Nullable final String[] data) {
         return process(data, null, null);
     }
 
-    public String[] eval(final String[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+    public @Nullable String[] eval(@Nullable final String[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
         return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
-    public String[] eval(final Boolean[] data) {
+    public @Nullable String[] eval(@Nullable final Boolean[] data) {
         return process(data, null, null);
     }
 
-    public String[] eval(final Boolean[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+    public @Nullable String[] eval(@Nullable final Boolean[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
         return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
-    public String[] eval(final Integer[] data) {
+    public @Nullable String[] eval(@Nullable final Integer[] data) {
         return process(data, null, null);
     }
 
-    public String[] eval(final Integer[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+    public @Nullable String[] eval(@Nullable final Integer[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
         return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
-    public String[] eval(final Long[] data) {
+    public @Nullable String[] eval(@Nullable final Long[] data) {
         return process(data, null, null);
     }
 
-    public String[] eval(final Long[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+    public @Nullable String[] eval(@Nullable final Long[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
         return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
     // about 2 sec delay before processing starts when adding these two
-    public String[] eval(final Float[] data) {
+    public @Nullable String[] eval(@Nullable final Float[] data) {
         return process(data, null, null);
     }
 
-    public String[] eval(final Float[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+    public @Nullable String[] eval(@Nullable final Float[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
         return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
     // delays for about 10 sec before processing starts when adding two more
-    public String[] eval(final Double[] data) {
+    
+    public @Nullable String[] eval(@Nullable final Double[] data) {
         return process(data, null, null);
     }
 
-    public String[] eval(final Double[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
+    public @Nullable String[] eval(@Nullable final Double[] data, String cipherDataKeyIdentifier, String cipherAlgorithm) {
         return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     }
 
     // delays for about 4(!) mins before processing starts when adding two more
-    // public String[] eval(final Byte[] data) {
+    // which must be a weird bug of some kind in the table api runtime of Flink?
+
+    // public @Nullable String[] eval(@Nullable final Byte[] data) {
     // return process(data, null, null);
     // }
 
-    // public String[] eval(final Byte[] data, String cipherDataKeyIdentifier,
+    // public @Nullable String[] eval(@Nullable final Byte[] data, String cipherDataKeyIdentifier,
     // String cipherAlgorithm) {
     // return process(data, cipherDataKeyIdentifier, cipherAlgorithm);
     // }
@@ -101,12 +106,17 @@ public class EncryptArrayUdf extends AbstractCipherFieldUdf {
         if (array == null) {
             return null;
         }
+        
         var dataEnc = new String[array.length];
-        for (int s = 0; s < array.length; s++) {
-            var fmd = createFieldMetaData(
+        if (dataEnc.length == 0) {
+            return dataEnc;
+        }
+        
+        var fmd = createFieldMetaData(
                     cipherAlgorithm == null ? KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT : cipherAlgorithm,
-                    dataEnc,
+                    dataEnc[0],
                     cipherDataKeyIdentifier == null ? defaultCipherDataKeyIdentifier : cipherDataKeyIdentifier);
+        for (int s = 0; s < array.length; s++) {
             dataEnc[s] = encryptData(array[s], fmd);
         }
         return dataEnc;

@@ -51,11 +51,72 @@ public class EncryptMapFpeUdf extends AbstractCipherFieldFpeUdf {
         defaultCipherDataKeyIdentifier = cipherDataKeyIdentifier;
     }
 
+    public Map<?, String> eval(@Nullable final Map<?, String> data) {
+        var fmd = createFieldMetaData(null, defaultCipherDataKeyIdentifier, null, null, null);
+        return encryptData(data, fmd);
+    }
+
+    public Map<?, String> eval(@Nullable final Map<?, String> data,
+            String cipherDataKeyIdentifier, String cipherAlgorithm) {
+        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null) {
+            throw new IllegalArgumentException(
+                    "cipher data key identifier and/or cipher algorithm must not be null");
+        }
+        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, null, null, null);
+        return encryptData(data, fmd);
+    }
+
+    public Map<?, String> eval(@Nullable final Map<?, String> data,
+            String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak) {
+        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null) {
+            throw new IllegalArgumentException(
+                    "cipher data key identifier and/or cipher algorithm and/or fpeTweak must not be null");
+        }
+        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, null, null);
+        return encryptData(data, fmd);
+    }
+
+    public Map<?, String> eval(@Nullable final Map<?, String> data,
+            String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak,
+            String fpeAlphabetType) {
+        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null
+                || fpeAlphabetType == null) {
+            throw new IllegalArgumentException(
+                    "cipher data key identifier and/or cipher algorithm and/or fpeTweak "
+                            + "and/or fpeAlphabetType must not be null");
+        }
+        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, fpeAlphabetType, null);
+        return encryptData(data, fmd);
+    }
+
+    public Map<?, String> eval(@Nullable final Map<?, String> data,
+            String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak,
+            String fpeAlphabetType, String fpeAlphabetCustom) {
+        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null
+                || fpeAlphabetType == null || fpeAlphabetCustom == null) {
+            throw new IllegalArgumentException(
+                    "cipher data key identifier and/or cipher algorithm and/or fpeTweak "
+                            + "and/or fpeAlphabetType and/or fpeAlphabetCustom must not be null");
+        }
+        if (!AlphabetTypeFPE.CUSTOM.name().equals(fpeAlphabetType)) {
+            throw new IllegalArgumentException(
+                    "fpeAlphabetCustom can only be set if fpeAlphabetType is set to "
+                            + AlphabetTypeFPE.CUSTOM.name());
+        }
+        if (fpeAlphabetCustom.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "fpeAlphabetCustom must not be empty when fpeAlphabetType is set to "
+                            + AlphabetTypeFPE.CUSTOM.name());
+        }
+        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, fpeAlphabetType,
+                fpeAlphabetCustom);
+        return encryptData(data, fmd);
+    }
+
     @Override
     public TypeInference getTypeInference(DataTypeFactory typeFactory) {
         return TypeInference.newBuilder()
                 .inputTypeStrategy(
-                        //NOTE: first param for each sequence SHOULD BE LIMITED to "any map with string values" i.e. MAP<K,String>
                         InputTypeStrategies.or(
                             InputTypeStrategies.sequence(
                                 InputTypeStrategies.ANY
@@ -92,73 +153,6 @@ public class EncryptMapFpeUdf extends AbstractCipherFieldFpeUdf {
                     return Optional.of(DataTypes.MAP(targetKeyType, DataTypes.STRING()));
                 })
                 .build();
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<?, String> eval(@Nullable final Object data) {
-        var fmd = createFieldMetaData(null, defaultCipherDataKeyIdentifier, null, null, null);
-        return encryptData((Map<?, String>) data, fmd);
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<?, String> eval(@Nullable final Object data,
-            String cipherDataKeyIdentifier, String cipherAlgorithm) {
-        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null) {
-            throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm must not be null");
-        }
-        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, null, null, null);
-        return encryptData((Map<?, String>) data, fmd);
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<?, String> eval(@Nullable final Object data,
-            String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak) {
-        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null) {
-            throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm and/or fpeTweak must not be null");
-        }
-        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, null, null);
-        return encryptData((Map<?, String>) data, fmd);
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<?, String> eval(@Nullable final Object data,
-            String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak,
-            String fpeAlphabetType) {
-        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null
-                || fpeAlphabetType == null) {
-            throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm and/or fpeTweak "
-                            + "and/or fpeAlphabetType must not be null");
-        }
-        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, fpeAlphabetType, null);
-        return encryptData((Map<?, String>) data, fmd);
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<?, String> eval(@Nullable final Object data,
-            String cipherDataKeyIdentifier, String cipherAlgorithm, String fpeTweak,
-            String fpeAlphabetType, String fpeAlphabetCustom) {
-        if (cipherDataKeyIdentifier == null || cipherAlgorithm == null || fpeTweak == null
-                || fpeAlphabetType == null || fpeAlphabetCustom == null) {
-            throw new IllegalArgumentException(
-                    "error: cipher data key identifier and/or cipher algorithm and/or fpeTweak "
-                            + "and/or fpeAlphabetType and/or fpeAlphabetCustom must not be null");
-        }
-        if (!AlphabetTypeFPE.CUSTOM.name().equals(fpeAlphabetType)) {
-            throw new IllegalArgumentException(
-                    "error: fpeAlphabetCustom can only be set if fpeAlphabetType is set to "
-                            + AlphabetTypeFPE.CUSTOM.name());
-        }
-        if (fpeAlphabetType.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "error: fpeAlphabetCustom must not be empty when fpeAlphabetType is set to "
-                            + AlphabetTypeFPE.CUSTOM.name());
-        }
-        var fmd = createFieldMetaData(cipherAlgorithm, cipherDataKeyIdentifier, fpeTweak, fpeAlphabetType,
-                fpeAlphabetCustom);
-        return encryptData((Map<?, String>) data, fmd);
     }
 
 }
