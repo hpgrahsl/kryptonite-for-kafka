@@ -17,7 +17,6 @@
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.flink.types.Row;

@@ -31,6 +31,7 @@
 
   <properties>
     <kryptonite.version>0.6.0</kryptonite.version>
+    <kryptonite.serdes.converters.version>0.1.0</kryptonite.serdes.converters.version>
     <flink.version>1.20.3</flink.version>
     <jackson.version>2.20.0</jackson.version>
     <logback.version>1.2.13</logback.version>
@@ -42,10 +43,23 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
       <version>${kryptonite.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-serdes-converters</artifactId>
+      <version>${kryptonite.serdes.converters.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.apache.flink</groupId>
           <artifactId>flink-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.flink</groupId>
+          <artifactId>flink-table-api-java</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.flink</groupId>
+          <artifactId>flink-table-common</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
