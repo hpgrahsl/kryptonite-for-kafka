@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
+import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
@@ -195,9 +196,8 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
       LOGGER.debug("BASE64 encoded ciphertext: {}",encodedField);
       return encodedField;
     } catch (Exception exc) {
-      exc.printStackTrace();
+      throw new KryptoniteException("failed to encrypt data", exc);
     }
-    return null;
   }
 
   @Override

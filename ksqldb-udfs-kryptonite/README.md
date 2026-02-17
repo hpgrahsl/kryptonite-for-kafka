@@ -13,8 +13,8 @@ Kryptonite for Kafka provides user-defined functions for [ksqlDB](https://ksqlDB
 - `K4KDECRYPT` - Decrypt field data
 
 **Format Preserving Encryption (FPE FF3-1):**
-- `K4KENCRYPTFPE` - Encrypt field data while preserving format
-- `K4KDECRYPTFPE` - Decrypt FPE-encrypted field data
+- `K4KENCRYPTFPE` - FPE encrypt field data
+- `K4KDECRYPTFPE` - FPE decrypt field data
 
 The simple examples below show how to install, configure and apply the UDFs to selectively encrypt or decrypt column values in ksqlDB `STREAMS` and `TABLES`.
 
@@ -299,16 +299,16 @@ After making sure that all the mandatory configuration properties are set, start
 
 ### Usage Description
 
-##### UDF K4KENCRYPT
+#### UDF K4KENCRYPT
 
 ```text
 Name        : K4KENCRYPT
 Author      : H.P. Grahsl (@hpgrahsl)
-Version     : 0.2.0
-Overview    : 🔒 encrypt field data ... hopefully without fighting 🐲 🐉
+Version     : 0.4.0
+Overview    : 🔒 encrypt field data based on AEAD ciphers
 Type        : SCALAR
-Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.2.0.jar
-Variations  : 
+Jar         : /opt/ksqldb-udfs/ksqldb-udfs-kryptonite-0.4.0.jar
+Variations  :
 
 	Variation   : K4KENCRYPT(data T, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
 	Returns     : VARCHAR
@@ -324,7 +324,8 @@ Variations  :
 
 	Variation   : K4KENCRYPT(data U, typeCapture V)
 	Returns     : V
-	Description : 🔒 encrypt complex field data either in object mode or element mode using the configured defaults for key identifier and cipher algorithm
+	Description : 🔒 encrypt complex field data either in object mode or element mode using the configured defaults for key identifier and cipher
+                algorithm
 	data        : the data to encrypt
 	typeCapture : param for target type inference (use STRING for object mode encryption, use MAP | ARRAY | STRUCT for element mode encryption)
 
@@ -337,16 +338,16 @@ Variations  :
 	cipherAlgorithm: the cipher algorithm to use for encryption
 ```
 
-##### UDF K4KDECRYPT
+#### UDF K4KDECRYPT
 
 ```text
 Name        : K4KDECRYPT
 Author      : H.P. Grahsl (@hpgrahsl)
-Version     : 0.2.0
-Overview    : 🔓 decrypt field data ... hopefully without fighting 🐲 🐉
+Version     : 0.4.0
+Overview    : 🔓 decrypt field data based on AEAD ciphers
 Type        : SCALAR
-Jar         : <EXTENSION_DIR>/ksqldb-udfs-kryptonite-0.2.0.jar
-Variations  : 
+Jar         : /opt/ksqldb-udfs/ksqldb-udfs-kryptonite-0.4.0.jar
+Variations  :
 
 	Variation   : K4KDECRYPT(data ARRAY<VARCHAR>, typeCapture E)
 	Returns     : ARRAY<E>
@@ -365,6 +366,264 @@ Variations  :
 	Description : 🔓 decrypt the field data (object mode)
 	data        : the encrypted data (base64 encoded ciphertext) to decrypt
 	typeCapture : param for target type inference
+```
+
+#### K4KENCRYPTFPE
+
+```text
+Name        : K4KENCRYPTFPE
+Author      : H.P. Grahsl (@hpgrahsl)
+Version     : 0.4.0
+Overview    : 🔒 encrypt field data using format preserving encryption (FPE)
+Type        : SCALAR
+Jar         : /opt/ksqldb-udfs/ksqldb-udfs-kryptonite-0.4.0.jar
+Variations  :
+
+	Variation   : K4KENCRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR, fpeAlphabetCustom VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔒 encrypt List<String> element-wise using FPE with all parameters
+	data        : the list of strings to encrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+	fpeAlphabetCustom: the custom FPE alphabet (use empty string if not CUSTOM)
+
+	Variation   : K4KENCRYPTFPE(data ARRAY<VARCHAR>)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔒 encrypt List<String> element-wise using FPE with configured defaults
+	data        : the list of strings to encrypt element-wise
+
+	Variation   : K4KENCRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔒 encrypt string field using FPE with specified key identifier and cipher algorithm
+	data        : the string to encrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+
+	Variation   : K4KENCRYPTFPE(data VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔒 encrypt string field using FPE with configured defaults
+	data        : the string to encrypt
+
+	Variation   : K4KENCRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔒 encrypt List<String> element-wise using FPE with specified key identifier, cipher algorithm, tweak, and alphabet type
+	data        : the list of strings to encrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+
+	Variation   : K4KENCRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔒 encrypt List<String> element-wise using FPE with specified key identifier and cipher algorithm
+	data        : the list of strings to encrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+
+	Variation   : K4KENCRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔒 encrypt string field using FPE with specified key identifier, cipher algorithm, tweak, and alphabet type
+	data        : the string to encrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+
+	Variation   : K4KENCRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR, fpeAlphabetCustom VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔒 encrypt Struct string fields element-wise using FPE with all parameters
+	data        : the struct to encrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+	fpeAlphabetCustom: the custom FPE alphabet (use empty string if not CUSTOM)
+
+	Variation   : K4KENCRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔒 encrypt string field using FPE with specified key identifier, cipher algorithm, and tweak
+	data        : the string to encrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+
+	Variation   : K4KENCRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔒 encrypt Struct string fields element-wise using FPE with specified key identifier, cipher algorithm, tweak, and alphabet type
+	data        : the struct to encrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+
+	Variation   : K4KENCRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔒 encrypt Struct string fields element-wise using FPE with specified key identifier, cipher algorithm, and tweak
+	data        : the struct to encrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+
+	Variation   : K4KENCRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR, fpeAlphabetCustom VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔒 encrypt string field using FPE with all parameters including custom alphabet
+	data        : the string to encrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+	fpeAlphabetCustom: the custom FPE alphabet
+
+	Variation   : K4KENCRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔒 encrypt List<String> element-wise using FPE with specified key identifier, cipher algorithm, and tweak
+	data        : the list of strings to encrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+
+	Variation   : K4KENCRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔒 encrypt Struct string fields element-wise using FPE with specified key identifier and cipher algorithm
+	data        : the struct to encrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+
+	Variation   : K4KENCRYPTFPE(data STRUCT<>)
+	Returns     : STRUCT<>
+	Description : 🔒 encrypt Struct string fields element-wise using FPE with configured defaults
+	data        : the struct to encrypt string fields element-wise
+```
+
+#### K4KDECRYPTFPE
+
+```text
+Name        : K4KDECRYPTFPE
+Author      : H.P. Grahsl (@hpgrahsl)
+Version     : 0.4.0
+Overview    : 🔓 decrypt field data using Format Preserving Encryption (FPE)
+Type        : SCALAR
+Jar         : /opt/ksqldb-udfs/ksqldb-udfs-kryptonite-0.4.0.jar
+Variations  :
+
+	Variation   : K4KDECRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR, fpeAlphabetCustom VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔓 decrypt List<String> element-wise using FPE with all parameters
+	data        : the list of encrypted strings to decrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+	fpeAlphabetCustom: the custom FPE alphabet (use empty string if not CUSTOM)
+
+	Variation   : K4KDECRYPTFPE(data ARRAY<VARCHAR>)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔓 decrypt List<String> element-wise using FPE with configured defaults
+	data        : the list of encrypted strings to decrypt element-wise
+
+	Variation   : K4KDECRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔓 decrypt string field using FPE with specified key identifier and cipher algorithm
+	data        : the encrypted string to decrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+
+	Variation   : K4KDECRYPTFPE(data VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔓 decrypt string field using FPE with configured defaults
+	data        : the encrypted string to decrypt
+
+	Variation   : K4KDECRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔓 decrypt List<String> element-wise using FPE with specified key identifier and cipher algorithm
+	data        : the list of encrypted strings to decrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+
+	Variation   : K4KDECRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔓 decrypt List<String> element-wise using FPE with specified key identifier, cipher algorithm, tweak, and alphabet type
+	data        : the list of encrypted strings to decrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+
+	Variation   : K4KDECRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔓 decrypt string field using FPE with specified key identifier, cipher algorithm, tweak, and alphabet type
+	data        : the encrypted string to decrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+
+	Variation   : K4KDECRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR, fpeAlphabetCustom VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔓 decrypt Struct string fields element-wise using FPE with all parameters
+	data        : the struct to decrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+	fpeAlphabetCustom: the custom FPE alphabet (use empty string if not CUSTOM)
+
+	Variation   : K4KDECRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔓 decrypt string field using FPE with specified key identifier, cipher algorithm, and tweak
+	data        : the encrypted string to decrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+
+	Variation   : K4KDECRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔓 decrypt Struct string fields element-wise using FPE with specified key identifier, cipher algorithm, tweak, and alphabet type
+	data        : the struct to decrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+
+	Variation   : K4KDECRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔓 decrypt Struct string fields element-wise using FPE with specified key identifier, cipher algorithm, and tweak
+	data        : the struct to decrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+
+	Variation   : K4KDECRYPTFPE(data VARCHAR, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR, fpeAlphabetType VARCHAR, fpeAlphabetCustom VARCHAR)
+	Returns     : VARCHAR
+	Description : 🔓 decrypt string field using FPE with all parameters including custom alphabet
+	data        : the encrypted string to decrypt
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+	fpeAlphabetType: the FPE alphabet type
+	fpeAlphabetCustom: the custom FPE alphabet
+
+	Variation   : K4KDECRYPTFPE(data ARRAY<VARCHAR>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR, fpeTweak VARCHAR)
+	Returns     : ARRAY<VARCHAR>
+	Description : 🔓 decrypt List<String> element-wise using FPE with specified key identifier, cipher algorithm, and tweak
+	data        : the list of encrypted strings to decrypt element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+	fpeTweak    : the FPE tweak value
+
+	Variation   : K4KDECRYPTFPE(data STRUCT<>, keyIdentifier VARCHAR, cipherAlgorithm VARCHAR)
+	Returns     : STRUCT<>
+	Description : 🔓 decrypt Struct string fields element-wise using FPE with specified key identifier and cipher algorithm
+	data        : the struct to decrypt string fields element-wise
+	keyIdentifier: the key identifier
+	cipherAlgorithm: the cipher algorithm
+
+	Variation   : K4KDECRYPTFPE(data STRUCT<>)
+	Returns     : STRUCT<>
+	Description : 🔓 decrypt Struct string fields element-wise using FPE with configured defaults
+	data        : the struct to decrypt string fields element-wise
 ```
 
 ### Applying the UDFs 
@@ -389,7 +648,7 @@ The following fictional data records - represented in JSON-encoded format - are 
       "myInt": 23,
       "myBoolean": false,
       "mySubDoc1": {"someString":"I met a man with seven wives","someInt":9876},
-      "myArray1": ['str_A','str_B','str_C'],
+      "myArray1": ["str_A","str_B","str_C"],
       "mySubDoc2": {"k1":6,"k2":5,"k3":4}
     }
 ]
