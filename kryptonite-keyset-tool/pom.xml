@@ -47,6 +47,11 @@
       <version>${kryptonite.kms.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-aws</artifactId>
+      <version>${kryptonite.kms.version}</version>
+    </dependency>
+    <dependency>
       <groupId>info.picocli</groupId>
       <artifactId>picocli</artifactId>
       <version>${picocli.version}</version>
