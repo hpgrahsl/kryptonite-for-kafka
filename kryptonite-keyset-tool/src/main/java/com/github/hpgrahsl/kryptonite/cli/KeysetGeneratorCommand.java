@@ -20,10 +20,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
+import com.google.crypto.tink.Aead;
+import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.TinkJsonProtoKeysetFormat;
+import com.google.crypto.tink.config.TinkConfig;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import picocli.CommandLine;
@@ -134,6 +143,25 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
             description = "Pretty-print JSON output (default: single-line)")
     private boolean pretty;
 
+    @Option(names = {"-e", "--encrypt"}, defaultValue = "false",
+            description = "Encrypt the generated keyset(s) using a KMS key encryption key (KEK). "
+                + "Requires --kek-type, --kek-uri, and --kek-config.")
+    private boolean encrypt;
+
+    @Option(names = {"--kek-type"},
+            description = "KMS key encryption key type (e.g. GCP). Required when --encrypt is set.")
+    private String kekType;
+
+    @Option(names = {"--kek-uri"},
+            description = "KMS key encryption key URI (e.g. gcp-kms://projects/.../cryptoKeys/...). "
+                + "Required when --encrypt is set.")
+    private String kekUri;
+
+    @Option(names = {"--kek-config"},
+            description = "Path to KMS credentials/config file (e.g. GCP service account JSON). "
+                + "Required when --encrypt is set.")
+    private File kekConfigFile;
+
     @Override
     public Integer call() throws Exception {
         PrintWriter out = spec.commandLine().getOut();
@@ -154,6 +182,25 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
             return 1;
         }
 
+        if (encrypt) {
+            if (kekType == null || kekType.isBlank()) {
+                err.println("Error: --kek-type is required when --encrypt is set");
+                return 1;
+            }
+            if (kekUri == null || kekUri.isBlank()) {
+                err.println("Error: --kek-uri is required when --encrypt is set");
+                return 1;
+            }
+            if (kekConfigFile == null) {
+                err.println("Error: --kek-config is required when --encrypt is set");
+                return 1;
+            }
+            if (!kekConfigFile.exists() || !kekConfigFile.isFile()) {
+                err.println("Error: --kek-config file does not exist: " + kekConfigFile.getAbsolutePath());
+                return 1;
+            }
+        }
+
         if (algorithm == Algorithm.AES_GCM_SIV && keySize != KeySize.BITS_256) {
             err.println("NOTE: --key-size is ignored for AES_GCM_SIV (fixed key size).");
         }
@@ -163,11 +210,16 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
             mapper.enable(SerializationFeature.INDENT_OUTPUT);
         }
 
+        Aead kekAead = null;
+        if (encrypt) {
+            kekAead = resolveKekAead();
+        }
+
         String output;
         if (numKeysets == 1) {
-            output = generateSingleKeyset(mapper);
+            output = generateSingleKeyset(mapper, kekAead);
         } else {
-            output = generateMultipleKeysets(mapper);
+            output = generateMultipleKeysets(mapper, kekAead);
         }
 
         if (outputFile != null) {
@@ -182,7 +234,25 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
         return 0;
     }
 
-    private String generateSingleKeyset(ObjectMapper mapper) throws Exception {
+    private Aead resolveKekAead() throws Exception {
+        String kekConfig = Files.readString(kekConfigFile.toPath(), StandardCharsets.UTF_8);
+        var provider = ServiceLoader.load(KmsKeyEncryptionProvider.class).stream()
+            .map(ServiceLoader.Provider::get)
+            .filter(p -> p.kekType().equals(kekType))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException(
+                "no KMS key encryption provider found for type '" + kekType
+                    + "' -- add the corresponding kryptonite-kms module to the classpath"));
+        KmsKeyEncryption kmsKeyEncryption = provider.createKeyEncryption(kekUri, kekConfig);
+        TinkConfig.register();
+        return kmsKeyEncryption.getKeyEnryptionKeyHandle()
+            .getPrimitive(com.google.crypto.tink.RegistryConfiguration.get(), Aead.class);
+    }
+
+    private String generateSingleKeyset(ObjectMapper mapper, Aead kekAead) throws Exception {
+        if (encrypt) {
+            return generateSingleEncryptedKeyset(mapper, kekAead);
+        }
         KeysetGenerator generator = createGenerator(initialKeyId);
         String rawKeysetJson = generator.generateKeysetJson();
         if (outputFormat == OutputFormat.FULL) {
@@ -197,7 +267,25 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
         }
     }
 
-    private String generateMultipleKeysets(ObjectMapper mapper) throws Exception {
+    private String generateSingleEncryptedKeyset(ObjectMapper mapper, Aead kekAead) throws Exception {
+        KeysetHandle handle = generateHandleForEncryption(initialKeyId);
+        String encryptedJson = encryptKeyset(handle, kekAead);
+        if (outputFormat == OutputFormat.FULL) {
+            var encNode = mapper.readTree(encryptedJson);
+            ObjectNode wrapperNode = mapper.createObjectNode();
+            wrapperNode.put("identifier", identifier);
+            wrapperNode.set("material", encNode);
+            return mapper.writeValueAsString(wrapperNode);
+        } else {
+            var node = mapper.readTree(encryptedJson);
+            return mapper.writeValueAsString(node);
+        }
+    }
+
+    private String generateMultipleKeysets(ObjectMapper mapper, Aead kekAead) throws Exception {
+        if (encrypt) {
+            return generateMultipleEncryptedKeysets(mapper, kekAead);
+        }
         ArrayNode arrayNode = mapper.createArrayNode();
         for (int k = 0; k < numKeysets; k++) {
             int keyIdOffset = initialKeyId + (k * numKeys);
@@ -214,6 +302,37 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
             }
         }
         return mapper.writeValueAsString(arrayNode);
+    }
+
+    private String generateMultipleEncryptedKeysets(ObjectMapper mapper, Aead kekAead) throws Exception {
+        ArrayNode arrayNode = mapper.createArrayNode();
+        for (int k = 0; k < numKeysets; k++) {
+            int keyIdOffset = initialKeyId + (k * numKeys);
+            KeysetHandle handle = generateHandleForEncryption(keyIdOffset);
+            String encryptedJson = encryptKeyset(handle, kekAead);
+            if (outputFormat == OutputFormat.FULL) {
+                var encNode = mapper.readTree(encryptedJson);
+                ObjectNode wrapperNode = mapper.createObjectNode();
+                wrapperNode.put("identifier", identifier + "_" + (k + 1));
+                wrapperNode.set("material", encNode);
+                arrayNode.add(wrapperNode);
+            } else {
+                arrayNode.add(mapper.readTree(encryptedJson));
+            }
+        }
+        return mapper.writeValueAsString(arrayNode);
+    }
+
+    private static String encryptKeyset(KeysetHandle handle, Aead kekAead) throws Exception {
+        return TinkJsonProtoKeysetFormat.serializeEncryptedKeyset(handle, kekAead, new byte[0]);
+    }
+
+    private KeysetHandle generateHandleForEncryption(int keyIdStart) throws Exception {
+        return switch (algorithm) {
+            case AES_GCM -> new TinkAeadKeysetGenerator(algorithm, keySize, numKeys, keyIdStart).generateHandle();
+            case AES_GCM_SIV -> new TinkAeadKeysetGenerator(algorithm, KeySize.BITS_256, numKeys, keyIdStart).generateHandle();
+            case FPE_FF31 -> new FpeKeysetGenerator(keySize, numKeys, keyIdStart).generateHandle();
+        };
     }
 
     private KeysetGenerator createGenerator(int keyIdStart) {

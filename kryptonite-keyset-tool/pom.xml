@@ -30,6 +30,7 @@
   <packaging>jar</packaging>
 
   <properties>
+    <kryptonite.kms.version>0.1.0</kryptonite.kms.version>
     <picocli.version>4.7.6</picocli.version>
     <junit.version>5.14.0</junit.version>
   </properties>
@@ -39,6 +40,11 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
       <version>${project.parent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-gcp</artifactId>
+      <version>${kryptonite.kms.version}</version>
     </dependency>
     <dependency>
       <groupId>info.picocli</groupId>

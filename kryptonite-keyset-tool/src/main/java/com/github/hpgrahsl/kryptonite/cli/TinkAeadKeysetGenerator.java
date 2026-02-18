@@ -40,9 +40,12 @@ public class TinkAeadKeysetGenerator implements KeysetGenerator {
 
     @Override
     public String generateKeysetJson() throws Exception {
+        return TinkJsonProtoKeysetFormat.serializeKeyset(generateHandle(), InsecureSecretKeyAccess.get());
+    }
+
+    public KeysetHandle generateHandle() throws Exception {
         registerTinkConfigs();
-        KeysetHandle handle = generateKeysetHandle();
-        return TinkJsonProtoKeysetFormat.serializeKeyset(handle, InsecureSecretKeyAccess.get());
+        return generateKeysetHandle();
     }
 
     private KeysetHandle generateKeysetHandle() throws GeneralSecurityException {

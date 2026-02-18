@@ -519,4 +519,59 @@ class KeysetGeneratorCommandTest {
         assertEquals(1, exitCode);
         assertTrue(err.toString().contains("--num-keysets must be between 1 and 1000"));
     }
+
+    @Test
+    @DisplayName("--encrypt without --kek-type returns error")
+    void testEncryptWithoutKekTypeFails() {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-e");
+
+        assertEquals(1, exitCode);
+        assertTrue(err.toString().contains("--kek-type is required"));
+    }
+
+    @Test
+    @DisplayName("--encrypt without --kek-uri returns error")
+    void testEncryptWithoutKekUriFails() {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-e", "--kek-type", "GCP");
+
+        assertEquals(1, exitCode);
+        assertTrue(err.toString().contains("--kek-uri is required"));
+    }
+
+    @Test
+    @DisplayName("--encrypt without --kek-config returns error")
+    void testEncryptWithoutKekConfigFails() {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-e",
+            "--kek-type", "GCP", "--kek-uri", "gcp-kms://some/uri");
+
+        assertEquals(1, exitCode);
+        assertTrue(err.toString().contains("--kek-config is required"));
+    }
+
+    @Test
+    @DisplayName("--encrypt with non-existent --kek-config file returns error")
+    void testEncryptWithMissingKekConfigFileFails() {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-e",
+            "--kek-type", "GCP", "--kek-uri", "gcp-kms://some/uri",
+            "--kek-config", "/nonexistent/credentials.json");
+
+        assertEquals(1, exitCode);
+        assertTrue(err.toString().contains("--kek-config file does not exist"));
+    }
 }

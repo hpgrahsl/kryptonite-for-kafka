@@ -21,6 +21,9 @@ import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig.KeyConfig;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig.KeyConfig.Status;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig.KeyData;
+import com.google.crypto.tink.CleartextKeysetHandle;
+import com.google.crypto.tink.JsonKeysetReader;
+import com.google.crypto.tink.KeysetHandle;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.LinkedHashSet;
@@ -41,6 +44,11 @@ public class FpeKeysetGenerator implements KeysetGenerator {
         this.keySize = keySize;
         this.numKeys = numKeys;
         this.initialKeyId = initialKeyId;
+    }
+
+    public KeysetHandle generateHandle() throws Exception {
+        String json = generateKeysetJson();
+        return CleartextKeysetHandle.read(JsonKeysetReader.withString(json));
     }
 
     @Override
