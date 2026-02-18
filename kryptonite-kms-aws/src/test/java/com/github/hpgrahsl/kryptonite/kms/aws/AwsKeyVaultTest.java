@@ -51,8 +51,8 @@ public class AwsKeyVaultTest {
                     "error: known keyset identifier " + id + " not found in key vault")
             )
         );
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT, awsKeyVault.numKeysetHandles(),
-            "error: key vault expected to contain all " + TestFixtures.CIPHER_DATA_KEYS_COUNT
+        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN, awsKeyVault.numKeysetHandles(),
+            "error: key vault expected to contain all " + TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN
                 + " key(s) after requesting each known identifier"
         );
         assertThrows(KeyNotFoundException.class,
@@ -64,8 +64,8 @@ public class AwsKeyVaultTest {
 
         var awsKeyVault = new AwsKeyVault(SECRET_RESOLVER_PLAIN_KEYS, true);
 
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT, awsKeyVault.numKeysetHandles(),
-            "error: key vault expected to initially contain all " + TestFixtures.CIPHER_DATA_KEYS_COUNT + " known identifiers"
+        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN, awsKeyVault.numKeysetHandles(),
+            "error: key vault expected to initially contain all " + TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN + " known identifiers"
         );
         assertAll(
             TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
