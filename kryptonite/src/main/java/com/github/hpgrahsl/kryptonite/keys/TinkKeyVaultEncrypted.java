@@ -35,7 +35,7 @@ public class TinkKeyVaultEncrypted extends AbstractKeyVault {
 
   protected static Map<String,KeysetHandle> createKeysetHandles(Map<String, TinkKeyConfigEncrypted> keyConfigsEncrypted, KmsKeyEncryption kmsKeyEncryption) {
     try {
-      Aead kekAead = kmsKeyEncryption.getKeyEnryptionKeyHandle().getPrimitive(RegistryConfiguration.get(), Aead.class);
+      Aead kekAead = kmsKeyEncryption.getKeyEncryptionKeyHandle().getPrimitive(RegistryConfiguration.get(), Aead.class);
       return keyConfigsEncrypted.entrySet().stream()
         .map(me -> Map.entry(me.getKey(), createKeysetHandle(me.getValue(), kekAead)))
         .collect(Collectors.toMap(Entry::getKey,Entry::getValue));

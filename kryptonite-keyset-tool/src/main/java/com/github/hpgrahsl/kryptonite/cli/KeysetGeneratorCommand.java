@@ -245,7 +245,7 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
                     + "' -- add the corresponding kryptonite-kms module to the classpath"));
         KmsKeyEncryption kmsKeyEncryption = provider.createKeyEncryption(kekUri, kekConfig);
         TinkConfig.register();
-        return kmsKeyEncryption.getKeyEnryptionKeyHandle()
+        return kmsKeyEncryption.getKeyEncryptionKeyHandle()
             .getPrimitive(com.google.crypto.tink.RegistryConfiguration.get(), Aead.class);
     }
 

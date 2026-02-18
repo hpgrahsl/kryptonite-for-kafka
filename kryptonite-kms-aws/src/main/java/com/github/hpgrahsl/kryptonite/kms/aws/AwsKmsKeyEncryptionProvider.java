@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022. Hans-Peter Grahsl (grahslhp@gmail.com)
+ * Copyright (c) 2024. Hans-Peter Grahsl (grahslhp@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,21 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.kms;
+package com.github.hpgrahsl.kryptonite.kms.aws;
 
-import com.google.crypto.tink.KeysetHandle;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
 
-public interface KmsKeyEncryption {
-    
-    KeysetHandle getKeyEncryptionKeyHandle();
+public class AwsKmsKeyEncryptionProvider implements KmsKeyEncryptionProvider {
+
+    @Override
+    public String kekType() {
+        return "AWS";
+    }
+
+    @Override
+    public KmsKeyEncryption createKeyEncryption(String kekUri, String kekConfig) {
+        return new AwsKeyEncryption(kekUri, kekConfig);
+    }
 
 }
