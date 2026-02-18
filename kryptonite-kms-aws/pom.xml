@@ -31,6 +31,7 @@
 
   <properties>
     <google.tink.java.awskms.version>1.11.0</google.tink.java.awskms.version>
+    <aws.java.sdk.version>1.12.779</aws.java.sdk.version>
     <junit.version>5.14.0</junit.version>
   </properties>
 
@@ -44,6 +45,11 @@
       <groupId>com.google.crypto.tink</groupId>
       <artifactId>tink-awskms</artifactId>
       <version>${google.tink.java.awskms.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-secretsmanager</artifactId>
+      <version>${aws.java.sdk.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
