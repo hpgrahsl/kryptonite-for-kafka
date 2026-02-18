@@ -31,13 +31,8 @@
 
   <properties>
     <google.tink.java.version>1.19.0</google.tink.java.version>
-    <google.tink.java.gcpkms.version>1.10.0</google.tink.java.gcpkms.version>
     <mysto.fpe.version>1.2.0</mysto.fpe.version>
-    <kryo.version>5.6.2</kryo.version>
-    <kryo.serializers>0.45</kryo.serializers>
-    <az.keyvault.version>4.10.3</az.keyvault.version>
-    <az.identity.version>1.18.1</az.identity.version>
-    <kafka.version>4.1.0</kafka.version>
+    <jackson.version>2.18.4</jackson.version>
     <junit.version>5.14.0</junit.version>
   </properties>
 
@@ -48,45 +43,14 @@
       <version>${google.tink.java.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.google.crypto.tink</groupId>
-      <artifactId>tink-gcpkms</artifactId>
-      <version>${google.tink.java.gcpkms.version}</version>
-    </dependency>
-    <dependency>
       <groupId>io.github.mysto</groupId>
       <artifactId>ff3</artifactId>
       <version>${mysto.fpe.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.esotericsoftware</groupId>
-      <artifactId>kryo</artifactId>
-      <version>${kryo.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>de.javakaffee</groupId>
-      <artifactId>kryo-serializers</artifactId>
-      <version>${kryo.serializers}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-security-keyvault-keys</artifactId>
-      <version>${az.keyvault.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-security-keyvault-secrets</artifactId>
-      <version>${az.keyvault.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
-      <artifactId>azure-identity</artifactId>
-      <version>${az.identity.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>connect-api</artifactId>
-      <version>${kafka.version}</version>
-      <scope>provided</scope>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

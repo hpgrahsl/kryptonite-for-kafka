@@ -31,6 +31,8 @@
 
   <properties>
     <kryptonite.version>0.6.0</kryptonite.version>
+    <kryptonite.serdes.converters.version>0.1.0</kryptonite.serdes.converters.version>
+    <kryptonite.kms.version>0.1.0</kryptonite.kms.version>
     <kafka.version>4.1.0</kafka.version>
     <jackson.version>2.20.0</jackson.version>
     <logback.version>1.2.13</logback.version>
@@ -42,6 +44,27 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
       <version>${kryptonite.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-azure</artifactId>
+      <version>${kryptonite.kms.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-gcp</artifactId>
+      <version>${kryptonite.kms.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-serdes-converters</artifactId>
+      <version>${kryptonite.serdes.converters.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.kafka</groupId>
+          <artifactId>connect-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>

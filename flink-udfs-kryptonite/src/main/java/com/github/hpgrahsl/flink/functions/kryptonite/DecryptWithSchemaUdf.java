@@ -27,13 +27,13 @@ import org.apache.flink.table.types.inference.TypeInference;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 
-public class DecryptWithSchemaUdf extends AbstractCipherFieldUdf {
+public class DecryptWithSchemaUdf extends AbstractCipherFieldWithSchemaUdf {
 
     public @Nullable Object eval(@Nullable final String data, final String schemaString) {
         if(data == null) {
             return null;
         }
-        return decryptData(data);
+        return decryptData(data, getCachedSchema(schemaString));
     }
 
     @Override

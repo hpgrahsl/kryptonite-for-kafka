@@ -17,9 +17,13 @@
 package com.github.hpgrahsl.funqy.http.kryptonite;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import jakarta.inject.Singleton;
 
+import org.apache.flink.types.Row;
 import org.apache.kafka.connect.data.Struct;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -89,8 +93,65 @@ public class KryptoniteJacksonCustomizer implements ObjectMapperCustomizer {
 
     }
 
+    public static class RowSerializer extends JsonSerializer<Row> {
+
+        @Override
+        public void serialize(Row value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+            gen.writeStartObject();
+            Set<String> fieldNames = value.getFieldNames(true);
+            if (fieldNames == null || fieldNames.isEmpty()) {
+                int arity = value.getArity();
+                for (int i = 0; i < arity; i++) {
+                    writeField(gen, "f" + i, value.getField(i));
+                }
+            } else {
+                for (String fieldName : fieldNames) {
+                    writeField(gen, fieldName, value.getField(fieldName));
+                }
+            }
+            gen.writeEndObject();
+        }
+
+        private static void writeField(JsonGenerator gen, String fieldName, Object fieldValue) throws IOException {
+            if (fieldValue == null) {
+                gen.writeNullField(fieldName);
+                return;
+            }
+            if (fieldValue instanceof Boolean) {
+                gen.writeBooleanField(fieldName, (Boolean) fieldValue);
+            } else if (fieldValue instanceof Byte) {
+                gen.writeNumberField(fieldName, (Byte) fieldValue);
+            } else if (fieldValue instanceof Short) {
+                gen.writeNumberField(fieldName, (Short) fieldValue);
+            } else if (fieldValue instanceof Integer) {
+                gen.writeNumberField(fieldName, (Integer) fieldValue);
+            } else if (fieldValue instanceof Long) {
+                gen.writeNumberField(fieldName, (Long) fieldValue);
+            } else if (fieldValue instanceof Float) {
+                gen.writeNumberField(fieldName, (Float) fieldValue);
+            } else if (fieldValue instanceof Double) {
+                gen.writeNumberField(fieldName, (Double) fieldValue);
+            } else if (fieldValue instanceof String) {
+                gen.writeStringField(fieldName, (String) fieldValue);
+            } else if (fieldValue instanceof byte[]) {
+                gen.writeBinaryField(fieldName, (byte[]) fieldValue);
+            } else if (fieldValue instanceof Row
+                    || fieldValue instanceof Map
+                    || fieldValue instanceof List) {
+                gen.writeObjectField(fieldName, fieldValue);
+            } else {
+                throw new RuntimeException(
+                    "hit unsupported/unexpected type during row serialization for field '"
+                        + fieldName + "' having type '" + fieldValue.getClass().getName() + "'"
+                );
+            }
+        }
+    }
+
     @Override
     public void customize(ObjectMapper objectMapper) {
-        objectMapper.registerModule(new SimpleModule().addSerializer(Struct.class, new StructSerializer()));
+        objectMapper.registerModule(new SimpleModule()
+            .addSerializer(Struct.class, new StructSerializer())
+            .addSerializer(Row.class, new RowSerializer()));
     }
 }

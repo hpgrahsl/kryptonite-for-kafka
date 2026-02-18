@@ -25,7 +25,6 @@ import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.ScalarFunction;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.github.hpgrahsl.flink.functions.kryptonite.util.Struct2RowConverter;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
@@ -37,8 +36,8 @@ import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
 public abstract class AbstractCipherFieldUdf extends ScalarFunction {
 
-    private transient Kryptonite kryptonite;
-    private transient SerdeProcessor serdeProcessor;
+    protected transient Kryptonite kryptonite;
+    protected transient SerdeProcessor serdeProcessor;
     private transient Map<String, String> udfConfiguration;
 
     @Override
@@ -80,12 +79,6 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
                     new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
             var plaintext = kryptonite.decipherField(encryptedField);
             var restored = serdeProcessor.bytesToObject(plaintext);
-            // gets struct needs row 
-            // might get map with mixed types which also needs to become row 
-            // converter utils: takes the type and checks if conversion is necessary or passes through
-            if (restored instanceof org.apache.kafka.connect.data.Struct) {
-                restored = Struct2RowConverter.convertToRow((org.apache.kafka.connect.data.Struct) restored);
-            }
             return restored;
         } catch (Exception exc) {
             throw new KryptoniteException("failed to decrypt data", exc);

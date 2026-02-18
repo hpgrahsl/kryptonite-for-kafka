@@ -25,10 +25,14 @@
 
   <modules>
     <module>kryptonite</module>
+    <module>kryptonite-kms-azure</module>
+    <module>kryptonite-kms-gcp</module>
+    <module>kryptonite-serdes-converters</module>
     <module>connect-transform-kryptonite</module>
     <module>ksqldb-udfs-kryptonite</module>
     <module>funqy-http-kryptonite</module>
     <module>flink-udfs-kryptonite</module>
+    <module>kryptonite-keyset-tool</module>
   </modules>
 
   <description>Client-Side Field Level Cryptography for Kafka (unofficial community project)</description>

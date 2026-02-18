@@ -16,10 +16,7 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,7 +24,6 @@ import javax.annotation.Nullable;
 
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.catalog.DataTypeFactory;
-import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
@@ -36,24 +32,7 @@ import org.apache.flink.types.Row;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 
-public class DecryptRowWithSchemaUdf extends AbstractCipherFieldUdf {
-
-    private static final int SCHEMA_LRU_CACHE_SIZE = 32;
-
-    // used as LRU cache for parsed schemas (schema string -> parsed DataType)
-    private transient Map<String, DataType> schemaCache;
-
-    @Override
-    public void open(FunctionContext context) throws Exception {
-        super.open(context);
-        schemaCache = Collections.synchronizedMap(
-                new LinkedHashMap<String, DataType>(SCHEMA_LRU_CACHE_SIZE, 0.75f, true) {
-                    @Override
-                    protected boolean removeEldestEntry(Map.Entry<String, DataType> eldest) {
-                        return size() > SCHEMA_LRU_CACHE_SIZE;
-                    }
-                });
-    }
+public class DecryptRowWithSchemaUdf extends AbstractCipherFieldWithSchemaUdf {
 
     public @Nullable Object eval(@Nullable final Row data, String schemaString) {
         if (data == null) {
@@ -66,18 +45,18 @@ public class DecryptRowWithSchemaUdf extends AbstractCipherFieldUdf {
                     "when decrypting rows schema string must represent a ROW<...> type - got: " + schemaString);
         }
 
-        DataType rowType = getCachedSchema(schemaString);
-        if (!(rowType.getLogicalType() instanceof RowType)) {
-            throw new IllegalArgumentException("schema must be of type ROW - got: " + rowType.toString());
+        DataType dataType = getCachedSchema(schemaString);
+        if (!(dataType.getLogicalType() instanceof RowType)) {
+            throw new IllegalArgumentException("schema must be of type ROW - got: " + dataType.toString());
         }
 
-        RowType logicalRowType = (RowType) rowType.getLogicalType();
-        List<String> fieldNames = logicalRowType.getFieldNames();
+        RowType rowType = (RowType) dataType.getLogicalType();
+        List<String> fieldNames = rowType.getFieldNames();
 
         Row result = Row.withNames();
         for (String fieldName : fieldNames) {
             String encryptedValue = (String) data.getField(fieldName);
-            Object decryptedValue = encryptedValue != null ? decryptData(encryptedValue) : null;
+            Object decryptedValue = decryptData(encryptedValue,DataTypes.of(rowType.getTypeAt(rowType.getFieldIndex(fieldName))));
             result.setField(fieldName, decryptedValue);
         }
         return result;
@@ -96,19 +75,20 @@ public class DecryptRowWithSchemaUdf extends AbstractCipherFieldUdf {
                     "when decrypting rows schema string must represent a ROW<...> or ROW(...) type - got: " + schemaString);
         }
 
-        DataType rowType = getCachedSchema(schemaString);
-        if (!(rowType.getLogicalType() instanceof RowType)) {
-            throw new IllegalArgumentException("schema must be of type ROW - got: " + rowType.toString());
+        DataType dataType = getCachedSchema(schemaString);
+        if (!(dataType.getLogicalType() instanceof RowType)) {
+            throw new IllegalArgumentException("schema must be of type ROW - got: " + dataType.toString());
         }
 
-        RowType logicalRowType = (RowType) rowType.getLogicalType();
-        List<String> fieldNames = logicalRowType.getFieldNames();
+        RowType rowType = (RowType) dataType.getLogicalType();
+        List<String> fieldNames = rowType.getFieldNames();
         var fieldNamesToDecrypt = Set.of(fieldList.split(","));
 
         Row result = Row.withNames();
         for (String fieldName : fieldNames) {
             if (fieldNamesToDecrypt.isEmpty() || fieldNamesToDecrypt.contains(fieldName)) {
-                Object decryptedValue = decryptData((String)data.getField(fieldName));
+                String encryptedValue = (String) data.getField(fieldName);
+                Object decryptedValue = decryptData(encryptedValue,DataTypes.of(rowType.getTypeAt(rowType.getFieldIndex(fieldName))));
                 result.setField(fieldName, decryptedValue);
             } else {
                 result.setField(fieldName, data.getField(fieldName));
@@ -153,18 +133,6 @@ public class DecryptRowWithSchemaUdf extends AbstractCipherFieldUdf {
                     return Optional.of(SchemaParser.parseType(schemaStringOpt.get().trim()));
                 })
                 .build();
-    }
-
-    /**
-     * Retrieves a cached parsed schema or parses and caches it if not present.
-     * The cache uses LRU (Least Recently Used) eviction policy when it reaches
-     * the maximum size of {@value #SCHEMA_LRU_CACHE_SIZE} entries.
-     *
-     * @param schemaString the schema definition string to parse and cache
-     * @return the parsed {@link DataType} corresponding to the schema string
-     */
-    private DataType getCachedSchema(String schemaString) {
-        return schemaCache.computeIfAbsent(schemaString, SchemaParser::parseType);
     }
 
 }

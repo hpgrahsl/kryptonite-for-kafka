@@ -27,11 +27,13 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
+import org.checkerframework.checker.units.qual.t;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
+import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 
 import io.confluent.ksql.function.udf.Udf;
@@ -57,12 +59,7 @@ public class CipherFieldDecryptUdf extends AbstractCipherFieldUdf implements Con
       @UdfParameter(value = "typeCapture", description = "param for target type inference")
       final T typeCapture
   ) {
-    try {
-      return (T) decryptData(data);
-    } catch(Exception exc) {
-      exc.printStackTrace();
-    }
-    return null;
+    return (T) decryptData(data);
   }
 
   @SuppressWarnings({"unchecked"})
@@ -73,14 +70,9 @@ public class CipherFieldDecryptUdf extends AbstractCipherFieldUdf implements Con
           @UdfParameter(value = "typeCapture", description = "param for elements' target type inference")
           final E typeCapture
   ) {
-    try {
-      return data.stream()
-              .map(e -> (E) decryptData(e))
-              .collect(Collectors.toList());
-    } catch(Exception exc) {
-      exc.printStackTrace();
-    }
-    return null;
+    return data.stream()
+      .map(e -> (E) decryptData(e))
+      .collect(Collectors.toList());
   }
 
   @SuppressWarnings({"unchecked"})
@@ -91,14 +83,9 @@ public class CipherFieldDecryptUdf extends AbstractCipherFieldUdf implements Con
           @UdfParameter(value = "typeCapture", description = "param for values' target type inference")
           final V typeCapture
   ) {
-    try {
-      return data.entrySet().stream()
-              .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),(V) decryptData(e.getValue())))
-              .collect(LinkedHashMap::new,(lhm, e) -> lhm.put(e.getKey(),e.getValue()), HashMap::putAll);
-    } catch(Exception exc) {
-      exc.printStackTrace();
-    }
-    return null;
+    return data.entrySet().stream()
+      .map(e -> new AbstractMap.SimpleEntry<>(e.getKey(),(V) decryptData(e.getValue())))
+      .collect(LinkedHashMap::new,(lhm, e) -> lhm.put(e.getKey(),e.getValue()), HashMap::putAll);
   }
 
   public Struct decryptStructValues(final Struct data, final Schema originalSchema) {
@@ -123,9 +110,8 @@ public class CipherFieldDecryptUdf extends AbstractCipherFieldUdf implements Con
       LOGGER.debug("restored data: {}",restored);
       return restored;
     } catch (Exception exc) {
-      exc.printStackTrace();
+      throw new KryptoniteException("failed to decrypt data", exc);
     }
-    return null;
   }
 
   @Override

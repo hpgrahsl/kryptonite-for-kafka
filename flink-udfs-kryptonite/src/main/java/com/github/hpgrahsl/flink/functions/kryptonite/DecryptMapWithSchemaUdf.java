@@ -16,7 +16,6 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -25,7 +24,6 @@ import javax.annotation.Nullable;
 
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.catalog.DataTypeFactory;
-import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.inference.InputTypeStrategies;
 import org.apache.flink.table.types.inference.TypeInference;
@@ -33,24 +31,7 @@ import org.apache.flink.table.types.logical.MapType;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 
-public class DecryptMapWithSchemaUdf extends AbstractCipherFieldUdf {
-
-    private static final int SCHEMA_LRU_CACHE_SIZE = 32;
-
-    // used as LRU cache for parsed schemas (schema string -> parsed DataType)
-    private transient Map<String, DataType> schemaCache;
-
-    @Override
-    public void open(FunctionContext context) throws Exception {
-        super.open(context);
-        schemaCache = Collections.synchronizedMap(
-                new LinkedHashMap<String, DataType>(SCHEMA_LRU_CACHE_SIZE, 0.75f, true) {
-                    @Override
-                    protected boolean removeEldestEntry(Map.Entry<String, DataType> eldest) {
-                        return size() > SCHEMA_LRU_CACHE_SIZE;
-                    }
-                });
-    }
+public class DecryptMapWithSchemaUdf extends AbstractCipherFieldWithSchemaUdf {
 
     public @Nullable Object eval(@Nullable final Map<?, String> data, final String schemaString) {
         if (data == null) {
@@ -63,14 +44,14 @@ public class DecryptMapWithSchemaUdf extends AbstractCipherFieldUdf {
                     "when decrypting maps schema string must represent a MAP<...> type - got: " + schemaString);
         }
 
-        DataType mapType = getCachedSchema(schemaString);
-        if (!(mapType.getLogicalType() instanceof MapType)) {
-            throw new IllegalArgumentException("schema must be of type MAP - got: " + mapType.toString());
+        DataType dataType = getCachedSchema(schemaString);
+        if (!(dataType.getLogicalType() instanceof MapType)) {
+            throw new IllegalArgumentException("schema must be of type MAP - got: " + dataType.toString());
         }
-
+        MapType mapType = (MapType) dataType.getLogicalType();
         Map<Object, Object> result = new LinkedHashMap<>();
         for (Map.Entry<?, String> entry : data.entrySet()) {
-            Object decryptedValue = decryptData(entry.getValue());
+            Object decryptedValue = decryptData(entry.getValue(),DataTypes.of(mapType.getValueType()));
             result.put(entry.getKey(), decryptedValue);
         }
         return result;
@@ -94,18 +75,6 @@ public class DecryptMapWithSchemaUdf extends AbstractCipherFieldUdf {
                     return Optional.of(SchemaParser.parseType(schemaStringOpt.get().trim()));
                 })
                 .build();
-    }
-
-    /**
-     * Retrieves a cached parsed schema or parses and caches it if not present.
-     * The cache uses LRU (Least Recently Used) eviction policy when it reaches
-     * the maximum size of {@value #SCHEMA_LRU_CACHE_SIZE} entries.
-     *
-     * @param schemaString the schema definition string to parse and cache
-     * @return the parsed {@link DataType} corresponding to the schema string
-     */
-    private DataType getCachedSchema(String schemaString) {
-        return schemaCache.computeIfAbsent(schemaString, SchemaParser::parseType);
     }
 
 }

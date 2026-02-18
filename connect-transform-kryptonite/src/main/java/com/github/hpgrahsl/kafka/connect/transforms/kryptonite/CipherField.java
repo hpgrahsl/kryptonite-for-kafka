@@ -112,7 +112,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
 
   @Override
   public R apply(R record) {
-    LOGGER.debug("SMT received record {}",record);
+    LOGGER.trace("SMT received record {}",record);
     if (operatingSchema(record) == null) {
       return processWithoutSchema(record);
     } else {
@@ -125,7 +125,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
     var valueMap = requireMap(operatingValue(record), PURPOSE);
     var updatedValueMap = new LinkedHashMap<>(valueMap);
     recordHandlerWithoutSchema.matchFields(null,valueMap,null,updatedValueMap,"");
-    LOGGER.debug("resulting record data {}",updatedValueMap);
+    LOGGER.trace("resulting record data {}",updatedValueMap);
     return newRecord(record,null,updatedValueMap);
   }
 
@@ -140,7 +140,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
     }
     var updatedValueStruct = new Struct(updatedSchema);
     recordHandlerWithSchema.matchFields(valueStruct.schema(),valueStruct,updatedSchema,updatedValueStruct,"");
-    LOGGER.debug("resulting record data {}",updatedValueStruct);
+    LOGGER.trace("resulting record data {}",updatedValueStruct);
     return newRecord(record, updatedSchema, updatedValueStruct);
   }
 

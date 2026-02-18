@@ -23,6 +23,9 @@ import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+
+import org.apache.flink.types.Row;
+import org.apache.flink.types.RowKind;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.objenesis.strategy.StdInstantiatorStrategy;
@@ -40,7 +43,8 @@ public class KryoInstance {
       Kryo kryo = new Kryo();
       try {
         kryo.setWarnUnregisteredClasses(true);
-        kryo.setRegistrationRequired(false);
+        // NOTE: this is a breaking change
+        kryo.setRegistrationRequired(true);
         kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
         // NOTE: pre-register kryptonite for kafka specific classes and if applicable
         // the necessary custom serializers
@@ -50,7 +54,7 @@ public class KryoInstance {
         kryo.register(Struct.class).setSerializer(new KryoSerdeProcessor.StructSerializer());
         kryo.register(Schema.class).setSerializer(new KryoSerdeProcessor.SchemaSerializer());
         kryo.register(Schema.Type.class);
-        // NOTE: pre-registering a couple of commonly found classes
+        // NOTE: pre-registering commonly found classes
         // in the context of kafka connect and ksqlDB
         kryo.register(Object.class);
         kryo.register(byte[].class);
@@ -76,6 +80,29 @@ public class KryoInstance {
         // NOTE: kryo community serializers for other specific collection types
         UnmodifiableCollectionsSerializer.registerSerializers(kryo);
         SynchronizedCollectionsSerializer.registerSerializers(kryo);
+        // NOTE: pre-registering commonly found classes
+        // in the context of Flink
+        kryo.register(Row.class);
+        kryo.register(RowKind.class);
+        kryo.register(Row[].class);
+        // NOTE: pre-registering various array types for primitives and wrappers
+        kryo.register(Object[].class);
+        kryo.register(String[].class);
+        kryo.register(Integer[].class);
+        kryo.register(int[].class);
+        kryo.register(Long[].class);
+        kryo.register(long[].class);
+        kryo.register(Double[].class);
+        kryo.register(double[].class);
+        kryo.register(Float[].class);
+        kryo.register(float[].class);
+        kryo.register(Short[].class);
+        kryo.register(short[].class);
+        kryo.register(Byte[].class); // byte[] already registered
+        kryo.register(Boolean[].class);
+        kryo.register(boolean[].class);
+        kryo.register(Character.class);
+        kryo.register(char[].class);
         return kryo;
       } catch (ClassNotFoundException e) {
         throw new RuntimeException(e);

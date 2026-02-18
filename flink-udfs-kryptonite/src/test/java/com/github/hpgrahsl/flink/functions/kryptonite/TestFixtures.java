@@ -17,7 +17,6 @@
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.flink.types.Row;
@@ -268,7 +267,7 @@ public class TestFixtures {
         TEST_OBJ_MAP_1.put("myInt", 42);
         TEST_OBJ_MAP_1.put("myBoolean", true);
         TEST_OBJ_MAP_1.put("mySubDoc1", Map.of("myString", "keyA"));
-        TEST_OBJ_MAP_1.put("myArray1", List.of("str_1", "str_2", "...", "str_N"));
+        TEST_OBJ_MAP_1.put("myArray1", new String[]{"str_1", "str_2", "...", "str_N"});
         TEST_OBJ_MAP_1.put("mySubDoc2", Map.of("k1", 9, "k2", 8, "k3", 7));
         TEST_OBJ_MAP_1.put("myBytes", "S2Fma2Egcm9ja3Mh");
 

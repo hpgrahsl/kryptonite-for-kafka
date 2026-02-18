@@ -23,9 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfigEncrypted;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
@@ -34,20 +32,16 @@ import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVaultEncrypted;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVault;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVaultEncrypted;
-import com.github.hpgrahsl.kryptonite.kms.azure.AzureSecretResolver;
-import com.github.hpgrahsl.kryptonite.kms.gcp.GcpKeyEncryption;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyVaultProvider;
 import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.daead.DeterministicAeadConfig;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
 
@@ -142,7 +136,6 @@ public class Kryptonite {
       "04", CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM)
   );
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Kryptonite.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final AbstractKeyVault keyVault;
@@ -250,41 +243,43 @@ public class Kryptonite {
   }
 
   private static Kryptonite withKmsKeyVault(Map<String,String> config) {
-    var kmsType = KmsType.valueOf(config.get(KMS_TYPE));
+    var kmsType = config.get(KMS_TYPE);
     var kmsConfig = config.get(KMS_CONFIG);
-    switch (kmsType) {
-      case AZ_KV_SECRETS:
-        return new Kryptonite(new AzureKeyVault(new AzureSecretResolver(kmsConfig), true));
-      default:
-        throw new ConfigurationException(
-            "error: configuration for a KMS backed tink key vault failed with param '"
-                + KMS_TYPE + "' -> " + kmsType);
-    }
+    var provider = ServiceLoader.load(KmsKeyVaultProvider.class).stream()
+        .map(ServiceLoader.Provider::get)
+        .filter(p -> p.kmsType().equals(kmsType))
+        .findFirst()
+        .orElseThrow(() -> new ConfigurationException(
+            "no KMS key vault provider found for type '" + kmsType
+                + "' — add the corresponding kryptonite KMS module to the classpath"));
+    return new Kryptonite(provider.createKeyVault(kmsConfig));
   }
 
   private static Kryptonite withKmsKeyVaultEncrypted(Map<String,String> config) {
-    var kmsType = KmsType.valueOf(config.get(KMS_TYPE));
+    var kmsType = config.get(KMS_TYPE);
     var kmsConfig = config.get(KMS_CONFIG);
-    switch (kmsType) {
-      case AZ_KV_SECRETS:
-        return new Kryptonite(
-            new AzureKeyVaultEncrypted(configureKmsKeyEncryption(config), new AzureSecretResolver(kmsConfig), true));
-      default:
-        throw new ConfigurationException(
-            "error: configuration for a KMS backed tink key vault failed with param '" + KMS_TYPE + "' -> " + kmsType);
-    }
+    var provider = ServiceLoader.load(KmsKeyVaultProvider.class).stream()
+        .map(ServiceLoader.Provider::get)
+        .filter(p -> p.kmsType().equals(kmsType))
+        .findFirst()
+        .orElseThrow(() -> new ConfigurationException(
+            "no KMS key vault provider found for type '" + kmsType
+                + "' — add the corresponding kryptonite KMS module to the classpath"));
+    return new Kryptonite(provider.createKeyVaultEncrypted(configureKmsKeyEncryption(config), kmsConfig));
   }
 
   private static KmsKeyEncryption configureKmsKeyEncryption(Map<String,String> config) {
-    var kekType = KekType.valueOf(config.get(KEK_TYPE));
+    var kekType = config.get(KEK_TYPE);
     var kekConfig = config.get(KEK_CONFIG);
     var kekUri = config.get(KEK_URI);
-    switch (kekType) {
-      case GCP:
-        return new GcpKeyEncryption(kekUri, kekConfig);
-      default:
-        throw new ConfigurationException("error: configuration for KMS key encryption failed with param '" + KEK_TYPE + "' -> " + kekType);
-    }
+    var provider = ServiceLoader.load(KmsKeyEncryptionProvider.class).stream()
+        .map(ServiceLoader.Provider::get)
+        .filter(p -> p.kekType().equals(kekType))
+        .findFirst()
+        .orElseThrow(() -> new ConfigurationException(
+            "no KMS key encryption provider found for type '" + kekType
+                + "' — add the corresponding kryptonite-kms module to the classpath"));
+    return provider.createKeyEncryption(kekUri, kekConfig);
   }
 
 }
