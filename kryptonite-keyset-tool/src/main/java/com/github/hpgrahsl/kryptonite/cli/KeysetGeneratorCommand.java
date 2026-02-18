@@ -149,16 +149,18 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
     private boolean encrypt;
 
     @Option(names = {"--kek-type"},
-            description = "KMS key encryption key type (e.g. GCP). Required when --encrypt is set.")
+            description = "KMS key encryption key type (e.g. GCP, AWS). Required when --encrypt is set.")
     private String kekType;
 
     @Option(names = {"--kek-uri"},
-            description = "KMS key encryption key URI (e.g. gcp-kms://projects/.../cryptoKeys/...). "
+            description = "KMS key encryption key URI "
+                + "(e.g. gcp-kms://projects/.../cryptoKeys/... or aws-kms://arn:aws:kms:...). "
                 + "Required when --encrypt is set.")
     private String kekUri;
 
     @Option(names = {"--kek-config"},
-            description = "Path to KMS credentials/config file (e.g. GCP service account JSON). "
+            description = "Path to KMS credentials/config file "
+                + "(e.g. GCP service account JSON or AWS credentials JSON with accessKey/secretKey). "
                 + "Required when --encrypt is set.")
     private File kekConfigFile;
 
@@ -245,7 +247,7 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
                     + "' -- add the corresponding kryptonite-kms module to the classpath"));
         KmsKeyEncryption kmsKeyEncryption = provider.createKeyEncryption(kekUri, kekConfig);
         TinkConfig.register();
-        return kmsKeyEncryption.getKeyEnryptionKeyHandle()
+        return kmsKeyEncryption.getKeyEncryptionKeyHandle()
             .getPrimitive(com.google.crypto.tink.RegistryConfiguration.get(), Aead.class);
     }
 

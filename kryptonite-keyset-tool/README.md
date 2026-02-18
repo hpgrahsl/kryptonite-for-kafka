@@ -1,6 +1,6 @@
 # Kryptonite for Kafka Keyset Generator Tool
 
-A command-line tool for generating Tink keyset JSON configurations used by all _Kryptonite for Kafka_ modules. Supports both plaintext and KMS-encrypted keyset generation, the latter only with GCP's Cloud KMS for now.
+A command-line tool for generating Tink keyset JSON configurations used by all _Kryptonite for Kafka_ modules. Supports both plaintext and KMS-encrypted keyset generation using GCP Cloud KMS or AWS KMS.
 
 ## Build
 
@@ -37,9 +37,9 @@ Alternatively, run directly via Maven:
 | `-o, --output` | No | stdout | Output file path |
 | `-p, --pretty` | No | `false` | Pretty-print JSON output |
 | `-e, --encrypt` | No | `false` | Encrypt the keyset using a KMS key encryption key (KEK). Requires `--kek-type`, `--kek-uri`, and `--kek-config`. |
-| `--kek-type` | When `--encrypt` | - | KMS key encryption key type (e.g. `GCP`) |
-| `--kek-uri` | When `--encrypt` | - | KMS key encryption key URI (e.g. `gcp-kms://projects/.../cryptoKeys/...`) |
-| `--kek-config` | When `--encrypt` | - | Path to KMS credentials/config file (e.g. GCP service account JSON) |
+| `--kek-type` | When `--encrypt` | - | KMS key encryption key type (e.g. `GCP`, `AWS`) |
+| `--kek-uri` | When `--encrypt` | - | KMS key encryption key URI (e.g. `gcp-kms://projects/.../cryptoKeys/...` or `aws-kms://arn:aws:kms:...`) |
+| `--kek-config` | When `--encrypt` | - | Path to KMS credentials/config file (e.g. GCP service account JSON or AWS credentials JSON with `accessKey`/`secretKey`) |
 | `-h, --help` | - | - | Show help message |
 | `-V, --version` | - | - | Show version |
 
@@ -183,6 +183,27 @@ Output:
 }
 ```
 
+### Encrypted keyset with AWS KMS
+
+Generate an AES-GCM keyset encrypted with an AWS KMS key encryption key (KEK). The credentials config file is a JSON object containing `accessKey` and `secretKey`.
+
+```bash
+java -jar target/kryptonite-keyset-tool-0.1.0.jar \
+  -a AES_GCM -i my-encrypted-key -f FULL -p \
+  -e --kek-type AWS \
+  --kek-uri "aws-kms://arn:aws:kms:eu-central-1:123456789012:key/abcd-1234-efgh-5678" \
+  --kek-config /path/to/aws-credentials.json
+```
+
+Where `aws-credentials.json` contains:
+
+```json
+{
+  "accessKey": "AKIA...",
+  "secretKey": "..."
+}
+```
+
 ### Multiple encrypted keysets
 
 Generate 3 encrypted AES-GCM-SIV keysets, each with 2 keys, written to a file:
@@ -196,7 +217,7 @@ java -jar target/kryptonite-keyset-tool-0.1.0.jar \
   -o /path/to/encrypted-keysets.json
 ```
 
-**Note:** Encrypted keyset generation is supported for all algorithms (`AES_GCM`, `AES_GCM_SIV`, and `FPE_FF31`). The KMS provider is discovered at runtime via `ServiceLoader`, so additional KMS types (e.g. AWS) can be supported by adding the corresponding `kryptonite-kms-*` module to the classpath.
+**Note:** Encrypted keyset generation is supported for all algorithms (`AES_GCM`, `AES_GCM_SIV`, and `FPE_FF31`). The KMS provider is discovered at runtime via `ServiceLoader`, so additional KMS types can be supported by adding the corresponding `kryptonite-kms-*` module to the classpath.
 
 ## Running Tests
 
