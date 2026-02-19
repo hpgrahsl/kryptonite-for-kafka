@@ -172,14 +172,14 @@ public class TestFixtures {
 
     public static final String CIPHER_DATA_KEY_CONFIG_ENCRYPTED_KEY_X = """
             {
-              "encryptedKeyset": "AQICAHh53+KMA84wkSIvqIZh+0UAj1lLrzyqIZD369PL+PlyHwEapkmuA07GIKX9u5xjDZpYAAAAyTCBxgYJKoZIhvcNAQcGoIG4MIG1AgEAMIGvBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDAP/0qYLvf4p6B41oQIBEICBgQkyvRu8YMzQhnyqYWkKCaxsV/0CLaFJolS8i1gPWgSqQggttuGF2L4e1OGMWSH+Ni1pP0J6uz+WszZtE1dvfL5tfaekq3z9sFqv43Aug6KARrStFqLsrrnhR8MMStVZIjpWNktNysH9gygqiWeqr+f1+Q2jZlD3q5PqhNFSo5SAUA==",
+              "encryptedKeyset": "CiQAxVFVnYb69VZimvSnRRsxEhFMbHHTW4BaGHVMLKTZrXViaPwSlAEAjEQQ+iDiddqY3C/jHIjAsU5Ph+gQULl4Xi6mmKusbjTiBzQkIwuXg+nE3Y1C0GFSl7LEqtBQuyb7L0w5CsjGRBoRLhyqJUfil92AAb1yC7j+ArxvcV+T970KPyVG9QdDcJ2fiYqNqwLf8dwqPP0n+nAHksF0DpQf6yg3vslox0GIVxauojPdbq9pFuQUTZyGVs/a",
               "keysetInfo": {
-                "primaryKeyId": 10000,
+                "primaryKeyId": 1053599701,
                 "keyInfo": [
                   {
                     "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
                     "status": "ENABLED",
-                    "keyId": 10000,
+                    "keyId": 1053599701,
                     "outputPrefixType": "TINK"
                   }
                 ]
@@ -188,14 +188,14 @@ public class TestFixtures {
 
     public static final String CIPHER_DATA_KEY_CONFIG_ENCRYPTED_KEY_Y = """
             {
-              "encryptedKeyset": "AQICAHh53+KMA84wkSIvqIZh+0UAj1lLrzyqIZD369PL+PlyHwHp2qwANfW9e7P5VkPn9amlAAAAyTCBxgYJKoZIhvcNAQcGoIG4MIG1AgEAMIGvBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDOuhR6/q9Mvo3CquNAIBEICBgfsOS+z5h1EFpKW1vLVAHRu8JxY1gvGjeTB0MAWJzjS5ojLlKo/X44AmhrV/IdD4/VeuRPQgvdG/3to2Nyh0wVSDJC4L58YxoLcGJTHCVb0XCV1dqyiING8XwzHAaUMTav0EiU1pPSULkDXxeoCK/8ive/Rav9/lWr67rWslPM7F3A==",
+              "encryptedKeyset": "CiQAxVFVnYb69VZimvSnRRsxEhFMbHHTW4BaGHVMLKTZrXViaPwSlAEAjEQQ+iDiddqY3C/jHIjAsU5Ph+gQULl4Xi6mmKusbjTiBzQkIwuXg+nE3Y1C0GFSl7LEqtBQuyb7L0w5CsjGRBoRLhyqJUfil92AAb1yC7j+ArxvcV+T970KPyVG9QdDcJ2fiYqNqwLf8dwqPP0n+nAHksF0DpQf6yg3vslox0GIVxauojPdbq9pFuQUTZyGVs/a",
               "keysetInfo": {
-                "primaryKeyId": 10001,
+                "primaryKeyId": 1053599701,
                 "keyInfo": [
                   {
                     "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
                     "status": "ENABLED",
-                    "keyId": 10001,
+                    "keyId": 1053599701,
                     "outputPrefixType": "TINK"
                   }
                 ]
@@ -204,14 +204,14 @@ public class TestFixtures {
 
     public static final String CIPHER_DATA_KEY_CONFIG_ENCRYPTED_KEY_1 = """
             {
-              "encryptedKeyset": "AQICAHh53+KMA84wkSIvqIZh+0UAj1lLrzyqIZD369PL+PlyHwHoNSflbuz0VC9ZT5+yh8ofAAAA6jCB5wYJKoZIhvcNAQcGoIHZMIHWAgEAMIHQBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDMLhHoSNs3pt7aMAfgIBEICBok/i9oXm/6hOPIzKg+sF3xPsxf8lf2qhkGR2KygLgUynbVFQC1EzI6Kz1AuMUVNouIsk5Se0Yhih+eSTRvt2fhz7roj/NVj1igwXshv80U/oax5Jlz1NkL5KxEx28+b37Cvrr8GXyOYM5Zhuga7i+l/0ieJDalEHpybBmEkPCmMeMpsYGx90TavN3x9X0YpASKm2Ol8Ga4cOc/12RTn5wyOX/w==",
+              "encryptedKeyset": "CiQAxVFVnfzb8jhDAfGwquh5lxU0R+blpz7DP/00cF8aq4gLtuIStwEAjEQQ+vGbPfFxa07XkaMHEP7TU9PGsd0l38St3CckCrgVnzYidrX3H4XtN58VUFN5eTXcIq3Rx2gsx/RaSpe85o+MP33woGM9Va4s/INyjeeCQVsJnoWU1EqLchfU8BnL0dAXwajj3Bj5X3oL8k22TNome2ywDKjrXz4AU75QYNwta000SmRxlY7UbmR1Mv38Nrs2qvy5P8B6fOYPusamtFJkJWG/dxJpoS+4URWcCc2yfrCY4yg=",
               "keysetInfo": {
-                "primaryKeyId": 10002,
+                "primaryKeyId": 1932849140,
                 "keyInfo": [
                   {
                     "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey",
                     "status": "ENABLED",
-                    "keyId": 10002,
+                    "keyId": 1932849140,
                     "outputPrefixType": "TINK"
                   }
                 ]
@@ -220,14 +220,14 @@ public class TestFixtures {
 
     public static final String CIPHER_DATA_KEY_CONFIG_ENCRYPTED_KEY_0 = """
             {
-              "encryptedKeyset": "AQICAHh53+KMA84wkSIvqIZh+0UAj1lLrzyqIZD369PL+PlyHwHwSHglZpMV16W/FaswlvnrAAAA6jCB5wYJKoZIhvcNAQcGoIHZMIHWAgEAMIHQBgkqhkiG9w0BBwEwHgYJYIZIAWUDBAEuMBEEDL6GE7niuQUvJ5JPVwIBEICBogSbgh7sHD5wnWvHHTW2JF/I0SjdzDIFFUOzSQfB74sQ0mAeyC+VjSK6bQINrvqCgyT8mIyDI2BP2CtMyWwCP0nF6tRVofhnwg5HFdNLIqvGvrX2c8AYmkyDwiQSHah9DWvrLXXpk1+EZYpUHVgOVheQ7wplq14tCAK0GFmYDaiic85sHF9I8khTOzlTWeavvgqOB+KR7HMt0kKBuMqDHusFrg==",
+              "encryptedKeyset": "CiQAxVFVnUUw/pZSdQXtve5M+wgVBlGqPJwuf4X9SmWB4B1u4OQStQEAjEQQ+iXK6u/gbul2QpS0mIO2wqUwiOBHz5C+MZ2JKyjKlzMA8yGlyqoN54qhRJA5IazFUIJVWNigXBDUU0km1Bm1oFDdzb6pMVZY5HDH26AiyJZOQSjglLAz+SoYR3DjHapkWNDv2QGacP/5qCwC7zOCc89pZxEDtT+eJvVsJqUHV6VGJYnIVYQBwxBAzy3XsPWm6IARj5VHtLwOTuM3UNP96Bwk/jzR6Ot+izXASRTeHomP",
               "keysetInfo": {
-                "primaryKeyId": 10003,
+                "primaryKeyId": 151824924,
                 "keyInfo": [
                   {
                     "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey",
                     "status": "ENABLED",
-                    "keyId": 10003,
+                    "keyId": 151824924,
                     "outputPrefixType": "TINK"
                   }
                 ]

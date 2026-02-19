@@ -16,11 +16,9 @@
 
 package com.github.hpgrahsl.kryptonite.kms.gcp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import com.google.api.gax.core.FixedCredentialsProvider;
-import com.google.api.gax.rpc.NotFoundException;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.secretmanager.v1.ProjectName;
 import com.google.cloud.secretmanager.v1.Secret;
@@ -36,14 +34,13 @@ import java.util.List;
 
 public class GcpSecretResolver implements KeyMaterialResolver {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final SecretManagerServiceClient secretManagerClient;
   private final String projectId;
   private final String secretNamePrefix;
 
   public GcpSecretResolver(String jsonKmsConfig, String secretNamePrefix) {
     try {
-      var config = OBJECT_MAPPER.readValue(jsonKmsConfig, GcpSecretManagerConfig.class);
+      var config = new GcpSecretManagerConfig(jsonKmsConfig);
       GoogleCredentials credentials = GoogleCredentials.fromStream(
           new ByteArrayInputStream(config.getCredentials().getBytes(StandardCharsets.UTF_8))
       );
@@ -83,7 +80,7 @@ public class GcpSecretResolver implements KeyMaterialResolver {
           SecretVersionName.of(projectId, secretNamePrefix + identifier, "latest");
       return secretManagerClient.accessSecretVersion(secretVersionName)
           .getPayload().getData().toStringUtf8();
-    } catch (NotFoundException exc) {
+    } catch (Exception exc) {
       throw new KeyNotFoundException("could not resolve key for identifier '"
           + identifier + "' (secret name: '" + secretNamePrefix + identifier
           + "') in " + GcpSecretResolver.class.getName() + " key resolver", exc);

@@ -16,27 +16,30 @@
 
 package com.github.hpgrahsl.kryptonite.kms.gcp;
 
+import com.google.gson.JsonParser;
 import java.util.Objects;
 
 public class GcpSecretManagerConfig {
 
-  private String projectId;
-  private String credentials;
+  private final String credentials;
+  private final String projectId;
 
-  public GcpSecretManagerConfig() {
-  }
-
-  public GcpSecretManagerConfig(String projectId, String credentials) {
-    this.projectId = projectId;
+  public GcpSecretManagerConfig(String credentials) {
     this.credentials = credentials;
-  }
-
-  public String getProjectId() {
-    return projectId;
+    try {
+      this.projectId = JsonParser.parseString(credentials).getAsJsonObject()
+          .get("project_id").getAsString();
+    } catch (Exception exc) {
+      throw new RuntimeException("failed to extract project_id from credentials", exc);
+    }
   }
 
   public String getCredentials() {
     return credentials;
+  }
+
+  public String getProjectId() {
+    return projectId;
   }
 
   @Override
@@ -48,13 +51,13 @@ public class GcpSecretManagerConfig {
       return false;
     }
     GcpSecretManagerConfig that = (GcpSecretManagerConfig) o;
-    return Objects.equals(projectId, that.projectId)
-        && Objects.equals(credentials, that.credentials);
+    return Objects.equals(credentials, that.credentials)
+        && Objects.equals(projectId, that.projectId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(projectId, credentials);
+    return Objects.hash(credentials, projectId);
   }
 
   @Override

@@ -16,7 +16,6 @@
 
 package com.github.hpgrahsl.kryptonite;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
@@ -26,7 +25,6 @@ import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceClient;
 import com.google.cloud.secretmanager.v1.SecretManagerServiceSettings;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -43,20 +41,8 @@ public class TestFixturesCloudKms {
         if (!CREDENTIALS.isEmpty()) {
             return CREDENTIALS;
         }
-        // Read raw lines without Properties escape interpretation so that
-        // JSON values containing \" and \n are preserved verbatim for Jackson.
-        try (BufferedReader reader = new BufferedReader(
-                new FileReader(PATH, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isBlank() || line.startsWith("#")) {
-                    continue;
-                }
-                int idx = line.indexOf('=');
-                if (idx > 0) {
-                    CREDENTIALS.setProperty(line.substring(0, idx).trim(), line.substring(idx + 1));
-                }
-            }
+        try (var reader = new FileReader(PATH, StandardCharsets.UTF_8)) {
+            CREDENTIALS.load(reader);
             return CREDENTIALS;
         } catch (IOException exc) {
             throw new ConfigurationException(exc);
@@ -84,9 +70,7 @@ public class TestFixturesCloudKms {
     public static SecretManagerServiceClient configureGcpSecretManagerClient(String configPropertyKey) {
         try {
             Properties credentials = readCredentials();
-            var config = new ObjectMapper().readValue(
-                credentials.getProperty(configPropertyKey), GcpSecretManagerConfig.class
-            );
+            var config = new GcpSecretManagerConfig(credentials.getProperty(configPropertyKey));
             GoogleCredentials googleCredentials = GoogleCredentials.fromStream(
                 new ByteArrayInputStream(config.getCredentials().getBytes(StandardCharsets.UTF_8))
             );
@@ -100,15 +84,10 @@ public class TestFixturesCloudKms {
     }
 
     public static String readGcpProjectId(String configPropertyKey) {
-        try {
-            Properties credentials = readCredentials();
-            var config = new ObjectMapper().readValue(
-                credentials.getProperty(configPropertyKey), GcpSecretManagerConfig.class
-            );
-            return config.getProjectId();
-        } catch (IOException exc) {
-            throw new ConfigurationException(exc);
-        }
+        var config = new GcpSecretManagerConfig(
+            readCredentials().getProperty(configPropertyKey)
+        );
+        return config.getProjectId();
     }
 
 }
