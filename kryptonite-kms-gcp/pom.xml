@@ -31,6 +31,8 @@
 
   <properties>
     <google.tink.java.gcpkms.version>1.10.0</google.tink.java.gcpkms.version>
+    <google.cloud.secretmanager.version>2.31.0</google.cloud.secretmanager.version>
+    <google.protobuf.version>4.32.1</google.protobuf.version>
     <junit.version>5.14.0</junit.version>
   </properties>
 
@@ -44,6 +46,16 @@
       <groupId>com.google.crypto.tink</groupId>
       <artifactId>tink-gcpkms</artifactId>
       <version>${google.tink.java.gcpkms.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>${google.protobuf.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-secretmanager</artifactId>
+      <version>${google.cloud.secretmanager.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
