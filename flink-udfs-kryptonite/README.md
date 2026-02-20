@@ -342,7 +342,7 @@ Here is an example for how to specify the mandatory configuration settings for t
 ```yaml
     environment:
       - cipher_data_keys=[{"identifier":"my-demo-secret-key","material":{"primaryKeyId":1234567890,"key":[{"keyData":{"typeUrl":"type.googleapis.com/google.crypto.tink.AesGcmKey","value":"<BASE64_ENCODED_KEY_HERE>","keyMaterialType":"SYMMETRIC"},"status":"ENABLED","keyId":1234567890,"outputPrefixType":"TINK"}]}}]
-     - cipher_data_key_identifier=my-demo-secret-key
+      - cipher_data_key_identifier=my-demo-secret-key
 ```
 
 You can add further configuration settings to the compose definition as you see fit. After making sure that all the mandatory configuration properties are set, start using the UDFs to encrypt and decrypt column values in Flink table rows.
