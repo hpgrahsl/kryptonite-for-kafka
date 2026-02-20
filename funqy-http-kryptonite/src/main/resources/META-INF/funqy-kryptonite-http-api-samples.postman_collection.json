@@ -1,458 +1,682 @@
 {
-	"info": {
-		"_postman_id": "89fc9ca4-c6fb-4925-afab-9a2f469c75bd",
-		"name": "funqy-kryptonite-samples",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "25347096"
-	},
-	"item": [
-		{
-			"name": "value encryption (number)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "1234567890",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/value",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"value"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value decryption (number)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "\"KAE7msoBQNCjjlzXx1ZzsdzZ1OufOUKIz2Fz3sscmu3T7ljW5ONu1AwwsmtlecFrsQ==\"",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/value",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"value"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value encryption (string)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "\"As I was going to St. Ives, I met a man with seven wives ...\"",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/value",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"value"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value decryption (string)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "\"YAE7msoBYimtxJSVY+QpLRl6nyzAHnPYvaeMGgbqKFqlNU5wObjUU45N2Vs8YWrGkS7LcI8IdX6uzTV0X80E+KIeOf3+v4SXaP+S7BIGR+QgmE3hLSjSFbAJYKpE6pacDDCya2V5wWux\"",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/value",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"value"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value encryption (array)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "[\n    \"As I was going to St. Ives,\",\n    \"I met a man with \",\n    7,\n    \" wifes.\",\n    \"Each wife had \",\n    7,\n    \" sacks,\",\n    \"each sack has \",\n    7,\n    \" cats.\"\n]",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/value",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"value"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value decryption (array)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "\"jQEBO5rKAaBDiDOxY88TReyF3hxWJ7oKOz2dBt5wTm9qZvLuTGe4tO0apq5DwOx4P3VJ1BAC386d0uU34H7DJyK7ZCTfe61sGRn5PCYInl4PCRYinFntjwr8ZaQYKwCuwYksEgg//mIEabw2ekzKdkRgJkhLyZQ7272dhmtQ7tbCeyqEL8KnmCKXqpGXSwwwsmtlecFrsQ==\"",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/value",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"value"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value encryption (object)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"myInt\": 1234,\n    \"myString\": \"foo & blah\",\n    \"myBoolean\": true,\n    \"myArray\": [\n        1,\n        2,\n        3\n    ],\n    \"myObject\": {\n        \"a\": 1,\n        \"b\": 2,\n        \"c\": true\n    },\n    \"nothing\": null\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/map",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"map"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value decryption (object)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "\"fwE7msoBgCSOLRgrW6JJB6DlUG0O3RBo8oevkNqpP1VF1kGoUmJLwtoxy3AGSdjOxDnZdk+AsqvCEvlmOgBZ4Fku0SearSRJ3jme9BmgplIbDuqIqDg6lHy/RmtTu5sXSssYMgwmJW/uemrN6ph2mFwjYKdXbeszJPZPmJBT2wwwsmtlecFrsQ==\"",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/value",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"value"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "array elements encryption (numbers)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "[\n    12,\n    23,\n    34,\n    45\n]",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/array-elements",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"array-elements"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "array elements decryption (numbers)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "[\n    \"JAE7msoBCXzLoBQJam+HYyPuKLCtWA6/167RBTWONeh8fcaeDDCya2V5wWux\",\n    \"JAE7msoBMFSwhwn1VmWEQK4vONopLkASxz1P8EKLcU12WfMGDDCya2V5wWux\",\n    \"JAE7msoBOs0jJiJvjVJzjtnXp2K0k/ZAXM5IWCOBhsWyr4S8DDCya2V5wWux\",\n    \"JAE7msoBsJ7ww1rr9e36UwubQZ1Q5YE7wSnBoLHszWVER7ruDDCya2V5wWux\"\n]",
-					"options": {
-						"raw": {
-							"language": "text"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/array-elements",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"array-elements"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "array elements encryption (strings)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "[\n    \"As I was going to St. Ives\",\n    \"I met a man with seven wifes\",\n    \"each wife had seven sacks\",\n    \"each sack has seven cats\"\n]",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/array-elements",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"array-elements"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "array elements decryption (strings)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "[\n    \"PQE7msoBvvSYcNMCiwgmV3MkKftMWQnduGy8tWj7gQ+tyW5oO2aRm+7LfL5kLCXN+9+5GCum3/vyZNEOWAwwsmtlecFrsQ==\",\n    \"PwE7msoB52AXnyOxX98RGUbif7nN8+H+LInrS63LzLuwbN0Mu8E/dhwZ9fkY8J7Kts9pVc/Lz4ON2XRmkFQyDDCya2V5wWux\",\n    \"PAE7msoBEdwOfiE8jQ5IsSqU+Ud1OGMWrLvG4g3dNgo+4c/WNtO4vgkveYQRMPy0MrrM3t+uqKkndwuGDDCya2V5wWux\",\n    \"OwE7msoB/HZHdMxxOl5P1aiCEZIjfqZXA/c32IrozBkCDMuhBFgzQliuX57ESn96dkSxqaRefY2RnW0MMLJrZXnBa7E=\"\n]",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/array-elements",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"array-elements"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "map entries encryption (object)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"myInt\": 1234,\n    \"myString\": \"foo & blah\",\n    \"myBoolean\": true,\n    \"myArray\": [\n        1,\n        2,\n        3\n    ],\n    \"myObject\": {\n        \"a\": 1,\n        \"b\": 2,\n        \"c\": true\n    },\n    \"nothing\": null\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/map-entries",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"map-entries"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "map entries decryption (object)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"myInt\": \"JQE7msoBUocJQ6ZIWHpfTXJlPv1drFxFndVqErsJAOg2nS9JQgwwsmtlecFrsQ==\",\n    \"myString\": \"LQE7msoB53OQGOyxxSUbx7F+K50umIJ0+lmo4Kvr9xsDktAotfW9/7daqSEaDDCya2V5wWux\",\n    \"myBoolean\": \"JAE7msoBQ+pb9wbUIkSH7fEU3gu5kia4CrZx+fSq2zxmzyM3DDCya2V5wWux\",\n    \"myArray\": \"KQE7msoB6rsWf+qm0PnS6NI2daypaEK5ANn42clsPII1AvRFohDZRGgMMLJrZXnBa7E=\",\n    \"myObject\": \"MwE7msoBhqEG0bf3kEHAbEeEz9gA3GG4yl9ohu9tUQPEnX28z3TBh8IMozoknGQUKuhDDDCya2V5wWux\",\n    \"nothing\": \"IwE7msoBjOZxVYUDoEUecG6+pxd3WQ2bZ28/4TX6c72FXHMMMLJrZXnBa7E=\"\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/map-entries",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"map-entries"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value with config encryption (object + config)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"data\": {\n        \"personal\": \"As I was going to St. Ives ...\",\n        \"numbers\": [\n            1,\n            2,\n            3,\n            4\n        ],\n        \"my\": {\n            \"enc\": \"foo & blah\",\n            \"plain\": \"no secrets :)\"\n        }\n    },\n    \"fieldConfig\": [\n        {\n            \"name\": \"personal\"\n        },\n        {\n            \"name\": \"numbers\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my.enc\"\n        }\n    ]\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/encrypt/value-with-config",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"encrypt",
-						"value-with-config"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "value with config decryption (object + config)",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"data\": {\n        \"personal\": \"QQE7msoBVtGJ6fpWKuVP1aHbi/dUoWafSI6CUwRpLox7WVUTJaFYyCgljAB/vMgoRXLzU64CsMQYwNbleGchdLUMMLJrZXnBa7E=\",\n        \"numbers\": [\n            \"JAE7msoB7LjniRn7v6Ivij2Qz6WHXEDvdTkFosSJScV5tzRGDDCya2V5wWux\",\n            \"JAE7msoB3QgNyKaSIasUcsmSRIAyHjnoX5XHVsvuKIyyoJZCDDCya2V5wWux\",\n            \"JAE7msoBLKOPEhLTmXuWDktREK2ioLdCQ9udwI8MI3hMHK0oDDCya2V5wWux\",\n            \"JAE7msoBMygV+V/g0UJTRw2SioR9rZEJLKNAjW+ebXn4IRy8DDCya2V5wWux\"\n        ],\n        \"my\": {\n            \"enc\": \"LQE7msoBYiCAUqJzBDnNzsRPC0j427x4YgvCC4YRaUeWYSO1tbwS9tCTfttSDDCya2V5wWux\",\n            \"plain\": \"no secrets :)\"\n        }\n    },\n    \"fieldConfig\": [\n        {\n            \"name\": \"personal\"\n        },\n        {\n            \"name\": \"numbers\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my.enc\"\n        }\n    ]\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "localhost:8080/decrypt/value-with-config",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"decrypt",
-						"value-with-config"
-					]
-				}
-			},
-			"response": []
-		}
-	]
+  "info": {
+    "_postman_id": "89fc9ca4-c6fb-4925-afab-9a2f469c75bd",
+    "name": "funqy-kryptonite-samples",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "25347096"
+  },
+  "item": [
+    {
+      "name": "value encryption (number)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "1234567890",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value decryption (number)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\"KAE7msoBQNCjjlzXx1ZzsdzZ1OufOUKIz2Fz3sscmu3T7ljW5ONu1AwwsmtlecFrsQ==\"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value encryption (string)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\"As I was going to St. Ives, I met a man with seven wives ...\"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value decryption (string)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\"YAE7msoBYimtxJSVY+QpLRl6nyzAHnPYvaeMGgbqKFqlNU5wObjUU45N2Vs8YWrGkS7LcI8IdX6uzTV0X80E+KIeOf3+v4SXaP+S7BIGR+QgmE3hLSjSFbAJYKpE6pacDDCya2V5wWux\"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value encryption (array - mixed types)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n    \"As I was going to St. Ives,\",\n    \"I met a man with \",\n    7,\n    \" wifes.\",\n    \"Each wife had \",\n    7,\n    \" sacks,\",\n    \"each sack has \",\n    7,\n    \" cats.\"\n]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value encryption (array - homogenous types)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n    \"As I was going to St. Ives,\",\n    \"I met a man with \",\n    \"seven wifes.\",\n    \"Each wife had\",\n    \"seven sacks,\",\n    \"each sack has\",\n    \"seven cats.\"\n]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value decryption (array - mixed types)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\"jQEBO5rKAaBDiDOxY88TReyF3hxWJ7oKOz2dBt5wTm9qZvLuTGe4tO0apq5DwOx4P3VJ1BAC386d0uU34H7DJyK7ZCTfe61sGRn5PCYInl4PCRYinFntjwr8ZaQYKwCuwYksEgg//mIEabw2ekzKdkRgJkhLyZQ7272dhmtQ7tbCeyqEL8KnmCKXqpGXSwwwsmtlecFrsQ==\"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value decryption (array - homogenous types)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\"jwEBO5rKAV6//AF1dW+xgFBVM27sGf8RxySexXsGZ0L0iTgctk5BS41a7vF7WhQFd+UC7r/w4tNHaNNGPbLRWqRpuFL0ankLoAyxlYkj/COipTOO28G5hwI6h10kJ4iN0u8+r0Lq1xPjHw0ZL9qmoX7FCfWIIX5vyMTu//ahy2o0x3mbdnSJSgsJUL+isQ7tDDCya2V5wWux\"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value encryption (object)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"myInt\": 1234,\n    \"myString\": \"foo & blah\",\n    \"myBoolean\": true,\n    \"myArray\": [\n        1,\n        2,\n        3\n    ],\n    \"myObject\": {\n        \"a\": 1,\n        \"b\": 2,\n        \"c\": true\n    },\n    \"nothing\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value decryption (object)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "\"fwE7msoBCtd6vFT7p7MbTQNLaAuSQkcLcFFs1XseySdFQfQrTEhCgs3Yv4cN/pT/tjWYISAzG7oQ9GX/eU0HOieGpgXZVteOsM7SWHJN1hy4PBmV7otaLwXjnUAWiaNFW5enat9E41roItlOfREHuGcSK7NdUGLyrqGAyrdyjwwwsmtlecFrsQ==\"",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "array elements encryption (numbers)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n    12,\n    23,\n    34,\n    45\n]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/array-elements",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "array-elements"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "array elements decryption (numbers)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n    \"JAE7msoBCXzLoBQJam+HYyPuKLCtWA6/167RBTWONeh8fcaeDDCya2V5wWux\",\n    \"JAE7msoBMFSwhwn1VmWEQK4vONopLkASxz1P8EKLcU12WfMGDDCya2V5wWux\",\n    \"JAE7msoBOs0jJiJvjVJzjtnXp2K0k/ZAXM5IWCOBhsWyr4S8DDCya2V5wWux\",\n    \"JAE7msoBsJ7ww1rr9e36UwubQZ1Q5YE7wSnBoLHszWVER7ruDDCya2V5wWux\"\n]",
+          "options": {
+            "raw": {
+              "language": "text"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/array-elements",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "array-elements"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "array elements encryption (strings)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n    \"As I was going to St. Ives\",\n    \"I met a man with seven wifes\",\n    \"each wife had seven sacks\",\n    \"each sack has seven cats\"\n]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/array-elements",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "array-elements"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "array elements decryption (strings)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n    \"PQE7msoBvvSYcNMCiwgmV3MkKftMWQnduGy8tWj7gQ+tyW5oO2aRm+7LfL5kLCXN+9+5GCum3/vyZNEOWAwwsmtlecFrsQ==\",\n    \"PwE7msoB52AXnyOxX98RGUbif7nN8+H+LInrS63LzLuwbN0Mu8E/dhwZ9fkY8J7Kts9pVc/Lz4ON2XRmkFQyDDCya2V5wWux\",\n    \"PAE7msoBEdwOfiE8jQ5IsSqU+Ud1OGMWrLvG4g3dNgo+4c/WNtO4vgkveYQRMPy0MrrM3t+uqKkndwuGDDCya2V5wWux\",\n    \"OwE7msoB/HZHdMxxOl5P1aiCEZIjfqZXA/c32IrozBkCDMuhBFgzQliuX57ESn96dkSxqaRefY2RnW0MMLJrZXnBa7E=\"\n]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/array-elements",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "array-elements"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "entries encryption (map)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"game_a\": {\n        \"level_1\": 12,\n        \"level_2\": 34\n    },\n    \"game_b\": {\n        \"level_1\": 99,\n        \"level_2\": 67,\n        \"level_3\": 42\n    },\n    \"game_c\": null,\n    \"game_d\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/map-entries",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "map-entries"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "entries decryption (map)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"game_a\": \"OAE7msoBCHN2EzC1eXDsNlB8GYucnb/6CUwz+uAaj2AJfZPtCN1eg6NajHbeFO4a48roQeI+eroMMLJrZXnBa7E=\",\n    \"game_b\": \"RAE7msoB33De4nV6tOimwm/F/T6QwKs5U1CFaNSung2pTNwM3oUor3v2EYT39cXEUGCSR12qM7Rf3d+3LuZhZoDRGOkMMLJrZXnBa7E=\",\n    \"game_c\": \"IwE7msoBG1X4g62e5FJyoxwpwcqz6yf2KpzS/eb/HlgeNLAMMLJrZXnBa7E=\",\n    \"game_d\": \"JAE7msoBngo6yp88g7imEucE0hsJuQEy3F2EPwpA5DNX/+gfDDCya2V5wWux\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/map-entries",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "map-entries"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "entries encryption (object)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"myInt\": 1234,\n    \"myString\": \"foo & blah\",\n    \"myBoolean\": true,\n    \"myArray\": [\n        1,\n        2,\n        3\n    ],\n    \"myObject\": {\n        \"a\": 1,\n        \"b\": 2,\n        \"c\": true\n    },\n    \"nothing\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/map-entries",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "map-entries"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "entries decryption (object)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"myInt\": \"JQE7msoBUocJQ6ZIWHpfTXJlPv1drFxFndVqErsJAOg2nS9JQgwwsmtlecFrsQ==\",\n    \"myString\": \"LQE7msoB53OQGOyxxSUbx7F+K50umIJ0+lmo4Kvr9xsDktAotfW9/7daqSEaDDCya2V5wWux\",\n    \"myBoolean\": \"JAE7msoBQ+pb9wbUIkSH7fEU3gu5kia4CrZx+fSq2zxmzyM3DDCya2V5wWux\",\n    \"myArray\": \"KQE7msoB6rsWf+qm0PnS6NI2daypaEK5ANn42clsPII1AvRFohDZRGgMMLJrZXnBa7E=\",\n    \"myObject\": \"MwE7msoBhqEG0bf3kEHAbEeEz9gA3GG4yl9ohu9tUQPEnX28z3TBh8IMozoknGQUKuhDDDCya2V5wWux\",\n    \"nothing\": \"IwE7msoBjOZxVYUDoEUecG6+pxd3WQ2bZ28/4TX6c72FXHMMMLJrZXnBa7E=\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/map-entries",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "map-entries"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value with config encryption (object + config)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"data\": {\n        \"personal\": \"As I was going to St. Ives ...\",\n        \"numbers\": [\n            1,\n            2,\n            3,\n            4\n        ],\n        \"my\": {\n            \"enc\": \"foo & blah\",\n            \"plain\": \"no secrets :)\"\n        }\n    },\n    \"fieldConfig\": [\n        {\n            \"name\": \"personal\"\n        },\n        {\n            \"name\": \"numbers\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my.enc\"\n        }\n    ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value-with-config",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value-with-config"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value with config encryption (object + config) FPE",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"data\": {\n        \"personal\": \"As I was going to St.Ives\",\n        \"text\": \"hellosecurity\",\n        \"numbers\": [\n            \"112233\",\n            \"223344\",\n            \"334455\",\n            \"556677\"\n        ],\n        \"my\": {\n            \"enc1\": \"HAPPYBIRTHDAY\",\n            \"enc2\": \"using a custom alphabet!\",\n            \"plain\": \"no secrets :)\"\n        },\n        \"some\": {\n            \"keyId\": \"keyE\"\n        }\n    },\n    \"fieldConfig\": [\n        {\n            \"name\": \"personal\"\n        },\n        {\n            \"name\": \"text\",\n            \"keyId\": \"__#some.keyId\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"LOWERCASE\"\n        },\n        {\n            \"name\": \"numbers\",\n            \"keyId\": \"keyD\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeTweak\": \"9999999\",\n            \"fpeAlphabetType\": \"DIGITS\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my.enc1\",\n            \"keyId\": \"keyE\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"UPPERCASE\"\n        },\n        {\n            \"name\": \"my.enc2\",\n            \"keyId\": \"keyE\",\n            \"fpetweak\": \"mytweak\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"CUSTOM\",\n            \"fpeAlphabetCustom\": \"abceghilmnopstu !\"\n        }\n    ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value-with-config",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value-with-config"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value with config encryption (object + config) FPE basic",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"data\": {\n        \"customerId\": \"CUST-12345\",\n        \"creditCardNumber\": \"4455202014528870\",\n        \"ssn\": \"230564998\"\n    },\n    \"fieldConfig\": [\n    {\n      \"name\": \"creditCardNumber\",\n      \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n      \"keyId\": \"keyD\",\n      \"fpeAlphabetType\": \"DIGITS\"\n    },\n    {\n      \"name\": \"ssn\",\n      \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n      \"keyId\": \"keyE\",\n      \"fpeAlphabetType\": \"DIGITS\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/encrypt/value-with-config",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "encrypt",
+            "value-with-config"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value with config decryption (object + config)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"data\": {\n        \"personal\": \"QQE7msoBVtGJ6fpWKuVP1aHbi/dUoWafSI6CUwRpLox7WVUTJaFYyCgljAB/vMgoRXLzU64CsMQYwNbleGchdLUMMLJrZXnBa7E=\",\n        \"numbers\": [\n            \"JAE7msoB7LjniRn7v6Ivij2Qz6WHXEDvdTkFosSJScV5tzRGDDCya2V5wWux\",\n            \"JAE7msoB3QgNyKaSIasUcsmSRIAyHjnoX5XHVsvuKIyyoJZCDDCya2V5wWux\",\n            \"JAE7msoBLKOPEhLTmXuWDktREK2ioLdCQ9udwI8MI3hMHK0oDDCya2V5wWux\",\n            \"JAE7msoBMygV+V/g0UJTRw2SioR9rZEJLKNAjW+ebXn4IRy8DDCya2V5wWux\"\n        ],\n        \"my\": {\n            \"enc\": \"LQE7msoBYiCAUqJzBDnNzsRPC0j427x4YgvCC4YRaUeWYSO1tbwS9tCTfttSDDCya2V5wWux\",\n            \"plain\": \"no secrets :)\"\n        }\n    },\n    \"fieldConfig\": [\n        {\n            \"name\": \"personal\"\n        },\n        {\n            \"name\": \"numbers\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my.enc\"\n        }\n    ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value-with-config",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value-with-config"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value with config decryption (object + config) FPE",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"data\": {\n        \"personal\": \"PAE7msoBN4atj61ppDSQSgxHUKJse5pGcxw7d+GePd7DrE+aPHaZEjgtpXu3zii7ZHAKW180vYThVWjFDDCya2V5wWux\",\n        \"text\": \"qbsngxyphbeuu\",\n        \"numbers\": [\n            \"257527\",\n            \"702301\",\n            \"530730\",\n            \"504970\"\n        ],\n        \"my\": {\n            \"enc1\": \"KTZJBRCXACLUX\",\n            \"enc2\": \"iep!pgpcsacin cngociiltn\",\n            \"plain\": \"no secrets :)\"\n        },\n        \"some\": {\n            \"keyId\": \"keyE\"\n        }\n    },\n    \"fieldConfig\": [\n        {\n            \"name\": \"personal\"\n        },\n        {\n            \"name\": \"text\",\n            \"keyId\": \"__#some.keyId\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"LOWERCASE\"\n        },\n        {\n            \"name\": \"numbers\",\n            \"keyId\": \"keyD\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeTweak\": \"9999999\",\n            \"fpeAlphabetType\": \"DIGITS\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my.enc1\",\n            \"keyId\": \"keyE\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"UPPERCASE\"\n        },\n        {\n            \"name\": \"my.enc2\",\n            \"keyId\": \"keyE\",\n            \"fpetweak\": \"mytweak\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"CUSTOM\",\n            \"fpeAlphabetCustom\": \"abceghilmnopstu !\"\n        }\n    ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value-with-config",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value-with-config"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "value with config decryption (object + config) FPE basic",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"data\": {\n        \"personal\": \"PAE7msoBN4atj61ppDSQSgxHUKJse5pGcxw7d+GePd7DrE+aPHaZEjgtpXu3zii7ZHAKW180vYThVWjFDDCya2V5wWux\",\n        \"text\": \"qbsngxyphbeuu\",\n        \"numbers\": [\n            \"257527\",\n            \"702301\",\n            \"530730\",\n            \"504970\"\n        ],\n        \"my\": {\n            \"enc1\": \"KTZJBRCXACLUX\",\n            \"enc2\": \"iep!pgpcsacin cngociiltn\",\n            \"plain\": \"no secrets :)\"\n        },\n        \"some\": {\n            \"keyId\": \"keyE\"\n        }\n    },\n    \"fieldConfig\": [\n        {\n            \"name\": \"personal\"\n        },\n        {\n            \"name\": \"text\",\n            \"keyId\": \"__#some.keyId\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"LOWERCASE\"\n        },\n        {\n            \"name\": \"numbers\",\n            \"keyId\": \"keyD\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeTweak\": \"9999999\",\n            \"fpeAlphabetType\": \"DIGITS\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my\",\n            \"fieldMode\": \"ELEMENT\"\n        },\n        {\n            \"name\": \"my.enc1\",\n            \"keyId\": \"keyE\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"UPPERCASE\"\n        },\n        {\n            \"name\": \"my.enc2\",\n            \"keyId\": \"keyE\",\n            \"fpetweak\": \"mytweak\",\n            \"algorithm\": \"CUSTOM/MYSTO_FPE_FF3_1\",\n            \"fpeAlphabetType\": \"CUSTOM\",\n            \"fpeAlphabetCustom\": \"abceghilmnopstu !\"\n        }\n    ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "localhost:8080/decrypt/value-with-config",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "decrypt",
+            "value-with-config"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
 }
