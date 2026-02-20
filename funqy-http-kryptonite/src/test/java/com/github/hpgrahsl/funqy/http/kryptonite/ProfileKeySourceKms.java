@@ -39,7 +39,7 @@ public class ProfileKeySourceKms implements QuarkusTestProfile {
                 Map.entry("cipher.data.keys",TestFixtures.CIPHER_DATA_KEYS_EMPTY),
                 Map.entry("cipher.data.key.identifier","keyA"),
                 Map.entry("key.source","KMS"),
-                Map.entry("kms.type","AZ_KV_SECRETS"),
+                Map.entry("kms.type","AWS_SM_SECRETS"),
                 Map.entry("kms.config",credentials.getProperty("test.kms.config")),
                 Map.entry("kek.type","NONE"),
                 Map.entry("kek.config","{}"),
