@@ -33,6 +33,7 @@
     <google.tink.java.awskms.version>1.11.0</google.tink.java.awskms.version>
     <aws.java.sdk.version>1.12.779</aws.java.sdk.version>
     <junit.version>5.14.0</junit.version>
+    <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
   </properties>
 
   <dependencies>
@@ -55,6 +56,12 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-test-fixtures</artifactId>
+      <version>${kryptonite.test.fixtures.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
