@@ -20,6 +20,9 @@ import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
+import com.github.hpgrahsl.kryptonite.tink.test.EncryptedKeysetsWithGcpKek;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
+
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.types.Row;
@@ -106,11 +109,11 @@ public class CipherFieldUdfFunctionalTest {
 
     static List<Arguments> generateValidParamsWithoutCloudKms() {
         return List.of(
-                Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_CONFIG, "keyA", "keyB",
+                Arguments.of(FieldMode.ELEMENT, PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG, "keyA", "keyB",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
                         KryptoniteSettings.KeySource.CONFIG, KryptoniteSettings.KmsType.NONE, "{}",
                         KryptoniteSettings.KekType.NONE, "{}", ""),
-                Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_CONFIG, "key9", "key8",
+                Arguments.of(FieldMode.OBJECT, PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG, "key9", "key8",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
                         KryptoniteSettings.KeySource.CONFIG, KryptoniteSettings.KmsType.NONE, "{}",
                         KryptoniteSettings.KekType.NONE, "{}", "")
@@ -120,33 +123,33 @@ public class CipherFieldUdfFunctionalTest {
     static List<Arguments> generateValidParamsWithCloudKms() throws Exception {
         var credentials = TestFixturesCloudKms.readCredentials();
         return List.of(
-                Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED, "keyX", "keyY",
+                Arguments.of(FieldMode.ELEMENT, EncryptedKeysetsWithGcpKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED, "keyX", "keyY",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
                         KryptoniteSettings.KeySource.CONFIG_ENCRYPTED, KryptoniteSettings.KmsType.NONE, "{}",
                         KryptoniteSettings.KekType.GCP,
                         credentials.getProperty("test.kek.config"), credentials.getProperty("test.kek.uri")),
-                Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED, "key1", "key0",
+                Arguments.of(FieldMode.OBJECT, EncryptedKeysetsWithGcpKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED, "key1", "key0",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
                         KryptoniteSettings.KeySource.CONFIG_ENCRYPTED, KryptoniteSettings.KmsType.NONE, "{}",
                         KryptoniteSettings.KekType.GCP,
                         credentials.getProperty("test.kek.config"), credentials.getProperty("test.kek.uri")),
                 Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "keyA", "keyB",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        KryptoniteSettings.KeySource.KMS, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
+                        KryptoniteSettings.KeySource.KMS, KryptoniteSettings.KmsType.GCP_SM_SECRETS,
                         credentials.getProperty("test.kms.config"), KryptoniteSettings.KekType.NONE, "{}", ""),
                 Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "key9", "key8",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        KryptoniteSettings.KeySource.KMS, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
+                        KryptoniteSettings.KeySource.KMS, KryptoniteSettings.KmsType.GCP_SM_SECRETS,
                         credentials.getProperty("test.kms.config"), KryptoniteSettings.KekType.NONE, "{}", ""),
                 Arguments.of(FieldMode.ELEMENT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "keyX", "keyY",
                         Kryptonite.CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
-                        KryptoniteSettings.KeySource.KMS_ENCRYPTED, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
+                        KryptoniteSettings.KeySource.KMS_ENCRYPTED, KryptoniteSettings.KmsType.GCP_SM_SECRETS,
                         credentials.getProperty("test.kms.config.encrypted"),
                         KryptoniteSettings.KekType.GCP, credentials.getProperty("test.kek.config"),
                         credentials.getProperty("test.kek.uri")),
                 Arguments.of(FieldMode.OBJECT, TestFixtures.CIPHER_DATA_KEYS_EMPTY, "key1", "key0",
                         Kryptonite.CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-                        KryptoniteSettings.KeySource.KMS_ENCRYPTED, KryptoniteSettings.KmsType.AZ_KV_SECRETS,
+                        KryptoniteSettings.KeySource.KMS_ENCRYPTED, KryptoniteSettings.KmsType.GCP_SM_SECRETS,
                         credentials.getProperty("test.kms.config.encrypted"),
                         KryptoniteSettings.KekType.GCP, credentials.getProperty("test.kek.config"),
                         credentials.getProperty("test.kek.uri"))

@@ -26,6 +26,7 @@ import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMo
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
+import com.github.hpgrahsl.kryptonite.tink.test.EncryptedKeysetsWithAwsKek;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 
@@ -36,12 +37,12 @@ public class ProfileKeySourceConfigEncrypted implements QuarkusTestProfile {
         try {
             var credentials = TestFixturesCloudKms.readCredentials();
             return Map.ofEntries(
-                Map.entry("cipher.data.keys",TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED),
+                Map.entry("cipher.data.keys",EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED),
                 Map.entry("cipher.data.key.identifier","keyX"),
                 Map.entry("key.source","CONFIG_ENCRYPTED"),
                 Map.entry("kms.type","NONE"),
                 Map.entry("kms.config","{}"),
-                Map.entry("kek.type","GCP"),
+                Map.entry("kek.type","AWS"),
                 Map.entry("kek.config",credentials.getProperty("test.kek.config")),
                 Map.entry("kek.uri",credentials.getProperty("test.kek.uri")),
                 Map.entry("dynamic.key.id.prefix","__#"),

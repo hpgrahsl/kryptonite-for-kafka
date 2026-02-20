@@ -18,6 +18,8 @@ package com.github.hpgrahsl.flink.functions.kryptonite;
 
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
+
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.functions.FunctionContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +41,7 @@ public class EncryptFpeDecryptFpeUdfTest {
 
         // Create mock function context with FPE keys
         FunctionContext mockContext = createMockFunctionContext(
-                TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE,
+                PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG_FPE,
                 "keyC",
                 KryptoniteSettings.KeySource.CONFIG,
                 KryptoniteSettings.KmsType.NONE,

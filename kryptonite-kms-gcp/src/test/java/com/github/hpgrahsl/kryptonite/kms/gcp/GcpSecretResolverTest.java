@@ -21,10 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.hpgrahsl.kryptonite.TestFixtures;
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
 import com.github.hpgrahsl.kryptonite.config.ConfigReader;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -47,14 +48,14 @@ public class GcpSecretResolverTest {
         );
 
     static final Map<String, TinkKeyConfig> TINK_KEY_CONFIGS =
-        ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG);
+        ConfigReader.tinkKeyConfigFromJsonString(PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG);
 
     @Test
     @DisplayName("resolve key identifiers (plain keysets) from GCP Secret Manager")
     void testResolveKeyIdentifiersForPlainKeySetsFromGcpSecretManager() {
         var keysetIds = SECRET_RESOLVER_PLAIN_KEYS.resolveIdentifiers().stream().collect(Collectors.toSet());
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().map(
+            PlaintextKeysets.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().map(
                 id -> () -> assertTrue(keysetIds.contains(id),
                     "expected identifier '" + id + "' not found in resolved identifiers: " + keysetIds)
             )

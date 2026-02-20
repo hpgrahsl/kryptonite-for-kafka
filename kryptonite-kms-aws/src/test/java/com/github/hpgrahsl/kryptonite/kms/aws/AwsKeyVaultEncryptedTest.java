@@ -21,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.github.hpgrahsl.kryptonite.TestFixtures;
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
+import com.github.hpgrahsl.kryptonite.tink.test.EncryptedKeysetsWithAwsKek;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -50,17 +50,17 @@ public class AwsKeyVaultEncryptedTest {
             "error: key vault expected to be initially empty"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
+            EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
                 id -> () -> assertNotNull(awsKeyVault.readKeysetHandle(id),
                     "error: known keyset identifier " + id + " not found in key vault")
             )
         );
-        assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size(), awsKeyVault.numKeysetHandles(),
-            "error: key vault expected to contain all " + TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size()
+        assertEquals(EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size(), awsKeyVault.numKeysetHandles(),
+            "error: key vault expected to contain all " + EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size()
                 + " key(s) after requesting each known identifier"
         );
         assertThrows(KeyNotFoundException.class,
-            () -> awsKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
+            () -> awsKeyVault.readKeysetHandle(EncryptedKeysetsWithAwsKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
     }
 
     @Test
@@ -72,18 +72,18 @@ public class AwsKeyVaultEncryptedTest {
             true
         );
 
-        assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size(), awsKeyVault.numKeysetHandles(),
+        assertEquals(EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size(), awsKeyVault.numKeysetHandles(),
             "error: key vault expected to initially contain all "
-                + TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size() + " known identifiers"
+                + EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size() + " known identifiers"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
+            EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
                 id -> () -> assertNotNull(awsKeyVault.readKeysetHandle(id),
                     "error: known keyset identifier " + id + " not found in key vault")
             )
         );
         assertThrows(KeyNotFoundException.class,
-            () -> awsKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
+            () -> awsKeyVault.readKeysetHandle(EncryptedKeysetsWithAwsKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
     }
 
 }

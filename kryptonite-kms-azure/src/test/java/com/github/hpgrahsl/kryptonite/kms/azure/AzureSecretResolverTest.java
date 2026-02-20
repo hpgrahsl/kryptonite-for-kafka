@@ -36,8 +36,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.ConfigReader;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
-import com.github.hpgrahsl.kryptonite.TestFixtures;
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
+import com.github.hpgrahsl.kryptonite.tink.test.EncryptedKeysetsWithAzureKek;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 
 @EnabledIfSystemProperty(named = "cloud.kms.tests", matches = "true")
 public class AzureSecretResolverTest {
@@ -49,16 +50,16 @@ public class AzureSecretResolverTest {
         new AzureSecretResolver(TestFixturesCloudKms.configureAzureSecretClient("test.kms.config.encrypted"));
     
     static final Map<String,TinkKeyConfig> TINK_KEY_CONFIGS =
-        ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG);
+        ConfigReader.tinkKeyConfigFromJsonString(PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG);
     static final Map<String,TinkKeyConfigEncrypted> TINK_KEY_CONFIGS_ENCRYPTED =
-        ConfigReader.tinkKeyConfigEncryptedFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED);
+        ConfigReader.tinkKeyConfigEncryptedFromJsonString(EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED);
     
     @Test
     @DisplayName("resolve key identifiers (plain keysets) from azure key vault")
     void testResolveKeyIdentifiersForPlainKeySetsFromAzureKeyVault() {
         var keysetIds = SECRET_RESOLVER_PLAIN_KEYS.resolveIdentifiers().stream().collect(Collectors.toSet());
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().map(
+            PlaintextKeysets.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().map(
                 id -> () -> assertTrue(keysetIds.contains(id))
             )
         );
@@ -69,7 +70,7 @@ public class AzureSecretResolverTest {
     void testResolveKeyIdentifiersForEncryptedKeySetsFromAzureKeyVault() {
         var keysetIds = SECRET_RESOLVER_ENCRYPTED_KEYS.resolveIdentifiers().stream().collect(Collectors.toSet());
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().map(
+            EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().map(
                 id -> () -> assertTrue(keysetIds.contains(id))
             )
         );

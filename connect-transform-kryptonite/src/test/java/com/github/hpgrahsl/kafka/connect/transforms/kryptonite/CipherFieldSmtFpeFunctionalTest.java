@@ -38,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CipherFieldSmtFpeFunctionalTest {
@@ -172,7 +173,7 @@ public class CipherFieldSmtFpeFunctionalTest {
   static List<Arguments> generateValidParamsWithoutCloudKms() {
     return List.of(
         Arguments.of(
-            TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE, CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM), "keyD", "keyE", "MYTWEAK"));
+            PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG_FPE, CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM), "keyD", "keyE", "MYTWEAK"));
   }
 
 }

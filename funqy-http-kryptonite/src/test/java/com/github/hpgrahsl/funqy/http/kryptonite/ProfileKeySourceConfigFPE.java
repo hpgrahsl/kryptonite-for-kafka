@@ -23,6 +23,7 @@ import org.junit.jupiter.params.provider.Arguments;
 
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 
@@ -31,7 +32,7 @@ public class ProfileKeySourceConfigFPE implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.ofEntries(
-            Map.entry("cipher.data.keys",TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE),
+            Map.entry("cipher.data.keys",PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG_FPE),
             Map.entry("cipher.data.key.identifier","keyC"),
             Map.entry("key.source","CONFIG"),
             Map.entry("kms.type","NONE"),
