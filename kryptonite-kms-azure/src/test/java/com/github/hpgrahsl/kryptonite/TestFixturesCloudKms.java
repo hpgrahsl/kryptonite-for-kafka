@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.ServiceLoader;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
+import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
 import com.github.hpgrahsl.kryptonite.kms.azure.AzureKeyVaultConfig;
 
 public class TestFixturesCloudKms {
@@ -38,38 +40,31 @@ public class TestFixturesCloudKms {
     private static final Properties CREDENTIALS = new Properties();
 
     public static synchronized Properties readCredentials() {
-        if(!CREDENTIALS.isEmpty()) {
+        if (!CREDENTIALS.isEmpty()) {
             return CREDENTIALS;
         }
         try (InputStreamReader isr = new FileReader(new File(PATH), StandardCharsets.UTF_8)) {
             CREDENTIALS.load(isr);
             return CREDENTIALS;
-        } catch(IOException exc) {
+        } catch (IOException exc) {
             throw new ConfigurationException(exc);
         }
     }
 
     public static KmsKeyEncryption configureKmsKeyEncryption() {
-        Properties cloudKmsCredentials;
         try {
-            cloudKmsCredentials = TestFixturesCloudKms.readCredentials();
-            var kekType = KekType.valueOf(cloudKmsCredentials.getProperty("test.kek.type"));
-            var kekConfig = cloudKmsCredentials.getProperty("test.kek.gcp.config");
-            var kekUri = cloudKmsCredentials.getProperty("test.kek.gcp.uri");
-            switch (kekType) {
-                case GCP:
-                    var provider = java.util.ServiceLoader.load(
-                        com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider.class
-                    ).stream()
-                        .map(java.util.ServiceLoader.Provider::get)
-                        .filter(p -> p.kekType().equals(kekType.name()))
-                        .findFirst()
-                        .orElseThrow(() -> new ConfigurationException(
+            Properties credentials = TestFixturesCloudKms.readCredentials();
+            var kekType = KekType.valueOf(credentials.getProperty("test.kek.type"));
+            var kekConfig = credentials.getProperty("test.kek.config");
+            var kekUri = credentials.getProperty("test.kek.uri");
+            var provider = ServiceLoader.load(KmsKeyEncryptionProvider.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .filter(p -> p.kekType().equals(kekType.name()))
+                    .findFirst()
+                    .orElseThrow(() -> new ConfigurationException(
                             "no KMS key encryption provider found for type '" + kekType + "'"));
-                    return provider.createKeyEncryption(kekUri, kekConfig);
-                default:
-                    throw new ConfigurationException("error: configuration for KMS key encryption failed for kek type '"+kekType+"'");
-            }
+            return provider.createKeyEncryption(kekUri, kekConfig);
+
         } catch (Exception exc) {
             throw new ConfigurationException(exc);
         }
@@ -79,15 +74,16 @@ public class TestFixturesCloudKms {
         Properties cloudKmsCredentials;
         try {
             cloudKmsCredentials = TestFixturesCloudKms.readCredentials();
-            var keyVaultConfig = new ObjectMapper().readValue(cloudKmsCredentials.getProperty(configPropertyKey),AzureKeyVaultConfig.class);
-        return new SecretClientBuilder()
-                .vaultUrl(keyVaultConfig.getKeyVaultUrl())
-                .credential(new ClientSecretCredentialBuilder()
-                    .clientId(keyVaultConfig.getClientId())
-                    .clientSecret(keyVaultConfig.getClientSecret())
-                    .tenantId(keyVaultConfig.getTenantId())
-                    .build()
-                ).buildClient();
+            var keyVaultConfig = new ObjectMapper().readValue(cloudKmsCredentials.getProperty(configPropertyKey),
+                    AzureKeyVaultConfig.class);
+            return new SecretClientBuilder()
+                    .vaultUrl(keyVaultConfig.getKeyVaultUrl())
+                    .credential(new ClientSecretCredentialBuilder()
+                            .clientId(keyVaultConfig.getClientId())
+                            .clientSecret(keyVaultConfig.getClientSecret())
+                            .tenantId(keyVaultConfig.getTenantId())
+                            .build())
+                    .buildClient();
         } catch (IOException exc) {
             throw new ConfigurationException(exc);
         }

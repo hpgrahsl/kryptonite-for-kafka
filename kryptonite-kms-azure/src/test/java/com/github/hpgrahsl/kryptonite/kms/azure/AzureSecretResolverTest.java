@@ -43,10 +43,10 @@ import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
 public class AzureSecretResolverTest {
 
     static final AzureSecretResolver SECRET_RESOLVER_PLAIN_KEYS =
-        new AzureSecretResolver(TestFixturesCloudKms.configureAzureSecretClient("test.kms.az_kv_secrets.config"));
-    
+        new AzureSecretResolver(TestFixturesCloudKms.configureAzureSecretClient("test.kms.config"));
+
     static final AzureSecretResolver SECRET_RESOLVER_ENCRYPTED_KEYS =
-        new AzureSecretResolver(TestFixturesCloudKms.configureAzureSecretClient("test.kms.az_kv_secrets.config.encrypted"));
+        new AzureSecretResolver(TestFixturesCloudKms.configureAzureSecretClient("test.kms.config.encrypted"));
     
     static final Map<String,TinkKeyConfig> TINK_KEY_CONFIGS =
         ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG);

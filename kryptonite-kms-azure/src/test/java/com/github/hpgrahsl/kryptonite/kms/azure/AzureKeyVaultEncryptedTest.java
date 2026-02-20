@@ -33,7 +33,7 @@ import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
 public class AzureKeyVaultEncryptedTest {
 
     static final AzureSecretResolver SECRET_RESOLVER_ENCRYPTED_KEYS =
-        new AzureSecretResolver(TestFixturesCloudKms.readCredentials().getProperty("test.kms.az_kv_secrets.config.encrypted"));    
+        new AzureSecretResolver(TestFixturesCloudKms.readCredentials().getProperty("test.kms.config.encrypted"));
 
     @Test
     void azureKeyVaultWithoutPrefetchingLoadsFromValidConfigTest() {
@@ -53,8 +53,8 @@ public class AzureKeyVaultEncryptedTest {
                         "error: known keyset identifier "+id+" not found in key vault")
             )
         );
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT, azureKeyVault.numKeysetHandles(),
-            "error: key vault expected to contain all "+TestFixtures.CIPHER_DATA_KEYS_COUNT
+        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_ENCRYPTED, azureKeyVault.numKeysetHandles(),
+            "error: key vault expected to contain all "+TestFixtures.CIPHER_DATA_KEYS_COUNT_ENCRYPTED
                 + " key(s) after requesting each known identifier"
         );
         assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
@@ -69,7 +69,7 @@ public class AzureKeyVaultEncryptedTest {
             true
         );
         
-        assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.size(), azureKeyVault.numKeysetHandles(),
+        assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size(), azureKeyVault.numKeysetHandles(),
             "error: key vault expected to initially contain all known identifiers"
         );
         assertAll(
@@ -78,7 +78,7 @@ public class AzureKeyVaultEncryptedTest {
                         "error: known keyset identifier "+id+" not found in key vault")
             )
         );
-        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
 
     }
 

@@ -12,13 +12,15 @@ public class KryptoniteSettings {
   public enum KmsType {
     NONE,
     AZ_KV_SECRETS,
-    AWS_SM_SECRETS
+    AWS_SM_SECRETS,
+    GCP_SM_SECRETS
   }
 
   public enum KekType {
     NONE,
     GCP,
-    AWS
+    AWS,
+    AZURE
   }
 
   public enum AlphabetTypeFPE {

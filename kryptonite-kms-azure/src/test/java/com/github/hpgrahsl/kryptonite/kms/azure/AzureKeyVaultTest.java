@@ -33,7 +33,7 @@ import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
 public class AzureKeyVaultTest {
 
     static final AzureSecretResolver SECRET_RESOLVER_PLAIN_KEYS =
-        new AzureSecretResolver(TestFixturesCloudKms.readCredentials().getProperty("test.kms.az_kv_secrets.config"));    
+        new AzureSecretResolver(TestFixturesCloudKms.readCredentials().getProperty("test.kms.config"));    
 
     @Test
     void azureKeyVaultWithoutPrefetchingLoadsFromValidConfigTest() {
@@ -49,8 +49,8 @@ public class AzureKeyVaultTest {
                         "error: known keyset identifier "+id+" not found in key vault")
             )
         );
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT, azureKeyVault.numKeysetHandles(),
-            "error: key vault expected to contain all "+TestFixtures.CIPHER_DATA_KEYS_COUNT
+        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN, azureKeyVault.numKeysetHandles(),
+            "error: key vault expected to contain all "+TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN
                 + " key(s) after requesting each known identifier"
         );
         assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
@@ -61,10 +61,9 @@ public class AzureKeyVaultTest {
         
         var azureKeyVault = new AzureKeyVault(SECRET_RESOLVER_PLAIN_KEYS,true);
         
-        //FIXME: azure test keyvault contains more entries -> remove the irrelevant ones
-        // assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.size(), azureKeyVault.numKeysetHandles(),
-        //     "error: key vault expected to initially contain all known identifiers"
-        // );
+        assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.size(), azureKeyVault.numKeysetHandles(),
+            "error: key vault expected to initially contain all known identifiers"
+        );
         assertAll(
             TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
                     id -> () -> assertNotNull(azureKeyVault.readKeysetHandle(id),
