@@ -20,6 +20,8 @@ import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
+
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.table.functions.FunctionContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +43,7 @@ public class EncryptArrayDecryptArrayWithSchemaUdfTest {
 
         // Create mock function context with required configuration
         FunctionContext mockContext = createMockFunctionContext(
-                TestFixtures.CIPHER_DATA_KEYS_CONFIG,
+                PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG,
                 "keyA",
                 KryptoniteSettings.KeySource.CONFIG,
                 KryptoniteSettings.KmsType.NONE,
