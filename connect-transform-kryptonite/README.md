@@ -55,7 +55,7 @@ The result after applying this SMT is a record in which all the fields specified
 
 or
 
-- to NOT store the keyset materials at the client-side in the first place, but instead resolve keysets at runtime from a cloud KMS such as [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) which is supported as well.
+- to NOT store the keyset materials at the client-side in the first place, but instead resolve keysets at runtime from a cloud KMS — [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/), [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/), and [GCP Secret Manager](https://cloud.google.com/secret-manager) are all supported.
 
 _In general though, this can be considered a "chicken-and-egg" problem since the confidential settings in order to access a remote KMS also need to be stored somewhere somehow._
 
@@ -170,9 +170,9 @@ The result after applying this SMT is a record in which all the fields specified
 
 or
 
-- to NOT store the keyset materials at the client-side in the first place, but instead resolve keysets at runtime from a cloud KMS such as [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) which is supported as well.
+- to NOT store the keyset materials at the client-side in the first place, but instead resolve keysets at runtime from a cloud KMS — [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/), [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/), and [GCP Secret Manager](https://cloud.google.com/secret-manager) are all supported.
 
-_In general though, this can be considered a "chicken-and-egg" problem since the confidential settings in order to access a remote KMS also need to be store somewhere somehow._
+_In general though, this can be considered a "chicken-and-egg" problem since the confidential settings in order to access a remote KMS also need to be stored somewhere somehow._
 
 Since the configuration parameter `field_mode` in the configuration above is set to 'OBJECT', complex field types are processed as a whole instead of element-wise, the latter of which can be achieved by choosing `ELEMENT` mode.
 
@@ -396,8 +396,8 @@ FPE requires special keyset material with a custom type URL. Here's an example k
             <td>JSON array with plain or encrypted data key objects specifying the key identifiers together with key
                 sets for encryption / decryption which are defined in Tink's key specification format. The contained
                 keyset objects are mandatory if
-                <code>kms_type=NONE</code> but the array may be left empty for e.g. <code>kms_type=AZ_KV_SECRETS</code>
-                in order to resolve keysets from a remote KMS such as Azure Key Vault.
+                <code>kms_type=NONE</code> but the array may be left empty when using e.g. <code>kms_type=AZ_KV_SECRETS</code>, <code>kms_type=AWS_SM_SECRETS</code>, or <code>kms_type=GCP_SM_SECRETS</code>
+                in order to resolve keysets from a remote KMS.
                 <strong>NOTE: Irrespective of their origin, all plain or encrypted keysets
                     (see the example values in the right column) are expected to be valid tink keyset descriptions in
                     JSON format.</strong>
@@ -523,8 +523,7 @@ FPE requires special keyset material with a custom type URL. Here's an example k
                 <ul>
                     <li>data keysets are read from the config directly <code>kms_source=CONFIG | CONFIG_ENCRYPTED</code>
                     </li>
-                    <li>data keysets are resolved from a remote/cloud key management system (currently only supports
-                        Azure Key Vault) <code>kms_source=KMS | KMS_ENCRYPTED</code>
+                    <li>data keysets are resolved from a remote/cloud key management system (Azure Key Vault, AWS Secrets Manager, or GCP Secret Manager) <code>kms_source=KMS | KMS_ENCRYPTED</code>
                     </li>
                 </ul>
             </td>
@@ -535,33 +534,52 @@ FPE requires special keyset material with a custom type URL. Here's an example k
             <td>
                 <pre>NONE</pre>
                 <pre>AZ_KV_SECRETS</pre>
+                <pre>AWS_SM_SECRETS</pre>
+                <pre>GCP_SM_SECRETS</pre>
             </td>
             <td>medium</td>
         </tr>
         <tr>
             <td>kms_config</td>
-            <td>JSON object specifying KMS-specific client authentication settings. Currently only supports Azure Key
-                Vault <code>kms_type=AZ_KV_SECRETS</code></td>
+            <td>JSON object specifying KMS-specific client authentication settings for the chosen <code>kms_type</code></td>
             <td>string</td>
             <td>
                 <pre>{}</pre>
             </td>
-            <td>JSON object defining the KMS-specific client authentication settings, e.g. for Azure Key Vault:
-                <pre>
+            <td>JSON object defining the KMS-specific client authentication settings:
+                <ul>
+                    <li>for Azure Key Vault (<code>kms_type=AZ_KV_SECRETS</code>):</li>
+                    <pre>
 {
   "clientId": "...",
   "tenantId": "...",
   "clientSecret": "...",
-  "keyVaultUrl": "..."
+  "keyVaultUrl": "https://&lt;vault-name&gt;.vault.azure.net"
 }
     </pre>
+                    <li>for AWS Secrets Manager (<code>kms_type=AWS_SM_SECRETS</code>):</li>
+                    <pre>
+{
+  "accessKey": "AKIA...",
+  "secretKey": "...",
+  "region": "eu-central-1"
+}
+    </pre>
+                    <li>for GCP Secret Manager (<code>kms_type=GCP_SM_SECRETS</code>):</li>
+                    <pre>
+{
+  "credentials": "&lt;GCP service account JSON contents&gt;",
+  "projectId": "my-gcp-project"
+}
+    </pre>
+                </ul>
             </td>
             <td>medium</td>
         </tr>
         <tr>
             <td>kek_type</td>
-            <td>defines if KMS key encryption - currently only supports Google Cloud KMS - is used for encrypting data
-                keysets and must be specified when using <code>kms_source=CONFIG_ENCRYPTED | KMS_ENCRYPTED</code>
+            <td>defines which cloud KMS is used to perform key encryption, hence where the Key Encryption Key (KEK) to protect data keysets at rest resides.
+                Must be specified when using <code>kms_source=CONFIG_ENCRYPTED | KMS_ENCRYPTED</code>
             </td>
             <td>string</td>
             <td>
@@ -570,46 +588,60 @@ FPE requires special keyset material with a custom type URL. Here's an example k
             <td>
                 <pre>NONE</pre>
                 <pre>GCP</pre>
+                <pre>AWS</pre>
+                <pre>AZURE</pre>
             </td>
             <td>medium</td>
         </tr>
         <tr>
             <td>kek_config</td>
-            <td>JSON object specifying KMS-specific client authentication settings (currently only supports Google Cloud
-                KMS) <code>kek_type=GCP</code></td>
+            <td>JSON object specifying KMS-specific client authentication settings for the chosen <code>kek_type</code></td>
             <td>string</td>
             <td>
                 <pre>{}</pre>
             </td>
-            <td>JSON object specifying the KMS-specific client authentication settings, e.g. for Google Cloud KMS:
-                <pre>
+            <td>JSON object specifying the KMS-specific client authentication settings:
+                <ul>
+                    <li>for GCP Cloud KMS (<code>kek_type=GCP</code>):</li>
+                    <pre>
 {
-  "type": "service_account",
-  "project_id": "...",
-  "private_key_id": "...",
-  "private_key": "-----BEGIN PRIVATE KEY----- ... -----END PRIVATE KEY-----\n",
-  "client_email": "...",
-  "client_id": "...",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "..."
+  "credentials": "&lt;GCP service account JSON contents&gt;",
+  "projectId": "my-gcp-project"
 }
 </pre>
+                    <li>for AWS KMS (<code>kek_type=AWS</code>):</li>
+                    <pre>
+{
+  "accessKey": "AKIA...",
+  "secretKey": "..."
+}
+</pre>
+                    <li>for Azure Key Vault (<code>kek_type=AZURE</code>):</li>
+                    <pre>
+{
+  "clientId": "...",
+  "tenantId": "...",
+  "clientSecret": "...",
+  "keyVaultUrl": "https://&lt;vault-name&gt;.vault.azure.net"
+}
+</pre>
+                </ul>
             </td>
             <td>medium</td>
         </tr>
         <tr>
             <td>kek_uri</td>
-            <td>URI referring to the key encryption key stored in the respective remote/cloud KMS, currently only
-                support Google Cloud KMS</td>
+            <td>URI referring to the key encryption key stored in the respective remote/cloud KMS</td>
             <td>string</td>
             <td>
                 <pre>!no default!</pre>
             </td>
-            <td>a valid and supported Tink key encryption key URI, e.g. pointing to a key in Google Cloud KMS
-                (<code>kek_type=GCP</code>)
-                <pre>gcp-kms://...</pre>
+            <td>a valid key encryption key URI for the chosen <code>kek_type</code>:
+                <ul>
+                    <li>GCP Cloud KMS (<code>kek_type=GCP</code>): <pre>gcp-kms://projects/&lt;project&gt;/locations/&lt;location&gt;/keyRings/&lt;keyring&gt;/cryptoKeys/&lt;key&gt;</pre></li>
+                    <li>AWS KMS (<code>kek_type=AWS</code>): <pre>aws-kms://arn:aws:kms:&lt;region&gt;:&lt;account-id&gt;:key/&lt;key-id&gt;</pre></li>
+                    <li>Azure Key Vault (<code>kek_type=AZURE</code>): <pre>azure-kv://&lt;vault-name&gt;.vault.azure.net/keys/&lt;key-name&gt;</pre></li>
+                </ul>
             </td>
             <td>medium</td>
         </tr>
@@ -709,7 +741,7 @@ FPE requires special keyset material with a custom type URL. Here's an example k
 
 The problem with directly specifying configuration parameters which contain sensitive data, such as keyset materials, is that they are exposed via Kafka Connect's REST API. This means for connect clusters that are shared among teams the configured keyset materials would leak, which would be unacceptable. The way to deal with this for now, is to indirectly reference such configuration parameters from external property files.
 
-This approach can be used to configure any kind of sensitive data such keyset materials themselves or KMS-specific client authentication settings, in case the keysets aren't sourced from the config directly but rather retrieved from a cloud KMS such as Azure Key Vault.
+This approach can be used to configure any kind of sensitive data such as keyset materials themselves or KMS-specific client authentication settings, in case the keysets aren't sourced from the config directly but rather retrieved from a cloud KMS such as Azure Key Vault, AWS Secrets Manager, or GCP Secret Manager.
 
 Below is a quick example of how such a configuration would look like:
 
