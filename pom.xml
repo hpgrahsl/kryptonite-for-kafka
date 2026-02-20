@@ -29,6 +29,7 @@
     <module>kryptonite-kms-gcp</module>
     <module>kryptonite-kms-aws</module>
     <module>kryptonite-serdes-converters</module>
+    <module>kryptonite-test-fixtures</module>
     <module>connect-transform-kryptonite</module>
     <module>ksqldb-udfs-kryptonite</module>
     <module>funqy-http-kryptonite</module>
