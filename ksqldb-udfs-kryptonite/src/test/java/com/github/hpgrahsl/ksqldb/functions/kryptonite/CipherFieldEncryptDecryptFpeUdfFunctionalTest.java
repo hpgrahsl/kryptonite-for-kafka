@@ -20,6 +20,8 @@ import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
+
 import io.confluent.ksql.function.udf.UdfDescription;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -56,7 +58,7 @@ public class CipherFieldEncryptDecryptFpeUdfFunctionalTest {
         encUdf = new CipherFieldEncryptFpeUdf();
         var encConfigMap = createConfigMap(
                 encUdf.getClass().getAnnotation(UdfDescription.class).name(),
-                TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE,
+                PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG_FPE,
                 "keyC",
                 KryptoniteSettings.KeySource.CONFIG,
                 KryptoniteSettings.KmsType.NONE,
@@ -71,7 +73,7 @@ public class CipherFieldEncryptDecryptFpeUdfFunctionalTest {
         decUdf = new CipherFieldDecryptFpeUdf();
         var decConfigMap = createConfigMap(
                 decUdf.getClass().getAnnotation(UdfDescription.class).name(),
-                TestFixtures.CIPHER_DATA_KEYS_CONFIG_FPE,
+                PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG_FPE,
                 "keyC",
                 KryptoniteSettings.KeySource.CONFIG,
                 KryptoniteSettings.KmsType.NONE,

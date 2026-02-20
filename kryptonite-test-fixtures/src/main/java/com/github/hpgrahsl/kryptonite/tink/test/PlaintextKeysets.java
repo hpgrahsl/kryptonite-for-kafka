@@ -163,5 +163,15 @@ public class PlaintextKeysets {
                     CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,
                     CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,
                     CIPHER_DATA_KEY_CONFIG_FPE_KEY_E);
+    
+    public static final String CIPHER_DATA_KEYS_CONFIG_FPE = """
+            [
+              {"identifier": "keyC", "material": %s},
+              {"identifier": "keyD", "material": %s},
+              {"identifier": "keyE", "material": %s}
+            ]""".formatted(
+                    CIPHER_DATA_KEY_CONFIG_FPE_KEY_C,
+                    CIPHER_DATA_KEY_CONFIG_FPE_KEY_D,
+                    CIPHER_DATA_KEY_CONFIG_FPE_KEY_E);                    
 
 }

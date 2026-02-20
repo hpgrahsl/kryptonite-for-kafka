@@ -38,6 +38,7 @@
         <jackson.version>2.18.3</jackson.version>
         <logback.version>1.2.13</logback.version>
         <junit.version>5.10.2</junit.version>
+        <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
     </properties>
 
     <repositories>
@@ -205,5 +206,11 @@
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.github.hpgrahsl</groupId>
+            <artifactId>kryptonite-test-fixtures</artifactId>
+            <version>${kryptonite.test.fixtures.version}</version>
+            <scope>test</scope>
+        </dependency>        
     </dependencies>
 </project>
