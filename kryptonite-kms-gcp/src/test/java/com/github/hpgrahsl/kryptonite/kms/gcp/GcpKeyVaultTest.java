@@ -21,9 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.github.hpgrahsl.kryptonite.TestFixtures;
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.function.Executable;
@@ -47,17 +48,17 @@ public class GcpKeyVaultTest {
             "error: key vault expected to be initially empty"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
+            PlaintextKeysets.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
                 id -> () -> assertNotNull(gcpKeyVault.readKeysetHandle(id),
                     "error: known keyset identifier " + id + " not found in key vault")
             )
         );
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN, gcpKeyVault.numKeysetHandles(),
-            "error: key vault expected to contain all " + TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN
+        assertEquals(PlaintextKeysets.CIPHER_DATA_KEYS_COUNT_PLAIN, gcpKeyVault.numKeysetHandles(),
+            "error: key vault expected to contain all " + PlaintextKeysets.CIPHER_DATA_KEYS_COUNT_PLAIN
                 + " key(s) after requesting each known identifier"
         );
         assertThrows(KeyNotFoundException.class,
-            () -> gcpKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+            () -> gcpKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
     }
 
     @Test
@@ -65,17 +66,17 @@ public class GcpKeyVaultTest {
 
         var gcpKeyVault = new GcpKeyVault(SECRET_RESOLVER_PLAIN_KEYS, true);
 
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN, gcpKeyVault.numKeysetHandles(),
-            "error: key vault expected to initially contain all " + TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN + " known identifiers"
+        assertEquals(PlaintextKeysets.CIPHER_DATA_KEYS_COUNT_PLAIN, gcpKeyVault.numKeysetHandles(),
+            "error: key vault expected to initially contain all " + PlaintextKeysets.CIPHER_DATA_KEYS_COUNT_PLAIN + " known identifiers"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
+            PlaintextKeysets.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
                 id -> () -> assertNotNull(gcpKeyVault.readKeysetHandle(id),
                     "error: known keyset identifier " + id + " not found in key vault")
             )
         );
         assertThrows(KeyNotFoundException.class,
-            () -> gcpKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+            () -> gcpKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
     }
 
 }

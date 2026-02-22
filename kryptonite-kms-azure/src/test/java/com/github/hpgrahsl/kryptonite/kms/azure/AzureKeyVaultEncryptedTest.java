@@ -26,8 +26,8 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.function.Executable;
 
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
-import com.github.hpgrahsl.kryptonite.TestFixtures;
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
+import com.github.hpgrahsl.kryptonite.tink.test.EncryptedKeysetsWithAzureKek;
 
 @EnabledIfSystemProperty(named = "cloud.kms.tests", matches = "true")
 public class AzureKeyVaultEncryptedTest {
@@ -48,16 +48,16 @@ public class AzureKeyVaultEncryptedTest {
             "error: key vault expected to be initially empty"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
+            EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
                     id -> () -> assertNotNull(azureKeyVault.readKeysetHandle(id),
                         "error: known keyset identifier "+id+" not found in key vault")
             )
         );
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_ENCRYPTED, azureKeyVault.numKeysetHandles(),
-            "error: key vault expected to contain all "+TestFixtures.CIPHER_DATA_KEYS_COUNT_ENCRYPTED
+        assertEquals(EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEYS_COUNT_ENCRYPTED, azureKeyVault.numKeysetHandles(),
+            "error: key vault expected to contain all "+EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEYS_COUNT_ENCRYPTED
                 + " key(s) after requesting each known identifier"
         );
-        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(EncryptedKeysetsWithAzureKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
     }
 
     @Test
@@ -69,16 +69,16 @@ public class AzureKeyVaultEncryptedTest {
             true
         );
         
-        assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size(), azureKeyVault.numKeysetHandles(),
+        assertEquals(EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.size(), azureKeyVault.numKeysetHandles(),
             "error: key vault expected to initially contain all known identifiers"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
+            EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEY_IDENTIFIERS_ENCRYPTED.stream().<Executable>map(
                     id -> () -> assertNotNull(azureKeyVault.readKeysetHandle(id),
                         "error: known keyset identifier "+id+" not found in key vault")
             )
         );
-        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
+        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(EncryptedKeysetsWithAzureKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
 
     }
 

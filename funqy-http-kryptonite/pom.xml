@@ -18,6 +18,7 @@
     <kryptonite.version>0.6.0</kryptonite.version>
     <kryptonite.serdes.converters.version>0.1.0</kryptonite.serdes.converters.version>
     <kryptonite.kms.version>0.1.0</kryptonite.kms.version>
+    <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -71,6 +72,11 @@
     </dependency>
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-aws</artifactId>
+      <version>${kryptonite.kms.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite-kms-azure</artifactId>
       <version>${kryptonite.kms.version}</version>
     </dependency>
@@ -112,6 +118,12 @@
       <groupId>org.skyscreamer</groupId>
       <artifactId>jsonassert</artifactId>
       <version>1.5.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-test-fixtures</artifactId>
+      <version>${kryptonite.test.fixtures.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

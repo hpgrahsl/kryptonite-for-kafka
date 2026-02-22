@@ -34,6 +34,7 @@
     <google.cloud.secretmanager.version>2.31.0</google.cloud.secretmanager.version>
     <google.protobuf.version>4.32.1</google.protobuf.version>
     <junit.version>5.14.0</junit.version>
+    <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
   </properties>
 
   <dependencies>
@@ -61,6 +62,12 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-test-fixtures</artifactId>
+      <version>${kryptonite.test.fixtures.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

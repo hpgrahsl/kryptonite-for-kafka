@@ -25,6 +25,7 @@ import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMo
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
 
@@ -33,7 +34,7 @@ public class ProfileKeySourceConfig implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.ofEntries(
-            Map.entry("cipher.data.keys",TestFixtures.CIPHER_DATA_KEYS_CONFIG),
+            Map.entry("cipher.data.keys",PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG),
             Map.entry("cipher.data.key.identifier","keyA"),
             Map.entry("key.source","CONFIG"),
             Map.entry("kms.type","NONE"),

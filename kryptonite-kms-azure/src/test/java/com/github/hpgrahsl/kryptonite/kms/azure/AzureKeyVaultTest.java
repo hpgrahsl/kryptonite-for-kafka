@@ -26,8 +26,8 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.function.Executable;
 
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
-import com.github.hpgrahsl.kryptonite.TestFixtures;
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 
 @EnabledIfSystemProperty(named = "cloud.kms.tests", matches = "true")
 public class AzureKeyVaultTest {
@@ -44,16 +44,16 @@ public class AzureKeyVaultTest {
             "error: key vault expected to be initially empty"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
+            PlaintextKeysets.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
                     id -> () -> assertNotNull(azureKeyVault.readKeysetHandle(id),
                         "error: known keyset identifier "+id+" not found in key vault")
             )
         );
-        assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN, azureKeyVault.numKeysetHandles(),
-            "error: key vault expected to contain all "+TestFixtures.CIPHER_DATA_KEYS_COUNT_PLAIN
+        assertEquals(PlaintextKeysets.CIPHER_DATA_KEYS_COUNT_PLAIN, azureKeyVault.numKeysetHandles(),
+            "error: key vault expected to contain all "+PlaintextKeysets.CIPHER_DATA_KEYS_COUNT_PLAIN
                 + " key(s) after requesting each known identifier"
         );
-        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
     }
 
     @Test
@@ -61,16 +61,16 @@ public class AzureKeyVaultTest {
         
         var azureKeyVault = new AzureKeyVault(SECRET_RESOLVER_PLAIN_KEYS,true);
         
-        assertEquals(TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.size(), azureKeyVault.numKeysetHandles(),
+        assertEquals(PlaintextKeysets.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.size(), azureKeyVault.numKeysetHandles(),
             "error: key vault expected to initially contain all known identifiers"
         );
         assertAll(
-            TestFixtures.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
+            PlaintextKeysets.CIPHER_DATA_KEY_IDENTIFIERS_PLAIN.stream().<Executable>map(
                     id -> () -> assertNotNull(azureKeyVault.readKeysetHandle(id),
                         "error: known keyset identifier "+id+" not found in key vault")
             )
         );
-        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(TestFixtures.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+        assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
 
     }
 

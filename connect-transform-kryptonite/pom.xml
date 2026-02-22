@@ -37,6 +37,7 @@
     <jackson.version>2.20.0</jackson.version>
     <logback.version>1.2.13</logback.version>
     <junit.version>5.14.0</junit.version>
+    <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
   </properties>
 
   <dependencies>
@@ -44,6 +45,11 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
       <version>${kryptonite.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-aws</artifactId>
+      <version>${kryptonite.kms.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
@@ -93,6 +99,12 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-test-fixtures</artifactId>
+      <version>${kryptonite.test.fixtures.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

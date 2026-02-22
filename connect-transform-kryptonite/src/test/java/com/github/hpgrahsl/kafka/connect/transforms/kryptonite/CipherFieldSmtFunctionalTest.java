@@ -29,6 +29,8 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
+import com.github.hpgrahsl.kryptonite.tink.test.EncryptedKeysetsWithAzureKek;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -308,11 +310,11 @@ public class CipherFieldSmtFunctionalTest {
   static List<Arguments> generateValidParamsWithoutCloudKms() {
     return List.of(
       Arguments.of(
-        TestFixtures.CIPHER_DATA_KEYS_CONFIG,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyA","keyB",
+        PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyA","keyB",
         KeySource.CONFIG,KmsType.NONE,"{}",KekType.NONE,"{}",""
       ),
       Arguments.of(
-        TestFixtures.CIPHER_DATA_KEYS_CONFIG,FieldMode.OBJECT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key9","key8",
+        PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG,FieldMode.OBJECT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key9","key8",
         KeySource.CONFIG,KmsType.NONE,"{}",KekType.NONE,"{}",""
       )
     );
@@ -322,14 +324,14 @@ public class CipherFieldSmtFunctionalTest {
     var credentials = TestFixturesCloudKms.readCredentials();
     return List.of(
         Arguments.of(
-          TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,FieldMode.OBJECT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyX","keyY",
+          EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,FieldMode.OBJECT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyX","keyY",
           KeySource.CONFIG_ENCRYPTED,KmsType.NONE,"{}",
-          KekType.GCP,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
+          KekType.AZURE,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
         ),
         Arguments.of(
-          TestFixtures.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key1","key0",
+          EncryptedKeysetsWithAzureKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key1","key0",
           KeySource.CONFIG_ENCRYPTED,KmsType.NONE,"{}",
-          KekType.GCP,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
+          KekType.AZURE,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
         ),
         Arguments.of(
           TestFixtures.CIPHER_DATA_KEYS_EMPTY,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyA","keyB",
@@ -344,12 +346,12 @@ public class CipherFieldSmtFunctionalTest {
         Arguments.of(
           TestFixtures.CIPHER_DATA_KEYS_EMPTY,FieldMode.ELEMENT,CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"keyX","keyY",
           KeySource.KMS_ENCRYPTED,KmsType.AZ_KV_SECRETS,credentials.getProperty("test.kms.config.encrypted"),
-          KekType.GCP,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
+          KekType.AZURE,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
         ),
         Arguments.of(
           TestFixtures.CIPHER_DATA_KEYS_EMPTY,FieldMode.OBJECT,CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"key1","key0",
           KeySource.KMS_ENCRYPTED,KmsType.AZ_KV_SECRETS,credentials.getProperty("test.kms.config.encrypted"),
-          KekType.GCP,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
+          KekType.AZURE,credentials.getProperty("test.kek.config"),credentials.getProperty("test.kek.uri")
         )
     );
   }
