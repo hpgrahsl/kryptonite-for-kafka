@@ -38,6 +38,7 @@
     <logback.version>1.2.13</logback.version>
     <junit.version>5.14.0</junit.version>
     <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
+    <kryptonite.kms.azure.version>0.1.0</kryptonite.kms.azure.version>
   </properties>
 
   <dependencies>
@@ -45,21 +46,6 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
       <version>${kryptonite.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.hpgrahsl</groupId>
-      <artifactId>kryptonite-kms-aws</artifactId>
-      <version>${kryptonite.kms.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.hpgrahsl</groupId>
-      <artifactId>kryptonite-kms-azure</artifactId>
-      <version>${kryptonite.kms.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.hpgrahsl</groupId>
-      <artifactId>kryptonite-kms-gcp</artifactId>
-      <version>${kryptonite.kms.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
@@ -88,6 +74,7 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${jackson.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -107,6 +94,12 @@
       <version>${kryptonite.test.fixtures.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-azure</artifactId>
+      <version>${kryptonite.kms.azure.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -117,15 +110,12 @@
         <version>${compiler.plugin.version}</version>
         <configuration>
           <compilerArgs>
-            <arg>-Xlint:all</arg>
+            <arg>-Xlint:all,-processing</arg>
             <arg>-Werror</arg>
           </compilerArgs>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
           <release>${maven.compiler.release}</release>
-          <compilerArgs>
-            <!--<arg>-parameters</arg>-->
-          </compilerArgs>
         </configuration>
       </plugin>
       <plugin>
@@ -140,7 +130,7 @@
                 </goals>
                 <configuration>
                     <descriptors>
-                      <descriptor>src/main/resources/connect-transform-distribution.xml</descriptor>
+                      <descriptor>src/assembly/connect-transform-distribution.xml</descriptor>
                     </descriptors>
                     <appendAssemblyId>false</appendAssemblyId>
                 </configuration>

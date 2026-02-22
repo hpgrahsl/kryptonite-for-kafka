@@ -13,21 +13,17 @@
   <version>0.3.0</version>
   <name>funqy-http-kryptonite</name>
   <properties>
-    <compiler-plugin.version>3.14.0</compiler-plugin.version>
     <protobuf.version>4.32.1</protobuf.version>
     <kryptonite.version>0.6.0</kryptonite.version>
     <kryptonite.serdes.converters.version>0.1.0</kryptonite.serdes.converters.version>
-    <kryptonite.kms.version>0.1.0</kryptonite.kms.version>
     <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
-    <maven.compiler.release>17</maven.compiler.release>
+    <kryptonite.kms.aws.version>0.1.0</kryptonite.kms.aws.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>3.21.4</quarkus.platform.version>
     <skipITs>true</skipITs>
-    <surefire-plugin.version>3.5.2</surefire-plugin.version>
-    <jvm.args>--add-opens=java.base/java.util=ALL-UNNAMED</jvm.args>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -72,21 +68,6 @@
     </dependency>
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
-      <artifactId>kryptonite-kms-aws</artifactId>
-      <version>${kryptonite.kms.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.hpgrahsl</groupId>
-      <artifactId>kryptonite-kms-azure</artifactId>
-      <version>${kryptonite.kms.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.hpgrahsl</groupId>
-      <artifactId>kryptonite-kms-gcp</artifactId>
-      <version>${kryptonite.kms.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite-serdes-converters</artifactId>
       <version>${kryptonite.serdes.converters.version}</version>
     </dependency>
@@ -126,6 +107,12 @@
       <version>${kryptonite.test.fixtures.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-aws</artifactId>
+      <version>${kryptonite.kms.aws.version}</version>
+      <scope>test</scope>
+    </dependency>    
   </dependencies>
   <build>
     <plugins>
@@ -146,16 +133,20 @@
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>${compiler-plugin.version}</version>
+        <version>${compiler.plugin.version}</version>
         <configuration>
           <compilerArgs>
             <arg>-parameters</arg>
+            <arg>-Xlint:all,-processing,-classfile</arg>
+            <arg>-Werror</arg>
           </compilerArgs>
+          <showWarnings>true</showWarnings>
+          <showDeprecation>true</showDeprecation>
         </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
+        <version>${surefire.plugin.version}</version>
         <configuration>
           <argLine>${jdk.17.plus.jvm.options}</argLine>
           <systemPropertyVariables>
@@ -166,7 +157,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
+        <version>${surefire.plugin.version}</version>
         <executions>
           <execution>
             <goals>

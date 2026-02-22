@@ -39,6 +39,7 @@
         <logback.version>1.2.13</logback.version>
         <junit.version>5.10.2</junit.version>
         <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
+        <kryptonite.kms.gcp.version>0.1.0</kryptonite.kms.gcp.version>
     </properties>
 
     <repositories>
@@ -56,41 +57,52 @@
                 <version>${compiler.plugin.version}</version>
                 <configuration>
                     <compilerArgs>
-                        <arg>-Xlint:all</arg>
+                        <arg>-Xlint:all,-processing</arg>
                         <arg>-Werror</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
                     <release>${maven.compiler.release}</release>
-                    <compilerArgs>
-                        <!--<arg>-parameters</arg>-->
-                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>${assembly.plugin.version}</version>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${shade.plugin.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
-                            <goal>single</goal>
+                            <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <!--
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                            -->
-                            <descriptors>
-                              <descriptor>src/main/resources/ksqldb-udf-distribution.xml</descriptor>
-                            </descriptors>
-                            <appendAssemblyId>false</appendAssemblyId>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.slf4j:slf4j-api</exclude>
+                                    <exclude>com.fasterxml.jackson.core:jackson-core</exclude>
+                                    <exclude>com.fasterxml.jackson.core:jackson-databind</exclude>
+                                    <exclude>com.fasterxml.jackson.core:jackson-annotations</exclude>
+                                    <exclude>com.fasterxml.jackson.datatype:jackson-datatype-jsr310</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>
-              </plugin>
+            </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.plugin.version}</version>
@@ -108,21 +120,6 @@
             <groupId>com.github.hpgrahsl</groupId>
             <artifactId>kryptonite</artifactId>
             <version>${kryptonite.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.hpgrahsl</groupId>
-            <artifactId>kryptonite-kms-aws</artifactId>
-            <version>${kryptonite.kms.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.hpgrahsl</groupId>
-            <artifactId>kryptonite-kms-azure</artifactId>
-            <version>${kryptonite.kms.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.hpgrahsl</groupId>
-            <artifactId>kryptonite-kms-gcp</artifactId>
-            <version>${kryptonite.kms.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.hpgrahsl</groupId>
@@ -216,6 +213,12 @@
             <artifactId>kryptonite-test-fixtures</artifactId>
             <version>${kryptonite.test.fixtures.version}</version>
             <scope>test</scope>
-        </dependency>        
+        </dependency>
+        <dependency>
+            <groupId>com.github.hpgrahsl</groupId>
+            <artifactId>kryptonite-kms-gcp</artifactId>
+            <version>${kryptonite.kms.gcp.version}</version>
+            <scope>test</scope>
+        </dependency>      
     </dependencies>
 </project>
