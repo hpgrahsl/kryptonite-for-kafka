@@ -154,6 +154,12 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <relocations>
+                <relocation>
+                  <pattern>com.esotericsoftware</pattern>
+                  <shadedPattern>com.github.hpgrahsl.shaded.com.esotericsoftware</shadedPattern>
+                </relocation>
+              </relocations>
               <artifactSet>
                 <excludes>
                   <exclude>org.objenesis:*</exclude>
