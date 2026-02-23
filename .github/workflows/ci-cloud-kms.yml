@@ -20,22 +20,29 @@ jobs:
         env:
           CREDS: ${{ secrets.KMS_CREDS_AZURE }}
         run: |
+          mkdir -p kryptonite-kms-azure/src/test/resources
           printf '%s' "$CREDS" > kryptonite-kms-azure/src/test/resources/credentials.properties
+          mkdir -p connect-transform-kryptonite/src/test/resources
           printf '%s' "$CREDS" > connect-transform-kryptonite/src/test/resources/credentials.properties
 
       - name: Prepare credentials (GCP)
         env:
           CREDS: ${{ secrets.KMS_CREDS_GCP }}
         run: |
+          mkdir -p kryptonite-kms-gcp/src/test/resources
           printf '%s' "$CREDS" > kryptonite-kms-gcp/src/test/resources/credentials.properties
+          mkdir -p flink-udfs-kryptonite/src/test/resources
           printf '%s' "$CREDS" > flink-udfs-kryptonite/src/test/resources/credentials.properties
+          mkdir -p ksqldb-udfs-kryptonite/src/test/resources
           printf '%s' "$CREDS" > ksqldb-udfs-kryptonite/src/test/resources/credentials.properties
 
       - name: Prepare credentials (AWS)
         env:
           CREDS: ${{ secrets.KMS_CREDS_AWS }}
         run: |
+          mkdir -p kryptonite-kms-aws/src/test/resources
           printf '%s' "$CREDS" > kryptonite-kms-aws/src/test/resources/credentials.properties
+          mkdir -p funqy-http-kryptonite/src/test/resources
           printf '%s' "$CREDS" > funqy-http-kryptonite/src/test/resources/credentials.properties
 
       - name: Build and run including all cloud KMS tests
