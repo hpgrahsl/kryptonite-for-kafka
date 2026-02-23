@@ -154,6 +154,11 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <artifactSet>
+                <excludes>
+                  <exclude>org.objenesis:*</exclude>
+                </excludes>
+              </artifactSet>
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <filters>
                 <filter>
