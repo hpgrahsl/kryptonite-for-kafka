@@ -20,4 +20,8 @@ jobs:
           cache: 'maven'
 
       - name: Build and test
-        run: ./mvnw verify
+        # NOTE: Temporarily excluding ksqldb-udfs-kryptonite module as there are some weird unresolvable transitive dependencies
+        # that cause the build to fail - this needs deeper investigation! The local build worked as the problematic dependencies
+        # were already in the local maven repo from earlier builds a longer time ago.
+        run: ./mvnw verify -pl '!ksqldb-udfs-kryptonite'
+        
