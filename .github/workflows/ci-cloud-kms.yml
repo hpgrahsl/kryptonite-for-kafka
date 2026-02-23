@@ -1,0 +1,42 @@
+name: Kryptonite 4 Kafka Custom CI (With Cloud KMS Tests)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cloud-kms-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Prepare credentials (Azure)
+        env:
+          CREDS: ${{ secrets.KMS_CREDS_AZURE }}
+        run: |
+          printf '%s' "$CREDS" > kryptonite-kms-azure/src/test/resources/credentials.properties
+          printf '%s' "$CREDS" > connect-transform-kryptonite/src/test/resources/credentials.properties
+
+      - name: Prepare credentials (GCP)
+        env:
+          CREDS: ${{ secrets.KMS_CREDS_GCP }}
+        run: |
+          printf '%s' "$CREDS" > kryptonite-kms-gcp/src/test/resources/credentials.properties
+          printf '%s' "$CREDS" > flink-udfs-kryptonite/src/test/resources/credentials.properties
+          printf '%s' "$CREDS" > ksqldb-udfs-kryptonite/src/test/resources/credentials.properties
+
+      - name: Prepare credentials (AWS)
+        env:
+          CREDS: ${{ secrets.KMS_CREDS_AWS }}
+        run: |
+          printf '%s' "$CREDS" > kryptonite-kms-aws/src/test/resources/credentials.properties
+          printf '%s' "$CREDS" > funqy-http-kryptonite/src/test/resources/credentials.properties
+
+      - name: Build and run including all cloud KMS tests
+        run: ./mvnw verify -Dcloud.kms.tests=true
