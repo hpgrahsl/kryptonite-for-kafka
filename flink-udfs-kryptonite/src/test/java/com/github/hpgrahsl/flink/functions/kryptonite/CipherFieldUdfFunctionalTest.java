@@ -156,6 +156,7 @@ public class CipherFieldUdfFunctionalTest {
         );
     }
 
+    @SuppressWarnings("removal")
     void performTestForMap(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
             String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
             KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
@@ -237,6 +238,7 @@ public class CipherFieldUdfFunctionalTest {
         assertAllResultingFieldsMapRecord(TestFixtures.TEST_OBJ_MAP_1, decryptedData);
     }
 
+    @SuppressWarnings("removal")
     void performTestForRow(FieldMode fieldMode, String cipherDataKeys, String defaultKeyIdentifier,
             String keyIdentifier, Kryptonite.CipherSpec cipherAlgorithm,
             KryptoniteSettings.KeySource keySource, KryptoniteSettings.KmsType kmsType, String kmsConfig,
@@ -352,7 +354,7 @@ public class CipherFieldUdfFunctionalTest {
         throw new IllegalArgumentException("Unsupported data type for element-wise encryption: " + data.getClass());
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked","removal"})
     Object decryptComplexFieldElementwise(DecryptUdf udf, Object encryptedData, Object originalType) {
         // For complex types in ELEMENT mode, decrypt each element individually using the main UDF
         if (encryptedData instanceof List && originalType instanceof List) {

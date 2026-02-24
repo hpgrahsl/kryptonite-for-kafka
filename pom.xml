@@ -71,6 +71,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
     <assembly.plugin.version>3.7.1</assembly.plugin.version>
+    <shade.plugin.version>3.6.0</shade.plugin.version>
     <compiler.plugin.version>3.14.0</compiler.plugin.version>
     <surefire.plugin.version>3.5.2</surefire.plugin.version>
     <jdk.17.plus.jvm.options>--add-opens=java.base/java.util=ALL-UNNAMED</jdk.17.plus.jvm.options>

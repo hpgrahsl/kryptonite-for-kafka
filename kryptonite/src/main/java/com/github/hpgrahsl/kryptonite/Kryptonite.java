@@ -245,7 +245,8 @@ public class Kryptonite {
   private static Kryptonite withKmsKeyVault(Map<String,String> config) {
     var kmsType = config.get(KMS_TYPE);
     var kmsConfig = config.get(KMS_CONFIG);
-    var provider = ServiceLoader.load(KmsKeyVaultProvider.class).stream()
+    var provider = ServiceLoader.load(KmsKeyVaultProvider.class, KmsKeyVaultProvider.class.getClassLoader())
+        .stream()
         .map(ServiceLoader.Provider::get)
         .filter(p -> p.kmsType().equals(kmsType))
         .findFirst()
@@ -258,7 +259,8 @@ public class Kryptonite {
   private static Kryptonite withKmsKeyVaultEncrypted(Map<String,String> config) {
     var kmsType = config.get(KMS_TYPE);
     var kmsConfig = config.get(KMS_CONFIG);
-    var provider = ServiceLoader.load(KmsKeyVaultProvider.class).stream()
+    var provider = ServiceLoader.load(KmsKeyVaultProvider.class, KmsKeyVaultProvider.class.getClassLoader())
+        .stream()
         .map(ServiceLoader.Provider::get)
         .filter(p -> p.kmsType().equals(kmsType))
         .findFirst()
@@ -272,7 +274,8 @@ public class Kryptonite {
     var kekType = config.get(KEK_TYPE);
     var kekConfig = config.get(KEK_CONFIG);
     var kekUri = config.get(KEK_URI);
-    var provider = ServiceLoader.load(KmsKeyEncryptionProvider.class).stream()
+    var provider = ServiceLoader.load(KmsKeyEncryptionProvider.class, KmsKeyEncryptionProvider.class.getClassLoader())
+        .stream()
         .map(ServiceLoader.Provider::get)
         .filter(p -> p.kekType().equals(kekType))
         .findFirst()

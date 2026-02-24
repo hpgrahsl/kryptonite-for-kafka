@@ -80,8 +80,8 @@ public class EncryptMapFpeDecryptMapFpeUdfTest {
 
         // Verify format is preserved
         for (String key : plaintext.keySet()) {
-            assertEquals(plaintext.get(key).length(), ((String) encrypted.get(key)).length());
-            assertTrue(((String) encrypted.get(key)).matches("\\d+"));
+            assertEquals(plaintext.get(key).length(), encrypted.get(key).length());
+            assertTrue(encrypted.get(key).matches("\\d+"));
         }
 
         // Decrypt
@@ -115,8 +115,8 @@ public class EncryptMapFpeDecryptMapFpeUdfTest {
         // Verify format is preserved
         for (String key : plaintext.keySet()) {
             assertNotEquals(plaintext.get(key), encrypted.get(key));
-            assertEquals(plaintext.get(key).length(), ((String) encrypted.get(key)).length());
-            assertTrue(((String) encrypted.get(key)).matches("[A-Za-z0-9]+"));
+            assertEquals(plaintext.get(key).length(), encrypted.get(key).length());
+            assertTrue(encrypted.get(key).matches("[A-Za-z0-9]+"));
         }
 
         // Decrypt
@@ -149,8 +149,8 @@ public class EncryptMapFpeDecryptMapFpeUdfTest {
 
         // Verify format is preserved
         for (String key : plaintext.keySet()) {
-            assertEquals(plaintext.get(key).length(), ((String) encrypted.get(key)).length());
-            assertTrue(((String) encrypted.get(key)).matches("[a-z]+"));
+            assertEquals(plaintext.get(key).length(), encrypted.get(key).length());
+            assertTrue(encrypted.get(key).matches("[a-z]+"));
         }
 
         // Decrypt
@@ -183,8 +183,8 @@ public class EncryptMapFpeDecryptMapFpeUdfTest {
 
         // Verify format is preserved
         for (Integer key : plaintext.keySet()) {
-            assertEquals(plaintext.get(key).length(), ((String) encrypted.get(key)).length());
-            assertTrue(((String) encrypted.get(key)).matches("\\d+"));
+            assertEquals(plaintext.get(key).length(), encrypted.get(key).length());
+            assertTrue(encrypted.get(key).matches("\\d+"));
         }
 
         // Decrypt
@@ -217,8 +217,8 @@ public class EncryptMapFpeDecryptMapFpeUdfTest {
 
         // Verify format is preserved
         for (String key : plaintext.keySet()) {
-            assertEquals(plaintext.get(key).length(), ((String) encrypted.get(key)).length());
-            assertTrue(((String) encrypted.get(key)).matches("[0-9A-F]+"));
+            assertEquals(plaintext.get(key).length(), encrypted.get(key).length());
+            assertTrue(encrypted.get(key).matches("[0-9A-F]+"));
         }
 
         // Decrypt
