@@ -18,6 +18,8 @@
     <kryptonite.serdes.converters.version>0.1.0</kryptonite.serdes.converters.version>
     <kryptonite.test.fixtures.version>0.1.0</kryptonite.test.fixtures.version>
     <kryptonite.kms.aws.version>0.1.0</kryptonite.kms.aws.version>
+    <kryptonite.kms.azure.version>0.1.0</kryptonite.kms.azure.version>
+    <kryptonite.kms.gcp.version>0.1.0</kryptonite.kms.gcp.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
@@ -111,7 +113,16 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite-kms-aws</artifactId>
       <version>${kryptonite.kms.aws.version}</version>
-      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-azure</artifactId>
+      <version>${kryptonite.kms.azure.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-kms-gcp</artifactId>
+      <version>${kryptonite.kms.gcp.version}</version>
     </dependency>    
   </dependencies>
   <build>
