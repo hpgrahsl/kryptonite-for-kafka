@@ -159,6 +159,11 @@
                     <groupId>io.netty</groupId>
                     <artifactId>netty-codec-http2</artifactId>
                 </exclusion>
+                <!-- NOTE: became unresolvable via usual publicly accessible maven repos-->
+                <exclusion>
+                    <groupId>io.confluent.observability</groupId>
+                    <artifactId>telemetry-client</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -186,6 +191,11 @@
                 <exclusion>
                     <groupId>io.netty</groupId>
                     <artifactId>netty-codec-http2</artifactId>
+                </exclusion>
+                <!-- NOTE: became unresolvable via usual publicly accessible maven repos-->
+                <exclusion>
+                    <groupId>io.confluent.observability</groupId>
+                    <artifactId>telemetry-client</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
