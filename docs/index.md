@@ -24,7 +24,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 </div>
 
 <div class="k4k-module-card" markdown>
-:material-cursor-default-click: &nbsp; **Field Level Cryptography** means you can precisely control which payload fields are supposed to get encrypted / decrypted within clients.
+:material-cursor-default-click: &nbsp; **Field Level Cryptography** means you can precisely control which payload fields are supposed to get encrypted / decrypted.
 
 <div class="k4k-module-img">
 <a href="assets/images/01_field_level_cryptography.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/01_field_level_cryptography.png" alt="Field-Level Cryptography"></a>
