@@ -4,15 +4,47 @@ hide:
   - toc
 ---
 
-# Kryptonite for Apache Kafka (K4K)
+# Kryptonite for Apache Kafka
 
 <div class="hero-text" markdown>
-## Client-Side Field Level Cryptography for Data Streaming Workloads
+## Client-Side Field Level Cryptography (CSFLC) for Data Streaming Workloads
 
 Encrypt and decrypt payload fields end-to-end **before sensitive data ever reaches the Kafka brokers**.<br/>Seamlessly works across four modules: [Apache Kafka Connect](https://kafka.apache.org/documentation/#connect), [Apache Flink](https://flink.apache.org), [ksqlDB](https://www.confluent.io/product/ksqldb/), and a standalone [Quarkus](https://quarkus.io) HTTP service.
 
+<div class="k4k-modules" markdown>
+
+<div class="k4k-module-card" markdown>
+
+:material-shield-lock-outline: &nbsp; **Client-Side Cryptography** means all cryptographic operations are guaranteed to only ever happen on the client-side.
+
+<div class="k4k-module-img">
+<a href="assets/images/00_csflc_overview.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/00_csflc_overview.png" alt="Client-Side Cryptography"></a>
+</div>
+
+</div>
+
+<div class="k4k-module-card" markdown>
+:material-cursor-default-click: &nbsp; **Field Level Cryptography** means you can precisely control which payload fields are supposed to get encrypted / decrypted within clients.
+
+<div class="k4k-module-img">
+<a href="assets/images/01_field_level_cryptography.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/01_field_level_cryptography.png" alt="Field-Level Cryptography"></a>
+</div>
+
+</div>
+
+</div>
+
 [Get Started :fontawesome-solid-rocket:](getting-started.md){ .md-button .md-button--primary }
 [GitHub :fontawesome-brands-github:](https://github.com/hpgrahsl/kryptonite-for-kafka){ .md-button }
+</div>
+
+
+---
+
+## End-to-End Scenario featuring Module Integrations for Apache Kafka Connect and Apache Flink
+
+<div class="k4k-module-img">
+<a href="assets/images/05_full_end2end_example.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/05_full_end2end_example.png" alt="Kafka Connect SMT"></a>
 </div>
 
 ---
@@ -74,7 +106,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 <div class="k4k-module-card" markdown>
 
 <div class="k4k-module-img">
-<a href="assets/images/module-connect-smt.svg" class="glightbox" data-glightbox="type: image"><img src="assets/images/module-connect-smt.svg" alt="Kafka Connect SMT"></a>
+<a href="assets/images/03a_csflc_source_connectors.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/03a_csflc_source_connectors.png" alt="Kafka Connect SMT"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
@@ -92,7 +124,7 @@ The `CipherField` Single Message Transformation (SMT) encrypts or decrypts paylo
 <div class="k4k-module-card" markdown>
 
 <div class="k4k-module-img">
-<a href="assets/images/module-flink-udfs.svg" class="glightbox" data-glightbox="type: image"><img src="assets/images/module-flink-udfs.svg" alt="Apache Flink UDFs"></a>
+<a href="assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
@@ -152,8 +184,8 @@ A lightweight HTTP service that exposes a web API with multiple encryption and d
 | Algorithm | Mode | Input | Output | Usage |
 |---|---|---|---|---|
 | `TINK/AES_GCM` | [AEAD probabilistic](https://developers.google.com/tink/aead) | any supported data type | string (Base64) | most cases (default) |
-| `TINK/AES_GCM_SIV` | [AEAD deterministic](https://developers.google.com/tink/deterministic-aead) | any supported data type | string (Base64) | equality match, join operations, aggregrations on encrypted data |
-| `CUSTOM/MYSTO_FPE_FF3_1` | [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) | string (specific alphabet) | string (same alphabet) | if alphabet must be preserved (credit cards, SSNs, IBANs, ...) |
+| `TINK/AES_GCM_SIV` | [AEAD deterministic](https://developers.google.com/tink/deterministic-aead) | any supported data type | string (Base64) | equality match, join operations, or aggregrations on encrypted data |
+| `CUSTOM/MYSTO_FPE_FF3_1` | [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) | string (specific alphabet) | string (same alphabet as input) | if alphabet must be preserved (credit cards, SSNs, IBANs, ...) |
 
 :octicons-book-24: [Learn more](security.md)
 
@@ -161,12 +193,12 @@ A lightweight HTTP service that exposes a web API with multiple encryption and d
 
 ## Available Key Management Options
 
-| Mode | Keysets stored | At-rest protection | Typical use |
-|---|---|---|---|
-| `CONFIG` | Inline in config | None | Development & testing |
-| `CONFIG_ENCRYPTED` | Inline, KEK-encrypted | Cloud KMS wrapping key | Production — no secret manager |
-| `KMS` | Cloud secret manager | None | Production — centralised rotation |
-| `KMS_ENCRYPTED` | Cloud secret manager, KEK-encrypted | Cloud KMS wrapping key | Production — maximum security |
+| Key Source | Keyset Storage | Keyset Encryption | Security | Recommended for ... |
+|---|---|---|---|---|
+| `CONFIG` | inline as part of configuration | None | **lowest** | Local Development & Testing or Demos |
+| `CONFIG_ENCRYPTED` | inline as part of configuration | Cloud KMS wrapping key |  moderate | Production (without centralised management) |
+| `KMS` | cloud secret manager | None | moderate | Production (with centralised management) |
+| `KMS_ENCRYPTED` | cloud secret manager | Cloud KMS wrapping key | **highest** | Production (with centralised management) |
 
 :octicons-book-24: [Key Management Details](key-management.md) &nbsp;| &nbsp;:octicons-book-24: [Cloud KMS Overview](kms/overview.md)
 
