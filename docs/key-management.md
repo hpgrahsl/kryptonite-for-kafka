@@ -1,6 +1,6 @@
 # Key Management
 
-Kryptonite for Kafka supports four modes for sourcing key material, controlled by the `key_source` parameter. The right choice depends on your security posture and operational model.
+All Kryptonite for Kafka modules support four ways to source the required key material. You can define this by means of the `key_source` configuration parameter. The right choice primarly depends on your security posture and preferred operational model.
 
 ---
 
@@ -15,16 +15,19 @@ key_source=KMS_ENCRYPTED       → KEK-encrypted keysets in cloud secret manager
 
 ---
 
-## `CONFIG` — Plain keysets in config
+## Plain keysets in configuration
 
-The simplest mode. Tink keyset JSON is embedded directly in the `cipher_data_keys` configuration parameter.
+The simplest and least secure mode. Plain keysets are embedded directly in the `cipher_data_keys` configuration parameter.
 
-**When to use:** Development, testing, or environments where configuration is already protected (e.g., Kubernetes Secrets, Vault-injected env vars).
+!!! question "When to use?"
+    Development & testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected by other means (e.g., Kubernetes Secrets, Vault-injected env vars).
 
-**Risk:** Key material is visible in connector/UDF configuration, which is typically accessible via the Kafka Connect REST API or ksqlDB system tables. Avoid for production without additional access controls.
+!!! danger "Risk"
+    Key material might become visible or accidentally exposed. For instance, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production without additional access controls in place.
+
+### Plain keyset example
 
 ```json
-[
   {
     "identifier": "my-key",
     "material": {
@@ -43,84 +46,153 @@ The simplest mode. Tink keyset JSON is embedded directly in the `cipher_data_key
       ]
     }
   }
-]
 ```
 
-For Kafka Connect, use the [file config provider](modules/connect-smt.md#externalising-key-material) to store key material in an external properties file instead of exposing it in the connector JSON.
+!!! tip "Tip"
+    Generate plain keysets with the [Keyset Tool](./keyset-tool/#plain-keysets).
+
+!!! tip "Tip"
+    For Kafka Connect, it's recommended to use the [file config provider](https://kafka.apache.org/42/configuration/configuration-providers/#example-referencing-files). Find a concrete example to store keysets in an external properties file instead of exposing it directly in the connector's configuration [here](modules/connect-smt.md#externalising-key-material).
 
 ---
 
-## `CONFIG_ENCRYPTED` — KEK-encrypted keysets in config
+## Encrypted keysets in configuration 
 
-Keysets are stored encrypted at rest in the configuration. A cloud KMS Key Encryption Key (KEK) is used to decrypt them at runtime. The key material is never stored in plaintext anywhere.
+Encrypted keysets give you moderate security while still being able to directly reference keys inside the configuration. A [cloud KMS](./kms/overview.md) key encryption key (KEK) is used to decrypt the keysets at runtime. The plain keysets are never stored anywhere.
 
-**When to use:** You want to ship encrypted keysets in config/secrets but do not want to store keysets in a cloud secret manager.
+!!! question "When to use?"
+    You'd like to ship encrypted keysets as part of the configuration but do not want to store keysets externally in a cloud secret manager.
 
-**Requires:** `kek_type`, `kek_uri`, and `kek_config` in addition to `cipher_data_keys`.
+**Requires:** `key_source=CONFIG_ENCRYPTED`, depends on `kek_type`, `kek_uri`, and `kek_config` in addition to `cipher_data_keys`.
 
-The `material` field in each keyset entry takes the encrypted form:
+### Encrypted keyset example
+
+Note, that the `material` field takes the encrypted form:
 
 ```json
-{
-  "encryptedKeyset": "<ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE>",
-  "keysetInfo": {
-    "primaryKeyId": 10000,
-    "keyInfo": [
-      {
-        "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
-        "status": "ENABLED",
-        "keyId": 10000,
-        "outputPrefixType": "TINK"
+  {
+    "identifier": "my-key",
+    "material": {
+      "encryptedKeyset": "<ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE>",
+      "keysetInfo": {
+        "primaryKeyId": 10000,
+        "keyInfo": [
+          {
+            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+            "status": "ENABLED",
+            "keyId": 10000,
+            "outputPrefixType": "TINK"
+          }
+        ]
       }
-    ]
+    }
   }
-}
 ```
 
-Generate encrypted keysets with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+!!! tip "Tip"
+    Generate encrypted keysets with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
 
 ---
 
-## `KMS` — Plain keysets in cloud secret manager
+## Plain keysets in cloud secret manager
 
-Keysets are stored as secrets in a cloud secret manager. The module fetches them at runtime using the configured credentials.
+Plain keysets are stored as secrets in a cloud secret manager which provides reasonable key material protection. These are either fetched lazily on-demand or eagerly loaded during module initialization using the configured cloud provider credentials.
 
-**When to use:** Your organisation already manages secrets centrally via Azure Key Vault, AWS Secrets Manager, or GCP Secret Manager, and you want keysets to be versioned and rotated there.
+!!! question "When to use?"
+    Your already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.
 
-**Requires:** `kms_type` and `kms_config`. The `cipher_data_keys` array can be left empty (`[]`).
+**Requires:** `key_source=KMS`, depends on `kms_type`, `kms_config`, `kek_type`, `kek_uri`, and `kek_config`. The `cipher_data_keys` array can be left empty (`[]`).
 
-### Secret naming conventions
+### Plain keyset example
 
-Each cloud provider uses a naming prefix to distinguish plain and encrypted keysets:
+```json
+  {
+    "identifier": "my-key",
+    "material": {
+      "primaryKeyId": 10000,
+      "key": [
+        {
+          "keyData": {
+            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+            "value": "<BASE64_ENCODED_KEY_HERE>",
+            "keyMaterialType": "SYMMETRIC"
+          },
+          "status": "ENABLED",
+          "keyId": 10000,
+          "outputPrefixType": "TINK"
+        }
+      ]
+    }
+  }
+```
 
-=== "Azure Key Vault"
-    The secret name is the keyset identifier directly (no prefix). Azure supports separate vault instances to isolate plain vs encrypted keysets.
+!!! tip "Tip"
+    Generate plain keysets with the [Keyset Tool](./keyset-tool/#plain-keysets).
 
-=== "AWS Secrets Manager"
-    | Type | Prefix |
-    |---|---|
-    | Plain keysets | `k4k/tink_plain/` |
-    | Encrypted keysets | `k4k/tink_encrypted/` |
+---
 
-    Full secret name: `k4k/tink_plain/<identifier>`
+## Encrypted keysets in cloud secret manager
+
+The most secure mode. Keysets are stored encrypted in a cloud secret manager, and a separate cloud KMS key encryption key is required to decrypt them at runtime.
+
+!!! question "When to use?"
+    **Production environments requiring maximum keyset protection.** An attacker who gains access to the secret manager secrets still cannot make use of any of the keysets without having access to the KEK in the KMS.
+
+**Requires:** `key_source=KMS_ENCRYPTED`, depends on `kms_type`,`kms_config`, `kek_type`, `kek_uri`, and `kek_config`. The `cipher_data_keys` array can be left empty (`[]`).
+
+### Encrypted keyset example
+
+Note, that the `material` field takes the encrypted form:
+
+```json
+  {
+    "identifier": "my-key",
+    "material": {
+      "encryptedKeyset": "<ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE>",
+      "keysetInfo": {
+        "primaryKeyId": 10000,
+        "keyInfo": [
+          {
+            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+            "status": "ENABLED",
+            "keyId": 10000,
+            "outputPrefixType": "TINK"
+          }
+        ]
+      }
+    }
+  }
+```
+
+!!! tip "Tip"
+    Generate encrypted keysets with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+
+---
+
+## Secret naming conventions
+
+Depending on which cloud secret manager is configured to store plain or encrypted keysets, the following secret name prefixes must be considered to distinguish plain from encrypted keysets:
 
 === "GCP Secret Manager"
-    | Type | Prefix |
-    |---|---|
-    | Plain keysets | `k4k-tink-plain_` |
-    | Encrypted keysets | `k4k-tink-encrypted_` |
+     | Type | Mandatory Prefix | Key Identifier Example | Full Secret Name
+    |---|---|---|---|
+    | Plain keysets | `k4k-tink-plain_` | `key_123` | `k4k-tink-plain_key_123`
+    | Encrypted keysets | `k4k-tink-encrypted_` | `key_XYZ` | `k4k-tink-encrypted_key_XYZ`
 
-    Full secret name: `k4k-tink-plain_<identifier>`
+    **Full secret name: `(k4k-tink-plain | k4k-tink-encrypted)_<key_identifier>`**
 
----
+=== "AWS Secrets Manager"
+    | Type | Mandatory Prefix | Key Identifier Example | Full Secret Name
+    |---|---|---|---|
+    | Plain keysets | `k4k/tink_plain/` | `key_123` | `k4k/tink_plain/key_123`
+    | Encrypted keysets | `k4k/tink_encrypted/` | `key_XYZ` | `k4k/tink_encrypted/key_XYZ`
 
-## `KMS_ENCRYPTED` — Encrypted keysets in cloud secret manager
+    **Full secret name: `k4k/(tink_plain | tink_encrypted)/<key_identifier>`**
 
-The most secure mode. Keysets are stored encrypted in a cloud secret manager, and a separate cloud KMS key is required to decrypt them at runtime.
+=== "Azure Key Vault"
+    **The secret name is the keyset identifier as is.** No prefix is assumed. Azure supports separate vault instances to properly isolate plain vs. encrypted keysets.
 
-**When to use:** Production environments requiring defence in depth — an attacker who gains access to the secret manager secrets still cannot use the keysets without access to the KEK in the KMS.
-
-**Requires:** `kms_type`, `kms_config`, `kek_type`, `kek_uri`, and `kek_config`.
+    **Full secret name: `<key_identifier>`**
 
 ---
 
@@ -128,7 +200,7 @@ The most secure mode. Keysets are stored encrypted in a cloud secret manager, an
 
 All keyset material, regardless of the key source, must conform to Tink's keyset JSON specification.
 
-### Plain keyset (AES-GCM)
+### Plain keyset example (AES-GCM, probabilistic encryption)
 
 ```json
 {
@@ -148,7 +220,7 @@ All keyset material, regardless of the key source, must conform to Tink's keyset
 }
 ```
 
-### Plain keyset (AES-GCM-SIV, deterministic)
+### Plain keyset (AES-GCM-SIV, deterministic encryption)
 
 ```json
 {
@@ -168,7 +240,7 @@ All keyset material, regardless of the key source, must conform to Tink's keyset
 }
 ```
 
-### Plain keyset (FPE FF3-1)
+### Plain keyset (FPE FF3-1, format-preserving encryption)
 
 ```json
 {
@@ -188,19 +260,18 @@ All keyset material, regardless of the key source, must conform to Tink's keyset
 }
 ```
 
-Note the different `typeUrl` and `outputPrefixType: RAW` for FPE keysets.
+Note the custom `typeUrl` and `outputPrefixType: RAW` for FPE keysets.
 
 ---
 
 ## Key Rotation
 
-Tink keysets natively support multiple keys. The `primaryKeyId` determines which key is used for new encryptions. Older keys remain in the keyset for decryption of existing ciphertexts.
+Tink keysets natively support multiple keys. The `primaryKeyId` determines which key is used for new encryptions. Older keys are supposed to remain in the keyset for decryption of existing ciphertexts.
 
-To rotate a key:
-
-1. Generate a new keyset with multiple keys (e.g., `-n 2` with the Keyset Tool)
-2. The first key ID is the primary
-3. Existing ciphertexts are decrypted using whichever key ID is encoded in their metadata
-4. New encryptions use the primary key
+1. Generate a new keyset with multiple keys (e.g., `-n 2` with the [Keyset Tool](./keyset-tool.md))
+2. One of the keys in the keyset must be the primary key, initially it's the first one
+3. Any new encryption operations use the currently designated primary key
+4. A different key in the keyset can be promoted to become the primary key at any time
+5. Once the primary key changed, old ciphertexts remain decryptable so long as the previously used primary key is still resolvable within the configured keyset.
 
 See [Keyset Tool](keyset-tool.md) for examples of generating multi-key keysets.

@@ -1,6 +1,6 @@
 # Getting Started Guides
 
-Kryptonite for Kafka ships as four independent integration modules. Pick the one that fits your use case and follow the module-specific guide.
+Kryptonite for Kafka ships four independent integration modules. Pick the ones that fit your use cases and follow the module-specific guide.
 
 <div class="grid cards" markdown>
 
@@ -81,6 +81,6 @@ This generates and prints a `FULL`-formatted keyset directly to `stdout`:
 ```
 
 !!! warning "Key material is a secret"
-    The `value` field is your raw key. Treat it with utmost secrecy, just like any important password. **NEVER commit keysets to source control!**
+    The `value` field is your raw key. Treat it with utmost secrecy, just like any important password. **NEVER commit production keysets to source control!**
 
-See [Key Management](key-management.md) for production key storage and key encryption options.
+See [Key Management](key-management.md) for production options regarding key storage and key encryption.
