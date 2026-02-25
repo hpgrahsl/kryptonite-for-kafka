@@ -1,6 +1,6 @@
-# Getting Started
+# Getting Started Guides
 
-Kryptonite for Kafka ships as four independent integration modules. Pick the one that fits your stack and follow the module-specific guide.
+Kryptonite for Kafka ships as four independent integration modules. Pick the one that fits your use case and follow the module-specific guide.
 
 <div class="grid cards" markdown>
 
@@ -8,33 +8,33 @@ Kryptonite for Kafka ships as four independent integration modules. Pick the one
 
     ---
 
-    Encrypt and decrypt fields directly inside any Kafka Connect source or sink connector — zero code, configuration only.
+    Encrypt and decrypt payload fields directly inside any Kafka Connect source or sink connector by applying the SMTs. Fully configurable, zero code required.
 
-    [:octicons-arrow-right-24: Get started with Connect SMT](getting-started/connect-smt.md)
+    :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
 -   :material-table-arrow-right: &nbsp; **Apache Flink UDFs**
 
     ---
 
-    Use `K4K_ENCRYPT` / `K4K_DECRYPT` and companions in Flink Table API / SQL pipelines.
+    Use any of the available UDFs `K4K_ENCRYPT_*` / `K4K_DECRYPT_*` to encrypt and decrypt data in Flink Table API / Flink SQL jobs.
 
-    [:octicons-arrow-right-24: Get started with Flink UDFs](getting-started/flink-udfs.md)
-
--   :material-api: &nbsp; **Quarkus HTTP API**
-
-    ---
-
-    Run a lightweight REST service and encrypt or decrypt fields from any language over HTTP.
-
-    [:octicons-arrow-right-24: Get started with the HTTP API](getting-started/funqy-http.md)
+    :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
 -   :material-database-search: &nbsp; **ksqlDB UDFs**
 
     ---
 
-    Use `K4KENCRYPT` / `K4KDECRYPT` and companions inline in ksqlDB streams and tables.
+    Use `K4KENCRYPT` / `K4KDECRYPT` and companions in ksqlDB queries to encrypt and decrypt data in ksqlDB streams and tables.
 
-    [:octicons-arrow-right-24: Get started with ksqlDB UDFs](getting-started/ksqldb-udfs.md)
+    :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
+
+-   :material-api: &nbsp; **Quarkus HTTP API**
+
+    ---
+
+    Start a lightweight HTTP service and use the provided web API endpoints to encrypt and decrypt fields from any application or tool that talks HTTP.
+
+    :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
 </div>
 
@@ -42,24 +42,24 @@ Kryptonite for Kafka ships as four independent integration modules. Pick the one
 
 ## Common Prerequisites
 
-All modules share the same baseline requirements:
+Kryptonite for Kafka modules share the same baseline requirements:
 
-- **Java 17+** on the host running the module
-- A running **Apache Kafka** cluster reachable from the module's runtime
-- Cryptographic key material — generate it with the [Keyset Tool](keyset-tool.md) or embed an existing Tink keyset
+- **Java 17+** available on the host running the respective Kryptonite for Kafka module
+- **Key material:** generate keysets either with the purpose-built [Keyset Tool](keyset-tool.md) or embed an existing Tink keyset
+- **Apache Kafka:** a running cluster reachable from the module's runtime
 
 ---
 
 ## Generating a Keyset
 
-Every module needs at least one Tink keyset. The quickest way is the [Keyset Tool](keyset-tool.md):
+Every module needs at least one Tink keyset. The quickest and most convenient way is to use the [Keyset Tool](keyset-tool.md). The following command will generate a single keyset containing one `AES_GCM` key:
 
 ```bash
 java -jar kryptonite-keyset-tool/target/kryptonite-keyset-tool-0.1.0.jar \
   -a AES_GCM -i my-demo-key -f FULL -p
 ```
 
-This prints a `FULL`-format keyset (with the `identifier` wrapper expected by all modules) directly to stdout:
+This generates and prints a `FULL`-formatted keyset directly to `stdout`:
 
 ```json
 {
@@ -81,6 +81,6 @@ This prints a `FULL`-format keyset (with the `identifier` wrapper expected by al
 ```
 
 !!! warning "Key material is a secret"
-    The `value` field is your raw key. Treat it like a password — do not commit it to source control.
+    The `value` field is your raw key. Treat it with utmost secrecy, just like any important password. **NEVER commit keysets to source control!**
 
-See [Key Management](key-management.md) for production key storage options (cloud KMS, encrypted keysets).
+See [Key Management](key-management.md) for production key storage and key encryption options.

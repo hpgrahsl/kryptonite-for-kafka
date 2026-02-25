@@ -9,7 +9,7 @@ hide:
 <div class="hero-text" markdown>
 ## Client-Side Field Level Cryptography (CSFLC) for Data Streaming Workloads
 
-Encrypt and decrypt payload fields end-to-end **before sensitive data ever reaches the Kafka brokers**.<br/>Seamlessly works across four modules: [Apache Kafka Connect](https://kafka.apache.org/documentation/#connect), [Apache Flink](https://flink.apache.org), [ksqlDB](https://www.confluent.io/product/ksqldb/), and a standalone [Quarkus](https://quarkus.io) HTTP service.
+Encrypt and decrypt payload fields end-to-end **before sensitive data ever reaches the Kafka brokers**.<br/>Seamless integrations with and across [Apache Kafka Connect](https://kafka.apache.org/documentation/#connect), [Apache Flink](https://flink.apache.org), [ksqlDB](https://www.confluent.io/product/ksqldb/), and a standalone [Quarkus](https://quarkus.io) HTTP service.
 
 <div class="k4k-modules" markdown>
 

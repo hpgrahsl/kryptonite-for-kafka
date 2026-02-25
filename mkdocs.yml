@@ -33,6 +33,9 @@ theme:
 extra_css:
   - assets/stylesheets/extra.css
 
+exclude_docs: |
+  getting-started/
+
 plugins:
   - search
   - glightbox
@@ -62,21 +65,21 @@ nav:
   - Home: index.md
   - Getting Started:
     - Overview: getting-started.md
-    - Kafka Connect SMT: getting-started/connect-smt.md
-    - Apache Flink UDFs: getting-started/flink-udfs.md
-    - Quarkus HTTP API: getting-started/funqy-http.md
-    - ksqlDB UDFs: getting-started/ksqldb-udfs.md
+    # - Kafka Connect SMT: getting-started/connect-smt.md
+    # - Apache Flink UDFs: getting-started/flink-udfs.md
+    # - ksqlDB UDFs: getting-started/ksqldb-udfs.md
+    # - Quarkus HTTP API: getting-started/funqy-http.md
   - Configuration: configuration.md
   - Key Management: key-management.md
   - Keyset Tool: keyset-tool.md
   - Cloud KMS:
     - Overview: kms/overview.md
-    - AWS KMS: kms/aws.md
     - GCP Cloud KMS: kms/gcp.md
+    - AWS KMS: kms/aws.md
     - Azure Key Vault: kms/azure.md
   - Modules:
     - Kafka Connect SMT: modules/connect-smt.md
     - Flink UDFs: modules/flink-udfs.md
-    - Quarkus HTTP API: modules/funqy-http.md
     - ksqlDB UDFs: modules/ksqldb-udfs.md
+    - Quarkus HTTP API: modules/funqy-http.md
   - Security: security.md
