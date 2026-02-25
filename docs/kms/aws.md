@@ -61,7 +61,7 @@ Scope the policy to the `k4k/tink_plain/*` and `k4k/tink_encrypted/*` prefixes.
 
 ## Keyset Encryption with `kek_type=AWS`
 
-AWS KMS symmetric keys (AES-256) support direct AEAD encryption via the KMS `Encrypt` / `Decrypt` API. No envelope encryption layer is needed.
+AWS KMS symmetric keys (AES-256) support direct AEAD encryption. The module integrates via Tink's official `tink-java-awskms` library. No envelope encryption is needed.
 
 ### IAM permissions required
 
@@ -94,6 +94,8 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 
 ### Configuration for `key_source=CONFIG_ENCRYPTED`
 
+Generate the AWS KEK encrypted keyset in `FULL` format using the [keyset tool](../keyset-tool.md), then configure:
+
 ```json
 {
   "key_source": "CONFIG_ENCRYPTED",
@@ -107,7 +109,9 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 
 ### Configuration for `key_source=KMS_ENCRYPTED`
 
-Store the encrypted keyset JSON in Secrets Manager under `k4k/tink_encrypted/<identifier>`, then configure:
+Generate the encrypted keyset in `RAW` format using the [keyset tool](../keyset-tool.md) and store it in Secrets Manager under `k4k/tink_encrypted/<identifier>`.
+
+Then configure:
 
 ```json
 {

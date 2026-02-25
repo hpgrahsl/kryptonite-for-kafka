@@ -12,9 +12,9 @@ Kryptonite for Kafka supports three cloud KMS providers ([AWS KMS](https://aws.a
 
 ---
 
-## Provider Summary
+## Cloud KMS Provider Summary
 
-| Provider | Secret storage (`kms_type`) | KEK (`kek_type`) |
+| Provider | Keyset storage (`kms_type`) | Keyset Encryption (`kek_type`) |
 |---|---|---|
 | [AWS](aws.md) | `AWS_SM_SECRETS` | `AWS` |
 | [GCP](gcp.md) | `GCP_SM_SECRETS` | `GCP` |
@@ -22,7 +22,7 @@ Kryptonite for Kafka supports three cloud KMS providers ([AWS KMS](https://aws.a
 
 ---
 
-## `key_source` Decision Guide
+## Decision Guide for `key_source`
 
 ```mermaid
 flowchart TD
