@@ -93,7 +93,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 
     ---
 
-    Cryptographic primitives come directly from [Tink](https://github.com/tink-crypto) — a vetted and widely deployed open-source cryptography library implemented and maintained by cryptographers and security engineers at Google. If you want to learn more read [What is Tink?](https://developers.google.com/tink/what-is).
+    Cryptographic primitives come directly from [Tink](https://github.com/tink-crypto). It's a vetted and widely deployed open-source cryptography library implemented and maintained by cryptographers and security engineers at Google. If you want to learn more read [What is Tink?](https://developers.google.com/tink/what-is)
 
 </div>
 
@@ -157,13 +157,21 @@ Multiple user-defined functions (`K4K_ENCRYPT_*`/`K4K_DECRYPT_*`) can be applied
 
 <div class="k4k-module-card" markdown>
 
+### :material-database-search: &nbsp; **ksqlDB UDFs**
+
+**Field-Level Encryption with UDFs in ksqlDB**
+
 <div class="k4k-module-img">
-<a href="assets/images/module-ksqldb-udfs.svg" class="glightbox" data-glightbox="type: image"><img src="assets/images/module-ksqldb-udfs.svg" alt="ksqlDB UDFs"></a>
+<a href="assets/images/05a_csflc_ksqldb_encryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/05a_csflc_ksqldb_encryption.png" alt="ksqlDB UDFs"></a>
+</div>
+
+**Field-Level Decryption with UDFs in ksqlDB**
+
+<div class="k4k-module-img">
+<a href="assets/images/05b_csflc_ksqldb_decryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/05b_csflc_ksqldb_decryption.png" alt="ksqlDB UDFs"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
-
-:material-database-search: &nbsp; **ksqlDB UDFs**
 
 Multiple user-defined functions (`K4KENCRYPT*`/`K4KDECRYPT*`) can be applied in ksqlDB `STREAM` or `TABLE` queries. The UDFs can process both primitive and complex ksqlDB data types.
 
@@ -175,13 +183,21 @@ Multiple user-defined functions (`K4KENCRYPT*`/`K4KDECRYPT*`) can be applied in 
 
 <div class="k4k-module-card" markdown>
 
+### :material-api: &nbsp; **Quarkus HTTP Service**
+
+**Field-Level Encryption with HTTP API**
+
+<div class="k4k-module-img">
+<a href="assets/images/module-funqy-http.svg" class="glightbox" data-glightbox="type: image"><img src="assets/images/module-funqy-http.svg" alt="Quarkus HTTP API"></a>
+</div>
+
+**Field-Level Decryption with HTTP API**
+
 <div class="k4k-module-img">
 <a href="assets/images/module-funqy-http.svg" class="glightbox" data-glightbox="type: image"><img src="assets/images/module-funqy-http.svg" alt="Quarkus HTTP API"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
-
-:material-api: &nbsp; **Quarkus HTTP API**
 
 A lightweight HTTP service that exposes a web API with multiple encryption and decryption endpoints. This enables applications written in any language to participate in end-to-end encryption scenarios.
 
