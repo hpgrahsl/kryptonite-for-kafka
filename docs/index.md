@@ -105,13 +105,21 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 
 <div class="k4k-module-card" markdown>
 
+### :material-transit-connection-variant: &nbsp; **Apache Kafka Connect SMT**
+
+**Field-Level Encryption with Source Connectors**
+
 <div class="k4k-module-img">
 <a href="assets/images/03a_csflc_source_connectors.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/03a_csflc_source_connectors.png" alt="Kafka Connect SMT"></a>
 </div>
 
-<div class="k4k-module-body" markdown>
+**Field-Level Decryption with Sink Connectors**
 
-:material-transit-connection-variant: &nbsp; **Apache Kafka Connect SMT**
+<div class="k4k-module-img">
+<a href="assets/images/03b_csflc_sink_connectors.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/03b_csflc_sink_connectors.png" alt="Kafka Connect SMT"></a>
+</div>
+
+<div class="k4k-module-body" markdown>
 
 The `CipherField` Single Message Transformation (SMT) encrypts or decrypts payload fields in combination with pretty much any source or sink connector available for Kafka Connect. The SMT works with schemaless JSON and common schema-aware formats (Avro, Protobuf, JSON Schema).
 
@@ -123,13 +131,21 @@ The `CipherField` Single Message Transformation (SMT) encrypts or decrypts paylo
 
 <div class="k4k-module-card" markdown>
 
+### :material-table-arrow-right: &nbsp; **Apache Flink UDFs**
+
+**Field-Level Encryption with UDFs in Flink SQL**
+
 <div class="k4k-module-img">
 <a href="assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
 </div>
 
-<div class="k4k-module-body" markdown>
+**Field-Level Decryption with UDFs in Flink SQL**
 
-:material-table-arrow-right: &nbsp; **Apache Flink UDFs**
+<div class="k4k-module-img">
+<a href="assets/images/04b_csflc_flink_sql_udf_decryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/04b_csflc_flink_sql_udf_decryption.png" alt="Apache Flink UDFs"></a>
+</div>
+
+<div class="k4k-module-body" markdown>
 
 Multiple user-defined functions (`K4K_ENCRYPT_*`/`K4K_DECRYPT_*`) can be applied in Flink Table API or Flink SQL jobs. The UDFs can process both primitive and complex Flink Table API data types.
 
