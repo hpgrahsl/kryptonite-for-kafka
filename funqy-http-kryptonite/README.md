@@ -25,28 +25,28 @@ The default `application.properties` file which ships with the sources and pre-b
 #
 # MANDATORY config settings
 #
-cipher.data.keys=[]
-cipher.data.key.identifier=
+cipher_data_keys=[]
+cipher_data_key_identifier=
 #
 # OPTIONAL config settings with the following defaults
 #
-key.source=CONFIG
-kms.type=NONE
-kms.config={}
-kek.type=NONE
-kek.config={}
-kek.uri=gcp-kms://
-dynamic.key.id.prefix=__#
-path.delimiter=.
-field.mode=ELEMENT
-cipher.algorithm=TINK/AES_GCM
-cipher.fpe.tweak=0000000
-cipher.fpe.alphabet.type=ALPHANUMERIC
-cipher.fpe.alphabet.custom=
+key_source=CONFIG
+kms_type=NONE
+kms_config={}
+kek_type=NONE
+kek_config={}
+kek_uri=gcp-kms://
+dynamic_key_id_prefix=__#
+path_delimiter=.
+field_mode=ELEMENT
+cipher_algorithm=TINK/AES_GCM
+cipher_fpe_tweak=0000000
+cipher_fpe_alphabet_type=ALPHANUMERIC
+cipher_fpe_alphabet_custom=
 #############################################
 ```
 
-As can be seen from the comments, the first two properties (`cipher.data.keys=[]` and `cipher.data.key.identifier=`) are **mandatory**. All other properties are _either optional_ or are specified with _reasonable defaults_. For a detailed explanation of each configuration option and possible / valid values take a closer look at the table below:
+As can be seen from the comments, the first two properties (`cipher_data_keys=[]` and `cipher_data_key_identifier=`) are **mandatory**. All other properties are _either optional_ or are specified with _reasonable defaults_. For a detailed explanation of each configuration option and possible / valid values take a closer look at the table below:
 
 <table>
     <thead>
@@ -60,11 +60,11 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
     </thead>
     <tbody>
         <tr>
-            <td>cipher.data.keys</td>
+            <td>cipher_data_keys</td>
             <td>JSON array with plain or encrypted data key objects specifying the key identifiers together with key
                 sets for encryption / decryption which are defined in Tink's key specification format. The contained
                 keyset objects are mandatory if
-                <code>kms.type=NONE</code> but the array may be left empty when using e.g. <code>kms.type=AZ_KV_SECRETS</code>, <code>kms.type=AWS_SM_SECRETS</code>, or <code>kms.type=GCP_SM_SECRETS</code> in order to resolve keysets from a remote KMS.
+                <code>kms_type=NONE</code> but the array may be left empty when using e.g. <code>kms_type=AZ_KV_SECRETS</code>, <code>kms_type=AWS_SM_SECRETS</code>, or <code>kms_type=GCP_SM_SECRETS</code> in order to resolve keysets from a remote KMS.
                 <strong>NOTE: Irrespective of their origin, all plain or encrypted keysets
                     (see the example values in the right column) are expected to be valid tink keyset descriptions in
                     JSON format.</strong>
@@ -124,23 +124,23 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
     </td>
         </tr>
         <tr>
-            <td>cipher.data.key.identifier</td>
+            <td>cipher_data_key_identifier</td>
             <td>keyset identifier to be used as default data encryption keyset for all UDF calls which don't refer to a
                 specific keyset identifier in the parameter list</td>
             <td>string</td>
             <td><pre>!no default!</pre></td>
             <td>non-empty string referring to an existing identifier for a keyset</td>
         <tr>
-            <td>key.source</td>
+            <td>key_source</td>
             <td>defines the nature and origin of the keysets:
             <ul>
-                <li>plain data keysets in <code>cipher_data_keys (key.source=CONFIG)</code></li>
-                <li>encrypted data keysets in <code>cipher_data_keys (key.source=CONFIG_ENCRYPTED)</code></li>
-                <li>plain data keysets residing in a cloud/remote key management system <code>(key.source=KMS)</code></li>
-                <li>encrypted data keysets residing in a cloud/remote key management system <code>(key.source=KMS_ENCRYPTED)</code></li>
+                <li>plain data keysets in <code>cipher_data_keys (key_source=CONFIG)</code></li>
+                <li>encrypted data keysets in <code>cipher_data_keys (key_source=CONFIG_ENCRYPTED)</code></li>
+                <li>plain data keysets residing in a cloud/remote key management system <code>(key_source=KMS)</code></li>
+                <li>encrypted data keysets residing in a cloud/remote key management system <code>(key_source=KMS_ENCRYPTED)</code></li>
             </ul>
-                When using the KMS options refer to the <code>kms.type</code> and <code>kms.config</code> settings. When using encrypted data
-                keysets refer to the <code>kek_type</code>, <code>kek.config</code> and <code>kek.uri</code> settings as well.
+                When using the KMS options refer to the <code>kms_type</code> and <code>kms_config</code> settings. When using encrypted data
+                keysets refer to the <code>kek_type</code>, <code>kek_config</code> and <code>kek_uri</code> settings as well.
             </td>
             <td>string</td>
             <td>
@@ -154,11 +154,11 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             </td>
         </tr>
         <tr>
-            <td>kms.type</td>
+            <td>kms_type</td>
             <td>defines if:
                 <ul>
-                <li>data keysets are read from the config directly <code>kms.source=CONFIG | CONFIG_ENCRYPTED</code></li>
-                <li>data keysets are resolved from a remote/cloud key management system (Azure Key Vault, AWS Secrets Manager, or GCP Secret Manager) <code>kms.source=KMS | KMS_ENCRYPTED</code>
+                <li>data keysets are read from the config directly <code>key_source=CONFIG | CONFIG_ENCRYPTED</code></li>
+                <li>data keysets are resolved from a remote/cloud key management system (Azure Key Vault, AWS Secrets Manager, or GCP Secret Manager) <code>key_source=KMS | KMS_ENCRYPTED</code>
                 </li>
                 </ul>
             </td>
@@ -174,13 +174,13 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             </td>
         </tr>
         <tr>
-            <td>kms.config</td>
-            <td>JSON object specifying KMS-specific client authentication settings for the chosen <code>kms.type</code></td>
+            <td>kms_config</td>
+            <td>JSON object specifying KMS-specific client authentication settings for the chosen <code>kms_type</code></td>
             <td>JSON object</td>
             <td><pre>{}</pre></td>
             <td>JSON object defining the KMS-specific client authentication settings:
                 <ul>
-                    <li>for Azure Key Vault (<code>kms.type=AZ_KV_SECRETS</code>):</li>
+                    <li>for Azure Key Vault (<code>kms_type=AZ_KV_SECRETS</code>):</li>
                     <pre>
 {
   "clientId": "...",
@@ -189,7 +189,7 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
   "keyVaultUrl": "https://&lt;vault-name&gt;.vault.azure.net"
 }
     </pre>
-                    <li>for AWS Secrets Manager (<code>kms.type=AWS_SM_SECRETS</code>):</li>
+                    <li>for AWS Secrets Manager (<code>kms_type=AWS_SM_SECRETS</code>):</li>
                     <pre>
 {
   "accessKey": "AKIA...",
@@ -197,7 +197,7 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
   "region": "eu-central-1"
 }
     </pre>
-                    <li>for GCP Secret Manager (<code>kms.type=GCP_SM_SECRETS</code>):</li>
+                    <li>for GCP Secret Manager (<code>kms_type=GCP_SM_SECRETS</code>):</li>
                     <pre>
 {
   "credentials": "&lt;GCP service account JSON contents&gt;",
@@ -208,9 +208,9 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             </td>
         </tr>
         <tr>
-            <td>kek.type</td>
+            <td>kek_type</td>
             <td>defines which cloud KMS is used as the Key Encryption Key (KEK) to protect data keysets at rest.
-                Must be specified when using <code>kms.source=CONFIG_ENCRYPTED | KMS_ENCRYPTED</code>
+                Must be specified when using <code>key_source=CONFIG_ENCRYPTED | KMS_ENCRYPTED</code>
             </td>
             <td>string</td>
             <td>
@@ -224,27 +224,27 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             </td>
         </tr>
         <tr>
-            <td>kek.config</td>
-            <td>JSON object specifying KMS-specific client authentication settings for the chosen <code>kek.type</code></td>
+            <td>kek_config</td>
+            <td>JSON object specifying KMS-specific client authentication settings for the chosen <code>kek_type</code></td>
             <td>JSON object</td>
             <td><pre>{}</pre></td>
             <td>JSON object specifying the KMS-specific client authentication settings:
                 <ul>
-                    <li>for GCP Cloud KMS (<code>kek.type=GCP</code>):</li>
+                    <li>for GCP Cloud KMS (<code>kek_type=GCP</code>):</li>
                     <pre>
 {
   "credentials": "&lt;GCP service account JSON contents&gt;",
   "projectId": "my-gcp-project"
 }
 </pre>
-                    <li>for AWS KMS (<code>kek.type=AWS</code>):</li>
+                    <li>for AWS KMS (<code>kek_type=AWS</code>):</li>
                     <pre>
 {
   "accessKey": "AKIA...",
   "secretKey": "..."
 }
 </pre>
-                    <li>for Azure Key Vault (<code>kek.type=AZURE</code>):</li>
+                    <li>for Azure Key Vault (<code>kek_type=AZURE</code>):</li>
                     <pre>
 {
   "clientId": "...",
@@ -257,20 +257,20 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             </td>
         </tr>
         <tr>
-            <td>kek.uri</td>
+            <td>kek_uri</td>
             <td>URI referring to the key encryption key stored in the respective remote/cloud KMS</td>
             <td>string</td>
             <td><pre>!no default!</pre></td>
-            <td>a valid key encryption key URI for the chosen <code>kek.type</code>:
+            <td>a valid key encryption key URI for the chosen <code>kek_type</code>:
                 <ul>
-                    <li>GCP Cloud KMS (<code>kek.type=GCP</code>): <pre>gcp-kms://projects/&lt;project&gt;/locations/&lt;location&gt;/keyRings/&lt;keyring&gt;/cryptoKeys/&lt;key&gt;</pre></li>
-                    <li>AWS KMS (<code>kek.type=AWS</code>): <pre>aws-kms://arn:aws:kms:&lt;region&gt;:&lt;account-id&gt;:key/&lt;key-id&gt;</pre></li>
-                    <li>Azure Key Vault (<code>kek.type=AZURE</code>): <pre>azure-kv://&lt;vault-name&gt;.vault.azure.net/keys/&lt;key-name&gt;</pre></li>
+                    <li>GCP Cloud KMS (<code>kek_type=GCP</code>): <pre>gcp-kms://projects/&lt;project&gt;/locations/&lt;location&gt;/keyRings/&lt;keyring&gt;/cryptoKeys/&lt;key&gt;</pre></li>
+                    <li>AWS KMS (<code>kek_type=AWS</code>): <pre>aws-kms://arn:aws:kms:&lt;region&gt;:&lt;account-id&gt;:key/&lt;key-id&gt;</pre></li>
+                    <li>Azure Key Vault (<code>kek_type=AZURE</code>): <pre>azure-kv://&lt;vault-name&gt;.vault.azure.net/keys/&lt;key-name&gt;</pre></li>
                 </ul>
             </td>
         </tr>
         <tr>
-            <td>cipher.algorithm</td>
+            <td>cipher_algorithm</td>
             <td>default cipher algorithm used for data encryption if not specified in the field-specific configuration</td>
             <td>string</td>
             <td><pre>TINK/AES_GCM</pre></td>
@@ -281,14 +281,14 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             </td>
         </tr>
         <tr>
-            <td>cipher.fpe.tweak</td>
+            <td>cipher_fpe_tweak</td>
             <td>default tweak value for Format Preserving Encryption (FPE) if not specified in field-specific configuration. The tweak provides additional cryptographic variation - different tweaks produce different ciphertexts for the same plaintext.</td>
             <td>string</td>
             <td><pre>0000000</pre></td>
             <td>any 7 character string value</td>
         </tr>
         <tr>
-            <td>cipher.fpe.alphabet.type</td>
+            <td>cipher_fpe_alphabet_type</td>
             <td>default alphabet type for Format Preserving Encryption (FPE) if not specified in field-specific configuration. Defines the character set used for encryption - ciphertext will only contain characters from this alphabet.</td>
             <td>string</td>
             <td><pre>ALPHANUMERIC</pre></td>
@@ -303,8 +303,8 @@ As can be seen from the comments, the first two properties (`cipher.data.keys=[]
             </td>
         </tr>
         <tr>
-            <td>cipher.fpe.alphabet.custom</td>
-            <td>custom alphabet for Format Preserving Encryption (FPE) when <code>cipher.fpe.alphabet.type=CUSTOM</code>. Specifies the exact set of characters to use for encryption (e.g., "01" for binary, "0123456789ABCDEF" for hexadecimal).</td>
+            <td>cipher_fpe_alphabet_custom</td>
+            <td>custom alphabet for Format Preserving Encryption (FPE) when <code>cipher_fpe_alphabet_type=CUSTOM</code>. Specifies the exact set of characters to use for encryption (e.g., "01" for binary, "0123456789ABCDEF" for hexadecimal).</td>
             <td>string</td>
             <td><pre></pre></td>
             <td>any non-empty string defining a custom character set (minimum 2 unique characters)</td>
@@ -426,7 +426,7 @@ Notice how the encrypted fields maintain their original format and length!
 
 #### FPE Keyset Configuration
 
-FPE requires special keyset material with a custom type URL. Add FPE keysets to your `cipher.data.keys` configuration:
+FPE requires special keyset material with a custom type URL. Add FPE keysets to your `cipher_data_keys` configuration:
 
 ```json
 [
@@ -709,23 +709,23 @@ The example requests are using a demo configuration as `application.properties`:
 #############################################
 #
 # MANDATORY config settings
-cipher.data.keys=[ { "identifier": "keyA", "material": { "primaryKeyId": 1000000001, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "GhDRulECKAC8/19NMXDjeCjK", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000001, "outputPrefixType": "TINK" } ] } }, { "identifier": "keyB", "material": { "primaryKeyId": 1000000002, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000002, "outputPrefixType": "TINK" } ] } }, { "identifier": "key9", "material": { "primaryKeyId": 1000000003, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey", "value": "EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000003, "outputPrefixType": "TINK" } ] } }, { "identifier": "key8", "material": { "primaryKeyId": 1000000004, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey", "value": "EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000004, "outputPrefixType": "TINK" } ] } }, { "identifier": "keyC", "material": { "primaryKeyId": 2000001, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "VU5O0VBE6+bIygj2z/BiVg==", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000001, "outputPrefixType": "RAW" } ] } }, { "identifier": "keyD", "material": { "primaryKeyId": 2000002, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "GA0CtxRfjqN/9tW4CmnzY+SU9k5EbBJ4", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000002, "outputPrefixType": "RAW" } ] } }, { "identifier": "keyE", "material": { "primaryKeyId": 2000003, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "vJDWFED3R04F6blW1FxZMg/JF8qSfY5+WJLPjSYeW9w=", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000003, "outputPrefixType": "RAW" } ] } } ]
-cipher.data.key.identifier=keyA
+cipher_data_keys=[ { "identifier": "keyA", "material": { "primaryKeyId": 1000000001, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "GhDRulECKAC8/19NMXDjeCjK", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000001, "outputPrefixType": "TINK" } ] } }, { "identifier": "keyB", "material": { "primaryKeyId": 1000000002, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000002, "outputPrefixType": "TINK" } ] } }, { "identifier": "key9", "material": { "primaryKeyId": 1000000003, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey", "value": "EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000003, "outputPrefixType": "TINK" } ] } }, { "identifier": "key8", "material": { "primaryKeyId": 1000000004, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesSivKey", "value": "EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1000000004, "outputPrefixType": "TINK" } ] } }, { "identifier": "keyC", "material": { "primaryKeyId": 2000001, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "VU5O0VBE6+bIygj2z/BiVg==", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000001, "outputPrefixType": "RAW" } ] } }, { "identifier": "keyD", "material": { "primaryKeyId": 2000002, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "GA0CtxRfjqN/9tW4CmnzY+SU9k5EbBJ4", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000002, "outputPrefixType": "RAW" } ] } }, { "identifier": "keyE", "material": { "primaryKeyId": 2000003, "key": [ { "keyData": { "typeUrl": "io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey", "value": "vJDWFED3R04F6blW1FxZMg/JF8qSfY5+WJLPjSYeW9w=", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 2000003, "outputPrefixType": "RAW" } ] } } ]
+cipher_data_key_identifier=keyA
 #
 # OPTIONAL config settings with the following defaults
-key.source=CONFIG
-kms.type=NONE
-kms.config={}
-kek.type=NONE
-kek.config={}
-kek.uri=gcp-kms://
-dynamic.key.id.prefix=__#
-path.delimiter=.
-field.mode=ELEMENT
-cipher.algorithm=TINK/AES_GCM
-cipher.fpe.tweak=0000000
-cipher.fpe.alphabet.type=ALPHANUMERIC
-cipher.fpe.alphabet.custom=
+key_source=CONFIG
+kms_type=NONE
+kms_config={}
+kek_type=NONE
+kek_config={}
+kek_uri=gcp-kms://
+dynamic_key_id_prefix=__#
+path_delimiter=.
+field_mode=ELEMENT
+cipher_algorithm=TINK/AES_GCM
+cipher_fpe_tweak=0000000
+cipher_fpe_alphabet_type=ALPHANUMERIC
+cipher_fpe_alphabet_custom=
 #############################################
 ```
 

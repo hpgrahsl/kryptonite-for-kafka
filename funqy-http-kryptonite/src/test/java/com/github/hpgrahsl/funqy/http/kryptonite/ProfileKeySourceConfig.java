@@ -34,18 +34,18 @@ public class ProfileKeySourceConfig implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
         return Map.ofEntries(
-            Map.entry("cipher.data.keys",PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG),
-            Map.entry("cipher.data.key.identifier","keyA"),
-            Map.entry("key.source","CONFIG"),
-            Map.entry("kms.type","NONE"),
-            Map.entry("kms.config","{}"),
-            Map.entry("kek.type","NONE"),
-            Map.entry("kek.config","{}"),
-            Map.entry("kek.uri","gcp-kms://"),
-            Map.entry("dynamic.key.id.prefix","__#"),
-            Map.entry("path.delimiter","."),
-            Map.entry("field.mode","ELEMENT"),
-            Map.entry("cipher.algorithm","TINK/AES_GCM")
+            Map.entry("cipher_data_keys",PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG),
+            Map.entry("cipher_data_key_identifier","keyA"),
+            Map.entry("key_source","CONFIG"),
+            Map.entry("kms_type","NONE"),
+            Map.entry("kms_config","{}"),
+            Map.entry("kek_type","NONE"),
+            Map.entry("kek_config","{}"),
+            Map.entry("kek_uri","gcp-kms://"),
+            Map.entry("dynamic_key_id_prefix","__#"),
+            Map.entry("path_delimiter","."),
+            Map.entry("field_mode","ELEMENT"),
+            Map.entry("cipher_algorithm","TINK/AES_GCM")
         );
     }
     
