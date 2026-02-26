@@ -52,14 +52,14 @@ Kryptonite for Kafka modules share the same baseline requirements:
 
 ## Generating a Keyset
 
-Every module needs at least one Tink keyset. The quickest and most convenient way is to use the [Keyset Tool](keyset-tool.md). The following command will generate a single keyset containing one `AES_GCM` key:
+Every module needs at least one Tink keyset. The most convenient and quickest way is to use the [Keyset Tool](keyset-tool.md) and generate, for instance, a single keyset containing one `AES_GCM` key like so:
 
 ```bash
 java -jar kryptonite-keyset-tool/target/kryptonite-keyset-tool-0.1.0.jar \
   -a AES_GCM -i my-demo-key -f FULL -p
 ```
 
-This generates and prints a `FULL`-formatted keyset directly to `stdout`:
+This generates and pretty prints a `FULL`-formatted keyset to `stdout`:
 
 ```json
 {
@@ -81,6 +81,6 @@ This generates and prints a `FULL`-formatted keyset directly to `stdout`:
 ```
 
 !!! warning "Key material is a secret"
-    The `value` field is your raw key. Treat it with utmost secrecy, just like any important password. **NEVER commit production keysets to source control!**
+    The `value` field is the actual raw key in Base64 encoding. Treat it with utmost secrecy, just like any important password. **NEVER commit production keysets to source control!**
 
-See [Key Management](key-management.md) for production options regarding key storage and key encryption.
+See [Key Management](key-management.md) for production options regarding key storage and optional key encryption.

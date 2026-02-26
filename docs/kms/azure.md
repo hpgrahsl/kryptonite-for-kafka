@@ -108,7 +108,7 @@ azure-kv://<vault-name>.vault.azure.net/keys/<key-name>/<version>
 
 Omitting the version uses the current / latest key version.
 
-### Configuration for `key_source=CONFIG_ENCRYPTED`)
+### Configuration for `key_source=CONFIG_ENCRYPTED`
 
 Generate the Azure KEK encrypted keyset in `FULL` format using the [keyset tool](../keyset-tool.md), then configure:
 
