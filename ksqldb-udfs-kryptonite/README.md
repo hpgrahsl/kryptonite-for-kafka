@@ -306,16 +306,18 @@ Below are examples how to specify the mandatory configuration settings for the `
 1. directly within the `ksql-server.properties` for running ksqlDB natively / on bare metal
 
 ```properties
-ksql.functions.k4kencrypt.cipher.data.keys=[ { "identifier": "my-demo-secret-key-123", "material": { "primaryKeyId": 1234567890, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "<BASE64_ENCODED_KEY_HERE>", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1234567890, "outputPrefixType": "TINK" } ] } } ]
-ksql.functions.k4kencrypt.cipher.data.key.identifier=my-demo-secret-key-123
+ksql.functions.k4kencrypt.cipher_data_keys=[ { "identifier": "my-demo-secret-key-123", "material": { "primaryKeyId": 1234567890, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "<BASE64_ENCODED_KEY_HERE>", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1234567890, "outputPrefixType": "TINK" } ] } } ]
+ksql.functions.k4kencrypt.cipher_data_key_identifier=my-demo-secret-key-123
 ```
 
 2. in the `docker-compose.yml` file for container-based deployments of ksqlDB
 
 ```yaml
-KSQL_KSQL_FUNCTIONS_K4KENCRYPT_CIPHER_DATA_KEYS: "[ { \"identifier\": \"my-demo-secret-key-123\", \"material\": { \"primaryKeyId\": 1234567890, \"key\": [ { \"keyData\": { \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesGcmKey\", \"value\": \"<BASE64_ENCODED_KEY_HERE>\", \"keyMaterialType\": \"SYMMETRIC\" }, \"status\": \"ENABLED\", \"keyId\": 1234567890, \"outputPrefixType\": \"TINK\" } ] } } ]"
-KSQL_KSQL_FUNCTIONS_K4KENCRYPT_CIPHER_DATA_KEY_IDENTIFIER: "my-demo-secret-key-123"
+KSQL_KSQL_FUNCTIONS_K4KENCRYPT_CIPHER__DATA__KEYS: "[ { \"identifier\": \"my-demo-secret-key-123\", \"material\": { \"primaryKeyId\": 1234567890, \"key\": [ { \"keyData\": { \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesGcmKey\", \"value\": \"<BASE64_ENCODED_KEY_HERE>\", \"keyMaterialType\": \"SYMMETRIC\" }, \"status\": \"ENABLED\", \"keyId\": 1234567890, \"outputPrefixType\": \"TINK\" } ] } } ]"
+KSQL_KSQL_FUNCTIONS_K4KENCRYPT_CIPHER__DATA__KEY__IDENTIFIER: "my-demo-secret-key-123"
 ```
+
+> **Note on Docker/env-var naming:** Confluent's Docker images convert environment variables to ksqlDB properties using the following rules: dots (`.`) become single underscores (`_`), and underscores (`_`) become double underscores (`__`). Since Kryptonite's config key suffixes use underscores (e.g. `cipher_data_keys`), each underscore in the suffix must be written as `__` in the environment variable name. See the [Confluent Docker Image Configuration Reference](https://docs.confluent.io/platform/current/installation/docker/config-reference.html) for details.
 
 ##### UDF K4KDECRYPT
 
@@ -324,14 +326,16 @@ Below are examples how to specify the mandatory configuration settings for the `
 1. directly within the `ksql-server.properties` for running ksqlDB natively / on bare metal
 
 ```properties
-ksql.functions.k4kdecrypt.cipher.data.keys=[ { "identifier": "my-demo-secret-key-123", "material": { "primaryKeyId": 1234567890, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "<BASE64_ENCODED_KEY_HERE>", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1234567890, "outputPrefixType": "TINK" } ] } } ]
+ksql.functions.k4kdecrypt.cipher_data_keys=[ { "identifier": "my-demo-secret-key-123", "material": { "primaryKeyId": 1234567890, "key": [ { "keyData": { "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey", "value": "<BASE64_ENCODED_KEY_HERE>", "keyMaterialType": "SYMMETRIC" }, "status": "ENABLED", "keyId": 1234567890, "outputPrefixType": "TINK" } ] } } ]
 ```
 
 2. in the `docker-compose.yml` file for container-based deployments of ksqlDB
 
 ```yaml
-KSQL_KSQL_FUNCTIONS_K4KDECRYPT_CIPHER_DATA_KEYS: "[ { \"identifier\": \"my-demo-secret-key-123\", \"material\": { \"primaryKeyId\": 1234567890, \"key\": [ { \"keyData\": { \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesGcmKey\", \"value\": \"<BASE64_ENCODED_KEY_HERE>\", \"keyMaterialType\": \"SYMMETRIC\" }, \"status\": \"ENABLED\", \"keyId\": 1234567890, \"outputPrefixType\": \"TINK\" } ] } } ]"
+KSQL_KSQL_FUNCTIONS_K4KDECRYPT_CIPHER__DATA__KEYS: "[ { \"identifier\": \"my-demo-secret-key-123\", \"material\": { \"primaryKeyId\": 1234567890, \"key\": [ { \"keyData\": { \"typeUrl\": \"type.googleapis.com/google.crypto.tink.AesGcmKey\", \"value\": \"<BASE64_ENCODED_KEY_HERE>\", \"keyMaterialType\": \"SYMMETRIC\" }, \"status\": \"ENABLED\", \"keyId\": 1234567890, \"outputPrefixType\": \"TINK\" } ] } } ]"
 ```
+
+> **Note on Docker/env-var naming:** The same double-underscore convention applies as described above for `K4KENCRYPT`. See the [Confluent Docker Image Configuration Reference](https://docs.confluent.io/platform/current/installation/docker/config-reference.html) for details.
 
 After making sure that all the mandatory configuration properties are set, start using `K4KENCRYPT` and `K4KDECRYPT` to encrypt and decrypt column values in ksqlDB rows.
 
@@ -1026,17 +1030,17 @@ Add FPE-specific configuration parameters to your ksqlDB server properties:
 
 ```properties
 # FPE UDF Configuration
-ksql.functions.k4kencryptfpe.cipher.data.keys=[<FPE_KEYSET_JSON>]
-ksql.functions.k4kencryptfpe.cipher.data.key.identifier=myFpeKey
-ksql.functions.k4kencryptfpe.cipher.fpe.tweak=0000000
-ksql.functions.k4kencryptfpe.cipher.fpe.alphabet.type=ALPHANUMERIC
-ksql.functions.k4kencryptfpe.cipher.fpe.alphabet.custom=
+ksql.functions.k4kencryptfpe.cipher_data_keys=[<FPE_KEYSET_JSON>]
+ksql.functions.k4kencryptfpe.cipher_data_key_identifier=myFpeKey
+ksql.functions.k4kencryptfpe.cipher_fpe_tweak=0000000
+ksql.functions.k4kencryptfpe.cipher_fpe_alphabet_type=ALPHANUMERIC
+ksql.functions.k4kencryptfpe.cipher_fpe_alphabet_custom=
 
-ksql.functions.k4kdecryptfpe.cipher.data.keys=[<FPE_KEYSET_JSON>]
-ksql.functions.k4kdecryptfpe.cipher.data.key.identifier=myFpeKey
-ksql.functions.k4kdecryptfpe.cipher.fpe.tweak=0000000
-ksql.functions.k4kdecryptfpe.cipher.fpe.alphabet.type=ALPHANUMERIC
-ksql.functions.k4kdecryptfpe.cipher.fpe.alphabet.custom=
+ksql.functions.k4kdecryptfpe.cipher_data_keys=[<FPE_KEYSET_JSON>]
+ksql.functions.k4kdecryptfpe.cipher_data_key_identifier=myFpeKey
+ksql.functions.k4kdecryptfpe.cipher_fpe_tweak=0000000
+ksql.functions.k4kdecryptfpe.cipher_fpe_alphabet_type=ALPHANUMERIC
+ksql.functions.k4kdecryptfpe.cipher_fpe_alphabet_custom=
 ```
 
 #### FPE Keyset Configuration
