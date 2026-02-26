@@ -18,7 +18,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 :material-shield-lock-outline: &nbsp; **Client-Side Cryptography** means all cryptographic operations are guaranteed to only ever happen on the client-side.
 
 <div class="k4k-module-img">
-<a href="assets/images/00_csflc_overview.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/00_csflc_overview.png" alt="Client-Side Cryptography"></a>
+<a href="assets/images/01_csflc_overview.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/01_csflc_overview.png" alt="Client-Side Cryptography"></a>
 </div>
 
 </div>
@@ -27,7 +27,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 :material-cursor-default-click: &nbsp; **Field Level Cryptography** means you can precisely control which payload fields are supposed to get encrypted / decrypted.
 
 <div class="k4k-module-img">
-<a href="assets/images/01_field_level_cryptography.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/01_field_level_cryptography.png" alt="Field-Level Cryptography"></a>
+<a href="assets/images/02_field_level_cryptography.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/02_field_level_cryptography.png" alt="Field-Level Cryptography"></a>
 </div>
 
 </div>
@@ -44,7 +44,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 ## End-to-End Scenario featuring Module Integrations for Apache Kafka Connect and Apache Flink
 
 <div class="k4k-module-img">
-<a href="assets/images/05_full_end2end_example.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/05_full_end2end_example.png" alt="Kafka Connect SMT"></a>
+<a href="assets/images/07_full_end2end_example.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/07_full_end2end_example.png" alt="Kafka Connect SMT"></a>
 </div>
 
 ---
@@ -188,13 +188,13 @@ Multiple user-defined functions (`K4KENCRYPT*`/`K4KDECRYPT*`) can be applied in 
 **Field-Level Encryption with HTTP API**
 
 <div class="k4k-module-img">
-<a href="assets/images/module-funqy-http.svg" class="glightbox" data-glightbox="type: image"><img src="assets/images/module-funqy-http.svg" alt="Quarkus HTTP API"></a>
+<a href="assets/images/06a_csflc_quarkus_funqy_encryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/06a_csflc_quarkus_funqy_encryption.png" alt="Quarkus HTTP API"></a>
 </div>
 
 **Field-Level Decryption with HTTP API**
 
 <div class="k4k-module-img">
-<a href="assets/images/module-funqy-http.svg" class="glightbox" data-glightbox="type: image"><img src="assets/images/module-funqy-http.svg" alt="Quarkus HTTP API"></a>
+<a href="assets/images/06b_csflc_quarkus_funqy_decryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/06b_csflc_quarkus_funqy_decryption.png" alt="Quarkus HTTP API"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
