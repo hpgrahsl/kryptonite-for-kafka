@@ -228,8 +228,8 @@ A lightweight HTTP service that exposes a web API with multiple encryption and d
 | Key Source | Keyset Storage | Keyset Encryption | Security | Recommended for ... |
 |---|---|---|---|---|
 | `CONFIG` | inline as part of configuration | None | **lowest** | Local Development & Testing or Demos |
-| `CONFIG_ENCRYPTED` | inline as part of configuration | Cloud KMS wrapping key |  moderate | Production (without centralised management) |
-| `KMS` | cloud secret manager | None | moderate | Production (with centralised management) |
+| `CONFIG_ENCRYPTED` | inline as part of configuration | Cloud KMS wrapping key |  reasonable | Production (without centralised management) |
+| `KMS` | cloud secret manager | None | reasonable | Production (with centralised management) |
 | `KMS_ENCRYPTED` | cloud secret manager | Cloud KMS wrapping key | **highest** | Production (with centralised management) |
 
 :octicons-book-24: [Key Management Details](key-management.md) &nbsp;| &nbsp;:octicons-book-24: [Cloud KMS Overview](kms/overview.md)
