@@ -26,19 +26,19 @@ public class CustomUdfConfig {
     public static final String KSQL_FUNCTION_CONFIG_PREFIX = "ksql.functions";
     public static final String CONFIG_PARAM_SEPARATOR = ".";
 
-    public static final String CONFIG_PARAM_CIPHER_DATA_KEYS = "cipher.data.keys";
-    public static final String CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER = "cipher.data.key.identifier";
-    public static final String CONFIG_PARAM_FIELD_MODE = "field.mode";
-    public static final String CONFIG_PARAM_KEY_SOURCE = "key.source";
-    public static final String CONFIG_PARAM_KMS_TYPE = "kms.type";
-    public static final String CONFIG_PARAM_KMS_CONFIG = "kms.config";
-    public static final String CONFIG_PARAM_KEK_TYPE = "kek.type";
-    public static final String CONFIG_PARAM_KEK_CONFIG = "kek.config";
-    public static final String CONFIG_PARAM_KEK_URI = "kek.uri";
-    public static final String CONFIG_PARAM_CIPHER_ALGORITHM = "cipher.algorithm";
-    public static final String CONFIG_PARAM_CIPHER_FPE_TWEAK = "cipher.fpe.tweak";
-    public static final String CONFIG_PARAM_CIPHER_FPE_ALPHABET_TYPE = "cipher.fpe.alphabet.type";
-    public static final String CONFIG_PARAM_CIPHER_FPE_ALPHABET_CUSTOM = "cipher.fpe.alphabet.custom";
+    public static final String CONFIG_PARAM_CIPHER_DATA_KEYS = "cipher_data_keys";
+    public static final String CONFIG_PARAM_CIPHER_DATA_KEY_IDENTIFIER = "cipher_data_key_identifier";
+    public static final String CONFIG_PARAM_FIELD_MODE = "field_mode";
+    public static final String CONFIG_PARAM_KEY_SOURCE = "key_source";
+    public static final String CONFIG_PARAM_KMS_TYPE = "kms_type";
+    public static final String CONFIG_PARAM_KMS_CONFIG = "kms_config";
+    public static final String CONFIG_PARAM_KEK_TYPE = "kek_type";
+    public static final String CONFIG_PARAM_KEK_CONFIG = "kek_config";
+    public static final String CONFIG_PARAM_KEK_URI = "kek_uri";
+    public static final String CONFIG_PARAM_CIPHER_ALGORITHM = "cipher_algorithm";
+    public static final String CONFIG_PARAM_CIPHER_FPE_TWEAK = "cipher_fpe_tweak";
+    public static final String CONFIG_PARAM_CIPHER_FPE_ALPHABET_TYPE = "cipher_fpe_alphabet_type";
+    public static final String CONFIG_PARAM_CIPHER_FPE_ALPHABET_CUSTOM = "cipher_fpe_alphabet_custom";
 
     public static String getPrefixedConfigParam(String functionName, String configParam) {
         return KSQL_FUNCTION_CONFIG_PREFIX

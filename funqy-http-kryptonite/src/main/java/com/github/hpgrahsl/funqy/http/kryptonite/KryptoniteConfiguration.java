@@ -37,52 +37,52 @@ public class KryptoniteConfiguration {
         OBJECT
     }
     
-    @ConfigProperty(name="cipher.data.keys")
+    @ConfigProperty(name="cipher_data_keys")
     public String cipherDataKeys;
 
-    @ConfigProperty(name="cipher.data.key.identifier")
+    @ConfigProperty(name="cipher_data_key_identifier")
     public String cipherDataKeyIdentifier;
 
-    @ConfigProperty(name="cipher.text.encoding", defaultValue = "BASE64")
+    @ConfigProperty(name="cipher_text_encoding", defaultValue = "BASE64")
     public String cipherTextEncoding;
-    
-    @ConfigProperty(name="cipher.fpe.tweak", defaultValue = "0000000")
+
+    @ConfigProperty(name="cipher_fpe_tweak", defaultValue = "0000000")
     public String cipherFpeTweak;
 
-    @ConfigProperty(name="cipher.fpe.alphabet.type")
+    @ConfigProperty(name="cipher_fpe_alphabet_type")
     public AlphabetTypeFPE cipherFpeAlphabetType;
 
-    @ConfigProperty(name="cipher.fpe.alphabet.custom")
+    @ConfigProperty(name="cipher_fpe_alphabet_custom")
     public Optional<String> cipherFpeAlphabetCustom;
 
-    @ConfigProperty(name="key.source")
+    @ConfigProperty(name="key_source")
     public KeySource keySource;
 
-    @ConfigProperty(name="kms.type")
+    @ConfigProperty(name="kms_type")
     public KmsType kmsType;
 
-    @ConfigProperty(name="kms.config", defaultValue = "{}")
+    @ConfigProperty(name="kms_config", defaultValue = "{}")
     public String kmsConfig;
 
-    @ConfigProperty(name="kek.type")
+    @ConfigProperty(name="kek_type")
     public KekType kekType;
 
-    @ConfigProperty(name="kek.config", defaultValue = "{}")
+    @ConfigProperty(name="kek_config", defaultValue = "{}")
     public String kekConfig;
 
-    @ConfigProperty(name="kek.uri", defaultValue = "gcp-kms://")
+    @ConfigProperty(name="kek_uri", defaultValue = "gcp-kms://")
     public String kekUri;
 
-    @ConfigProperty(name="dynamic.key.id.prefix", defaultValue = "__#")
+    @ConfigProperty(name="dynamic_key_id_prefix", defaultValue = "__#")
     public String dynamicKeyIdPrefix;
 
-    @ConfigProperty(name="path.delimiter", defaultValue = ".")
+    @ConfigProperty(name="path_delimiter", defaultValue = ".")
     public String pathDelimiter;
 
-    @ConfigProperty(name="field.mode")
+    @ConfigProperty(name="field_mode")
     public FieldMode fieldMode;
 
-    @ConfigProperty(name="cipher.algorithm", defaultValue = "TINK/AES_GCM")
+    @ConfigProperty(name="cipher_algorithm", defaultValue = "TINK/AES_GCM")
     public String cipherAlgorithm;
 
     public static KryptoniteConfiguration fromSettings(String cipherDataKeys, String cipherDataKeyIdentifier,

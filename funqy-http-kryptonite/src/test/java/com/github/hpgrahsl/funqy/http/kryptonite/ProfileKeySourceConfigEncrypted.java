@@ -37,18 +37,18 @@ public class ProfileKeySourceConfigEncrypted implements QuarkusTestProfile {
         try {
             var credentials = TestFixturesCloudKms.readCredentials();
             return Map.ofEntries(
-                Map.entry("cipher.data.keys",EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED),
-                Map.entry("cipher.data.key.identifier","keyX"),
-                Map.entry("key.source","CONFIG_ENCRYPTED"),
-                Map.entry("kms.type","NONE"),
-                Map.entry("kms.config","{}"),
-                Map.entry("kek.type","AWS"),
-                Map.entry("kek.config",credentials.getProperty("test.kek.config")),
-                Map.entry("kek.uri",credentials.getProperty("test.kek.uri")),
-                Map.entry("dynamic.key.id.prefix","__#"),
-                Map.entry("path.delimiter","."),
-                Map.entry("field.mode","ELEMENT"),
-                Map.entry("cipher.algorithm","TINK/AES_GCM")
+                Map.entry("cipher_data_keys",EncryptedKeysetsWithAwsKek.CIPHER_DATA_KEYS_CONFIG_ENCRYPTED),
+                Map.entry("cipher_data_key_identifier","keyX"),
+                Map.entry("key_source","CONFIG_ENCRYPTED"),
+                Map.entry("kms_type","NONE"),
+                Map.entry("kms_config","{}"),
+                Map.entry("kek_type","AWS"),
+                Map.entry("kek_config",credentials.getProperty("test.kek.config")),
+                Map.entry("kek_uri",credentials.getProperty("test.kek.uri")),
+                Map.entry("dynamic_key_id_prefix","__#"),
+                Map.entry("path_delimiter","."),
+                Map.entry("field_mode","ELEMENT"),
+                Map.entry("cipher_algorithm","TINK/AES_GCM")
             );
         } catch (IOException e) {
             throw new RuntimeException("couldn't load credential props");
