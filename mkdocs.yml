@@ -70,16 +70,16 @@ nav:
     # - ksqlDB UDFs: getting-started/ksqldb-udfs.md
     # - Quarkus HTTP API: getting-started/funqy-http.md
   - Key Management: key-management.md
-  - Keyset Tool: keyset-tool.md
   - Cloud KMS:
     - Overview: kms/overview.md
     - GCP Cloud KMS: kms/gcp.md
     - AWS KMS: kms/aws.md
     - Azure Key Vault: kms/azure.md
-  - Configuration: configuration.md
+  - Keyset Tool: keyset-tool.md
   - Modules:
     - Kafka Connect SMT: modules/connect-smt.md
     - Flink UDFs: modules/flink-udfs.md
     - ksqlDB UDFs: modules/ksqldb-udfs.md
     - Quarkus HTTP API: modules/funqy-http.md
   - Security: security.md
+  - Configuration: configuration.md

@@ -198,9 +198,11 @@ Depending on which cloud secret manager is configured to store plain or encrypte
 
 ## Tink Keyset Format
 
-All keyset material, regardless of the key source, must conform to Tink's keyset JSON specification.
+All keyset material, regardless of the key source, must conform to Tink's plain or encrypted keyset specification.
 
-### Plain keyset example (AES-GCM, probabilistic encryption)
+### Plain keyset examples
+
+* **AES-GCM (probabilistic encryption)**
 
 ```json
 {
@@ -220,7 +222,7 @@ All keyset material, regardless of the key source, must conform to Tink's keyset
 }
 ```
 
-### Plain keyset (AES-GCM-SIV, deterministic encryption)
+* **AES-GCM-SIV (deterministic encryption)**
 
 ```json
 {
@@ -240,7 +242,7 @@ All keyset material, regardless of the key source, must conform to Tink's keyset
 }
 ```
 
-### Plain keyset (FPE FF3-1, format-preserving encryption)
+* **FPE FF3-1 (format-preserving encryption)**
 
 ```json
 {
