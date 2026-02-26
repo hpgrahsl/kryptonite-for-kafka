@@ -395,7 +395,9 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 !!! note "Azure envelope encryption"
     Azure Key Vault standard tier only supports RSA keys — symmetric AEAD is not available. The module transparently implements envelope encryption: the keyset is encrypted locally with AES-256-GCM, and only the 32-byte DEK is wrapped with RSA-OAEP-256 via Azure Key Vault. The caller does not need to configure anything differently.
 
-### Multiple encrypted keysets in one call
+### Multiple encrypted keysets
+
+Example call for GCP KMS key encryption:
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
