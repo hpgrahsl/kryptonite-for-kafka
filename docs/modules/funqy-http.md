@@ -1,4 +1,4 @@
-# Quarkus HTTP API
+# :material-api: Quarkus HTTP Service
 
 The Quarkus Funqy HTTP API is a lightweight standalone service that exposes encryption and decryption over HTTP. Its primary purpose is to allow client applications written in languages other than Java to participate in end-to-end encryption scenarios built on top of Kafka.
 

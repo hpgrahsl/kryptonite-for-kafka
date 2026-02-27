@@ -34,7 +34,7 @@ Kryptonite for Kafka ships four independent integration modules. Pick the ones t
 
     :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
--   :material-api: &nbsp; **Quarkus HTTP API**
+-   :material-api: &nbsp; **Quarkus HTTP Service**
 
     ---
 

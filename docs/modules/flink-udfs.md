@@ -1,4 +1,4 @@
-# Apache Flink UDFs
+# :material-table-arrow-right: Apache Flink UDFs
 
 Kryptonite for Kafka provides multiple Flink user-defined functions (UDFs) for encrypting and decrypting column values in Flink Table API and Flink SQL jobs.
 

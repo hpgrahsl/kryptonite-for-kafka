@@ -1,4 +1,4 @@
-# Apache Kafka Connect SMT
+# :material-transit-connection-variant: Apache Kafka Connect SMT
 
 The `CipherField` Single Message Transformation (SMT) provides field-level encryption and decryption for Kafka Connect source and sink connectors. It works with both schemaless (JSON) and schema-aware (Avro, Protobuf, JSON Schema) records.
 
