@@ -2,6 +2,18 @@
 
 The `CipherField` Single Message Transformation (SMT) provides field-level encryption and decryption for Kafka Connect source and sink connectors. It works with both schemaless (JSON) and schema-aware (Avro, Protobuf, JSON Schema) records.
 
+**Field-Level Encryption with Sink Connectors**
+
+<div class="k4k-module-img">
+<a href="../../assets/images/03a_csflc_source_connectors.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/03a_csflc_source_connectors.png" alt="Kafka Connect SMT"></a>
+</div>
+
+**Field-Level Decryption with Sink Connectors**
+
+<div class="k4k-module-img">
+<a href="../../assets/images/03b_csflc_sink_connectors.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/03b_csflc_sink_connectors.png" alt="Kafka Connect SMT"></a>
+</div>
+
 ---
 
 ## Installation / Deployment

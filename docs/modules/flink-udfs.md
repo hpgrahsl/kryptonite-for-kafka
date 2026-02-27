@@ -2,6 +2,18 @@
 
 Kryptonite for Kafka provides multiple Flink user-defined functions (UDFs) for encrypting and decrypting column values in Flink Table API and Flink SQL jobs.
 
+**Field-Level Encryption with UDFs in Flink SQL**
+
+<div class="k4k-module-img">
+<a href="../../assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
+</div>
+
+**Field-Level Decryption with UDFs in Flink SQL**
+
+<div class="k4k-module-img">
+<a href="../../assets/images/04b_csflc_flink_sql_udf_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/04b_csflc_flink_sql_udf_decryption.png" alt="Apache Flink UDFs"></a>
+</div>
+
 ## UDFs Overview
 
 ### Probabilistic / Deterministic Encryption

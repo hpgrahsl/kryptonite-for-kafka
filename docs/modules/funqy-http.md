@@ -2,7 +2,17 @@
 
 The Quarkus Funqy HTTP API is a lightweight standalone service that exposes encryption and decryption over HTTP. Its primary purpose is to allow client applications written in languages other than Java to participate in end-to-end encryption scenarios built on top of Kafka.
 
----
+**Field-Level Encryption with HTTP API**
+
+<div class="k4k-module-img">
+<a href="../../assets/images/06a_csflc_quarkus_funqy_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/06a_csflc_quarkus_funqy_encryption.png" alt="Quarkus HTTP API"></a>
+</div>
+
+**Field-Level Decryption with HTTP API**
+
+<div class="k4k-module-img">
+<a href="../../assets/images/06b_csflc_quarkus_funqy_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/06b_csflc_quarkus_funqy_decryption.png" alt="Quarkus HTTP API"></a>
+</div>
 
 ## Getting the Service
 
