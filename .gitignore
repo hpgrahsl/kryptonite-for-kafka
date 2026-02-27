@@ -7,3 +7,12 @@ dependency-reduced-pom.xml
 
 # cloud kms/kek settings for local testing
 credentials.properties
+
+# MkDocs build output
+site/
+
+# Python virtualenv
+.venv/
+
+# pyenv local version pin
+.python-version
