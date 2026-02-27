@@ -186,6 +186,9 @@ K4K_DECRYPT_ROW_WITH_SCHEMA(data ROW<...(all VARCHAR)...>, schemaString VARCHAR)
 K4K_DECRYPT_ROW_WITH_SCHEMA(data ROW<...>, schemaString VARCHAR, fieldList VARCHAR) → ROW<...>
 ```
 
+!!! note
+    The schema string parameter for all decryption functions `K4K_decrypt_*_with_schema` MUST always be a **string literal**. Column references or runtime expressions cannot be supported.
+
 ### FPE variants
 
 ```sql
@@ -283,7 +286,7 @@ SELECT
   K4K_DECRYPT_ROW_WITH_SCHEMA(mysubdoc1, 'ROW<somestring STRING, someint INT>') AS mysubdoc1,
   K4K_DECRYPT_ARRAY_WITH_SCHEMA(myarray, 'ARRAY<STRING>') AS myarray,
   K4K_DECRYPT_MAP_WITH_SCHEMA(mysubdoc2, 'MAP<STRING, INT>') AS mysubdoc2
-FROM my_data_encrypted_e LIMIT 5;
+FROM my_data_encrypted_e LIMIT 1;
 ```
 
 ### Partial ROW field encryption and decryption
@@ -299,7 +302,7 @@ FROM my_people_source;
 -- Decrypt only 'name'; 'age' and 'active' pass through as-is
 SELECT
   K4K_DECRYPT_ROW_WITH_SCHEMA(myrow, 'ROW<name STRING, age INT, active BOOLEAN>', 'name') AS myrow
-FROM my_people_encrypted LIMIT 5;
+FROM my_people_encrypted LIMIT 1;
 
 -- Encrypt and decrypt multiple specific fields
 INSERT INTO my_records_encrypted
@@ -308,7 +311,7 @@ FROM my_records_source;
 
 SELECT
   K4K_DECRYPT_ROW_WITH_SCHEMA(myrow, 'ROW<id STRING, count INT, score DOUBLE, enabled BOOLEAN>', 'id,score') AS myrow
-FROM my_records_encrypted LIMIT 5;
+FROM my_records_encrypted LIMIT 1;
 ```
 
 ### FPE encryption
@@ -324,14 +327,10 @@ FROM customer_plaintext;
 
 ---
 
-## Data Type Mapping
+## Complex Data Type Mapping
 
 | Original type | Object mode (`k4k_encrypt`) | Element mode (`k4k_encrypt_array`, `k4k_encrypt_map`, `k4k_encrypt_row`) |
 |---|---|---|
-| `VARCHAR`, `INT`, `BIGINT`, `FLOAT`, `DOUBLE`, `BOOLEAN`, `BYTES` | `VARCHAR` | — |
-| `ARRAY<T>` | `VARCHAR` | `ARRAY<VARCHAR>` via `k4k_encrypt_array` |
-| `MAP<K,V>` | `VARCHAR` | `MAP<K,VARCHAR>` via `k4k_encrypt_map` |
-| `ROW<...>` | `VARCHAR` | `ROW<...(all fields VARCHAR)...>` via `k4k_encrypt_row` |
-
-!!! note
-    The schema string parameter must always be a **string literal**. Column references or runtime expressions cannot be supported.
+| `ARRAY<T>` | `VARCHAR` | `ARRAY<VARCHAR>` using `k4k_encrypt_array` |
+| `MAP<K,V>` | `VARCHAR` | `MAP<K,VARCHAR>` using `k4k_encrypt_map` |
+| `ROW<...>` | `VARCHAR` | `ROW<...(all fields VARCHAR)...>` using `k4k_encrypt_row` |
