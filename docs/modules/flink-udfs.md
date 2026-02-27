@@ -20,7 +20,7 @@ Kryptonite for Kafka provides multiple Flink user-defined functions (UDFs) for e
 | `k4k_decrypt_array` _**(deprecated)**_ | Decrypt `ARRAY` elements using an exemplary type capture value for type inference - **please use `k4k_decrypt_array_with_schema` instead!** |
 | `k4k_decrypt_map` _**(deprecated)**_ | Decrypt `MAP` values  using an exemplary type capture value for type inference - **please use `k4k_decrypt_map_with_schema` instead!** |
 
-## Format-Preserving Encryption
+### Format-Preserving Encryption
 
 | UDF | Description |
 |---|---|
