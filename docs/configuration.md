@@ -1,42 +1,42 @@
 # Configuration Reference
 
-All Kryptonite for Kafka modules share the same logical set of configuration parameters. The parameter names differ slightly between modules — the table below shows the naming convention for each.
+All Kryptonite for Kafka modules share the same set of configuration parameters using a consistent underscore-based naming convention. The table below shows which parameters are supported by each module.
 
-| Concept | Kafka Connect SMT | ksqlDB UDFs | Flink UDFs | Quarkus HTTP API |
-|---|---|---|---|---|
-| Key source | `key_source` | `key.source` | `key_source` | `key.source` |
-| Data keys | `cipher_data_keys` | `cipher.data.keys` | `cipher_data_keys` | `cipher.data.keys` |
-| Default key ID | `cipher_data_key_identifier` | `cipher.data.key.identifier` | `cipher_data_key_identifier` | `cipher.data.key.identifier` |
-| KMS type | `kms_type` | `kms.type` | `kms_type` | `kms.type` |
-| KMS config | `kms_config` | `kms.config` | `kms_config` | `kms.config` |
-| KEK type | `kek_type` | `kek.type` | `kek_type` | `kek.type` |
-| KEK config | `kek_config` | `kek.config` | `kek_config` | `kek.config` |
-| KEK URI | `kek_uri` | `kek.uri` | `kek_uri` | `kek.uri` |
-| Cipher algorithm | `cipher_algorithm` | — | — | `cipher.algorithm` |
-| Field mode | `field_mode` | — | — | `field.mode` |
+| Parameter | Kafka Connect SMT | ksqlDB UDFs | Flink UDFs | Quarkus HTTP API |
+|:---|---|---|---|---|
+| `key_source` | ✓ | ✓ | ✓ | ✓ |
+| `cipher_data_keys` | ✓ | ✓ | ✓ | ✓ |
+| `cipher_data_key_identifier` | ✓ | ✓ | ✓ | ✓ |
+| `kms_type` | ✓ | ✓ | ✓ | ✓ |
+| `kms_config` | ✓ | ✓ | ✓ | ✓ |
+| `kek_type` | ✓ | ✓ | ✓ | ✓ |
+| `kek_config` | ✓ | ✓ | ✓ | ✓ |
+| `kek_uri` | ✓ | ✓ | ✓ | ✓ |
+| `cipher_algorithm` | ✓ | ✓ | ✓ | ✓ |
+| `field_mode` | ✓ | — | — | ✓ |
 
 ---
 
 ## Core Parameters
 
-### `key_source` / `key.source`
+### `key_source`
 
 Defines the origin and protection of the key material.
 
 | Value | Description |
 |---|---|
 | `CONFIG` | Plain Tink keysets provided directly in `cipher_data_keys` |
-| `CONFIG_ENCRYPTED` | Encrypted Tink keysets provided in `cipher_data_keys`; a KEK is required to decrypt them |
-| `KMS` | Plain Tink keysets stored in a cloud secret manager; `kms_type` and `kms_config` required |
-| `KMS_ENCRYPTED` | Encrypted Tink keysets stored in a cloud secret manager; both KMS and KEK settings required |
+| `CONFIG_ENCRYPTED` | Encrypted Tink keysets provided in `cipher_data_keys` for which the proper key encryption key (KEK) is required to be able to decrypt them |
+| `KMS` | Plain Tink keysets stored in a cloud secret manager (requires `kms_type` and `kms_config` settings) |
+| `KMS_ENCRYPTED` | Encrypted Tink keysets stored in a cloud secret manager (requires: all related KMS and KEK settings) |
 
 Default: `CONFIG`
 
 ---
 
-### `cipher_data_keys` / `cipher.data.keys`
+### `cipher_data_keys`
 
-A JSON array of keyset objects. Each entry has an `identifier` and a `material` field containing a Tink keyset specification.
+A JSON array of Tink keyset objects. Each entry has an `identifier` and a `material` field containing a Tink keyset specification.
 
 **Plain keyset example:**
 
@@ -91,28 +91,28 @@ May be left empty (`[]`) when `key_source=KMS` or `key_source=KMS_ENCRYPTED`.
 
 ---
 
-### `cipher_data_key_identifier` / `cipher.data.key.identifier`
+### `cipher_data_key_identifier`
 
-The default keyset identifier used for encryption when a field does not specify its own key. Must match an `identifier` present in `cipher_data_keys` (or in the cloud KMS).
+The default keyset identifier used for encryption in case field settings do not specify their a certain key. Must match an `identifier` present in `cipher_data_keys` (or resolvable from the used cloud KMS).
 
 Required for encryption. Empty string is acceptable for decryption-only configurations.
 
 ---
 
-### `kms_type` / `kms.type`
+### `kms_type`
 
 The cloud secret manager to use when `key_source=KMS` or `key_source=KMS_ENCRYPTED`.
 
 | Value | Provider |
 |---|---|
-| `NONE` | No KMS — keysets sourced from config (default) |
+| `NONE` | No KMS as keysets are sourced from config (default) |
 | `AZ_KV_SECRETS` | Azure Key Vault Secrets |
 | `AWS_SM_SECRETS` | AWS Secrets Manager |
 | `GCP_SM_SECRETS` | GCP Secret Manager |
 
 ---
 
-### `kms_config` / `kms.config`
+### `kms_config`
 
 JSON object with cloud-provider-specific authentication settings.
 
@@ -145,7 +145,7 @@ JSON object with cloud-provider-specific authentication settings.
 
 ---
 
-### `kek_type` / `kek.type`
+### `kek_type`
 
 The KMS provider holding the Key Encryption Key (KEK) used to encrypt/decrypt keysets at rest. Required when `key_source=CONFIG_ENCRYPTED` or `key_source=KMS_ENCRYPTED`.
 
@@ -158,7 +158,7 @@ The KMS provider holding the Key Encryption Key (KEK) used to encrypt/decrypt ke
 
 ---
 
-### `kek_config` / `kek.config`
+### `kek_config`
 
 JSON object with credentials for the KEK provider.
 
@@ -190,7 +190,7 @@ JSON object with credentials for the KEK provider.
 
 ---
 
-### `kek_uri` / `kek.uri`
+### `kek_uri`
 
 URI referencing the Key Encryption Key in the chosen cloud KMS.
 
@@ -204,7 +204,7 @@ URI referencing the Key Encryption Key in the chosen cloud KMS.
 
 ## Encryption Parameters
 
-### `cipher_algorithm` / `cipher.algorithm`
+### `cipher_algorithm`
 
 Default cipher algorithm for fields that do not specify their own algorithm.
 
@@ -216,7 +216,7 @@ Default cipher algorithm for fields that do not specify their own algorithm.
 
 ---
 
-### `field_mode` / `field.mode`
+### `field_mode`
 
 Controls how complex fields (arrays, maps, structs) are processed.
 
@@ -233,13 +233,13 @@ Default: `ELEMENT`
 
 These parameters apply when `cipher_algorithm=CUSTOM/MYSTO_FPE_FF3_1`.
 
-### `cipher_fpe_tweak` / `cipher.fpe.tweak`
+### `cipher_fpe_tweak`
 
 A tweak value that adds cryptographic variation to FPE. Different tweaks produce different ciphertexts for the same plaintext. Must be identical between encryption and decryption.
 
 Default: `0000000`
 
-### `cipher_fpe_alphabet_type` / `cipher.fpe.alphabet.type`
+### `cipher_fpe_alphabet_type`
 
 The character set from which both plaintext and ciphertext characters are drawn.
 
@@ -255,7 +255,7 @@ The character set from which both plaintext and ciphertext characters are drawn.
 
 Default: `ALPHANUMERIC`
 
-### `cipher_fpe_alphabet_custom` / `cipher.fpe.alphabet.custom`
+### `cipher_fpe_alphabet_custom`
 
 The explicit character set when `cipher_fpe_alphabet_type=CUSTOM`. Minimum 2 unique characters. Example: `01` for binary strings.
 
