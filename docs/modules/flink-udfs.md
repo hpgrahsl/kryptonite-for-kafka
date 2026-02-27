@@ -61,9 +61,9 @@ CREATE FUNCTION k4k_decrypt_array_fpe         AS 'com.github.hpgrahsl.flink.func
 CREATE FUNCTION k4k_encrypt_map_fpe           AS 'com.github.hpgrahsl.flink.functions.kryptonite.EncryptMapFpeUdf'            LANGUAGE JAVA;
 CREATE FUNCTION k4k_decrypt_map_fpe           AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptMapFpeUdf'            LANGUAGE JAVA;
 
--- NOTE: the following functions have been deprecated
--- please use the corresponding "*_with_schema" alternatives instead
--- registration for new projects is discouraged to due upcoming removal of these functions
+-- NOTE: The following functions have been deprecated. Please use the corresponding
+-- "*_with_schema" function alternatives instead. Registration and usage of these functions 
+-- for new projects is highly discouraged to due upcoming removal!
 -- CREATE FUNCTION k4k_decrypt                   AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptUdf'                  LANGUAGE JAVA;
 -- CREATE FUNCTION k4k_decrypt_array             AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptArrayUdf'             LANGUAGE JAVA;
 -- CREATE FUNCTION k4k_decrypt_map               AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptMapUdf'               LANGUAGE JAVA;
@@ -247,7 +247,7 @@ SELECT
 FROM my_data_encrypted_o LIMIT 1;
 ```
 
-### Element mode encryption
+### Element mode encryption and decryption
 
 ```sql
 -- Table with element-wise encrypted complex types
