@@ -10,6 +10,8 @@ Kryptonite for Kafka ships four independent integration modules. Pick the ones t
 
     Encrypt and decrypt payload fields directly inside any Kafka Connect source or sink connector by applying the SMTs. Fully configurable, zero code required.
 
+    :octicons-book-24: [Learn more](modules/connect-smt.md)
+
     :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
 -   :material-table-arrow-right: &nbsp; **Apache Flink UDFs**
@@ -17,6 +19,8 @@ Kryptonite for Kafka ships four independent integration modules. Pick the ones t
     ---
 
     Use any of the available UDFs `K4K_ENCRYPT_*` / `K4K_DECRYPT_*` to encrypt and decrypt data in Flink Table API / Flink SQL jobs.
+
+    :octicons-book-24: [Learn more](modules/flink-udfs.md)
 
     :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
@@ -26,6 +30,8 @@ Kryptonite for Kafka ships four independent integration modules. Pick the ones t
 
     Use `K4KENCRYPT` / `K4KDECRYPT` and companions in ksqlDB queries to encrypt and decrypt data in ksqlDB streams and tables.
 
+    :octicons-book-24: [Learn more](modules/ksqldb-udfs.md)
+
     :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
 -   :material-api: &nbsp; **Quarkus HTTP API**
@@ -33,6 +39,8 @@ Kryptonite for Kafka ships four independent integration modules. Pick the ones t
     ---
 
     Start a lightweight HTTP service and use the provided web API endpoints to encrypt and decrypt fields from any application or tool that talks HTTP.
+
+    :octicons-book-24: [Learn more](modules/funqy-http.md)
 
     :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
