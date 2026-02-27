@@ -93,5 +93,5 @@
 
 Cryptographic operations are implemented via **[Google Tink](https://github.com/tink-crypto/)** (Java), a peer-reviewed, audited multi-language cryptography library. Kryptonite for Kafka does not implement any cryptographic primitives itself — all AEAD operations delegate to Tink. The FPE implementation uses the [**mysto**](https://github.com/mysto) library for the FF3-1 algorithm. A custom Tink key type is used for FPE to transparently integrate with Tink's keyset mechanism.
 
-!!! warning "Why FF3-1 for format-preserving encryption?"
+!!! note "Why FF3-1 for format-preserving encryption?"
     Since NIST has officially withdrawn FF3 in 2025, FF1 should have preferrably been chosed as the FPE cipher algorithm in Kryptonite for Kafka. However, there are still patent claims and copyrights which forbid its usage in open-source software. As there aren't any other significantly better FPE cipher alternatives left, FF3-1 was chosen as the next best thing that has been NIST vetted and at the same time has seen some reasonable adoption in the field.

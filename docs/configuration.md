@@ -2,7 +2,7 @@
 
 All Kryptonite for Kafka modules share the same set of configuration parameters using a consistent underscore-based naming convention. The table below shows which parameters are supported by each module.
 
-| Parameter | Kafka Connect SMT | ksqlDB UDFs | Flink UDFs | Quarkus HTTP API |
+| Parameter | Kafka Connect SMT | Flink UDFs | ksqlDB UDFs | Quarkus HTTP API |
 |:---|---|---|---|---|
 | `key_source` | ✓ | ✓ | ✓ | ✓ |
 | `cipher_data_keys` | ✓ | ✓ | ✓ | ✓ |
@@ -14,6 +14,7 @@ All Kryptonite for Kafka modules share the same set of configuration parameters 
 | `kek_uri` | ✓ | ✓ | ✓ | ✓ |
 | `cipher_algorithm` | ✓ | ✓ | ✓ | ✓ |
 | `field_mode` | ✓ | — | — | ✓ |
+| `cipher_mode` | ✓ | — | — | — |
 
 ---
 
@@ -93,7 +94,7 @@ May be left empty (`[]`) when `key_source=KMS` or `key_source=KMS_ENCRYPTED`.
 
 ### `cipher_data_key_identifier`
 
-The default keyset identifier used for encryption in case field settings do not specify their a certain key. Must match an `identifier` present in `cipher_data_keys` (or resolvable from the used cloud KMS).
+The default keyset identifier used for encryption in case field settings do not specify their own key. Must match an `identifier` present in `cipher_data_keys` (or resolvable from the used cloud KMS).
 
 Required for encryption. Empty string is acceptable for decryption-only configurations.
 
@@ -114,7 +115,7 @@ The cloud secret manager to use when `key_source=KMS` or `key_source=KMS_ENCRYPT
 
 ### `kms_config`
 
-JSON object with cloud-provider-specific authentication settings.
+JSON object with authentication settings specific to the chosen cloud provider
 
 === "Azure Key Vault"
     ```json
@@ -122,16 +123,16 @@ JSON object with cloud-provider-specific authentication settings.
       "clientId": "...",
       "tenantId": "...",
       "clientSecret": "...",
-      "keyVaultUrl": "https://<vault-name>.vault.azure.net"
+      "keyVaultUrl": "..."
     }
     ```
 
 === "AWS Secrets Manager"
     ```json
     {
-      "accessKey": "AKIA...",
+      "accessKey": "...",
       "secretKey": "...",
-      "region": "eu-central-1"
+      "region": "..."
     }
     ```
 
@@ -139,7 +140,7 @@ JSON object with cloud-provider-specific authentication settings.
     ```json
     {
       "credentials": "<GCP service account JSON contents>",
-      "projectId": "my-gcp-project"
+      "projectId": "..."
     }
     ```
 
@@ -173,7 +174,7 @@ JSON object with credentials for the KEK provider.
 === "AWS KMS"
     ```json
     {
-      "accessKey": "AKIA...",
+      "accessKey": "...",
       "secretKey": "..."
     }
     ```
@@ -184,7 +185,7 @@ JSON object with credentials for the KEK provider.
       "clientId": "...",
       "tenantId": "...",
       "clientSecret": "...",
-      "keyVaultUrl": "https://<vault-name>.vault.azure.net"
+      "keyVaultUrl": "..."
     }
     ```
 
@@ -206,42 +207,48 @@ URI referencing the Key Encryption Key in the chosen cloud KMS.
 
 ### `cipher_algorithm`
 
-Default cipher algorithm for fields that do not specify their own algorithm.
+The default cipher algorithm used for encryption in case field settings do not specify their own cipher algorithm.
 
 | Value | Description |
 |---|---|
-| `TINK/AES_GCM` | Probabilistic AEAD (default) |
-| `TINK/AES_GCM_SIV` | Deterministic AEAD — use for Kafka record keys |
-| `CUSTOM/MYSTO_FPE_FF3_1` | Format-preserving encryption |
+| `TINK/AES_GCM` | probabilistic AEAD (default) |
+| `TINK/AES_GCM_SIV` | deterministic AEAD |
+| `CUSTOM/MYSTO_FPE_FF3_1` | format-preserving encryption |
 
 ---
 
 ### `field_mode`
 
-Controls how complex fields (arrays, maps, structs) are processed.
+Controls how complex fields (`ARRAY`, `MAP`, `STRUCT`, and `ROW` types) are processed. 
+
+!!! note 
+    This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UFDs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.
 
 | Value | Description |
 |---|---|
-| `OBJECT` | The entire field is serialised and encrypted as a single opaque blob → result is always `VARCHAR` |
-| `ELEMENT` | Each element of an array or map value is encrypted individually → result type preserves the container shape |
+| `OBJECT` | The complex field is serialised in its entirety and encrypted as a single opaque blob which always results in a `VARCHAR` |
+| `ELEMENT` | Each element of an array, value in a map, or field in a struct/row type is encrypted individually. The result preserves the container shape of the complex type and contains separate `VARCHAR`s for each encrypted element, value, or field. |
 
 Default: `ELEMENT`
 
 ---
 
-## FPE Parameters
+## FPE Settings
 
-These parameters apply when `cipher_algorithm=CUSTOM/MYSTO_FPE_FF3_1`.
+These settings apply if and only if you have configured a format-preserving encryption (FPE) cipher i.e.  `cipher_algorithm=CUSTOM/MYSTO_FPE_FF3_1`.
+
+!!! warning
+    **All configured FPE settings must be chosen identical for encryption and decryption operations**, otherwise you end up with unexpected and most likely incorrect results.
 
 ### `cipher_fpe_tweak`
 
-A tweak value that adds cryptographic variation to FPE. Different tweaks produce different ciphertexts for the same plaintext. Must be identical between encryption and decryption.
+A tweak value that adds cryptographic variation to FPE. Different tweaks produce different ciphertexts for the same plaintext input.
 
 Default: `0000000`
 
 ### `cipher_fpe_alphabet_type`
 
-The character set from which both plaintext and ciphertext characters are drawn.
+The character set to which both plaintext and ciphertext characters are mapped.
 
 | Value | Characters |
 |---|---|
@@ -261,15 +268,19 @@ The explicit character set when `cipher_fpe_alphabet_type=CUSTOM`. Minimum 2 uni
 
 ---
 
-## Kafka Connect — Additional Parameters
+## Module Specific Parameters
 
-### `cipher_mode`
+### Kafka Connect SMT
+
+#### `cipher_mode`
 
 `ENCRYPT` or `DECRYPT`. Required. Determines the direction of the transformation.
 
-### `field_config`
+#### `field_config`
 
-JSON array listing the fields to process. Each entry specifies at minimum a `name`. Optional per-field overrides:
+JSON array listing the payload fields to process. Each entry specifies at minimum the field `name`. Optional per-field overrides for other settings influencing the encryption / decryption behaviour.
+
+* Example
 
 ```json
 [
@@ -279,7 +290,9 @@ JSON array listing the fields to process. Each entry specifies at minimum a `nam
 ]
 ```
 
-For decryption of schema-aware records, include the `schema` field to allow the SMT to reconstruct the original type:
+For decryption of schema-aware records, include the `schema` field to allow the SMT to reconstruct the original type.
+
+* Example:
 
 ```json
 [
@@ -287,15 +300,6 @@ For decryption of schema-aware records, include the `schema` field to allow the 
 ]
 ```
 
-### `path_delimiter`
+#### `path_delimiter`
 
 Separator for nested field references in `field_config`. Default: `.`
-
-### `cipher_text_encoding`
-
-Encoding of the resulting ciphertext bytes.
-
-| Value | Description |
-|---|---|
-| `BASE64` | Base64-encoded string (default) |
-| `RAW_BYTES` | Raw byte array |
