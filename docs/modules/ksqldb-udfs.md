@@ -193,10 +193,12 @@ SELECT
   K4K_DECRYPT(myint, 0) AS myint,
   K4K_DECRYPT(myboolean, false) AS myboolean
 FROM my_data_encrypted
-EMIT CHANGES LIMIT 5;
+EMIT CHANGES LIMIT 1;
 ```
 
-### Element mode encryption (arrays and maps)
+### Element mode encryption
+
+This example encrypts `ARRAY` elements and `MAP` values:
 
 ```sql
 CREATE STREAM my_data_enc_e (
@@ -212,7 +214,9 @@ INSERT INTO my_data_enc_e VALUES (
 );
 ```
 
-Element mode decryption:
+### Element mode decryption:
+
+This example decrypts `ARRAY` elements and `MAP` values:
 
 ```sql
 SELECT
@@ -220,7 +224,7 @@ SELECT
   K4K_DECRYPT(myarray, '') AS myarray,     -- decrypt each element
   K4K_DECRYPT(mymap, 0) AS mymap           -- decrypt each map value
 FROM my_data_enc_e
-EMIT CHANGES LIMIT 5;
+EMIT CHANGES LIMIT 1;
 ```
 
 ### FPE encryption
