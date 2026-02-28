@@ -1,6 +1,6 @@
 # Keyset Tool
 
-The Keyset Tool is a command-line utility for generating Tink keyset JSON configurations used by all Kryptonite for Kafka modules. It supports both plain and encrypted keyset generation for all supported algorithms and all cloud KMS integrations.
+The Keyset Tool is a command-line utility for generating Tink keyset JSON configurations used by all Kryptonite for Kafka modules. It supports both plain and encrypted keyset generation for the supported cipher key types and cloud KMS integrations.
 
 ---
 
@@ -16,14 +16,14 @@ Download the pre-built fat JAR from the [GitHub Releases page](https://github.co
 ./mvnw clean package -DskipTests -pl kryptonite-keyset-tool
 ```
 
-The JAR is produced at `kryptonite-keyset-tool/target/kryptonite-keyset-tool-0.1.0.jar`.
+The JAR is produced at `kryptonite-keyset-tool/target/kryptonite-keyset-tool-<VERSION>.jar`.
 
 ---
 
 ## Usage
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar [OPTIONS]
+java -jar kryptonite-keyset-tool-<VERSION>.jar [OPTIONS]
 ```
 
 ```text
@@ -83,7 +83,7 @@ Example with `-n 3 -k 2 --initial-key-id 1000`:
 
 ## Plain Keysets
 
-### Single AES-GCM keyset (FULL format)
+### Single AES-GCM keyset (`FULL` format)
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
@@ -113,19 +113,17 @@ Output:
 }
 ```
 
-### Deterministic AES-GCM-SIV keyset (RAW format)
+### Single AES-GCM-SIV keyset (`RAW` format)
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
-  -a AES_GCM_SIV -i my-det-key -f FULL -p
+  -a AES_GCM_SIV -i my-det-key -f RAW -p
 ```
 
 Output:
 
 ```json
-{
-  "identifier" : "my-det-key",
-  "material" : {
+  {
     "primaryKeyId" : 10000,
     "key" : [ {
       "keyData" : {
@@ -138,10 +136,9 @@ Output:
       "outputPrefixType" : "TINK"
     } ]
   }
-}
 ```
 
-### FPE keyset with 192-bit key
+### FPE keyset 192-bit (`FULL` format)
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
@@ -171,7 +168,7 @@ Output:
 
 FPE keyset output uses `typeUrl: io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey` and `outputPrefixType: RAW`.
 
-### Multi-key keyset for key rotation
+### Single multi-key keyset
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
@@ -217,7 +214,7 @@ Output:
 }
 ```
 
-### Multiple keysets as a JSON array
+### Multiple single-key keysets
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
@@ -262,7 +259,7 @@ Output:
 
 Produces a JSON array of 2 keyset objects with identifiers `demo-key_1` and `demo-key_2` each containing a single key.
 
-### RAW format (bare Tink keyset, no wrapper)
+### RAW keyset format
 
 Use `RAW` format when uploading directly as a secret value to a cloud secret manager. Note that the `identifier` wrapper is not needed there — the secret name itself acts as the identifier:
 
@@ -289,31 +286,28 @@ Output:
 }
 ```
 
-### Write output to file
+#### Writing keysets to output files
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
-  -a AES_GCM -i my-key -f FULL -o /path/to/keyset.json -p
+  -a AES_GCM -f RAW -o /path/to/keyset.json -p
 ```
 
 File `keyset.json`:
 
 ```json
 {
-  "identifier" : "my-key",
-  "material" : {
-    "primaryKeyId" : 10000,
-    "key" : [ {
-      "keyData" : {
-        "typeUrl" : "type.googleapis.com/google.crypto.tink.AesGcmKey",
-        "value" : "<BASE64_ENCODED_KEY_HERE>",
-        "keyMaterialType" : "SYMMETRIC"
-      },
-      "status" : "ENABLED",
-      "keyId" : 10000,
-      "outputPrefixType" : "TINK"
-    } ]
-  }
+  "primaryKeyId" : 10000,
+  "key" : [ {
+    "keyData" : {
+      "typeUrl" : "type.googleapis.com/google.crypto.tink.AesGcmKey",
+      "value" : "<BASE64_ENCODED_KEY_HERE>",
+      "keyMaterialType" : "SYMMETRIC"
+    },
+    "status" : "ENABLED",
+    "keyId" : 10000,
+    "outputPrefixType" : "TINK"
+  } ]
 }
 ```
 
@@ -397,7 +391,7 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 
 ### Multiple encrypted keysets
 
-Example call for GCP KMS key encryption:
+Example keyset tool call with GCP KMS keyset encryption intended for `key_source=CONFIG_ENCRYPTED` uses which expects `FULL` keyset format.
 
 ```bash
 java -jar kryptonite-keyset-tool-0.1.0.jar \
@@ -405,7 +399,18 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
   -e --kek-type GCP \
   --kek-uri "gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek" \
   --kek-config /path/to/gcp-credentials.json \
-  -o encrypted-keysets.json
+  -o encrypted-keysets-full.json
+```
+
+Example keyset tool call with GCP KMS keyset encryption intended for `key_source=KMS_ENCRYPTED` uses which expects `RAW` keyset format.
+
+```bash
+java -jar kryptonite-keyset-tool-0.1.0.jar \
+  -a AES_GCM_SIV -f RAW -k 3 -n 2 -p \
+  -e --kek-type GCP \
+  --kek-uri "gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek" \
+  --kek-config /path/to/gcp-credentials.json \
+  -o encrypted-keysets-raw.json
 ```
 
 ---

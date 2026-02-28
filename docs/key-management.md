@@ -67,7 +67,7 @@ Encrypted keysets give you moderate security while still being able to directly 
 
 ### Encrypted keyset example
 
-Note, that the `material` field takes the encrypted form:
+Note, that the `material` field takes the encrypted keyset form:
 
 ```json
   {
@@ -90,7 +90,7 @@ Note, that the `material` field takes the encrypted form:
 ```
 
 !!! tip "Tip"
-    Generate encrypted keysets with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+    Generate encrypted keysets in `FULL` format with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
 
 ---
 
@@ -101,33 +101,35 @@ Plain keysets are stored as secrets in a cloud secret manager which provides rea
 !!! question "When to use?"
     Your already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.
 
-**Requires:** `key_source=KMS`, depends on `kms_type`, `kms_config`, `kek_type`, `kek_uri`, and `kek_config`. The `cipher_data_keys` array can be left empty (`[]`).
+**Requires:** `key_source=KMS`, depends on `kms_type` and `kms_config`. When using a cloud secret manager `cipher_data_keys` can be deliberately set to the empty JSON array `[]`.
 
 ### Plain keyset example
 
+For cloud secret manager usage, plain keysets must be generated in `RAW` format with the [keyset tool](./keyset-tool.md).
+
+!!! note
+    The wrapping structure with `identifier`and `material` fields isn't present due to format `RAW`. The keysets are directly identified by means of the secret name in the cloud secret manager in this case.
+
 ```json
-  {
-    "identifier": "my-key",
-    "material": {
-      "primaryKeyId": 10000,
-      "key": [
-        {
-          "keyData": {
-            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
-            "value": "<BASE64_ENCODED_KEY_HERE>",
-            "keyMaterialType": "SYMMETRIC"
-          },
-          "status": "ENABLED",
-          "keyId": 10000,
-          "outputPrefixType": "TINK"
-        }
-      ]
+{
+  "primaryKeyId": 10000,
+  "key": [
+    {
+      "keyData": {
+        "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+        "value": "<BASE64_ENCODED_KEY_HERE>",
+        "keyMaterialType": "SYMMETRIC"
+      },
+      "status": "ENABLED",
+      "keyId": 10000,
+      "outputPrefixType": "TINK"
     }
-  }
+  ]
+}
 ```
 
 !!! tip "Tip"
-    Generate plain keysets with the [Keyset Tool](./keyset-tool/#plain-keysets).
+    Generate plain keysets in `RAW` format with the [Keyset Tool](./keyset-tool/#plain-keysets).
 
 ---
 
@@ -138,34 +140,34 @@ The most secure mode. Keysets are stored encrypted in a cloud secret manager, an
 !!! question "When to use?"
     **Production environments requiring maximum keyset protection.** An attacker who gains access to the secret manager secrets still cannot make use of any of the keysets without having access to the KEK in the KMS.
 
-**Requires:** `key_source=KMS_ENCRYPTED`, depends on `kms_type`,`kms_config`, `kek_type`, `kek_uri`, and `kek_config`. The `cipher_data_keys` array can be left empty (`[]`).
+**Requires:** `key_source=KMS_ENCRYPTED`, depends on `kms_type`,`kms_config`, `kek_type`, `kek_uri`, and `kek_config`. When using a cloud secret manager `cipher_data_keys` can be deliberately set to the empty JSON array `[]`.
 
 ### Encrypted keyset example
 
-Note, that the `material` field takes the encrypted form:
+For cloud secret manager usage, encrypted keysets must be generated in `RAW` format with the [keyset tool](./keyset-tool.md).
+
+!!! note
+    The wrapping structure with `identifier`and `material` fields isn't present due to format `RAW`. The keysets are directly identified by means of the secret name in the cloud secret manager in this case.
 
 ```json
-  {
-    "identifier": "my-key",
-    "material": {
-      "encryptedKeyset": "<ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE>",
-      "keysetInfo": {
-        "primaryKeyId": 10000,
-        "keyInfo": [
-          {
-            "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
-            "status": "ENABLED",
-            "keyId": 10000,
-            "outputPrefixType": "TINK"
-          }
-        ]
+{
+  "encryptedKeyset": "<ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE>",
+  "keysetInfo": {
+    "primaryKeyId": 10000,
+    "keyInfo": [
+      {
+        "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+        "status": "ENABLED",
+        "keyId": 10000,
+        "outputPrefixType": "TINK"
       }
-    }
+    ]
   }
+}
 ```
 
 !!! tip "Tip"
-    Generate encrypted keysets with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+    Generate encrypted keysets in `RAW` format with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
 
 ---
 
@@ -190,7 +192,7 @@ Depending on which cloud secret manager is configured to store plain or encrypte
     **Full secret name: `k4k/(tink_plain | tink_encrypted)/<key_identifier>`**
 
 === "Azure Key Vault"
-    **The secret name is the keyset identifier as is.** No prefix is assumed. Azure supports separate vault instances to properly isolate plain vs. encrypted keysets.
+    **The secret name is the keyset identifier as is.** No prefix is assumed. Azure supports separate vault instances to properly isolate plain from encrypted keysets. Do not mix and match plain and encrypted keysets in the same key vault!
 
     **Full secret name: `<key_identifier>`**
 

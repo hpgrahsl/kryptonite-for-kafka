@@ -28,7 +28,7 @@ Kryptonite for Kafka ships four independent integration modules. Pick the ones t
 
     ---
 
-    Use `K4KENCRYPT` / `K4KDECRYPT` and companions in ksqlDB queries to encrypt and decrypt data in ksqlDB streams and tables.
+    Use `K4K_ENCRYPT` / `K4K_DECRYPT` and companions in ksqlDB queries to encrypt and decrypt data in ksqlDB streams and tables.
 
     :octicons-book-24: [Learn more](modules/ksqldb-udfs.md)
 
@@ -60,14 +60,14 @@ Kryptonite for Kafka modules share the same baseline requirements:
 
 ## Generating a Keyset
 
-Every module needs at least one Tink keyset. The most convenient and quickest way is to use the [Keyset Tool](keyset-tool.md) and generate, for instance, a single keyset containing one `AES_GCM` key like so:
+Every module needs at least one Tink keyset configured. The most convenient and quickest way is to use the [Keyset Tool](keyset-tool.md) and generate, for instance, a single keyset containing one `AES_GCM` key like so:
 
 ```bash
 java -jar kryptonite-keyset-tool/target/kryptonite-keyset-tool-0.1.0.jar \
   -a AES_GCM -i my-demo-key -f FULL -p
 ```
 
-This generates and pretty prints a `FULL`-formatted keyset to `stdout`:
+This generates and pretty prints a turn-key ready keyset to `stdout`:
 
 ```json
 {
@@ -91,4 +91,4 @@ This generates and pretty prints a `FULL`-formatted keyset to `stdout`:
 !!! warning "Key material is a secret"
     The `value` field is the actual raw key in Base64 encoding. Treat it with utmost secrecy, just like any important password. **NEVER commit production keysets to source control!**
 
-See [Key Management](key-management.md) for production options regarding key storage and optional key encryption.
+See [Key Management](key-management.md) for production options regarding keyset storage and optional keyset encryption.
