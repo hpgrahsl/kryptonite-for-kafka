@@ -15,7 +15,7 @@ Add the module JAR to the classpath alongside the core library. It is discovered
 
 Unlike the AWS and GCP modules, Azure Key Vault uses the secret name **directly** as the keyset identifier, hence no prefix is prepended. The secret name is exactly the identifier used by the module. To separate plain and encrypted keysets, use two different Key Vault instances each with their individual `keyVaultUrl`.
 
-Create secrets using the Azure CLI or Portal. The secret value must be the Tink keyset JSON (in `RAW` format):
+Create the actual cloud secrets using the Azure CLI or Portal. **Each secret's value must be the Tink keyset JSON in `RAW` format:**
 
 ```bash
 az keyvault secret set \
@@ -76,29 +76,6 @@ The service principal used in `kek_config` requires the following permissions on
 !!! tip "Use separate vaults for keys and secrets"
     It is recommended to use one Key Vault instance for KEK keys (with `Key Wrap/Unwrap` permissions) and a separate instance for keyset secrets (with `Secret Get/List` permissions). This isolates the two permission scopes cleanly.
 
-### Generate an encrypted keyset
-
-:octicons-book-24: [Keyset Tool Details](../keyset-tool.md) 
-
-```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
-  -a AES_GCM -i my-key -f FULL -p \
-  -e --kek-type AZURE \
-  --kek-uri "azure-kv://my-keys-vault.vault.azure.net/keys/my-rsa-kek" \
-  --kek-config /path/to/azure-credentials.json
-```
-
-`azure-credentials.json`:
-
-```json
-{
-  "clientId": "...",
-  "tenantId": "...",
-  "clientSecret": "...",
-  "keyVaultUrl": "https://my-keys-vault.vault.azure.net"
-}
-```
-
 ### KEK URI format
 
 ```
@@ -110,7 +87,7 @@ Omitting the version uses the current / latest key version.
 
 ### Configuration for `key_source=CONFIG_ENCRYPTED`
 
-Generate the Azure KEK encrypted keyset in `FULL` format using the [keyset tool](../keyset-tool.md), then configure:
+Generate the **Azure KEK encrypted keyset(s) in `FULL` format** using the [keyset tool](../keyset-tool.md), then configure:
 
 ```json
 {
@@ -125,7 +102,7 @@ Generate the Azure KEK encrypted keyset in `FULL` format using the [keyset tool]
 
 ### Configuration for `key_source=KMS_ENCRYPTED`
 
-Generate the Azure KEK encrypted keyset in `RAW` format using the [keyset tool](../keyset-tool.md) and store it as an Azure Key Vault secret.
+Generate the **Azure KEK encrypted keyset(s) in `RAW` format** using the [keyset tool](../keyset-tool.md) and store it as an Azure Key Vault secret.
 
 Then configure:
 

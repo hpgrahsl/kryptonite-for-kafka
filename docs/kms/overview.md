@@ -8,7 +8,7 @@ Kryptonite for Kafka supports three cloud KMS providers ([GCP Cloud KMS](https:/
 | **keyset encryption** | `kek_type=<provider>`, `key_source=CONFIG_ENCRYPTED` or `KMS_ENCRYPTED` | Cloud KMS key is used to encrypt/decrypt the keyset material with a key encryption key (KEK) |
 
 !!! note "KMS Storage & Encryption"
-    These two capabilities are independent and can be mixed if necessary. For instance, while you could use GCP Secret Manager for keyset storage you might want to use AWS KMS for key encryption purposes.
+    These two capabilities are independent and can be mixed if necessary. For instance, while you could use GCP Secret Manager for keyset storage you might want to use AWS KMS for keyset encryption.
 
 ---
 
@@ -61,4 +61,6 @@ Each module registers its implementations in `META-INF/services/` descriptor fil
 
 Use the [Keyset Tool](../keyset-tool.md) to generate keysets encrypted with any supported KEK. Pass the `--kek-type`, `--kek-uri`, and `--kek-config` flags along with `-e`.
 
-For `key_source=KMS_ENCRYPTED`, generate in `RAW` format (`-f RAW`) and upload the resulting JSON as the secret value in your cloud secret manager. See [here](../key-management/#secret-naming-conventions) for secret naming conventions.
+For `key_source=CONFIG_ENCRYPTED`, generate keysets in `FULL` format (`-f FULL`) and use the resulting JSON for the config setting `cipher_data_keys`.
+
+For `key_source=KMS_ENCRYPTED`, generate keysets in `RAW` format (`-f RAW`) and upload the resulting JSON as the secret value in your cloud secret manager. See [here](../key-management/#secret-naming-conventions) for secret naming conventions.

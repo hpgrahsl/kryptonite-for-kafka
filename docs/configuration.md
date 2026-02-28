@@ -1,20 +1,20 @@
 # Configuration Reference
 
-All Kryptonite for Kafka modules share the same set of configuration parameters using a consistent underscore-based naming convention. The table below shows which parameters are supported by each module.
+All Kryptonite for Kafka modules share the same set of core configuration parameters. The table below shows which parameters are available and supported by each module.
 
-| Parameter | Kafka Connect SMT | Flink UDFs | ksqlDB UDFs | Quarkus HTTP API |
-|:---|---|---|---|---|
-| `key_source` | ✓ | ✓ | ✓ | ✓ |
-| `cipher_data_keys` | ✓ | ✓ | ✓ | ✓ |
-| `cipher_data_key_identifier` | ✓ | ✓ | ✓ | ✓ |
-| `kms_type` | ✓ | ✓ | ✓ | ✓ |
-| `kms_config` | ✓ | ✓ | ✓ | ✓ |
-| `kek_type` | ✓ | ✓ | ✓ | ✓ |
-| `kek_config` | ✓ | ✓ | ✓ | ✓ |
-| `kek_uri` | ✓ | ✓ | ✓ | ✓ |
-| `cipher_algorithm` | ✓ | ✓ | ✓ | ✓ |
-| `field_mode` | ✓ | — | — | ✓ |
-| `cipher_mode` | ✓ | — | — | — |
+| Parameter | Required | Default | [Kafka Connect SMT](./modules/connect-smt.md) | [Flink UDFs](./modules/flink-udfs.md) | [ksqlDB UDFs](./modules/ksqldb-udfs.md) | [Quarkus HTTP Service](./modules/funqy-http.md) |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| `key_source` | — | `CONFIG` | ✓ | ✓ | ✓ | ✓ |
+| `cipher_data_keys` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ |
+| `cipher_data_key_identifier` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ |
+| `kms_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ |
+| `kms_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ |
+| `kek_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ |
+| `kek_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ |
+| `kek_uri` | — | &nbsp; | ✓ | ✓ | ✓ | ✓ |
+| `cipher_algorithm` | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ |
+| `field_mode` | - | `ELEMENT` | ✓ | — | — | ✓ |
+| `cipher_mode` | ✓ | &nbsp; | ✓ | — | — | — |
 
 ---
 
@@ -31,7 +31,7 @@ Defines the origin and protection of the key material.
 | `KMS` | Plain Tink keysets stored in a cloud secret manager (requires `kms_type` and `kms_config` settings) |
 | `KMS_ENCRYPTED` | Encrypted Tink keysets stored in a cloud secret manager (requires: all related KMS and KEK settings) |
 
-Default: `CONFIG`
+**Default: `CONFIG`**
 
 ---
 
@@ -39,7 +39,9 @@ Default: `CONFIG`
 
 A JSON array of Tink keyset objects. Each entry has an `identifier` and a `material` field containing a Tink keyset specification.
 
-**Plain keyset example:**
+!!! warning "`cipher_data_keys` is a required config parameter"
+
+**Plain keyset example** (when `key_source=CONFIG`):
 
 ```json
 [
@@ -88,7 +90,7 @@ A JSON array of Tink keyset objects. Each entry has an `identifier` and a `mater
 ]
 ```
 
-May be left empty (`[]`) when `key_source=KMS` or `key_source=KMS_ENCRYPTED`.
+May be deliberately left empty `[]` when keysets are sourced from cloud secret managers (`key_source=KMS` or `key_source=KMS_ENCRYPTED`).
 
 ---
 
@@ -96,7 +98,8 @@ May be left empty (`[]`) when `key_source=KMS` or `key_source=KMS_ENCRYPTED`.
 
 The default keyset identifier used for encryption in case field settings do not specify their own key. Must match an `identifier` present in `cipher_data_keys` (or resolvable from the used cloud KMS).
 
-Required for encryption. Empty string is acceptable for decryption-only configurations.
+!!! warning "`cipher_data_keys` is a required config parameter"
+    Empty string is acceptable for decryption-only scenarios.
 
 ---
 
@@ -106,10 +109,12 @@ The cloud secret manager to use when `key_source=KMS` or `key_source=KMS_ENCRYPT
 
 | Value | Provider |
 |---|---|
-| `NONE` | No KMS as keysets are sourced from config (default) |
+| `NONE` | No KMS as keysets are sourced from config |
 | `AZ_KV_SECRETS` | Azure Key Vault Secrets |
 | `AWS_SM_SECRETS` | AWS Secrets Manager |
 | `GCP_SM_SECRETS` | GCP Secret Manager |
+
+**Default: `NONE`**
 
 ---
 
@@ -152,10 +157,12 @@ The KMS provider holding the Key Encryption Key (KEK) used to encrypt/decrypt ke
 
 | Value | Provider |
 |---|---|
-| `NONE` | No KEK (default) |
+| `NONE` | No KEK |
 | `GCP` | GCP Cloud KMS |
 | `AWS` | AWS KMS |
 | `AZURE` | Azure Key Vault |
+
+**Default: `NONE`**
 
 ---
 
@@ -211,9 +218,11 @@ The default cipher algorithm used for encryption in case field settings do not s
 
 | Value | Description |
 |---|---|
-| `TINK/AES_GCM` | probabilistic AEAD (default) |
+| `TINK/AES_GCM` | probabilistic AEAD |
 | `TINK/AES_GCM_SIV` | deterministic AEAD |
 | `CUSTOM/MYSTO_FPE_FF3_1` | format-preserving encryption |
+
+**Default: `TINK/AES_GCM`**
 
 ---
 
@@ -229,7 +238,7 @@ Controls how complex fields (`ARRAY`, `MAP`, `STRUCT`, and `ROW` types) are proc
 | `OBJECT` | The complex field is serialised in its entirety and encrypted as a single opaque blob which always results in a `VARCHAR` |
 | `ELEMENT` | Each element of an array, value in a map, or field in a struct/row type is encrypted individually. The result preserves the container shape of the complex type and contains separate `VARCHAR`s for each encrypted element, value, or field. |
 
-Default: `ELEMENT`
+**Default: `ELEMENT`**
 
 ---
 
@@ -242,9 +251,9 @@ These settings apply if and only if you have configured a format-preserving encr
 
 ### `cipher_fpe_tweak`
 
-A tweak value that adds cryptographic variation to FPE. Different tweaks produce different ciphertexts for the same plaintext input.
+A 7-bytes tweak value that adds cryptographic variation to FPE. Different tweaks produce different ciphertexts for the same plaintext input.
 
-Default: `0000000`
+**Default: `0000000`**
 
 ### `cipher_fpe_alphabet_type`
 
@@ -260,7 +269,7 @@ The character set to which both plaintext and ciphertext characters are mapped.
 | `HEXADECIMAL` | `0-9A-F` |
 | `CUSTOM` | Defined by `cipher_fpe_alphabet_custom` |
 
-Default: `ALPHANUMERIC`
+**Default: `ALPHANUMERIC`**
 
 ### `cipher_fpe_alphabet_custom`
 
@@ -302,4 +311,6 @@ For decryption of schema-aware records, include the `schema` field to allow the 
 
 #### `path_delimiter`
 
-Separator for nested field references in `field_config`. Default: `.`
+Separator for nested field references in `field_config`. 
+
+**Default: `.`**

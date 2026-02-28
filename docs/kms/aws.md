@@ -20,7 +20,7 @@ Secrets are expected to be stored in AWS Secrets Manager with a mandatory prefix
 | Plain keysets | `k4k/tink_plain/` | `k4k/tink_plain/my-aes-key` |
 | Encrypted keysets | `k4k/tink_encrypted/` | `k4k/tink_encrypted/my-aes-key` |
 
-Create secrets using the AWS CLI or Console. The secret value must be the Tink keyset JSON (in `RAW` format — no `identifier` wrapper):
+Create the actual cloud secrets using the AWS CLI or AWS Console. **Each secret's value must be the Tink keyset JSON in `RAW` format:**
 
 ```bash
 aws secretsmanager create-secret \
@@ -61,7 +61,7 @@ Scope the policy to the `k4k/tink_plain/*` and `k4k/tink_encrypted/*` prefixes.
 
 ## Keyset Encryption with `kek_type=AWS`
 
-AWS KMS symmetric keys (AES-256) support direct AEAD encryption. The module integrates via Tink's official `tink-java-awskms` library. No envelope encryption is needed.
+AWS KMS symmetric keys (AES-256) support direct AEAD encryption. The module integrates via Tink's official `tink-java-awskms` library.
 
 ### IAM permissions required
 
@@ -71,30 +71,9 @@ AWS KMS symmetric keys (AES-256) support direct AEAD encryption. The module inte
 
 Scope the policy to the specific KMS key ARN.
 
-### Generate an encrypted keyset
-
-:octicons-book-24: [Keyset Tool Details](../keyset-tool.md) 
-
-```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
-  -a AES_GCM -i my-key -f FULL -p \
-  -e --kek-type AWS \
-  --kek-uri "aws-kms://arn:aws:kms:eu-central-1:123456789012:key/abcd-1234-efgh-5678" \
-  --kek-config /path/to/aws-credentials.json
-```
-
-`aws-credentials.json`:
-
-```json
-{
-  "accessKey": "AKIA...",
-  "secretKey": "..."
-}
-```
-
 ### Configuration for `key_source=CONFIG_ENCRYPTED`
 
-Generate the AWS KEK encrypted keyset in `FULL` format using the [keyset tool](../keyset-tool.md), then configure:
+Generate the **AWS KEK encrypted keyset(s) in `FULL` format** using the [keyset tool](../keyset-tool.md), then configure:
 
 ```json
 {
@@ -109,7 +88,7 @@ Generate the AWS KEK encrypted keyset in `FULL` format using the [keyset tool](.
 
 ### Configuration for `key_source=KMS_ENCRYPTED`
 
-Generate the encrypted keyset in `RAW` format using the [keyset tool](../keyset-tool.md) and store it in Secrets Manager under `k4k/tink_encrypted/<identifier>`.
+Generate the **AWS KEK encrypted keyset(s) in `RAW` format** using the [keyset tool](../keyset-tool.md) and store it in Secrets Manager under `k4k/tink_encrypted/<identifier>`.
 
 Then configure:
 

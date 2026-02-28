@@ -4,7 +4,7 @@
 
 ### AES-GCM
 
-`TINK/AES_GCM` is the default algorithm. It applies AES in Galois/Counter Mode with a fresh random IV for every encryption call.
+`TINK/AES_GCM` is the default algorithm. It applies AES in [Galois/Counter Mode](https://en.wikipedia.org/wiki/Galois/Counter_Mode).
 
 **Properties:**
 
@@ -20,25 +20,24 @@
 
 ### AES-GCM-SIV
 
-`TINK/AES_GCM_SIV` is a nonce-misuse-resistant variant. For the same plaintext and key, it always produces the same ciphertext.
+`TINK/AES_GCM_SIV` is a nonce misuse-resistant variant. For the same plaintext and key, it always produces the same ciphertext.
 
 **Properties:**
 
 - **deterministic:** same plaintext + same key always produces the same ciphertext
 - **authenticated:** tamper detection is retained
-- **nonce misuse resistant:** the cipher does not fail catastrophically if a nonce is repeated
+- **nonce misuse-resistant:** the cipher does not fail catastrophically if a nonce is repeated
 
 !!! question "When to use?"
     Lookups / Joins / Aggregations on ciphertext require this deterministic encryption property to work correctly. Kafka record keys or parts thereof can only be encrypted deterministically in order not to break the partitioning and ordering of records.
-    
-    
+
 ### FPE FF3-1 
 
-`CUSTOM/MYSTO_FPE_FF3_1` is based on the NIST-standardised FF3-1 algorithm. It encrypts data while preserving the original length and character set of the input data.
+`CUSTOM/MYSTO_FPE_FF3_1` is based on the NIST-standardised FF3-1 algorithm. It's a format-preserving encryption (FPE) algorithm.
 
 **Properties:**
 
-- **format-preserving:** a 16-digit number encrypts to another 16-digit number
+- **length-preserving:** a 16-digit number encrypts to different 16-digit number
 - **character-set-preserving:** ciphertext uses only characters from the configured alphabet matching the input data's character set
 - **deterministic with tweak:** same plaintext + same key + same tweak = same ciphertext
 
@@ -84,8 +83,7 @@
 | Attacker tampers with ciphertext or the attached metadata | The authentication tag in AES_GCM will make the decryption fail due to an integrity error. |
 | Attacker somehow gets unauthorized access to keysets from the configuration | Instead of plain keysets stored in the configuration (`key_source=CONFIG`) either use `key_source=KMS` to externalize keysets to a cloud secret manager or switch to `key_source=CONFIG_ENCRYPTED` to work with encrypted keysets based on a key encryption key. The encrypted keyset is useless without access to the KEK that is separately stored in a cloud KMS. |
 | Attacker manages to access the cloud secret manager secrets | Use `key_source=KMS_ENCRYPTED` to work with encrypted keysets based on a key encryption key. The encrypted keyset is useless without access to the KEK that is separately stored in a cloud KMS. |
-| Attacker "magically" gets access to the partially encrypted Kafka topic data, the encrypted keysets stored in the cloud secret manager, and the corresponding key encryption key from the cloud KMS | **💀 NONE - YOU'RE F... ! 💥** |
-
+| Attacker "magically" gets access to the partially encrypted Kafka topic data, the encrypted keysets stored in the cloud secret manager, and the corresponding key encryption key from the cloud KMS | **💀 NONE - YOU'RE REALLY F... ! 💥** |
 
 ---
 

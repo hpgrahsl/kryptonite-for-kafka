@@ -61,21 +61,21 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
     
     Neither Kafka brokers nor any intermediary Kafka proxy infrastructure ever gets to see sensitive payload fields in plaintext. Encryption / Decryption of data happens exclusively within the security perimeter of the client-side application.
 
--   :material-cursor-default-click: &nbsp; **Field-Level Precision**
+-   :material-cursor-default-click: &nbsp; **Field-Level Scope**
 
     ---
 
     **Configure which payload fields need this extra level of data protection.**
     
-    Encryption of just one field, a handful of fields, or maybe all payload fields? Everything else stays untouched and is still directly processable by any downstream applications.
+    It's not an all or nothing approach. Need to encrypt just one field, a handful of fields, or maybe all payload fields? Everything else stays untouched and is still directly processable by any downstream applications.
 
 -   :material-key-chain: &nbsp; **Flexible Key Management**
 
     ---
 
-    **You define how to manage cryptographic keys.**
+    **You decide how to manage cryptographic keys.**
     
-    Quickly need to inline keysets for development? Need to store keysets in a cloud key management systems (KMS)? Want to encrypt keysets with a key encryption key stored (KEK) in a cloud provider's KMS? [GCP Cloud KMS](https://cloud.google.com/security/products/security-key-management), [AWS KMS](https://aws.amazon.com/kms/), and [Azure Key Vault](https://azure.microsoft.com/en-us/products/key-vault) is supported out of the box - the choice is yours!
+    Quickly need to inline keysets for development? Need to store keysets in a cloud key management systems (KMS)? Want to encrypt keysets with a key encryption key (KEK) stored in a cloud provider's KMS? [GCP Cloud KMS](https://cloud.google.com/security/products/security-key-management), [AWS KMS](https://aws.amazon.com/kms/), and [Azure Key Vault](https://azure.microsoft.com/en-us/products/key-vault) are supported - the choice is yours!
 
 -   :material-puzzle-outline: &nbsp; **Four Ready-Made Integrations**
 
@@ -83,7 +83,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 
     Apache Kafka Connect [SMTs](https://kafka.apache.org/42/kafka-connect/user-guide/#transformations), Apache Flink [UDFs](https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/functions/udfs/), ksqlDB [UDFs](https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html), and a Quarkus [Funqy](https://quarkus.io/guides/funqy) HTTP service. No custom serializers or any custom code required as the encrypt/decrypt capabilities are largely based on flexible configuration options.
 
--   :material-format-letter-matches: &nbsp; **Versatile Encryption Capabilities**
+-   :material-table-key: &nbsp; **Versatile Encryption Capabilities**
 
     ---
 
