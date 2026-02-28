@@ -173,7 +173,7 @@ Multiple user-defined functions (`K4K_ENCRYPT_*`/`K4K_DECRYPT_*`) can be applied
 
 <div class="k4k-module-body" markdown>
 
-Multiple user-defined functions (`K4KENCRYPT*`/`K4KDECRYPT*`) can be applied in ksqlDB `STREAM` or `TABLE` queries. The UDFs can process both primitive and complex ksqlDB data types.
+Multiple user-defined functions (`K4K_ENCRYPT*`/`K4K_DECRYPT*`) can be applied in ksqlDB `STREAM` or `TABLE` queries. The UDFs can process both primitive and complex ksqlDB data types.
 
 :octicons-book-24: [Learn more](modules/ksqldb-udfs.md)
 
