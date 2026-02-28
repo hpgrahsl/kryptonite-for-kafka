@@ -18,7 +18,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 :material-shield-lock-outline: &nbsp; **Client-Side Cryptography** means all cryptographic operations are guaranteed to only ever happen on the client-side.
 
 <div class="k4k-module-img">
-<a href="assets/images/01_csflc_overview.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/01_csflc_overview.png" alt="Client-Side Cryptography"></a>
+<a href="assets/images/01_csflc_overview.png" class="glightbox"><img src="assets/images/01_csflc_overview.png" alt="Client-Side Cryptography"></a>
 </div>
 
 </div>
@@ -27,7 +27,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 :material-cursor-default-click: &nbsp; **Field Level Cryptography** means you can precisely control which payload fields and how they are getting encrypted or decrypted.
 
 <div class="k4k-module-img">
-<a href="assets/images/02_field_level_cryptography.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/02_field_level_cryptography.png" alt="Field-Level Cryptography"></a>
+<a href="assets/images/02_field_level_cryptography.png" class="glightbox"><img src="assets/images/02_field_level_cryptography.png" alt="Field-Level Cryptography"></a>
 </div>
 
 </div>
@@ -44,7 +44,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 ## End-to-End Scenario featuring Module Integrations for Apache Kafka Connect and Apache Flink
 
 <div class="k4k-module-img">
-<a href="assets/images/07_full_end2end_example.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/07_full_end2end_example.png" alt="Kafka Connect SMT"></a>
+<a href="assets/images/07_full_end2end_example.png" class="glightbox"><img src="assets/images/07_full_end2end_example.png" alt="Kafka Connect SMT"></a>
 </div>
 
 ---
@@ -110,13 +110,13 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 **Field-Level Encryption with Source Connectors**
 
 <div class="k4k-module-img">
-<a href="assets/images/03a_csflc_source_connectors.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/03a_csflc_source_connectors.png" alt="Kafka Connect SMT"></a>
+<a href="assets/images/03a_csflc_source_connectors.png" class="glightbox"><img src="assets/images/03a_csflc_source_connectors.png" alt="Kafka Connect SMT"></a>
 </div>
 
 **Field-Level Decryption with Sink Connectors**
 
 <div class="k4k-module-img">
-<a href="assets/images/03b_csflc_sink_connectors.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/03b_csflc_sink_connectors.png" alt="Kafka Connect SMT"></a>
+<a href="assets/images/03b_csflc_sink_connectors.png" class="glightbox"><img src="assets/images/03b_csflc_sink_connectors.png" alt="Kafka Connect SMT"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
@@ -136,13 +136,13 @@ The `CipherField` Single Message Transformation (SMT) encrypts or decrypts paylo
 **Field-Level Encryption with UDFs in Flink SQL**
 
 <div class="k4k-module-img">
-<a href="assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
+<a href="assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox"><img src="assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
 </div>
 
 **Field-Level Decryption with UDFs in Flink SQL**
 
 <div class="k4k-module-img">
-<a href="assets/images/04b_csflc_flink_sql_udf_decryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/04b_csflc_flink_sql_udf_decryption.png" alt="Apache Flink UDFs"></a>
+<a href="assets/images/04b_csflc_flink_sql_udf_decryption.png" class="glightbox"><img src="assets/images/04b_csflc_flink_sql_udf_decryption.png" alt="Apache Flink UDFs"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
@@ -162,13 +162,13 @@ Multiple user-defined functions (`K4K_ENCRYPT_*`/`K4K_DECRYPT_*`) can be applied
 **Field-Level Encryption with UDFs in ksqlDB**
 
 <div class="k4k-module-img">
-<a href="assets/images/05a_csflc_ksqldb_encryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/05a_csflc_ksqldb_encryption.png" alt="ksqlDB UDFs"></a>
+<a href="assets/images/05a_csflc_ksqldb_encryption.png" class="glightbox"><img src="assets/images/05a_csflc_ksqldb_encryption.png" alt="ksqlDB UDFs"></a>
 </div>
 
 **Field-Level Decryption with UDFs in ksqlDB**
 
 <div class="k4k-module-img">
-<a href="assets/images/05b_csflc_ksqldb_decryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/05b_csflc_ksqldb_decryption.png" alt="ksqlDB UDFs"></a>
+<a href="assets/images/05b_csflc_ksqldb_decryption.png" class="glightbox"><img src="assets/images/05b_csflc_ksqldb_decryption.png" alt="ksqlDB UDFs"></a>
 </div>
 
 <div class="k4k-module-body" markdown>
@@ -188,13 +188,13 @@ Multiple user-defined functions (`K4KENCRYPT*`/`K4KDECRYPT*`) can be applied in 
 **Field-Level Encryption with HTTP API**
 
 <div class="k4k-module-img">
-<a href="assets/images/06a_csflc_quarkus_funqy_encryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/06a_csflc_quarkus_funqy_encryption.png" alt="Quarkus HTTP API"></a>
+<a href="assets/images/06a_csflc_quarkus_funqy_encryption.png" class="glightbox"><img src="assets/images/06a_csflc_quarkus_funqy_encryption.png" alt="Quarkus HTTP API"></a>
 </div>
 
 **Field-Level Decryption with HTTP API**
 
 <div class="k4k-module-img">
-<a href="assets/images/06b_csflc_quarkus_funqy_decryption.png" class="glightbox" data-glightbox="type: image"><img src="assets/images/06b_csflc_quarkus_funqy_decryption.png" alt="Quarkus HTTP API"></a>
+<a href="assets/images/06b_csflc_quarkus_funqy_decryption.png" class="glightbox"><img src="assets/images/06b_csflc_quarkus_funqy_decryption.png" alt="Quarkus HTTP API"></a>
 </div>
 
 <div class="k4k-module-body" markdown>

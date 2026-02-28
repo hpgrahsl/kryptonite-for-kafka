@@ -32,13 +32,17 @@ theme:
 
 extra_css:
   - assets/stylesheets/extra.css
+  - https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js
+  - assets/javascripts/glightbox-init.js
 
 exclude_docs: |
   getting-started/
 
 plugins:
   - search
-  - glightbox
 
 markdown_extensions:
   - admonition
@@ -68,7 +72,7 @@ nav:
     # - Kafka Connect SMT: getting-started/connect-smt.md
     # - Apache Flink UDFs: getting-started/flink-udfs.md
     # - ksqlDB UDFs: getting-started/ksqldb-udfs.md
-    # - Quarkus HTTP API: getting-started/funqy-http.md
+    # - Quarkus HTTP Service: getting-started/funqy-http.md
   - Key Management: key-management.md
   - Cloud KMS:
     - Overview: kms/overview.md
@@ -80,6 +84,6 @@ nav:
     - Apache Kafka Connect SMT: modules/connect-smt.md
     - Apache Flink UDFs: modules/flink-udfs.md
     - ksqlDB UDFs: modules/ksqldb-udfs.md
-    - Quarkus HTTP API: modules/funqy-http.md
+    - Quarkus HTTP Service: modules/funqy-http.md
   - Security: security.md
   - Configuration: configuration.md
