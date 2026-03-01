@@ -41,7 +41,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
 @UdfDescription(
-    name = "k4kencryptfpe",
+    name = "k4k_encrypt_fpe",
     description = "🔒 encrypt field data using format preserving encryption (FPE)",
     version = "0.4.0",
     author = "H.P. Grahsl (@hpgrahsl)",

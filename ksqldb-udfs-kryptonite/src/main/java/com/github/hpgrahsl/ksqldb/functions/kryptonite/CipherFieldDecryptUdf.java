@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
-import org.checkerframework.checker.units.qual.t;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +40,7 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 
 @UdfDescription(
-    name = "k4kdecrypt",
+    name = "k4k_decrypt",
     description = "🔓 decrypt field data",
     version = "0.4.0",
     author = "H.P. Grahsl (@hpgrahsl)",
