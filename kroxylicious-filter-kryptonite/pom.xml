@@ -14,11 +14,11 @@
     <packaging>jar</packaging>
 
     <properties>
+        <kroxylicious.extension.version>0.15.0</kroxylicious.extension.version>
         <kroxylicious.version>0.18.0</kroxylicious.version>
         <jackson.version>2.20.0</jackson.version>
         <kafka.version>4.1.1</kafka.version>
         <confluent.version>7.9.0</confluent.version>
-        <kryo.version>5.6.2</kryo.version>
         <junit.version>5.14.0</junit.version>
         <mockito.version>5.20.0</mockito.version>
         <log4j.version>2.25.2</log4j.version>
@@ -30,6 +30,7 @@
         <maven.compiler.testRelease>${java.version}</maven.compiler.testRelease>
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <maven.failsafe.version>3.5.4</maven.failsafe.version>
+        <maven.shade.version>3.6.0</maven.shade.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -82,59 +83,21 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Kryptonite core - field-level crypto library -->
+        <!-- Kryptonite core - field-level crypto library (bundled in fat JAR) -->
         <dependency>
             <groupId>com.github.hpgrahsl</groupId>
             <artifactId>kryptonite</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
 
-        <!-- Kroxylicious filter API - provided by proxy runtime -->
+        <!-- kryptonite-serdes-converters - provides KryoInstance (bundled in fat JAR) -->
         <dependency>
-            <groupId>io.kroxylicious</groupId>
-            <artifactId>kroxylicious-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kroxylicious</groupId>
-            <artifactId>kroxylicious-kafka-message-tools</artifactId>
+            <groupId>com.github.hpgrahsl</groupId>
+            <artifactId>kryptonite-serdes-converters</artifactId>
+            <version>0.1.0</version>
         </dependency>
 
-        <!-- Jackson - JSON processing for record traversal and config deserialization -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </dependency>
-
-        <!-- Kafka clients - Kafka protocol message classes -->
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>${kafka.version}</version>
-        </dependency>
-
-        <!-- SLF4J - logging API -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
-        <!-- Kryo - EncryptedField serialization (wire-format compatible with Connect SMT) -->
-        <dependency>
-            <groupId>com.esotericsoftware</groupId>
-            <artifactId>kryo</artifactId>
-            <version>${kryo.version}</version>
-        </dependency>
-
-        <!-- Confluent Schema Registry client + JSON Schema provider -->
+        <!-- Confluent Schema Registry client + JSON Schema provider (bundled in fat JAR) -->
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-schema-registry-client</artifactId>
@@ -146,7 +109,68 @@
             <version>${confluent.version}</version>
         </dependency>
 
+        <!-- Provided by the Kroxylicious proxy runtime - NOT bundled in fat JAR -->
+        <dependency>
+            <groupId>io.kroxylicious</groupId>
+            <artifactId>kroxylicious-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kroxylicious</groupId>
+            <artifactId>kroxylicious-kafka-message-tools</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Test dependencies -->
+        <dependency>
+            <groupId>io.kroxylicious</groupId>
+            <artifactId>kroxylicious-integration-test-support</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kroxylicious</groupId>
+            <artifactId>kroxylicious-runtime</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kroxylicious.testing</groupId>
+            <artifactId>testing-junit5-extension</artifactId>
+            <scope>test</scope>
+            <version>${kroxylicious.extension.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kroxylicious.testing</groupId>
+            <artifactId>testing-impl</artifactId>
+            <scope>test</scope>
+            <version>${kroxylicious.extension.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j2-impl</artifactId>
@@ -164,9 +188,10 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.13</artifactId>
             <scope>test</scope>
+            <version>${kafka.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -178,15 +203,31 @@
             <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.kroxylicious</groupId>
-            <artifactId>kroxylicious-filter-test-support</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven.shade.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Replace the thin JAR — the fat JAR is the deployable artifact -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <!-- Merge all META-INF/services/* entries so ServiceLoader works correctly -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>

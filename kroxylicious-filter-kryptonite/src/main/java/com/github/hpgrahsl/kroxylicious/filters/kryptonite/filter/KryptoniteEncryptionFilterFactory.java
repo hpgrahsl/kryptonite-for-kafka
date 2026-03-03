@@ -61,7 +61,7 @@ public class KryptoniteEncryptionFilterFactory
     private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig cfg) {
         RecordFormat format = cfg.getRecordFormat() != null ? cfg.getRecordFormat() : RecordFormat.JSON_SR;
         return switch (format) {
-            case PLAIN_JSON -> new PlainJsonRecordProcessor(kryptonite, cfg.getCipherDataKeyIdentifier());
+            case JSON -> new PlainJsonRecordProcessor(kryptonite, cfg.getCipherDataKeyIdentifier());
             case JSON_SR -> {
                 SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
                         List.of(cfg.getSchemaRegistryUrl()), 100,
