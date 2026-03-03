@@ -3,7 +3,9 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.RecordFormat;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.JsonSchemaRegistryRecordProcessor;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.PlainJsonRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldConfigResolver;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.ConfluentSchemaRegistryAdapter;
@@ -51,15 +53,24 @@ public class KryptoniteDecryptionFilterFactory
                 cfg.getSchemaRegistryUrl(), cfg.getRecordFormat(), cfg.getSchemaMode());
 
         Kryptonite kryptonite = Kryptonite.createFromConfig(toConfigMap(cfg));
-        SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
-                List.of(cfg.getSchemaRegistryUrl()),
-                100,
-                List.of(new JsonSchemaProvider()),
-                cfg.getSchemaRegistryConfig());
-        SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
-        RecordValueProcessor processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, "");
+        RecordValueProcessor processor = createProcessor(kryptonite, cfg);
         TopicFieldConfigResolver resolver = new TopicFieldConfigResolver(cfg.getTopicFieldConfigs());
         return new KryptoniteDecryptionFilter(processor, resolver);
+    }
+
+    private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig cfg) {
+        RecordFormat format = cfg.getRecordFormat() != null ? cfg.getRecordFormat() : RecordFormat.JSON_SR;
+        return switch (format) {
+            case PLAIN_JSON -> new PlainJsonRecordProcessor(kryptonite, "");
+            case JSON_SR -> {
+                SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
+                        List.of(cfg.getSchemaRegistryUrl()), 100,
+                        List.of(new JsonSchemaProvider()), cfg.getSchemaRegistryConfig());
+                SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
+                yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, "");
+            }
+            default -> throw new IllegalArgumentException("Unsupported recordFormat for decryption: " + format);
+        };
     }
 
     private static Map<String, String> toConfigMap(KryptoniteFilterConfig cfg) {
