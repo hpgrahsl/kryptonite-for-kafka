@@ -12,7 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,10 +23,10 @@ import java.util.stream.Collectors;
  *
  * <p>Used internally by {@link ConfluentSchemaRegistryAdapter} — not exposed to processors.
  *
- * <p>v1 coverage: object {@code properties} at any nesting depth, primitive leaf types
- * ({@code string}, {@code number}, {@code integer}, {@code boolean}).
- * NOT supported in v1: {@code $ref}, array {@code items}, {@code oneOf}/{@code anyOf}/{@code allOf}.
- * Unsupported paths pass through with their original type unchanged.
+ * <p>v1 coverage: object {@code properties} at any nesting depth; primitive leaf types;
+ * array fields (ELEMENT mode: {@code items} replaced with {@code {"type":"string"}});
+ * object fields (ELEMENT mode: each direct property type replaced with {@code "string"}).
+ * NOT supported in v1: {@code $ref}, {@code oneOf}/{@code anyOf}/{@code allOf}.
  */
 class JsonSchemaDeriver {
 
@@ -34,23 +36,34 @@ class JsonSchemaDeriver {
     /**
      * Produce path: derives the encrypted schema from the original.
      *
-     * <p>Replaces each {@link FieldConfig} dot-path leaf {@code type} with {@code "string"}.
-     * Injects {@code x-kryptonite} extension block with {@code originalSchemaId} and
-     * {@code encryptedFields} list.
-     *
-     * @param originalSchemaJson   raw JSON Schema string from SR
-     * @param originalSchemaId     SR schema ID of the original schema
-     * @param encryptedFieldConfigs fields to encrypt (dot-path names)
-     * @return the derived encrypted schema as a JSON string
+     * <p>OBJECT mode (default): replaces the dot-path leaf {@code type} with {@code "string"}.
+     * ELEMENT mode on arrays: replaces the field's {@code items} with {@code {"type":"string"}}.
+     * ELEMENT mode on objects: replaces each direct property type with {@code "string"}.
+     * Injects {@code x-kryptonite} extension block with {@code originalSchemaId},
+     * {@code encryptedFields} list, and optional {@code encryptedFieldModes} map
+     * (only present when ELEMENT-mode fields exist).
      */
     String deriveEncrypted(String originalSchemaJson, int originalSchemaId,
                            Set<FieldConfig> encryptedFieldConfigs) {
         try {
             ObjectNode root = (ObjectNode) MAPPER.readTree(originalSchemaJson);
             List<String> encryptedFieldNames = new ArrayList<>();
+            Map<String, String> encryptedFieldModes = new LinkedHashMap<>();
 
             for (FieldConfig fc : encryptedFieldConfigs) {
-                boolean replaced = replaceLeafType(root, fc.getName(), "string");
+                FieldConfig.FieldMode mode = fc.getFieldMode().orElse(null);
+                boolean replaced;
+                if (mode == FieldConfig.FieldMode.ELEMENT) {
+                    replaced = replaceArrayItemsType(root, fc.getName(), "string");
+                    if (!replaced) {
+                        replaced = replaceObjectPropertyTypes(root, fc.getName(), "string");
+                    }
+                    if (replaced) {
+                        encryptedFieldModes.put(fc.getName(), "ELEMENT");
+                    }
+                } else {
+                    replaced = replaceLeafType(root, fc.getName(), "string");
+                }
                 if (replaced) {
                     encryptedFieldNames.add(fc.getName());
                 } else {
@@ -58,11 +71,14 @@ class JsonSchemaDeriver {
                 }
             }
 
-            // Inject x-kryptonite extension block
             ObjectNode xKryptonite = MAPPER.createObjectNode();
             xKryptonite.put("originalSchemaId", originalSchemaId);
             ArrayNode encryptedFieldsNode = xKryptonite.putArray("encryptedFields");
             encryptedFieldNames.forEach(encryptedFieldsNode::add);
+            if (!encryptedFieldModes.isEmpty()) {
+                ObjectNode modesNode = xKryptonite.putObject("encryptedFieldModes");
+                encryptedFieldModes.forEach(modesNode::put);
+            }
             root.set("x-kryptonite", xKryptonite);
 
             return MAPPER.writeValueAsString(root);
@@ -74,18 +90,9 @@ class JsonSchemaDeriver {
     /**
      * Consume path: derives the partial-decrypt schema.
      *
-     * <p>Restores decrypted field types from the original schema; still-encrypted fields
-     * remain typed as {@code "string"} from the encrypted schema. Injects {@code x-kryptonite}
-     * block with {@code encryptedSchemaId}, {@code decryptedFields}, {@code stillEncryptedFields}.
-     *
-     * <p>Only called when {@code decryptedFieldConfigs} is a strict subset of all encrypted fields.
-     *
-     * @param originalSchemaJson    raw JSON Schema for the original (plaintext) record
-     * @param encryptedSchemaJson   raw JSON Schema for the encrypted record
-     * @param encryptedSchemaId     SR schema ID of the encrypted schema
-     * @param decryptedFieldConfigs fields being decrypted by this consumer filter instance
-     * @param allEncryptedFields    full list of encrypted field names (from x-kryptonite block)
-     * @return the derived partial-decrypt schema as a JSON string
+     * <p>Reads {@code encryptedFieldModes} from the encrypted schema's x-kryptonite block to
+     * determine how to restore each decrypted field's type. Still-encrypted fields retain their
+     * encrypted type representation. Propagates remaining mode entries for still-encrypted fields.
      */
     String derivePartialDecrypt(String originalSchemaJson, String encryptedSchemaJson,
                                 int encryptedSchemaId, Set<FieldConfig> decryptedFieldConfigs,
@@ -94,6 +101,9 @@ class JsonSchemaDeriver {
             ObjectNode originalRoot = (ObjectNode) MAPPER.readTree(originalSchemaJson);
             ObjectNode encryptedRoot = (ObjectNode) MAPPER.readTree(encryptedSchemaJson);
 
+            // Read field modes before removing x-kryptonite block
+            Map<String, String> encryptedFieldModes = readFieldModes(encryptedRoot);
+
             Set<String> decryptedNames = decryptedFieldConfigs.stream()
                     .map(FieldConfig::getName)
                     .collect(Collectors.toSet());
@@ -101,22 +111,33 @@ class JsonSchemaDeriver {
                     .filter(f -> !decryptedNames.contains(f))
                     .collect(Collectors.toList());
 
-            // Start from encrypted schema (still-encrypted fields already typed as string)
-            // and restore original types for decrypted fields
             for (String fieldName : decryptedNames) {
-                restoreLeafType(encryptedRoot, originalRoot, fieldName);
+                if ("ELEMENT".equals(encryptedFieldModes.getOrDefault(fieldName, "OBJECT"))) {
+                    restoreElementModeTypes(encryptedRoot, originalRoot, fieldName);
+                } else {
+                    restoreLeafType(encryptedRoot, originalRoot, fieldName);
+                }
             }
 
-            // Remove any existing x-kryptonite block (was for the encrypted schema)
             encryptedRoot.remove("x-kryptonite");
 
-            // Inject new x-kryptonite block for the partial-decrypt schema
             ObjectNode xKryptonite = MAPPER.createObjectNode();
             xKryptonite.put("encryptedSchemaId", encryptedSchemaId);
             ArrayNode decryptedNode = xKryptonite.putArray("decryptedFields");
             decryptedNames.stream().sorted().forEach(decryptedNode::add);
             ArrayNode stillEncryptedNode = xKryptonite.putArray("stillEncryptedFields");
             stillEncrypted.forEach(stillEncryptedNode::add);
+            // Propagate modes for still-encrypted ELEMENT-mode fields
+            Map<String, String> stillEncryptedModes = new LinkedHashMap<>();
+            stillEncrypted.forEach(f -> {
+                if (encryptedFieldModes.containsKey(f)) {
+                    stillEncryptedModes.put(f, encryptedFieldModes.get(f));
+                }
+            });
+            if (!stillEncryptedModes.isEmpty()) {
+                ObjectNode modesNode = xKryptonite.putObject("encryptedFieldModes");
+                stillEncryptedModes.forEach(modesNode::put);
+            }
             encryptedRoot.set("x-kryptonite", xKryptonite);
 
             return MAPPER.writeValueAsString(encryptedRoot);
@@ -149,70 +170,139 @@ class JsonSchemaDeriver {
         }
     }
 
+    // ---- Schema tree navigation ----
+
     /**
-     * Walks the schema {@code properties} tree following the dot-path and replaces
-     * the leaf node's {@code type} field with the given type string.
-     *
-     * @return true if the leaf was found and replaced; false if the path is absent in the schema
+     * Navigates the schema {@code properties} tree following the dot-path and returns
+     * the field schema {@link ObjectNode} at the end of the path, or {@code null} if absent.
      */
-    private boolean replaceLeafType(ObjectNode schemaRoot, String dotPath, String newType) {
+    private ObjectNode navigateToFieldNode(ObjectNode schemaRoot, String dotPath) {
         String[] parts = dotPath.split("\\.");
         ObjectNode current = schemaRoot;
 
         for (int i = 0; i < parts.length - 1; i++) {
             JsonNode props = current.get("properties");
-            if (props == null || !props.isObject()) return false;
+            if (props == null || !props.isObject()) return null;
             JsonNode next = props.get(parts[i]);
-            if (next == null || !next.isObject()) return false;
+            if (next == null || !next.isObject()) return null;
             current = (ObjectNode) next;
         }
 
         String leafName = parts[parts.length - 1];
         JsonNode props = current.get("properties");
-        if (props == null || !props.isObject()) return false;
+        if (props == null || !props.isObject()) return null;
         JsonNode leaf = props.get(leafName);
-        if (leaf == null || !leaf.isObject()) return false;
+        return (leaf != null && leaf.isObject()) ? (ObjectNode) leaf : null;
+    }
 
-        ((ObjectNode) leaf).put("type", newType);
+    // ---- Encrypt-side schema transformations ----
+
+    /** OBJECT mode (default): replaces the entire field schema with {@code {"type": newType}},
+     *  discarding any leftover {@code properties}, {@code required}, {@code items}, etc. */
+    private boolean replaceLeafType(ObjectNode schemaRoot, String dotPath, String newType) {
+        ObjectNode leaf = navigateToFieldNode(schemaRoot, dotPath);
+        if (leaf == null) return false;
+        leaf.removeAll();
+        leaf.put("type", newType);
         return true;
     }
 
     /**
-     * Restores the leaf node's {@code type} in {@code targetRoot} to the value found in
-     * {@code sourceRoot} at the same dot-path. Used for partial-decrypt schema derivation.
+     * ELEMENT mode for array fields: replaces the field's {@code items} node with
+     * {@code {"type": newItemType}}.
      */
+    private boolean replaceArrayItemsType(ObjectNode schemaRoot, String dotPath, String newItemType) {
+        ObjectNode fieldNode = navigateToFieldNode(schemaRoot, dotPath);
+        if (fieldNode == null) return false;
+        JsonNode typeNode = fieldNode.get("type");
+        if (typeNode == null || !"array".equals(typeNode.asText())) return false;
+        ObjectNode newItems = MAPPER.createObjectNode();
+        newItems.put("type", newItemType);
+        fieldNode.set("items", newItems);
+        return true;
+    }
+
+    /**
+     * ELEMENT mode for object fields: replaces each direct property schema with
+     * {@code {"type": newValueType}}. Falls back to {@code additionalProperties} if
+     * no explicit {@code properties} block is present.
+     */
+    private boolean replaceObjectPropertyTypes(ObjectNode schemaRoot, String dotPath, String newValueType) {
+        ObjectNode fieldNode = navigateToFieldNode(schemaRoot, dotPath);
+        if (fieldNode == null) return false;
+        JsonNode typeNode = fieldNode.get("type");
+        if (typeNode == null || !"object".equals(typeNode.asText())) return false;
+        JsonNode propsNode = fieldNode.get("properties");
+        if (propsNode instanceof ObjectNode props) {
+            List<String> keys = new ArrayList<>();
+            props.fieldNames().forEachRemaining(keys::add);
+            for (String key : keys) {
+                ObjectNode newPropSchema = MAPPER.createObjectNode();
+                newPropSchema.put("type", newValueType);
+                props.set(key, newPropSchema);
+            }
+            return true;
+        }
+        JsonNode additionalProps = fieldNode.get("additionalProperties");
+        if (additionalProps instanceof ObjectNode ap) {
+            ap.put("type", newValueType);
+            return true;
+        }
+        return false;
+    }
+
+    // ---- Decrypt-side schema restorations ----
+
+    /** OBJECT mode (default): replaces the entire field schema node with a deep copy of the
+     *  original, restoring {@code type}, {@code properties}, {@code required}, etc. */
     private void restoreLeafType(ObjectNode targetRoot, ObjectNode sourceRoot, String dotPath) {
-        String[] parts = dotPath.split("\\.");
-        ObjectNode targetCurrent = targetRoot;
-        ObjectNode sourceCurrent = sourceRoot;
+        ObjectNode targetLeaf = navigateToFieldNode(targetRoot, dotPath);
+        ObjectNode sourceLeaf = navigateToFieldNode(sourceRoot, dotPath);
+        if (targetLeaf == null || sourceLeaf == null) return;
+        targetLeaf.removeAll();
+        sourceLeaf.properties().forEach(e -> targetLeaf.set(e.getKey(), e.getValue().deepCopy()));
+    }
 
-        for (int i = 0; i < parts.length - 1; i++) {
-            JsonNode targetProps = targetCurrent.get("properties");
-            JsonNode sourceProps = sourceCurrent.get("properties");
-            if (targetProps == null || !targetProps.isObject()) return;
-            if (sourceProps == null || !sourceProps.isObject()) return;
-            JsonNode targetNext = targetProps.get(parts[i]);
-            JsonNode sourceNext = sourceProps.get(parts[i]);
-            if (targetNext == null || !targetNext.isObject()) return;
-            if (sourceNext == null || !sourceNext.isObject()) return;
-            targetCurrent = (ObjectNode) targetNext;
-            sourceCurrent = (ObjectNode) sourceNext;
+    /**
+     * ELEMENT mode: restores {@code items} (array field) or {@code properties} (object field)
+     * from {@code sourceRoot}, determined by the field's actual {@code type} in the encrypted schema.
+     */
+    private void restoreElementModeTypes(ObjectNode targetRoot, ObjectNode sourceRoot, String dotPath) {
+        ObjectNode targetField = navigateToFieldNode(targetRoot, dotPath);
+        ObjectNode sourceField = navigateToFieldNode(sourceRoot, dotPath);
+        if (targetField == null || sourceField == null) return;
+
+        JsonNode typeNode = targetField.get("type");
+        String fieldType = typeNode != null ? typeNode.asText() : "";
+
+        if ("array".equals(fieldType)) {
+            JsonNode sourceItems = sourceField.get("items");
+            if (sourceItems != null) {
+                targetField.set("items", sourceItems.deepCopy());
+            }
+        } else if ("object".equals(fieldType)) {
+            JsonNode sourceProps = sourceField.get("properties");
+            if (sourceProps instanceof ObjectNode sp) {
+                JsonNode targetProps = targetField.get("properties");
+                if (targetProps instanceof ObjectNode tp) {
+                    sp.properties().forEach(entry ->
+                            tp.set(entry.getKey(), entry.getValue().deepCopy()));
+                }
+            }
         }
+    }
 
-        String leafName = parts[parts.length - 1];
-        JsonNode targetProps = targetCurrent.get("properties");
-        JsonNode sourceProps = sourceCurrent.get("properties");
-        if (targetProps == null || !targetProps.isObject()) return;
-        if (sourceProps == null || !sourceProps.isObject()) return;
-        JsonNode targetLeaf = targetProps.get(leafName);
-        JsonNode sourceLeaf = sourceProps.get(leafName);
-        if (targetLeaf == null || !targetLeaf.isObject()) return;
-        if (sourceLeaf == null || !sourceLeaf.isObject()) return;
+    // ---- Utility ----
 
-        JsonNode sourceType = sourceLeaf.get("type");
-        if (sourceType != null) {
-            ((ObjectNode) targetLeaf).set("type", sourceType.deepCopy());
-        }
+    /** Reads the optional {@code encryptedFieldModes} map from the schema's x-kryptonite block. */
+    private static Map<String, String> readFieldModes(ObjectNode schemaRoot) {
+        Map<String, String> modes = new LinkedHashMap<>();
+        JsonNode xk = schemaRoot.get("x-kryptonite");
+        if (xk == null) return modes;
+        JsonNode modesNode = xk.get("encryptedFieldModes");
+        if (!(modesNode instanceof ObjectNode mn)) return modes;
+        mn.properties().forEach(e -> modes.put(e.getKey(), e.getValue().asText()));
+        return modes;
     }
 
     static class SchemaDerivationException extends RuntimeException {

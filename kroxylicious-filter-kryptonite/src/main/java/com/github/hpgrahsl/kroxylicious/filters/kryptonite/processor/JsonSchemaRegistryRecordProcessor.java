@@ -3,6 +3,9 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
@@ -54,6 +57,7 @@ import java.util.Set;
 public class JsonSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(JsonSchemaRegistryRecordProcessor.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Kryptonite kryptonite;
     private final SchemaRegistryAdapter adapter;
@@ -76,12 +80,18 @@ public class JsonSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 LOG.trace("encrypt: field '{}' not found in record for topic '{}' — skipping", fc.getName(), topicName);
                 continue;
             }
-            JsonNode leafNode = (JsonNode) fieldValue;
-            byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(leafNode);
-            PayloadMetaData metadata = buildPayloadMetaData(fc);
-            EncryptedField encryptedField = kryptonite.cipherField(plaintext, metadata);
-            String encoded = encodeEncryptedField(encryptedField);
-            accessor.setField(fc.getName(), encoded);
+            JsonNode node = (JsonNode) fieldValue;
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
+
+            if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
+                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc));
+            } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
+                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc));
+            } else {
+                byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(node);
+                EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
+                accessor.setField(fc.getName(), encodeEncryptedField(ef));
+            }
             LOG.trace("encrypt: field '{}' encrypted in topic '{}'", fc.getName(), topicName);
         }
 
@@ -102,15 +112,21 @@ public class JsonSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 LOG.trace("decrypt: field '{}' not found in record for topic '{}' — skipping", fc.getName(), topicName);
                 continue;
             }
-            if (!(fieldValue instanceof JsonNode leafNode) || !leafNode.isTextual()) {
-                LOG.debug("decrypt: field '{}' is not a string (expected Base64-encoded ciphertext) — skipping", fc.getName());
-                continue;
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
+
+            if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ArrayNode arr) {
+                accessor.setField(fc.getName(), decryptArrayElements(arr));
+            } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ObjectNode obj) {
+                accessor.setField(fc.getName(), decryptObjectValues(obj));
+            } else {
+                if (!(fieldValue instanceof JsonNode leafNode) || !leafNode.isTextual()) {
+                    LOG.debug("decrypt: field '{}' is not a string (expected Base64-encoded ciphertext) — skipping", fc.getName());
+                    continue;
+                }
+                EncryptedField ef = decodeEncryptedField(leafNode.asText());
+                accessor.setField(fc.getName(),
+                        JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef)));
             }
-            String base64 = leafNode.asText();
-            EncryptedField encryptedField = decodeEncryptedField(base64);
-            byte[] plaintext = kryptonite.decipherField(encryptedField);
-            JsonNode restoredNode = JsonObjectNodeAccessor.bytesToNode(plaintext);
-            accessor.setField(fc.getName(), restoredNode);
             LOG.trace("decrypt: field '{}' decrypted in topic '{}'", fc.getName(), topicName);
         }
 
@@ -121,6 +137,53 @@ public class JsonSchemaRegistryRecordProcessor implements RecordValueProcessor {
     }
 
     // --- Internal helpers ---
+
+    private ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc) {
+        ArrayNode result = MAPPER.createArrayNode();
+        for (JsonNode element : source) {
+            byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(element);
+            EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
+            result.add(encodeEncryptedField(ef));
+        }
+        return result;
+    }
+
+    private ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc) {
+        ObjectNode result = MAPPER.createObjectNode();
+        source.fields().forEachRemaining(entry -> {
+            byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(entry.getValue());
+            EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
+            result.put(entry.getKey(), encodeEncryptedField(ef));
+        });
+        return result;
+    }
+
+    private ArrayNode decryptArrayElements(ArrayNode source) {
+        ArrayNode result = MAPPER.createArrayNode();
+        for (JsonNode element : source) {
+            if (element.isTextual()) {
+                EncryptedField ef = decodeEncryptedField(element.asText());
+                result.add(JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef)));
+            } else {
+                result.add(element); // non-textual: pass through unchanged
+            }
+        }
+        return result;
+    }
+
+    private ObjectNode decryptObjectValues(ObjectNode source) {
+        ObjectNode result = MAPPER.createObjectNode();
+        source.fields().forEachRemaining(entry -> {
+            JsonNode value = entry.getValue();
+            if (value.isTextual()) {
+                EncryptedField ef = decodeEncryptedField(value.asText());
+                result.set(entry.getKey(), JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef)));
+            } else {
+                result.set(entry.getKey(), value); // non-textual: pass through unchanged
+            }
+        });
+        return result;
+    }
 
     private PayloadMetaData buildPayloadMetaData(FieldConfig fc) {
         String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
