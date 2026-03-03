@@ -1,9 +1,14 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
+
+import java.io.ByteArrayOutputStream;
 
 /**
  * v1 {@link StructuredRecordAccessor} for JSON Schema records.
@@ -16,10 +21,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * {@code ObjectNode} levels. The {@code null}/missing-path cases return {@code null}
  * from {@link #getField} so callers skip silently.
  *
- * <p>Type restoration on decrypt is implicit: Kryptonite encrypts
- * {@code objectMapper.writeValueAsBytes(leafNode)}, so decrypting and calling
- * {@code objectMapper.readTree(decryptedBytes)} naturally restores the original JSON type
- * (integer, string, boolean, etc.) from the self-describing JSON bytes.
+ * <p>Type restoration on decrypt uses Kryo ({@code writeClassAndObject}/{@code readClassAndObject})
+ * for the inner plaintext bytes, which is wire-format-compatible with Connect SMT, ksqlDB UDFs,
+ * Flink UDFs, and the Funqy HTTP module.
  */
 public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
 
@@ -111,24 +115,36 @@ public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
     }
 
     /**
-     * Serializes a single {@link JsonNode} to bytes (used to get plaintext bytes for encryption).
+     * Serializes a single {@link JsonNode} to Kryo bytes compatible with all other Kryptonite modules.
+     *
+     * <p>Converts the {@link JsonNode} to its natural Java value first (String, Boolean, Integer,
+     * Long, Double, Map, List, null), then uses {@code writeClassAndObject} — matching the format
+     * produced by {@code KryoSerdeProcessor.objectToBytes()} in Connect SMT, ksqlDB, Flink, and Funqy.
      */
     public static byte[] nodeToBytes(JsonNode node) {
         try {
-            return MAPPER.writeValueAsBytes(node);
+            Object javaValue = MAPPER.treeToValue(node, Object.class);
+            Output output = new Output(new ByteArrayOutputStream());
+            KryoInstance.get().writeClassAndObject(output, javaValue);
+            return output.toBytes();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize JsonNode", e);
+            throw new RuntimeException("Failed to serialize JsonNode to Kryo bytes", e);
         }
     }
 
     /**
-     * Parses bytes back to a {@link JsonNode} (used to restore the original type after decryption).
+     * Restores a {@link JsonNode} from Kryo bytes produced by any Kryptonite module.
+     *
+     * <p>Uses {@code readClassAndObject} to recover the Java value, then converts it back
+     * to a {@link JsonNode} via Jackson — matching the format read by
+     * {@code KryoSerdeProcessor.bytesToObject()} in Connect SMT, ksqlDB, Flink, and Funqy.
      */
     public static JsonNode bytesToNode(byte[] bytes) {
         try {
-            return MAPPER.readTree(bytes);
+            Object javaValue = KryoInstance.get().readClassAndObject(new Input(bytes));
+            return MAPPER.valueToTree(javaValue);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse JsonNode from bytes", e);
+            throw new RuntimeException("Failed to restore JsonNode from Kryo bytes", e);
         }
     }
 }

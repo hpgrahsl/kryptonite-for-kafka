@@ -57,7 +57,7 @@ public class KryptoniteEncryptionFilterFactory
                 List.of(new JsonSchemaProvider()),
                 cfg.getSchemaRegistryConfig());
         SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
-        RecordValueProcessor processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter);
+        RecordValueProcessor processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, cfg.getCipherDataKeyIdentifier());
         TopicFieldConfigResolver resolver = new TopicFieldConfigResolver(cfg.getTopicFieldConfigs());
         return new KryptoniteEncryptionFilter(processor, resolver);
     }
@@ -71,6 +71,7 @@ public class KryptoniteEncryptionFilterFactory
         config.put("kek_type", cfg.getKekType());
         config.put("kek_uri", cfg.getKekUri());
         config.put("kek_config", cfg.getKekConfig());
+        config.put("cipher_data_key_identifier", cfg.getCipherDataKeyIdentifier());
 
         // Serialize cipherDataKeys list to JSON string as expected by Kryptonite.createFromConfig
         try {

@@ -57,7 +57,7 @@ public class KryptoniteDecryptionFilterFactory
                 List.of(new JsonSchemaProvider()),
                 cfg.getSchemaRegistryConfig());
         SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
-        RecordValueProcessor processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter);
+        RecordValueProcessor processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, "");
         TopicFieldConfigResolver resolver = new TopicFieldConfigResolver(cfg.getTopicFieldConfigs());
         return new KryptoniteDecryptionFilter(processor, resolver);
     }

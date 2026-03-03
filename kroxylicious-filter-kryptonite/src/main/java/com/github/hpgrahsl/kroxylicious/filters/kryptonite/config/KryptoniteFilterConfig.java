@@ -13,12 +13,13 @@ import java.util.Map;
 public class KryptoniteFilterConfig {
 
     // --- Key management ---
-    private final String keySource;           // CONFIG | CONFIG_ENCRYPTED | KMS | KMS_ENCRYPTED
-    private final String cipherAlgorithm;     // default: "TINK/AES_GCM"
+    private final String keySource;                 // CONFIG | CONFIG_ENCRYPTED | KMS | KMS_ENCRYPTED
+    private final String cipherAlgorithm;           // default: "TINK/AES_GCM"
+    private final String cipherDataKeyIdentifier;   // default key id used when a field has no per-field keyId
     private final List<Map<String, Object>> cipherDataKeys;
-    private final String kmsType;             // AZ_KV_SECRETS | AWS_SM_SECRETS | GCP_SM_SECRETS | NONE
+    private final String kmsType;                   // AZ_KV_SECRETS | AWS_SM_SECRETS | GCP_SM_SECRETS | NONE
     private final String kmsConfig;
-    private final String kekType;             // GCP | AWS | AZURE | NONE
+    private final String kekType;                   // GCP | AWS | AZURE | NONE
     private final String kekUri;
     private final String kekConfig;
 
@@ -38,6 +39,7 @@ public class KryptoniteFilterConfig {
     public KryptoniteFilterConfig(
             @JsonProperty(value = "keySource") String keySource,
             @JsonProperty(value = "cipherAlgorithm") String cipherAlgorithm,
+            @JsonProperty(value = "cipherDataKeyIdentifier") String cipherDataKeyIdentifier,
             @JsonProperty(value = "cipherDataKeys") List<Map<String, Object>> cipherDataKeys,
             @JsonProperty(value = "kmsType") String kmsType,
             @JsonProperty(value = "kmsConfig") String kmsConfig,
@@ -51,6 +53,7 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "topicFieldConfigs", required = true) List<TopicFieldConfig> topicFieldConfigs) {
         this.keySource = keySource != null ? keySource : "CONFIG";
         this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : "TINK/AES_GCM";
+        this.cipherDataKeyIdentifier = cipherDataKeyIdentifier != null ? cipherDataKeyIdentifier : "";
         this.cipherDataKeys = cipherDataKeys;
         this.kmsType = kmsType != null ? kmsType : "NONE";
         this.kmsConfig = kmsConfig != null ? kmsConfig : "{}";
@@ -66,6 +69,7 @@ public class KryptoniteFilterConfig {
 
     public String getKeySource() { return keySource; }
     public String getCipherAlgorithm() { return cipherAlgorithm; }
+    public String getCipherDataKeyIdentifier() { return cipherDataKeyIdentifier; }
     public List<Map<String, Object>> getCipherDataKeys() { return cipherDataKeys; }
     public String getKmsType() { return kmsType; }
     public String getKmsConfig() { return kmsConfig; }

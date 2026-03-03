@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kroxylicious.filters.kryptonite.KryptoniteKryo;
+import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
@@ -57,10 +57,12 @@ public class JsonSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private final Kryptonite kryptonite;
     private final SchemaRegistryAdapter adapter;
+    private final String defaultKeyId;
 
-    public JsonSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter) {
+    public JsonSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter, String defaultKeyId) {
         this.kryptonite = kryptonite;
         this.adapter = adapter;
+        this.defaultKeyId = defaultKeyId;
     }
 
     @Override
@@ -121,20 +123,20 @@ public class JsonSchemaRegistryRecordProcessor implements RecordValueProcessor {
     // --- Internal helpers ---
 
     private PayloadMetaData buildPayloadMetaData(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm() != null ? fc.getAlgorithm() : "TINK/AES_GCM";
+        String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
         String algorithmId = Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(algorithm));
-        String keyId = fc.getKeyId() != null ? fc.getKeyId() : "";
+        String keyId = fc.getKeyId().orElse(defaultKeyId);
         return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
     }
 
     private static String encodeEncryptedField(EncryptedField encryptedField) {
         Output output = new Output(new ByteArrayOutputStream());
-        KryptoniteKryo.get().writeObject(output, encryptedField);
+        KryoInstance.get().writeObject(output, encryptedField);
         return Base64.getEncoder().encodeToString(output.toBytes());
     }
 
     private static EncryptedField decodeEncryptedField(String base64) {
         byte[] decoded = Base64.getDecoder().decode(base64);
-        return KryptoniteKryo.get().readObject(new Input(decoded), EncryptedField.class);
+        return KryoInstance.get().readObject(new Input(decoded), EncryptedField.class);
     }
 }
