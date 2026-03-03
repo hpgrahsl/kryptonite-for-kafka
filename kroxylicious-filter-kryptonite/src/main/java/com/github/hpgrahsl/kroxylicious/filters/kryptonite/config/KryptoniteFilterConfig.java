@@ -1,0 +1,80 @@
+package com.github.hpgrahsl.kroxylicious.filters.kryptonite.config;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Jackson-deserialized configuration POJO for both Kryptonite filter factories.
+ * Key management settings mirror {@code KryptoniteSettings} constants and are fed to
+ * {@code Kryptonite.createFromConfig(toConfigMap(cfg))}.
+ */
+public class KryptoniteFilterConfig {
+
+    // --- Key management ---
+    private final String keySource;           // CONFIG | CONFIG_ENCRYPTED | KMS | KMS_ENCRYPTED
+    private final String cipherAlgorithm;     // default: "TINK/AES_GCM"
+    private final List<Map<String, Object>> cipherDataKeys;
+    private final String kmsType;             // AZ_KV_SECRETS | AWS_SM_SECRETS | GCP_SM_SECRETS | NONE
+    private final String kmsConfig;
+    private final String kekType;             // GCP | AWS | AZURE | NONE
+    private final String kekUri;
+    private final String kekConfig;
+
+    // --- Schema Registry ---
+    private final String schemaRegistryUrl;
+    private final Map<String, String> schemaRegistryConfig;
+
+    // --- Record format (v1: JSON_SR only) ---
+    private final RecordFormat recordFormat;
+
+    // --- Schema deployment mode (v1: DYNAMIC only) ---
+    private final SchemaMode schemaMode;
+
+    // --- Topic-to-field routing ---
+    private final List<TopicFieldConfig> topicFieldConfigs;
+
+    public KryptoniteFilterConfig(
+            @JsonProperty(value = "keySource") String keySource,
+            @JsonProperty(value = "cipherAlgorithm") String cipherAlgorithm,
+            @JsonProperty(value = "cipherDataKeys") List<Map<String, Object>> cipherDataKeys,
+            @JsonProperty(value = "kmsType") String kmsType,
+            @JsonProperty(value = "kmsConfig") String kmsConfig,
+            @JsonProperty(value = "kekType") String kekType,
+            @JsonProperty(value = "kekUri") String kekUri,
+            @JsonProperty(value = "kekConfig") String kekConfig,
+            @JsonProperty(value = "schemaRegistryUrl") String schemaRegistryUrl,
+            @JsonProperty(value = "schemaRegistryConfig") Map<String, String> schemaRegistryConfig,
+            @JsonProperty(value = "recordFormat") RecordFormat recordFormat,
+            @JsonProperty(value = "schemaMode") SchemaMode schemaMode,
+            @JsonProperty(value = "topicFieldConfigs", required = true) List<TopicFieldConfig> topicFieldConfigs) {
+        this.keySource = keySource != null ? keySource : "CONFIG";
+        this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : "TINK/AES_GCM";
+        this.cipherDataKeys = cipherDataKeys;
+        this.kmsType = kmsType != null ? kmsType : "NONE";
+        this.kmsConfig = kmsConfig != null ? kmsConfig : "{}";
+        this.kekType = kekType != null ? kekType : "NONE";
+        this.kekUri = kekUri != null ? kekUri : "";
+        this.kekConfig = kekConfig != null ? kekConfig : "{}";
+        this.schemaRegistryUrl = schemaRegistryUrl;
+        this.schemaRegistryConfig = schemaRegistryConfig != null ? schemaRegistryConfig : Map.of();
+        this.recordFormat = recordFormat != null ? recordFormat : RecordFormat.JSON_SR;
+        this.schemaMode = schemaMode != null ? schemaMode : SchemaMode.DYNAMIC;
+        this.topicFieldConfigs = topicFieldConfigs;
+    }
+
+    public String getKeySource() { return keySource; }
+    public String getCipherAlgorithm() { return cipherAlgorithm; }
+    public List<Map<String, Object>> getCipherDataKeys() { return cipherDataKeys; }
+    public String getKmsType() { return kmsType; }
+    public String getKmsConfig() { return kmsConfig; }
+    public String getKekType() { return kekType; }
+    public String getKekUri() { return kekUri; }
+    public String getKekConfig() { return kekConfig; }
+    public String getSchemaRegistryUrl() { return schemaRegistryUrl; }
+    public Map<String, String> getSchemaRegistryConfig() { return schemaRegistryConfig; }
+    public RecordFormat getRecordFormat() { return recordFormat; }
+    public SchemaMode getSchemaMode() { return schemaMode; }
+    public List<TopicFieldConfig> getTopicFieldConfigs() { return topicFieldConfigs; }
+}
