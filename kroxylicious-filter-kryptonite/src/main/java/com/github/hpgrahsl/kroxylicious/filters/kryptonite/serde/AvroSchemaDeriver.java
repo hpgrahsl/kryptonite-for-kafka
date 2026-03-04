@@ -20,13 +20,9 @@ import java.util.Set;
  * preserves the null branch and replaces {@code T} with {@code string}. Null-branch ordering
  * from the original schema is preserved.
  *
- * <p>v1 limitations:
- * <ul>
- *   <li>Named type references (e.g. {@code "type": "com.example.Address"}) on encrypted field
- *       paths are not supported — a {@link SchemaDerivationException} is thrown with a clear message.</li>
- *   <li>OBJECT mode on complex types (nested records, arrays, maps) encrypts the entire field;
- *       type replacement collapses the field schema to {@code string} (or {@code ["null","string"]}).</li>
- * </ul>
+ * <p>OBJECT mode on complex types (nested records, arrays, maps, enums, fixed) encrypts the
+ * entire field value; type replacement collapses the field schema to {@code string}
+ * (or {@code ["null","string"]} for nullable unions). The original schema is restored on decrypt.
  */
 class AvroSchemaDeriver {
 
@@ -141,14 +137,9 @@ class AvroSchemaDeriver {
         if (mode == FieldConfig.FieldMode.ELEMENT) {
             transformed = transformElementMode(unwrapped, fieldName);
         } else {
-            // OBJECT mode: entire field → string
+            // OBJECT mode: entire field → string (all Avro types including RECORD, ENUM, FIXED)
             if (unwrapped.getType() == Schema.Type.STRING) {
                 transformed = unwrapped; // already string, no change
-            } else if (isNamedTypeReference(unwrapped)) {
-                throw new SchemaDerivationException(
-                        "Named type reference '" + unwrapped.getFullName()
-                                + "' on encrypted field '" + fieldName
-                                + "' is not supported in v1 — use OBJECT mode only on primitive or inline types");
             } else {
                 transformed = STRING_SCHEMA;
             }
@@ -262,14 +253,6 @@ class AvroSchemaDeriver {
                 record.getName(), record.getDoc(), record.getNamespace(), record.isError(), newFields);
         record.getAliases().forEach(rebuilt::addAlias);
         return rebuilt;
-    }
-
-    // ---- Utility ----
-
-    private static boolean isNamedTypeReference(Schema schema) {
-        return schema.getType() == Schema.Type.RECORD
-                || schema.getType() == Schema.Type.ENUM
-                || schema.getType() == Schema.Type.FIXED;
     }
 
     static class SchemaDerivationException extends RuntimeException {

@@ -12,8 +12,6 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayl
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.util.Utf8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,26 +97,19 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         AvroGenericRecordAccessor accessor =
                 AvroGenericRecordAccessor.from(stripped.payload(), encryptedSchema);
 
-        int originalSchemaId = adapter.getOriginalSchemaId(stripped.schemaId(), topicName);
-        Schema originalSchema = avroSchema(originalSchemaId);
-
         for (FieldConfig fc : fieldConfigs) {
             Object fieldValue = accessor.getField(fc.getName());
             if (fieldValue == null) continue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
 
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof List<?> list) {
-                Schema elemSchema = resolveFieldSchema(originalSchema, fc.getName());
-                accessor.setField(fc.getName(), decryptListElements(list, elemSchema));
+                accessor.setField(fc.getName(), decryptListElements(list));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof Map<?, ?> map) {
-                Schema valueSchema = resolveFieldSchema(originalSchema, fc.getName());
-                accessor.setField(fc.getName(), decryptMapValues(map, valueSchema));
+                accessor.setField(fc.getName(), decryptMapValues(map));
             } else {
                 if (!(fieldValue instanceof CharSequence cs)) continue;
                 EncryptedField ef = decodeEncryptedField(cs.toString());
-                Schema fieldSchema = resolveFieldSchema(originalSchema, fc.getName());
-                accessor.setField(fc.getName(),
-                        bytesToAvroValue(kryptonite.decipherField(ef), fieldSchema));
+                accessor.setField(fc.getName(), bytesToAvroValue(kryptonite.decipherField(ef)));
             }
         }
 
@@ -158,15 +149,13 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         return result;
     }
 
-    private List<Object> decryptListElements(List<?> source, Schema arraySchema) {
-        Schema itemSchema = arraySchema.getType() == Schema.Type.ARRAY
-                ? arraySchema.getElementType() : arraySchema;
+    private List<Object> decryptListElements(List<?> source) {
         List<Object> result = new ArrayList<>();
         for (Object element : source) {
             if (element == null) { result.add(null); continue; }
             if (element instanceof CharSequence cs) {
                 EncryptedField ef = decodeEncryptedField(cs.toString());
-                result.add(bytesToAvroValue(kryptonite.decipherField(ef), itemSchema));
+                result.add(bytesToAvroValue(kryptonite.decipherField(ef)));
             } else {
                 result.add(element);
             }
@@ -174,14 +163,12 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         return result;
     }
 
-    private Map<Object, Object> decryptMapValues(Map<?, ?> source, Schema mapSchema) {
-        Schema valueSchema = mapSchema.getType() == Schema.Type.MAP
-                ? mapSchema.getValueType() : mapSchema;
+    private Map<Object, Object> decryptMapValues(Map<?, ?> source) {
         Map<Object, Object> result = new java.util.LinkedHashMap<>();
         source.forEach((k, v) -> {
             if (v instanceof CharSequence cs) {
                 EncryptedField ef = decodeEncryptedField(cs.toString());
-                result.put(k, bytesToAvroValue(kryptonite.decipherField(ef), valueSchema));
+                result.put(k, bytesToAvroValue(kryptonite.decipherField(ef)));
             } else {
                 result.put(k, v);
             }
@@ -193,64 +180,27 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     /**
      * Serializes an Avro field value to Kryo bytes using {@code writeClassAndObject}.
-     * {@link Utf8} values are normalised to {@link String} for cross-module compatibility.
+     * All Avro type handling (Utf8, ByteBuffer, GenericRecord, GenericArray, EnumSymbol, Fixed)
+     * is delegated to the custom Kryo serializers registered in {@link com.github.hpgrahsl.kryptonite.serdes.KryoInstance}.
      */
     static byte[] avroValueToBytes(Object value) {
-        Object normalised = value instanceof Utf8 ? value.toString() : value;
-        if (normalised instanceof GenericData.Record || normalised instanceof GenericData.Array) {
-            throw new UnsupportedOperationException(
-                    "OBJECT mode encryption of complex Avro types (records, arrays) is not supported in v1. "
-                            + "Use ELEMENT mode for arrays/maps, or encrypt only primitive fields.");
-        }
         Output output = new Output(new ByteArrayOutputStream());
-        KryoInstance.get().writeClassAndObject(output, normalised);
+        KryoInstance.get().writeClassAndObject(output, value);
         return output.toBytes();
     }
 
     /**
-     * Deserializes Kryo bytes back to a Java value compatible with the given Avro field schema.
-     * Handles the {@link Utf8} vs {@link String} mismatch for Avro string fields.
+     * Deserializes Kryo bytes back to an Avro-compatible value.
+     * Type reconstruction is handled by the registered Kryo serializers.
      */
-    static Object bytesToAvroValue(byte[] bytes, Schema fieldSchema) {
-        Object value = KryoInstance.get().readClassAndObject(new Input(bytes));
-        Schema unwrapped = unwrapNullableUnion(fieldSchema);
-        // Avro string fields may require Utf8 depending on the reader; String is also accepted
-        // by GenericDatumWriter, so return as-is.
-        if (unwrapped.getType() == Schema.Type.STRING && value instanceof String s) {
-            return new Utf8(s);
-        }
-        return value;
+    static Object bytesToAvroValue(byte[] bytes) {
+        return KryoInstance.get().readClassAndObject(new Input(bytes));
     }
 
     // ---- Schema helpers ----
 
     private Schema avroSchema(int schemaId) {
         return ((AvroSchema) adapter.fetchSchema(schemaId)).rawSchema();
-    }
-
-    /**
-     * Resolves the Avro schema for the field at the given dot-path.
-     * Navigates through nested RECORD schemas and unwraps nullable unions along the way.
-     */
-    private static Schema resolveFieldSchema(Schema record, String dotPath) {
-        String[] parts = dotPath.split("\\.");
-        Schema current = record;
-        for (String part : parts) {
-            Schema unwrapped = unwrapNullableUnion(current);
-            if (unwrapped.getType() != Schema.Type.RECORD) return current;
-            Schema.Field field = unwrapped.getField(part);
-            if (field == null) return current;
-            current = field.schema();
-        }
-        return current;
-    }
-
-    private static Schema unwrapNullableUnion(Schema schema) {
-        if (schema.getType() != Schema.Type.UNION) return schema;
-        return schema.getTypes().stream()
-                .filter(s -> s.getType() != Schema.Type.NULL)
-                .findFirst()
-                .orElse(schema);
     }
 
     // ---- Crypto helpers (mirrors AbstractJsonRecordProcessor) ----
