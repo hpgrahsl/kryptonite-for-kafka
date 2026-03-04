@@ -32,7 +32,7 @@ import java.util.Set;
  * modules (Connect SMT, ksqlDB UDFs, Flink UDFs, Funqy). Cross-module compatible for
  * primitive Avro field types (string, int, long, float, double, boolean).
  *
- * <p>v1 type support: string ({@link Utf8} normalised to {@link String}), int, long, float,
+ * <p>v1 type support: string ({@link Utf8} preserved as-is), int, long, float,
  * double, boolean. Complex OBJECT-mode fields (nested records) are not supported in v1 and
  * will throw {@link UnsupportedOperationException}. ELEMENT mode encrypts individual
  * array/map primitive elements.

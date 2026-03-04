@@ -41,12 +41,12 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     private static final byte MAGIC_BYTE = 0x00;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** Encrypted schema subject: {@code "<topicName>-value__kryptonite"} */
-    public static final String ENCRYPTED_SUBJECT_SUFFIX = "-value__kryptonite";
-    /** Sidecar metadata subject: {@code "<topicName>-value__kryptonite-meta"} */
-    public static final String SIDECAR_SUBJECT_SUFFIX = "-value__kryptonite-meta";
-    /** Partial-decrypt subject prefix: {@code "<topicName>-value__kryptonite_dec_<stableHash>"} */
-    public static final String PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX = "-value__kryptonite_dec_";
+    /** Encrypted schema subject: {@code "<topicName>-value__k4k_enc"} */
+    public static final String ENCRYPTED_SUBJECT_SUFFIX = "-value__k4k_enc";
+    /** Sidecar metadata subject: {@code "<topicName>-value__k4k_meta"} */
+    public static final String SIDECAR_SUBJECT_SUFFIX = "-value__k4k_meta";
+    /** Partial-decrypt subject prefix: {@code "<topicName>-value__k4k_dec_<stableHash>"} */
+    public static final String PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX = "-value__k4k_dec_";
 
     private final SchemaRegistryClient srClient;
     private final JsonSchemaDeriver deriver;

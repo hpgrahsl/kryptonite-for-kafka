@@ -179,10 +179,8 @@ class AvroSchemaDeriver {
         if (index == pathParts.length - 1) {
             newFieldSchema = originalFieldSchema;
         } else {
-            Schema originalIntermediate = resolveFieldSchema(
-                    unwrapNullableUnion(originalFieldSchema), pathParts, index + 1);
             newFieldSchema = restoreFieldType(targetField.schema(), pathParts, index + 1,
-                    originalIntermediate, mode);
+                    originalFieldSchema, mode);
         }
 
         Schema rebuilt = rebuildRecord(unwrapped, targetField.name(), newFieldSchema);
