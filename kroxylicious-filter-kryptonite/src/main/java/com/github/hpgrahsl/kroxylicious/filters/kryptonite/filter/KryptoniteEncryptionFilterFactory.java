@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.RecordFormat;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.AvroSchemaRegistryRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.JsonSchemaRegistryRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.PlainJsonRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldConfigResolver;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.ConfluentSchemaRegistryAdapter;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
@@ -68,6 +70,14 @@ public class KryptoniteEncryptionFilterFactory
                         List.of(new JsonSchemaProvider()), cfg.getSchemaRegistryConfig());
                 SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
                 yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, cfg.getCipherDataKeyIdentifier());
+            }
+            case AVRO -> {
+                SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
+                        List.of(cfg.getSchemaRegistryUrl()), 100,
+                        List.of(new JsonSchemaProvider(), new AvroSchemaProvider()),
+                        cfg.getSchemaRegistryConfig());
+                SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
+                yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, cfg.getCipherDataKeyIdentifier());
             }
             default -> throw new IllegalArgumentException("Unsupported recordFormat for encryption: " + format);
         };

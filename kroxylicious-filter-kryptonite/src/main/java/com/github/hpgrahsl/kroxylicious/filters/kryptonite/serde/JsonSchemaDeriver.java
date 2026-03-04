@@ -2,7 +2,6 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import org.slf4j.Logger;
@@ -39,12 +38,15 @@ class JsonSchemaDeriver {
      * <p>OBJECT mode (default): replaces the dot-path leaf {@code type} with {@code "string"}.
      * ELEMENT mode on arrays: replaces the field's {@code items} with {@code {"type":"string"}}.
      * ELEMENT mode on objects: replaces each direct property type with {@code "string"}.
-     * Injects {@code x-kryptonite} extension block with {@code originalSchemaId},
-     * {@code encryptedFields} list, and optional {@code encryptedFieldModes} map
-     * (only present when ELEMENT-mode fields exist).
+     *
+     * <p>No metadata is injected into the schema document. Metadata ({@code originalSchemaId},
+     * {@code encryptedFields}, {@code encryptedFieldModes}) is stored in the sidecar subject
+     * by {@link ConfluentSchemaRegistryAdapter}.
+     *
+     * @return {@link DeriveEncryptedResult} carrying the schema JSON plus field metadata for the sidecar
      */
-    String deriveEncrypted(String originalSchemaJson, int originalSchemaId,
-                           Set<FieldConfig> encryptedFieldConfigs) {
+    DeriveEncryptedResult deriveEncrypted(String originalSchemaJson,
+                                          Set<FieldConfig> encryptedFieldConfigs) {
         try {
             ObjectNode root = (ObjectNode) MAPPER.readTree(originalSchemaJson);
             List<String> encryptedFieldNames = new ArrayList<>();
@@ -71,45 +73,37 @@ class JsonSchemaDeriver {
                 }
             }
 
-            ObjectNode xKryptonite = MAPPER.createObjectNode();
-            xKryptonite.put("originalSchemaId", originalSchemaId);
-            ArrayNode encryptedFieldsNode = xKryptonite.putArray("encryptedFields");
-            encryptedFieldNames.forEach(encryptedFieldsNode::add);
-            if (!encryptedFieldModes.isEmpty()) {
-                ObjectNode modesNode = xKryptonite.putObject("encryptedFieldModes");
-                encryptedFieldModes.forEach(modesNode::put);
-            }
-            root.set("x-kryptonite", xKryptonite);
-
-            return MAPPER.writeValueAsString(root);
+            return new DeriveEncryptedResult(MAPPER.writeValueAsString(root), encryptedFieldNames, encryptedFieldModes);
         } catch (Exception e) {
-            throw new SchemaDerivationException("Failed to derive encrypted schema for originalSchemaId=" + originalSchemaId, e);
+            throw new SchemaDerivationException("Failed to derive encrypted schema", e);
         }
     }
+
+    /** Result of {@link #deriveEncrypted}: schema JSON plus field metadata for the sidecar. */
+    record DeriveEncryptedResult(String schemaJson, List<String> encryptedFields,
+                                 Map<String, String> encryptedFieldModes) {}
 
     /**
      * Consume path: derives the partial-decrypt schema.
      *
-     * <p>Reads {@code encryptedFieldModes} from the encrypted schema's x-kryptonite block to
-     * determine how to restore each decrypted field's type. Still-encrypted fields retain their
-     * encrypted type representation. Propagates remaining mode entries for still-encrypted fields.
+     * <p>{@code encryptedFieldModes} is supplied by the caller from the sidecar (not read from
+     * the schema document). Still-encrypted fields retain their encrypted type representation.
+     * The output schema is a clean document with no metadata injected.
+     *
+     * @param encryptedFieldModes mode map from sidecar ({@code fieldName → "ELEMENT"|"OBJECT"});
+     *                            absent fields default to OBJECT
      */
     String derivePartialDecrypt(String originalSchemaJson, String encryptedSchemaJson,
-                                int encryptedSchemaId, Set<FieldConfig> decryptedFieldConfigs,
-                                List<String> allEncryptedFields) {
+                                Set<FieldConfig> decryptedFieldConfigs,
+                                List<String> allEncryptedFields,
+                                Map<String, String> encryptedFieldModes) {
         try {
             ObjectNode originalRoot = (ObjectNode) MAPPER.readTree(originalSchemaJson);
             ObjectNode encryptedRoot = (ObjectNode) MAPPER.readTree(encryptedSchemaJson);
 
-            // Read field modes before removing x-kryptonite block
-            Map<String, String> encryptedFieldModes = readFieldModes(encryptedRoot);
-
             Set<String> decryptedNames = decryptedFieldConfigs.stream()
                     .map(FieldConfig::getName)
                     .collect(Collectors.toSet());
-            List<String> stillEncrypted = allEncryptedFields.stream()
-                    .filter(f -> !decryptedNames.contains(f))
-                    .collect(Collectors.toList());
 
             for (String fieldName : decryptedNames) {
                 if ("ELEMENT".equals(encryptedFieldModes.getOrDefault(fieldName, "OBJECT"))) {
@@ -119,30 +113,9 @@ class JsonSchemaDeriver {
                 }
             }
 
-            encryptedRoot.remove("x-kryptonite");
-
-            ObjectNode xKryptonite = MAPPER.createObjectNode();
-            xKryptonite.put("encryptedSchemaId", encryptedSchemaId);
-            ArrayNode decryptedNode = xKryptonite.putArray("decryptedFields");
-            decryptedNames.stream().sorted().forEach(decryptedNode::add);
-            ArrayNode stillEncryptedNode = xKryptonite.putArray("stillEncryptedFields");
-            stillEncrypted.forEach(stillEncryptedNode::add);
-            // Propagate modes for still-encrypted ELEMENT-mode fields
-            Map<String, String> stillEncryptedModes = new LinkedHashMap<>();
-            stillEncrypted.forEach(f -> {
-                if (encryptedFieldModes.containsKey(f)) {
-                    stillEncryptedModes.put(f, encryptedFieldModes.get(f));
-                }
-            });
-            if (!stillEncryptedModes.isEmpty()) {
-                ObjectNode modesNode = xKryptonite.putObject("encryptedFieldModes");
-                stillEncryptedModes.forEach(modesNode::put);
-            }
-            encryptedRoot.set("x-kryptonite", xKryptonite);
-
             return MAPPER.writeValueAsString(encryptedRoot);
         } catch (Exception e) {
-            throw new SchemaDerivationException("Failed to derive partial-decrypt schema for encryptedSchemaId=" + encryptedSchemaId, e);
+            throw new SchemaDerivationException("Failed to derive partial-decrypt schema", e);
         }
     }
 
@@ -290,19 +263,6 @@ class JsonSchemaDeriver {
                 }
             }
         }
-    }
-
-    // ---- Utility ----
-
-    /** Reads the optional {@code encryptedFieldModes} map from the schema's x-kryptonite block. */
-    private static Map<String, String> readFieldModes(ObjectNode schemaRoot) {
-        Map<String, String> modes = new LinkedHashMap<>();
-        JsonNode xk = schemaRoot.get("x-kryptonite");
-        if (xk == null) return modes;
-        JsonNode modesNode = xk.get("encryptedFieldModes");
-        if (!(modesNode instanceof ObjectNode mn)) return modes;
-        mn.properties().forEach(e -> modes.put(e.getKey(), e.getValue().asText()));
-        return modes;
     }
 
     static class SchemaDerivationException extends RuntimeException {

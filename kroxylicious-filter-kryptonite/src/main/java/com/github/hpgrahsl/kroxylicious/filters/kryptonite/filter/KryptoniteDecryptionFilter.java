@@ -75,7 +75,7 @@ public class KryptoniteDecryptionFilter implements FetchResponseFilter {
                     continue;
                 }
                 Optional<Set<FieldConfig>> fieldConfigs = resolver.resolve(topicName);
-                if (fieldConfigs.isEmpty()) continue; // not configured → pass through
+                if (fieldConfigs.isEmpty() || fieldConfigs.get().isEmpty()) continue; // topic not configured or no fields → pass through
 
                 for (FetchResponseData.PartitionData partition : topic.partitions()) {
                     applyTransform(partition, context, topicName, fieldConfigs.get());
@@ -115,7 +115,10 @@ public class KryptoniteDecryptionFilter implements FetchResponseFilter {
         try {
             return processor.decryptFields(wireBytes, topicName, fieldConfigs);
         } catch (Exception e) {
-            LOG.error("Decryption failed for topic '{}' — passing record through unmodified: {}", topicName, e.getMessage(), e);
+            // On decryption failure return the original (still-encrypted) bytes so the consumer
+            // receives the raw broker data rather than corrupt/partial output. The error is always
+            // logged at ERROR level so failures are never silently ignored.
+            LOG.error("Decryption failed for topic '{}' — returning original encrypted bytes to consumer: {}", topicName, e.getMessage(), e);
             return wireBytes;
         }
     }

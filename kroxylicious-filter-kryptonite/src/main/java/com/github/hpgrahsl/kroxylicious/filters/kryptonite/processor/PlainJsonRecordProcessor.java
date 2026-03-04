@@ -19,11 +19,13 @@ public class PlainJsonRecordProcessor extends AbstractJsonRecordProcessor {
 
     @Override
     public byte[] encryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
+        if (fieldConfigs.isEmpty()) return wireBytes;
         return encryptJsonPayload(wireBytes, fieldConfigs);
     }
 
     @Override
     public byte[] decryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
+        if (fieldConfigs.isEmpty()) return wireBytes;
         return decryptJsonPayload(wireBytes, fieldConfigs);
     }
 }

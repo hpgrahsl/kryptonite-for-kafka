@@ -80,6 +80,19 @@ public interface SchemaRegistryAdapter {
                                        Set<FieldConfig> decryptedFieldConfigs);
 
     /**
+     * Returns the original (plaintext) schema ID for a given encrypted schema ID.
+     *
+     * <p>Used by Avro/Protobuf processors on the decrypt path to fetch the original schema
+     * for type restoration after decryption. The mapping is recovered from the sidecar subject
+     * on cold start and then cached.
+     *
+     * @param encryptedSchemaId the schema ID from the encrypted record's wire prefix
+     * @param topicName         the Kafka topic name (used for sidecar subject lookup)
+     * @return the original schema ID
+     */
+    int getOriginalSchemaId(int encryptedSchemaId, String topicName);
+
+    /**
      * Fetches and caches the parsed schema by schema ID.
      *
      * <p>NOT called in the JSON path (v1) — JSON traversal uses Jackson directly and is

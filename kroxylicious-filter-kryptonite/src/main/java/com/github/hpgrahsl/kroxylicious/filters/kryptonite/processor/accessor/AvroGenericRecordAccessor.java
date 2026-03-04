@@ -1,33 +1,126 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.EncoderFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
 /**
- * NOT v1 — Phase 3 stub.
+ * {@link StructuredRecordAccessor} for Avro records.
  *
- * <p>Future implementation of {@link StructuredRecordAccessor} for Avro records via Schema Registry.
- * Will wrap an Avro {@code GenericRecord} obtained by deserializing with a {@code GenericDatumReader}
- * and the {@code org.apache.avro.Schema} fetched via {@code adapter.fetchSchema(schemaId)}.
+ * <p>Wraps a {@link GenericRecord} deserialized with a given writer schema.
+ * {@link #getField} and {@link #setField} support dot-path navigation through nested records.
+ * {@link #serialize} produces Avro binary bytes using the writer schema (compatible with the
+ * SR wire format payload expected by {@link ConfluentSchemaRegistryAdapter}).
  *
- * <p>Type restoration on decrypt requires the original Avro field schema (fetched from SR via
- * {@code adapter.fetchSchema(originalSchemaId)}) since Avro binary is not self-describing.
+ * <p>{@link GenericRecord} is mutable: {@code setField} calls {@code record.put()} directly.
+ * Type coercion from decrypted Kryo bytes to Avro-compatible Java types is the caller's
+ * responsibility ({@code AvroSchemaRegistryRecordProcessor}).
  */
 public class AvroGenericRecordAccessor implements StructuredRecordAccessor {
 
-    public AvroGenericRecordAccessor() {
-        // NOT v1 — Phase 3
+    private final GenericRecord record;
+    private final Schema schema;
+
+    private AvroGenericRecordAccessor(GenericRecord record, Schema schema) {
+        this.record = record;
+        this.schema = schema;
     }
 
+    /** Returns the underlying {@link GenericRecord}. Used to rewrap the same record with a different schema. */
+    public GenericRecord getRecord() {
+        return record;
+    }
+
+    /**
+     * Creates an accessor wrapping an already-deserialized {@link GenericRecord}.
+     */
+    public static AvroGenericRecordAccessor of(GenericRecord record, Schema schema) {
+        return new AvroGenericRecordAccessor(record, schema);
+    }
+
+    /**
+     * Deserializes Avro binary {@code payload} using {@code schema} and returns a new accessor.
+     *
+     * @param payload    raw Avro binary bytes (no SR prefix — already stripped by the adapter)
+     * @param schema     the Avro schema to use for reading
+     */
+    public static AvroGenericRecordAccessor from(byte[] payload, Schema schema) {
+        try {
+            GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+            BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(payload, null);
+            GenericRecord record = reader.read(null, decoder);
+            return new AvroGenericRecordAccessor(record, schema);
+        } catch (IOException e) {
+            throw new AvroAccessorException("Failed to deserialize Avro payload", e);
+        }
+    }
+
+    /**
+     * Returns the field value at the given dot-path, or {@code null} if the path is absent.
+     *
+     * <p>Intermediate path segments must refer to fields whose values are {@link GenericRecord}
+     * instances. At the leaf, the raw Java value stored in the {@link GenericRecord} is returned
+     * (e.g. {@code String}/{@code org.apache.avro.util.Utf8} for string fields,
+     * {@code Integer} for int, {@code GenericData.Array} for array, etc.).
+     */
     @Override
     public Object getField(String dotPath) {
-        throw new UnsupportedOperationException("AvroGenericRecordAccessor is not implemented in v1 — Phase 3");
+        String[] parts = dotPath.split("\\.");
+        GenericRecord current = record;
+        for (int i = 0; i < parts.length - 1; i++) {
+            Object next = current.get(parts[i]);
+            if (!(next instanceof GenericRecord)) return null;
+            current = (GenericRecord) next;
+        }
+        return current.get(parts[parts.length - 1]);
     }
 
+    /**
+     * Sets the field value at the given dot-path.
+     *
+     * <p>Intermediate records must already exist (no auto-creation). The value is set via
+     * {@link GenericRecord#put(String, Object)} — no type validation is performed here;
+     * type compatibility is enforced by the Avro serializer in {@link #serialize()}.
+     */
     @Override
     public void setField(String dotPath, Object value) {
-        throw new UnsupportedOperationException("AvroGenericRecordAccessor is not implemented in v1 — Phase 3");
+        String[] parts = dotPath.split("\\.");
+        GenericRecord current = record;
+        for (int i = 0; i < parts.length - 1; i++) {
+            Object next = current.get(parts[i]);
+            if (!(next instanceof GenericRecord)) return;
+            current = (GenericRecord) next;
+        }
+        current.put(parts[parts.length - 1], value);
     }
 
+    /**
+     * Serializes the (possibly mutated) record to Avro binary bytes using the writer schema.
+     * The returned bytes do NOT include the SR wire prefix.
+     */
     @Override
     public byte[] serialize() {
-        throw new UnsupportedOperationException("AvroGenericRecordAccessor is not implemented in v1 — Phase 3");
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+            GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<>(schema);
+            writer.write(record, encoder);
+            encoder.flush();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new AvroAccessorException("Failed to serialize Avro record", e);
+        }
+    }
+
+    public static class AvroAccessorException extends RuntimeException {
+        public AvroAccessorException(String message, Throwable cause) { super(message, cause); }
     }
 }

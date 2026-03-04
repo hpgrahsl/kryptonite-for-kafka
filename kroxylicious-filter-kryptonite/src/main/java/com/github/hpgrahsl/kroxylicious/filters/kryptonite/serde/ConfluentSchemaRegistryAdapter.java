@@ -1,17 +1,22 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.JsonSchemaDeriver.DeriveEncryptedResult;
+import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -21,8 +26,13 @@ import java.util.stream.Collectors;
  *
  * <p>Wire format: {@code [0x00][4-byte big-endian int schemaId][payload bytes]}.
  *
- * <p>Two independent {@link ConcurrentHashMap} caches handle the encrypt and decrypt paths.
- * Thread-safe after construction: all mutable state is in the two ConcurrentHashMap instances;
+ * <p>Encryption metadata ({@code originalSchemaId}, {@code encryptedFields},
+ * {@code encryptedFieldModes}) is stored in a sidecar subject
+ * {@code "<topicName>-value__kryptonite-meta"} as a JSON Schema document with a
+ * {@code x-kryptonite-sidecar} custom keyword. Schema documents (encrypted schema,
+ * partial-decrypt schema) are clean and contain no custom keywords.
+ *
+ * <p>Thread-safe after construction: all mutable state is in {@link ConcurrentHashMap} instances;
  * {@link SchemaRegistryClient} is documented as thread-safe.
  */
 public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
@@ -31,13 +41,16 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     private static final byte MAGIC_BYTE = 0x00;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** Encrypted subject suffix: {@code "<topicName>-value__kryptonite"} */
+    /** Encrypted schema subject: {@code "<topicName>-value__kryptonite"} */
     public static final String ENCRYPTED_SUBJECT_SUFFIX = "-value__kryptonite";
-    /** Partial-decrypt subject prefix suffix: {@code "<topicName>-value__kryptonite_dec_<stableHash>"} */
+    /** Sidecar metadata subject: {@code "<topicName>-value__kryptonite-meta"} */
+    public static final String SIDECAR_SUBJECT_SUFFIX = "-value__kryptonite-meta";
+    /** Partial-decrypt subject prefix: {@code "<topicName>-value__kryptonite_dec_<stableHash>"} */
     public static final String PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX = "-value__kryptonite_dec_";
 
     private final SchemaRegistryClient srClient;
     private final JsonSchemaDeriver deriver;
+    private final AvroSchemaDeriver avroDeriver;
 
     // Encrypt path: originalSchemaId → encryptedSchemaId
     private final ConcurrentHashMap<Integer, Integer> originalToEncryptedId = new ConcurrentHashMap<>();
@@ -45,9 +58,13 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     // Decrypt path: (encryptedSchemaId, fieldNames) → outputSchemaId
     private final ConcurrentHashMap<DecryptCacheKey, Integer> decryptOutputIdCache = new ConcurrentHashMap<>();
 
+    // Sidecar cache: encryptedSchemaId → SidecarMetadata
+    private final ConcurrentHashMap<Integer, SidecarMetadata> sidecarCache = new ConcurrentHashMap<>();
+
     public ConfluentSchemaRegistryAdapter(SchemaRegistryClient srClient) {
         this.srClient = srClient;
         this.deriver = new JsonSchemaDeriver();
+        this.avroDeriver = new AvroSchemaDeriver();
     }
 
     // --- Wire format ---
@@ -88,12 +105,34 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
         return originalToEncryptedId.computeIfAbsent(originalSchemaId, id -> {
             try {
                 LOG.debug("Cache miss for originalSchemaId={} topic='{}' — deriving encrypted schema", id, topicName);
-                String originalSchemaJson = srClient.getSchemaById(id).canonicalString();
-                String encryptedSchemaJson = deriver.deriveEncrypted(originalSchemaJson, id, fieldConfigs);
-
+                ParsedSchema parsedSchema = srClient.getSchemaById(id);
                 String encryptedSubject = topicName + ENCRYPTED_SUBJECT_SUFFIX;
                 srClient.updateCompatibility(encryptedSubject, "NONE");
-                int encryptedSchemaId = srClient.register(encryptedSubject, new JsonSchema(encryptedSchemaJson));
+
+                final int encryptedSchemaId;
+                final List<String> encryptedFields;
+                final Map<String, String> encryptedFieldModes;
+
+                if ("AVRO".equals(parsedSchema.schemaType())) {
+                    AvroSchemaDeriver.DeriveEncryptedResult avroResult =
+                            avroDeriver.deriveEncrypted(((AvroSchema) parsedSchema).rawSchema(), fieldConfigs);
+                    encryptedSchemaId = srClient.register(encryptedSubject, new AvroSchema(avroResult.schema()));
+                    encryptedFields = avroResult.encryptedFields();
+                    encryptedFieldModes = avroResult.encryptedFieldModes();
+                } else {
+                    DeriveEncryptedResult result = deriver.deriveEncrypted(parsedSchema.canonicalString(), fieldConfigs);
+                    encryptedSchemaId = srClient.register(encryptedSubject, new JsonSchema(result.schemaJson()));
+                    encryptedFields = result.encryptedFields();
+                    encryptedFieldModes = result.encryptedFieldModes();
+                }
+
+                // Register sidecar
+                SidecarMetadata sidecar = new SidecarMetadata(
+                        id, encryptedSchemaId,
+                        encryptedFields,
+                        encryptedFieldModes);
+                registerSidecar(topicName, sidecar);
+                sidecarCache.put(encryptedSchemaId, sidecar);
 
                 LOG.info("Registered encrypted schema under subject='{}' with id={}", encryptedSubject, encryptedSchemaId);
                 // Prime the decrypt cache for full decrypt direction
@@ -119,17 +158,11 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                 LOG.debug("Decrypt cache miss for encryptedSchemaId={} topic='{}' — resolving output schema",
                         encryptedSchemaId, topicName);
 
-                String encryptedSchemaJson = srClient.getSchemaById(encryptedSchemaId).canonicalString();
-                JsonNode encryptedSchemaNode = MAPPER.readTree(encryptedSchemaJson);
-                JsonNode xKryptonite = encryptedSchemaNode.get("x-kryptonite");
-                if (xKryptonite == null) {
-                    throw new SchemaRegistryAdapterException(
-                            "Encrypted schema id=" + encryptedSchemaId + " is missing the x-kryptonite extension block");
-                }
-
-                int originalSchemaId = xKryptonite.get("originalSchemaId").asInt();
-                List<String> allEncryptedFields = new ArrayList<>();
-                xKryptonite.get("encryptedFields").forEach(n -> allEncryptedFields.add(n.asText()));
+                SidecarMetadata sidecar = getOrFetchSidecar(encryptedSchemaId, topicName);
+                int originalSchemaId = sidecar.getOriginalSchemaId();
+                List<String> allEncryptedFields = sidecar.getEncryptedFields();
+                Map<String, String> encryptedFieldModes = sidecar.getEncryptedFieldModes() != null
+                        ? sidecar.getEncryptedFieldModes() : Map.of();
 
                 // Full decrypt: decrypted field set == all encrypted fields → return original schema ID
                 if (fieldNamesSet.containsAll(allEncryptedFields) && allEncryptedFields.containsAll(fieldNamesSet)) {
@@ -137,7 +170,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                     return originalSchemaId;
                 }
 
-                // Partial decrypt: look up in SR by deterministic subject name, or derive+register
+                // Partial decrypt: look up by deterministic subject name, or derive+register
                 String stableHash = JsonSchemaDeriver.computeStableHash(encryptedSchemaId, decryptedFieldConfigs);
                 String partialSubject = topicName + PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX + stableHash;
 
@@ -147,14 +180,26 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                             existing.getId(), partialSubject);
                     return existing.getId();
                 } catch (Exception notFound) {
-                    // Subject not registered yet — derive and register
                     LOG.debug("Registering new partial-decrypt schema under subject='{}'", partialSubject);
-                    String originalSchemaJson = srClient.getSchemaById(originalSchemaId).canonicalString();
-                    String partialDecryptJson = deriver.derivePartialDecrypt(
-                            originalSchemaJson, encryptedSchemaJson, encryptedSchemaId,
-                            decryptedFieldConfigs, allEncryptedFields);
+                    ParsedSchema encryptedParsedSchema = srClient.getSchemaById(encryptedSchemaId);
                     srClient.updateCompatibility(partialSubject, "NONE");
-                    int partialId = srClient.register(partialSubject, new JsonSchema(partialDecryptJson));
+                    final int partialId;
+                    if ("AVRO".equals(encryptedParsedSchema.schemaType())) {
+                        Schema encryptedAvroSchema = ((AvroSchema) encryptedParsedSchema).rawSchema();
+                        Schema originalAvroSchema = ((AvroSchema) srClient.getSchemaById(originalSchemaId)).rawSchema();
+                        List<String> decryptedFieldNames = decryptedFieldConfigs.stream()
+                                .map(FieldConfig::getName).collect(Collectors.toList());
+                        Schema partialDecryptSchema = avroDeriver.derivePartialDecrypt(
+                                encryptedAvroSchema, originalAvroSchema, decryptedFieldNames, encryptedFieldModes);
+                        partialId = srClient.register(partialSubject, new AvroSchema(partialDecryptSchema));
+                    } else {
+                        String encryptedSchemaJson = encryptedParsedSchema.canonicalString();
+                        String originalSchemaJson = srClient.getSchemaById(originalSchemaId).canonicalString();
+                        String partialDecryptJson = deriver.derivePartialDecrypt(
+                                originalSchemaJson, encryptedSchemaJson,
+                                decryptedFieldConfigs, allEncryptedFields, encryptedFieldModes);
+                        partialId = srClient.register(partialSubject, new JsonSchema(partialDecryptJson));
+                    }
                     LOG.info("Registered partial-decrypt schema under subject='{}' with id={}", partialSubject, partialId);
                     return partialId;
                 }
@@ -168,7 +213,12 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
         });
     }
 
-    // --- Schema fetch (Phase 3/4 — not used in JSON v1 path) ---
+    @Override
+    public int getOriginalSchemaId(int encryptedSchemaId, String topicName) {
+        return getOrFetchSidecar(encryptedSchemaId, topicName).getOriginalSchemaId();
+    }
+
+    // --- Schema fetch (Phase 3/4) ---
 
     @Override
     public Object fetchSchema(int schemaId) {
@@ -179,16 +229,41 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
         }
     }
 
+    // --- Sidecar helpers ---
+
+    private void registerSidecar(String topicName, SidecarMetadata sidecar) throws Exception {
+        ObjectNode envelope = MAPPER.createObjectNode();
+        envelope.put("type", "object");
+        envelope.set("x-kryptonite-sidecar", MAPPER.valueToTree(sidecar));
+        String sidecarSubject = topicName + SIDECAR_SUBJECT_SUFFIX;
+        srClient.updateCompatibility(sidecarSubject, "NONE");
+        srClient.register(sidecarSubject, new JsonSchema(MAPPER.writeValueAsString(envelope)));
+        LOG.debug("Registered sidecar under subject='{}'", sidecarSubject);
+    }
+
+    private SidecarMetadata getOrFetchSidecar(int encryptedSchemaId, String topicName) {
+        return sidecarCache.computeIfAbsent(encryptedSchemaId, id -> {
+            try {
+                String sidecarSubject = topicName + SIDECAR_SUBJECT_SUFFIX;
+                SchemaMetadata meta = srClient.getLatestSchemaMetadata(sidecarSubject);
+                ObjectNode envelope = (ObjectNode) MAPPER.readTree(meta.getSchema());
+                SidecarMetadata sidecar = MAPPER.treeToValue(
+                        envelope.get("x-kryptonite-sidecar"), SidecarMetadata.class);
+                LOG.debug("Fetched sidecar for encryptedSchemaId={} from subject='{}'", id, sidecarSubject);
+                return sidecar;
+            } catch (Exception e) {
+                throw new SchemaRegistryAdapterException(
+                        "Failed to fetch sidecar for encryptedSchemaId=" + id + " topic=" + topicName, e);
+            }
+        });
+    }
+
     // --- Internal helpers ---
 
     private static Set<String> fieldNames(Set<FieldConfig> fieldConfigs) {
         return fieldConfigs.stream().map(FieldConfig::getName).collect(Collectors.toSet());
     }
 
-    /**
-     * Cache key for the decrypt output ID cache.
-     * Uses field names only — algorithm/keyId affect crypto, not schema selection.
-     */
     private record DecryptCacheKey(int encryptedSchemaId, Set<String> fieldNames) {}
 
     public static class SchemaRegistryAdapterException extends RuntimeException {

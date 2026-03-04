@@ -30,6 +30,7 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
 
     @Override
     public byte[] encryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
+        if (fieldConfigs.isEmpty()) return wireBytes;
         SchemaIdAndPayload stripped = adapter.stripPrefix(wireBytes);
         byte[] encryptedPayload = encryptJsonPayload(stripped.payload(), fieldConfigs);
         int encryptedSchemaId = adapter.getOrRegisterEncryptedSchemaId(
@@ -41,6 +42,7 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
 
     @Override
     public byte[] decryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
+        if (fieldConfigs.isEmpty()) return wireBytes;
         SchemaIdAndPayload stripped = adapter.stripPrefix(wireBytes);
         byte[] decryptedPayload = decryptJsonPayload(stripped.payload(), fieldConfigs);
         int outputSchemaId = adapter.getOrRegisterDecryptedSchemaId(

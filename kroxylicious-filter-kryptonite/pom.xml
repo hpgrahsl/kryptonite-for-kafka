@@ -108,6 +108,12 @@
             <artifactId>kafka-json-schema-provider</artifactId>
             <version>${confluent.version}</version>
         </dependency>
+        <!-- Confluent Avro SerDe — Phase 3: AvroSchema.rawSchema() → org.apache.avro.Schema -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
 
         <!-- Provided by the Kroxylicious proxy runtime - NOT bundled in fat JAR -->
         <dependency>
@@ -256,6 +262,13 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>${jdk.17.plus.jvm.options}</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

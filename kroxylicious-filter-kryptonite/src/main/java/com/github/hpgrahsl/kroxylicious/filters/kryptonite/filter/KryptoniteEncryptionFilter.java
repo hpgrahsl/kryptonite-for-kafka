@@ -17,7 +17,6 @@ import org.apache.kafka.common.message.RequestHeaderData;
 import org.apache.kafka.common.message.ResponseHeaderData;
 import org.apache.kafka.common.protocol.ApiKeys;
 import org.apache.kafka.common.record.AbstractRecords;
-import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.MutableRecordBatch;
 import org.apache.kafka.common.record.Record;
 import org.apache.kafka.common.utils.ByteBufferOutputStream;
@@ -83,7 +82,7 @@ public class KryptoniteEncryptionFilter implements ProduceRequestFilter, ApiVers
         // Topic names are guaranteed present via the Produce API version downgrade above
         for (ProduceRequestData.TopicProduceData topic : request.topicData()) {
             Optional<Set<FieldConfig>> fieldConfigs = resolver.resolve(topic.name());
-            if (fieldConfigs.isEmpty()) continue; // topic not configured → pass through
+            if (fieldConfigs.isEmpty() || fieldConfigs.get().isEmpty()) continue; // topic not configured or no fields → pass through
 
             for (ProduceRequestData.PartitionProduceData partition : topic.partitionData()) {
                 applyTransform(partition, context, topic.name(), fieldConfigs.get());
@@ -110,7 +109,7 @@ public class KryptoniteEncryptionFilter implements ProduceRequestFilter, ApiVers
             builder.addBatchLike(batch);
             for (Record record : batch) {
                 byte[] originalValue = toBytes(record.value());
-                byte[] transformedValue = encryptSafely(originalValue, topicName, fieldConfigs);
+                byte[] transformedValue = encryptOrFail(originalValue, topicName, fieldConfigs);
                 builder.appendWithOffset(record.offset(), record.timestamp(),
                         record.key(), ByteBuffer.wrap(transformedValue), record.headers());
             }
@@ -119,13 +118,14 @@ public class KryptoniteEncryptionFilter implements ProduceRequestFilter, ApiVers
         partition.setRecords(builder.build());
     }
 
-    private byte[] encryptSafely(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
+    private byte[] encryptOrFail(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
         if (wireBytes == null || wireBytes.length == 0) return wireBytes;
         try {
             return processor.encryptFields(wireBytes, topicName, fieldConfigs);
         } catch (Exception e) {
-            LOG.error("Encryption failed for topic '{}' — passing record through unmodified: {}", topicName, e.getMessage(), e);
-            return wireBytes;
+            // NEVER pass plaintext through on encryption failure — fail the produce request instead
+            LOG.error("Encryption failed for topic '{}' — failing produce request to prevent unencrypted data reaching the broker: {}", topicName, e.getMessage(), e);
+            throw e;
         }
     }
 
