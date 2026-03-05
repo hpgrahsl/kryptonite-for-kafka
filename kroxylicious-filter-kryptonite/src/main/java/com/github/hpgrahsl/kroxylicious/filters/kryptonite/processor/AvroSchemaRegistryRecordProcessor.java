@@ -3,8 +3,11 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
+import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.AvroGenericRecordAccessor;
@@ -16,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -69,9 +73,16 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof Map<?, ?> map) {
                 accessor.setField(fc.getName(), encryptMapValues(map, fc));
             } else {
-                byte[] plaintext = avroValueToBytes(fieldValue);
-                EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
-                accessor.setField(fc.getName(), encodeEncryptedField(ef));
+                if (isFpe(fc)) {
+                    if (!(fieldValue instanceof CharSequence cs)) continue;
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(
+                            cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
+                    accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
+                } else {
+                    byte[] plaintext = avroValueToBytes(fieldValue);
+                    EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
+                    accessor.setField(fc.getName(), encodeEncryptedField(ef));
+                }
             }
         }
 
@@ -103,13 +114,19 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
 
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof List<?> list) {
-                accessor.setField(fc.getName(), decryptListElements(list));
+                accessor.setField(fc.getName(), decryptListElements(list, fc));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof Map<?, ?> map) {
-                accessor.setField(fc.getName(), decryptMapValues(map));
+                accessor.setField(fc.getName(), decryptMapValues(map, fc));
             } else {
                 if (!(fieldValue instanceof CharSequence cs)) continue;
-                EncryptedField ef = decodeEncryptedField(cs.toString());
-                accessor.setField(fc.getName(), bytesToAvroValue(kryptonite.decipherField(ef)));
+                if (isFpe(fc)) {
+                    byte[] plaintext = kryptonite.decipherFieldFPE(
+                            cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
+                    accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
+                } else {
+                    EncryptedField ef = decodeEncryptedField(cs.toString());
+                    accessor.setField(fc.getName(), bytesToAvroValue(kryptonite.decipherField(ef)));
+                }
             }
         }
 
@@ -129,50 +146,99 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private List<Object> encryptListElements(List<?> source, FieldConfig fc) {
         List<Object> result = new ArrayList<>();
-        for (Object element : source) {
-            if (element == null) { result.add(null); continue; }
-            byte[] plaintext = avroValueToBytes(element);
-            EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
-            result.add(encodeEncryptedField(ef));
+        if (isFpe(fc)) {
+            FieldMetaData fmd = buildFieldMetaData(fc);
+            for (Object element : source) {
+                if (element == null) { result.add(null); continue; }
+                if (!(element instanceof CharSequence cs)) { result.add(element); continue; }
+                byte[] ciphertext = kryptonite.cipherFieldFPE(
+                        cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
+                result.add(new String(ciphertext, StandardCharsets.UTF_8));
+            }
+        } else {
+            for (Object element : source) {
+                if (element == null) { result.add(null); continue; }
+                byte[] plaintext = avroValueToBytes(element);
+                EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
+                result.add(encodeEncryptedField(ef));
+            }
         }
         return result;
     }
 
     private Map<Object, Object> encryptMapValues(Map<?, ?> source, FieldConfig fc) {
         Map<Object, Object> result = new java.util.LinkedHashMap<>();
-        source.forEach((k, v) -> {
-            if (v == null) { result.put(k, null); return; }
-            byte[] plaintext = avroValueToBytes(v);
-            EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
-            result.put(k, encodeEncryptedField(ef));
-        });
+        if (isFpe(fc)) {
+            FieldMetaData fmd = buildFieldMetaData(fc);
+            source.forEach((k, v) -> {
+                if (v == null) { result.put(k, null); return; }
+                if (!(v instanceof CharSequence cs)) { result.put(k, v); return; }
+                byte[] ciphertext = kryptonite.cipherFieldFPE(
+                        cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
+                result.put(k, new String(ciphertext, StandardCharsets.UTF_8));
+            });
+        } else {
+            source.forEach((k, v) -> {
+                if (v == null) { result.put(k, null); return; }
+                byte[] plaintext = avroValueToBytes(v);
+                EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
+                result.put(k, encodeEncryptedField(ef));
+            });
+        }
         return result;
     }
 
-    private List<Object> decryptListElements(List<?> source) {
+    private List<Object> decryptListElements(List<?> source, FieldConfig fc) {
         List<Object> result = new ArrayList<>();
-        for (Object element : source) {
-            if (element == null) { result.add(null); continue; }
-            if (element instanceof CharSequence cs) {
-                EncryptedField ef = decodeEncryptedField(cs.toString());
-                result.add(bytesToAvroValue(kryptonite.decipherField(ef)));
-            } else {
-                result.add(element);
+        if (isFpe(fc)) {
+            FieldMetaData fmd = buildFieldMetaData(fc);
+            for (Object element : source) {
+                if (element == null) { result.add(null); continue; }
+                if (element instanceof CharSequence cs) {
+                    byte[] plaintext = kryptonite.decipherFieldFPE(
+                            cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
+                    result.add(new String(plaintext, StandardCharsets.UTF_8));
+                } else {
+                    result.add(element);
+                }
+            }
+        } else {
+            for (Object element : source) {
+                if (element == null) { result.add(null); continue; }
+                if (element instanceof CharSequence cs) {
+                    EncryptedField ef = decodeEncryptedField(cs.toString());
+                    result.add(bytesToAvroValue(kryptonite.decipherField(ef)));
+                } else {
+                    result.add(element);
+                }
             }
         }
         return result;
     }
 
-    private Map<Object, Object> decryptMapValues(Map<?, ?> source) {
+    private Map<Object, Object> decryptMapValues(Map<?, ?> source, FieldConfig fc) {
         Map<Object, Object> result = new java.util.LinkedHashMap<>();
-        source.forEach((k, v) -> {
-            if (v instanceof CharSequence cs) {
-                EncryptedField ef = decodeEncryptedField(cs.toString());
-                result.put(k, bytesToAvroValue(kryptonite.decipherField(ef)));
-            } else {
-                result.put(k, v);
-            }
-        });
+        if (isFpe(fc)) {
+            FieldMetaData fmd = buildFieldMetaData(fc);
+            source.forEach((k, v) -> {
+                if (v instanceof CharSequence cs) {
+                    byte[] plaintext = kryptonite.decipherFieldFPE(
+                            cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
+                    result.put(k, new String(plaintext, StandardCharsets.UTF_8));
+                } else {
+                    result.put(k, v);
+                }
+            });
+        } else {
+            source.forEach((k, v) -> {
+                if (v instanceof CharSequence cs) {
+                    EncryptedField ef = decodeEncryptedField(cs.toString());
+                    result.put(k, bytesToAvroValue(kryptonite.decipherField(ef)));
+                } else {
+                    result.put(k, v);
+                }
+            });
+        }
         return result;
     }
 
@@ -203,7 +269,36 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         return ((AvroSchema) adapter.fetchSchema(schemaId)).rawSchema();
     }
 
-    // ---- Crypto helpers (mirrors AbstractJsonRecordProcessor) ----
+    // ---- Crypto helpers ----
+
+    private boolean isFpe(FieldConfig fc) {
+        String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
+        return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
+    }
+
+    private FieldMetaData buildFieldMetaData(FieldConfig fc) {
+        String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
+        String keyId = fc.getKeyId().orElse(defaultKeyId);
+        String fpeTweak = fc.getFpeTweak().orElse(KryptoniteSettings.CIPHER_FPE_TWEAK_DEFAULT);
+        String fpeAlphabet = determineAlphabet(fc);
+        String encoding = fc.getEncoding().orElse("BASE64");
+        return FieldMetaData.builder()
+                .algorithm(algorithm)
+                .dataType(String.class.getName())
+                .keyId(keyId)
+                .fpeTweak(fpeTweak)
+                .fpeAlphabet(fpeAlphabet)
+                .encoding(encoding)
+                .build();
+    }
+
+    private String determineAlphabet(FieldConfig fc) {
+        AlphabetTypeFPE alphabetType = fc.getFpeAlphabetType()
+                .orElse(AlphabetTypeFPE.valueOf(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE_DEFAULT));
+        return AlphabetTypeFPE.CUSTOM == alphabetType
+                ? fc.getFpeAlphabetCustom().orElse(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT)
+                : alphabetType.getAlphabet();
+    }
 
     private PayloadMetaData buildPayloadMetaData(FieldConfig fc) {
         String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
