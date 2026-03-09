@@ -510,6 +510,39 @@ class UnifiedTypeConverterTest {
             assertEquals("789 Pine Rd", addressStruct.get("street"));
             assertEquals("Chicago", addressStruct.get("city"));
         }
+
+        @Test
+        @DisplayName("should convert GenericRecord with Avro array to Struct")
+        void shouldConvertGenericRecordWithAvroArrayToStruct() {
+            org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.record("Data")
+                .fields()
+                .name("name").type().stringType().noDefault()
+                .name("scores").type().array().items().intType().noDefault()
+                .endRecord();
+
+            org.apache.avro.Schema scoresSchema = avroSchema.getField("scores").schema();
+            GenericData.Array<Integer> scores = new GenericData.Array<>(3, scoresSchema);
+            scores.add(85);
+            scores.add(90);
+            scores.add(95);
+
+            GenericRecord record = new GenericData.Record(avroSchema);
+            record.put("name", "Charlie");
+            record.put("scores", scores);
+
+            Schema connectSchema = SchemaBuilder.struct()
+                .field("name", Schema.STRING_SCHEMA)
+                .field("scores", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+                .build();
+
+            Struct result = converter.toStruct(record, connectSchema);
+
+            assertNotNull(result);
+            assertEquals("Charlie", result.get("name"));
+            @SuppressWarnings("unchecked")
+            List<Integer> resultScores = (List<Integer>) result.get("scores");
+            assertEquals(Arrays.asList(85, 90, 95), resultScores);
+        }
     }
 
     @Nested
@@ -695,6 +728,37 @@ class UnifiedTypeConverterTest {
             assertNotNull(addressRow);
             assertEquals("101 Elm St", addressRow.getField("street"));
             assertEquals("Seattle", addressRow.getField("city"));
+        }
+
+        @Test
+        @DisplayName("should convert GenericRecord with Avro array to Row")
+        void shouldConvertGenericRecordWithAvroArrayToRow() {
+            org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.record("Data")
+                .fields()
+                .name("name").type().stringType().noDefault()
+                .name("values").type().array().items().intType().noDefault()
+                .endRecord();
+
+            org.apache.avro.Schema valuesSchema = avroSchema.getField("values").schema();
+            GenericData.Array<Integer> values = new GenericData.Array<>(3, valuesSchema);
+            values.add(1);
+            values.add(2);
+            values.add(3);
+
+            GenericRecord record = new GenericData.Record(avroSchema);
+            record.put("name", "Leo");
+            record.put("values", values);
+
+            DataType rowType = DataTypes.ROW(
+                DataTypes.FIELD("name", DataTypes.STRING()),
+                DataTypes.FIELD("values", DataTypes.ARRAY(DataTypes.INT()))
+            );
+
+            Row result = converter.toRow(record, rowType);
+
+            assertNotNull(result);
+            assertEquals("Leo", result.getField("name"));
+            assertArrayEquals(new Integer[]{1, 2, 3}, (Integer[]) result.getField("values"));
         }
     }
 
@@ -924,6 +988,103 @@ class UnifiedTypeConverterTest {
             assertNotNull(result);
             assertTrue(result.getField("status") instanceof String);
             assertEquals("ACTIVE", result.getField("status"));
+        }
+
+        @Test
+        @DisplayName("should normalize Utf8 to String in Row")
+        void shouldNormalizeUtf8ToStringInRow() {
+            org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.record("Data")
+                .fields()
+                .name("label").type().stringType().noDefault()
+                .endRecord();
+
+            GenericRecord record = new GenericData.Record(avroSchema);
+            record.put("label", new Utf8("world"));
+
+            DataType rowType = DataTypes.ROW(
+                DataTypes.FIELD("label", DataTypes.STRING())
+            );
+
+            Row result = converter.toRow(record, rowType);
+
+            assertNotNull(result);
+            assertTrue(result.getField("label") instanceof String);
+            assertEquals("world", result.getField("label"));
+        }
+
+        @Test
+        @DisplayName("should normalize GenericEnumSymbol to String in Struct")
+        void shouldNormalizeGenericEnumSymbolToStringInStruct() {
+            org.apache.avro.Schema enumSchema = org.apache.avro.SchemaBuilder
+                .enumeration("Color").symbols("RED", "GREEN", "BLUE");
+
+            org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.record("Data")
+                .fields()
+                .name("color").type(enumSchema).noDefault()
+                .endRecord();
+
+            GenericRecord record = new GenericData.Record(avroSchema);
+            record.put("color", new GenericData.EnumSymbol(enumSchema, "GREEN"));
+
+            Schema connectSchema = SchemaBuilder.struct()
+                .field("color", Schema.STRING_SCHEMA)
+                .build();
+
+            Struct result = converter.toStruct(record, connectSchema);
+
+            assertNotNull(result);
+            assertTrue(result.get("color") instanceof String);
+            assertEquals("GREEN", result.get("color"));
+        }
+
+        @Test
+        @DisplayName("should normalize GenericFixed to byte[] in Struct")
+        void shouldNormalizeGenericFixedToByteArrayInStruct() {
+            org.apache.avro.Schema fixedSchema = org.apache.avro.SchemaBuilder
+                .fixed("MyFixed").size(4);
+
+            org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.record("Data")
+                .fields()
+                .name("id").type(fixedSchema).noDefault()
+                .endRecord();
+
+            byte[] bytes = new byte[]{1, 2, 3, 4};
+            GenericRecord record = new GenericData.Record(avroSchema);
+            record.put("id", new GenericData.Fixed(fixedSchema, bytes));
+
+            Schema connectSchema = SchemaBuilder.struct()
+                .field("id", Schema.BYTES_SCHEMA)
+                .build();
+
+            Struct result = converter.toStruct(record, connectSchema);
+
+            assertNotNull(result);
+            assertArrayEquals(bytes, (byte[]) result.get("id"));
+        }
+
+        @Test
+        @DisplayName("should normalize GenericFixed to byte[] in Row")
+        void shouldNormalizeGenericFixedToByteArrayInRow() {
+            org.apache.avro.Schema fixedSchema = org.apache.avro.SchemaBuilder
+                .fixed("MyFixed").size(4);
+
+            org.apache.avro.Schema avroSchema = org.apache.avro.SchemaBuilder.record("Data")
+                .fields()
+                .name("id").type(fixedSchema).noDefault()
+                .endRecord();
+
+            byte[] bytes = new byte[]{5, 6, 7, 8};
+            GenericRecord record = new GenericData.Record(avroSchema);
+            record.put("id", new GenericData.Fixed(fixedSchema, bytes));
+
+            DataType rowType = DataTypes.ROW(
+                DataTypes.FIELD("id", DataTypes.BYTES())
+            );
+
+            Row result = converter.toRow(record, rowType);
+
+            assertNotNull(result);
+            assertArrayEquals(bytes, (byte[]) result.getField("id"));
         }
     }
 }
