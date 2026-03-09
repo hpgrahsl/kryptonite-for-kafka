@@ -1,11 +1,14 @@
-name: Docs (dev)
+name: Docs (release)
 
 on:
-  push:
-    branches: [ master ]
-    paths:
-      - 'mkdocs.yml'
-      - 'docs/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build docs from (e.g. v0.6.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -26,6 +29,13 @@ jobs:
       - uses: actions/configure-pages@v5
 
       - uses: actions/checkout@v4
+        # Keeps scripts (.github/scripts/) from the workflow branch intact
+
+      - name: Checkout docs source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          path: _build-src
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -35,8 +45,20 @@ jobs:
       - name: Install Zensical
         run: pip install zensical mkdocs-glightbox
 
-      - name: Build latest site
-        run: zensical build --clean
+      - name: Extract version
+        id: version
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          # v0.7.0 -> v0.7, v0.7 -> v0.7
+          VERSION=$(echo "$TAG" | grep -oP '^v\d+\.\d+')
+          if [ -z "$VERSION" ]; then
+            echo "Could not extract minor version from tag: $TAG" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build release site
+        run: cd _build-src && zensical build --clean
 
       - name: Checkout docs-archive
         uses: actions/checkout@v4
@@ -45,13 +67,14 @@ jobs:
           path: docs-archive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update latest version in archive
+      - name: Add release version to archive
         run: |
-          rm -rf docs-archive/latest
-          mkdir -p docs-archive/latest
-          cp -r site/. docs-archive/latest/
+          VERSION="${{ steps.version.outputs.version }}"
+          rm -rf "docs-archive/$VERSION"
+          mkdir -p "docs-archive/$VERSION"
+          cp -r _build-src/site/. "docs-archive/$VERSION/"
           python3 .github/scripts/update-versions.py \
-            docs-archive/versions.json latest
+            docs-archive/versions.json "$VERSION" latest --max-releases 3
 
       - name: Regenerate root redirect
         run: |
@@ -66,7 +89,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff --staged --quiet || git commit -m "docs: update latest version"
+          git diff --staged --quiet || git commit -m "docs: add release ${{ steps.version.outputs.version }}"
           git push
 
       - name: Assemble full site artifact

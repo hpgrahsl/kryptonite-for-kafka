@@ -37,6 +37,7 @@ extra_css:
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js
   - assets/javascripts/glightbox-init.js
+  - assets/javascripts/version-picker.js
 
 exclude_docs: |
   getting-started/
