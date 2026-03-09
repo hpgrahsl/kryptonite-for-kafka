@@ -24,6 +24,8 @@ import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.util.Utf8;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
 import org.apache.kafka.connect.data.Schema;
@@ -103,6 +105,14 @@ public class KryoInstance {
         kryo.register(boolean[].class);
         kryo.register(Character.class);
         kryo.register(char[].class);
+        // NOTE: Avro type serializers — required for cross-module compat when Avro-encrypted
+        // fields are processed by Connect SMT, ksqlDB, Flink, or Funqy modules
+        kryo.register(GenericData.Record.class).setSerializer(new KryoSerdeProcessor.GenericRecordSerializer());
+        kryo.register(GenericData.Array.class).setSerializer(new KryoSerdeProcessor.GenericArraySerializer());
+        kryo.register(GenericData.EnumSymbol.class).setSerializer(new KryoSerdeProcessor.GenericEnumSymbolSerializer());
+        kryo.register(GenericData.Fixed.class).setSerializer(new KryoSerdeProcessor.GenericFixedSerializer());
+        kryo.register(Utf8.class).setSerializer(new KryoSerdeProcessor.Utf8Serializer());
+        kryo.register(Class.forName("java.nio.HeapByteBuffer")).setSerializer(new KryoSerdeProcessor.ByteBufferSerializer());
         return kryo;
       } catch (ClassNotFoundException e) {
         throw new RuntimeException(e);
