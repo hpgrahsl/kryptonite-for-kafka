@@ -20,6 +20,14 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import org.apache.avro.Schema.Parser;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.util.Utf8;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -27,6 +35,8 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.Struct;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -153,6 +163,136 @@ public class KryoSerdeProcessor implements SerdeProcessor {
 
     }
 
+  }
+
+  // ---- Avro serializers ----
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public static class GenericRecordSerializer extends Serializer<GenericData.Record> {
+
+    @Override
+    public void write(Kryo kryo, Output output, GenericData.Record record) {
+      output.writeString(record.getSchema().toString());
+      var baos = new ByteArrayOutputStream();
+      try {
+        BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(baos, null);
+        new GenericDatumWriter(record.getSchema()).write(record, encoder);
+        encoder.flush();
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to Avro-encode GenericRecord for Kryo", e);
+      }
+      var avroBytes = baos.toByteArray();
+      output.writeInt(avroBytes.length);
+      output.writeBytes(avroBytes);
+    }
+
+    @Override
+    public GenericData.Record read(Kryo kryo, Input input, Class<? extends GenericData.Record> type) {
+      var schema = new Parser().parse(input.readString());
+      int len = input.readInt();
+      var avroBytes = input.readBytes(len);
+      try {
+        return (GenericData.Record) new GenericDatumReader(schema).read(
+            null, DecoderFactory.get().binaryDecoder(avroBytes, null));
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to Avro-decode GenericRecord for Kryo", e);
+      }
+    }
+  }
+
+  @SuppressWarnings({"unchecked", "rawtypes"})
+  public static class GenericArraySerializer extends Serializer<GenericData.Array> {
+
+    @Override
+    public void write(Kryo kryo, Output output, GenericData.Array array) {
+      output.writeString(array.getSchema().toString());
+      var baos = new ByteArrayOutputStream();
+      try {
+        BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(baos, null);
+        new GenericDatumWriter(array.getSchema()).write(array, encoder);
+        encoder.flush();
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to Avro-encode GenericArray for Kryo", e);
+      }
+      var avroBytes = baos.toByteArray();
+      output.writeInt(avroBytes.length);
+      output.writeBytes(avroBytes);
+    }
+
+    @Override
+    public GenericData.Array read(Kryo kryo, Input input, Class<? extends GenericData.Array> type) {
+      var schema = new Parser().parse(input.readString());
+      int len = input.readInt();
+      var avroBytes = input.readBytes(len);
+      try {
+        return (GenericData.Array) new GenericDatumReader(schema).read(
+            null, DecoderFactory.get().binaryDecoder(avroBytes, null));
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to Avro-decode GenericArray for Kryo", e);
+      }
+    }
+  }
+
+  public static class Utf8Serializer extends Serializer<Utf8> {
+
+    @Override
+    public void write(Kryo kryo, Output output, Utf8 utf8) {
+      output.writeString(utf8.toString());
+    }
+
+    @Override
+    public Utf8 read(Kryo kryo, Input input, Class<? extends Utf8> type) {
+      return new Utf8(input.readString());
+    }
+  }
+
+  public static class GenericEnumSymbolSerializer extends Serializer<GenericData.EnumSymbol> {
+
+    @Override
+    public void write(Kryo kryo, Output output, GenericData.EnumSymbol symbol) {
+      output.writeString(symbol.getSchema().toString());
+      output.writeString(symbol.toString());
+    }
+
+    @Override
+    public GenericData.EnumSymbol read(Kryo kryo, Input input, Class<? extends GenericData.EnumSymbol> type) {
+      var schema = new Parser().parse(input.readString());
+      return new GenericData.EnumSymbol(schema, input.readString());
+    }
+  }
+
+  public static class GenericFixedSerializer extends Serializer<GenericData.Fixed> {
+
+    @Override
+    public void write(Kryo kryo, Output output, GenericData.Fixed fixed) {
+      output.writeString(fixed.getSchema().toString());
+      var bytes = fixed.bytes();
+      output.writeInt(bytes.length);
+      output.writeBytes(bytes);
+    }
+
+    @Override
+    public GenericData.Fixed read(Kryo kryo, Input input, Class<? extends GenericData.Fixed> type) {
+      var schema = new Parser().parse(input.readString());
+      return new GenericData.Fixed(schema, input.readBytes(input.readInt()));
+    }
+  }
+
+  public static class ByteBufferSerializer extends Serializer<ByteBuffer> {
+
+    @Override
+    public void write(Kryo kryo, Output output, ByteBuffer buf) {
+      var dup = buf.duplicate();
+      var bytes = new byte[dup.remaining()];
+      dup.get(bytes);
+      output.writeInt(bytes.length);
+      output.writeBytes(bytes);
+    }
+
+    @Override
+    public ByteBuffer read(Kryo kryo, Input input, Class<? extends ByteBuffer> type) {
+      return ByteBuffer.wrap(input.readBytes(input.readInt()));
+    }
   }
 
 }

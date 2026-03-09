@@ -34,6 +34,7 @@
     <kryo.serializers>0.45</kryo.serializers>
     <kafka.version>4.1.0</kafka.version>
     <flink.version>1.20.3</flink.version>
+    <avro.version>1.11.4</avro.version>
     <junit.version>5.14.0</junit.version>
   </properties>
 
@@ -52,6 +53,11 @@
       <groupId>de.javakaffee</groupId>
       <artifactId>kryo-serializers</artifactId>
       <version>${kryo.serializers}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>${avro.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
