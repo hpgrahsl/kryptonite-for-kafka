@@ -2,6 +2,8 @@
 
 All Kryptonite for Kafka modules share the same set of core configuration parameters. The table below shows which parameters are available and supported by each module.
 
+<div class="k4k-param-table" markdown="1">
+
 | Parameter | Required | Default | [Kafka Connect SMT](./modules/connect-smt.md) | [Flink UDFs](./modules/flink-udfs.md) | [ksqlDB UDFs](./modules/ksqldb-udfs.md) | [Quarkus HTTP Service](./modules/funqy-http.md) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
 | `key_source` | — | `CONFIG` | ✓ | ✓ | ✓ | ✓ |
@@ -16,6 +18,8 @@ All Kryptonite for Kafka modules share the same set of core configuration parame
 | `field_mode` | - | `ELEMENT` | ✓ | — | — | ✓ |
 | `cipher_mode` | ✓ | &nbsp; | ✓ | — | — | — |
 
+</div>
+
 ---
 
 ## Core Parameters
@@ -24,12 +28,16 @@ All Kryptonite for Kafka modules share the same set of core configuration parame
 
 Defines the origin and protection of the key material.
 
+<div class="k4k-param-table" markdown="1">
+
 | Value | Description |
 |---|---|
 | `CONFIG` | Plain Tink keysets provided directly in `cipher_data_keys` |
 | `CONFIG_ENCRYPTED` | Encrypted Tink keysets provided in `cipher_data_keys` for which the proper key encryption key (KEK) is required to be able to decrypt them |
 | `KMS` | Plain Tink keysets stored in a cloud secret manager (requires `kms_type` and `kms_config` settings) |
 | `KMS_ENCRYPTED` | Encrypted Tink keysets stored in a cloud secret manager (requires: all related KMS and KEK settings) |
+
+</div>
 
 **Default: `CONFIG`**
 

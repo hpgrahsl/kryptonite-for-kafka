@@ -44,6 +44,8 @@ Or run directly via Maven:
 
 ## Options
 
+<div class="k4k-param-table" markdown="1">
+
 | Option | Required | Default | Description |
 |---|---|---|---|
 | `-a, --algorithm` | Yes | — | Cipher algorithm: `AES_GCM`, `AES_GCM_SIV`, or `FPE_FF31` |
@@ -62,6 +64,8 @@ Or run directly via Maven:
 | `--kek-config` | When `-e` or `--encrypt` | — | Path to a credentials JSON file |
 | `-h, --help` | — | — | Show this help message and exit |
 | `-V, --version` | — | — | Print version information and exit |
+
+</div>
 
 ### KEK URI formats
 

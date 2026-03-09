@@ -16,12 +16,16 @@ Kryptonite for Kafka provides multiple ksqlDB user-defined functions (UDFs) for 
 
 ### UDFs Overview
 
+<div class="k4k-param-table" markdown="1">
+
 | UDF               | Description                                                                            |
 |-------------------|----------------------------------------------------------------------------------------|
 | `K4K_ENCRYPT`     | Encrypt field data using probabilistic / deterministic ciphers (AES-GCM / AES-GCM-SIV) |
 | `K4K_DECRYPT`     | Decrypt field data using probabilistic / deterministic ciphers (AES-GCM / AES-GCM-SIV) |
 | `K4K_ENCRYPT_FPE` | Encrypt field data using format-preserving encryption (FPE FF3-1)                      |
 | `K4K_DECRYPT_FPE` | Decrypt field data using format-preserving encryption (FPE FF3-1)                      |
+
+</div>
 
 ---
 

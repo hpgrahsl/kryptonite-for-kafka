@@ -54,3 +54,11 @@
   border-radius: 0.1rem;
 }
 
+/* ============================================================
+   Core parameter table — enforce minimum width on first column
+   ============================================================ */
+
+.k4k-param-table th:nth-child(1),
+.k4k-param-table td:nth-child(1) {
+  min-width: 215px;
+}

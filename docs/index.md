@@ -213,11 +213,15 @@ A lightweight HTTP service that exposes a web API with multiple encryption and d
 
 ## Supported Encryption Algorithms
 
+<div class="k4k-param-table" markdown="1">
+
 | Algorithm | Mode | Input | Output | Usage |
 |---|---|---|---|---|
 | `TINK/AES_GCM` | [AEAD probabilistic](https://developers.google.com/tink/aead) | any supported data type | string (Base64) | most cases (default) |
 | `TINK/AES_GCM_SIV` | [AEAD deterministic](https://developers.google.com/tink/deterministic-aead) | any supported data type | string (Base64) | equality match, join operations, or aggregrations on encrypted data |
 | `CUSTOM/MYSTO_FPE_FF3_1` | [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) | string (specific alphabet) | string (same alphabet as input) | if alphabet must be preserved (credit cards, SSNs, IBANs, ...) |
+
+</div>
 
 :octicons-book-24: [Learn more](security.md)
 
