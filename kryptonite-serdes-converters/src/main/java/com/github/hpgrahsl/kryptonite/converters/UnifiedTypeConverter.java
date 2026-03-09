@@ -26,6 +26,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.avro.generic.GenericEnumSymbol;
+import org.apache.avro.generic.GenericFixed;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.ArrayType;
@@ -37,8 +41,9 @@ import org.apache.kafka.connect.data.Struct;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 
 /**
- * Unified type converter that handles conversions between three type systems:
+ * Unified type converter that handles conversions between four type systems:
  * <ul>
+ *   <li>Avro generic types (GenericRecord + Avro Schema) — source only</li>
  *   <li>Kafka Connect types (Struct + Schema)</li>
  *   <li>Flink Table API types (Row + DataType)</li>
  *   <li>Schema-less Map&lt;String, Object&gt;</li>
@@ -47,8 +52,16 @@ import com.github.hpgrahsl.kryptonite.KryptoniteException;
  * This converter walks object graphs and target schemas in parallel,
  * ensuring proper type conversion at every nesting level.
  *
+ * <p>Avro scalar types are normalized before dispatch: {@code Utf8} and
+ * {@code GenericEnumSymbol} → {@code String}, {@code GenericFixed} → {@code byte[]}.
+ * Avro arrays ({@code GenericArray} implements {@code List}) and maps fall through
+ * to the existing collection handlers unchanged.</p>
+ *
  * <p>Supported conversions:</p>
  * <ol>
+ *   <li>Avro → Kafka Connect</li>
+ *   <li>Avro → Flink Table API</li>
+ *   <li>Avro → Map&lt;String, Object&gt;</li>
  *   <li>Kafka Connect → Flink Table API</li>
  *   <li>Kafka Connect → Map&lt;String, Object&gt;</li>
  *   <li>Flink Table API → Kafka Connect</li>
@@ -62,6 +75,9 @@ public class UnifiedTypeConverter {
     private final StructToMapConverter structToMapConverter;
     private final RowToMapConverter rowToMapConverter;
     private final MapToStructConverter mapToStructConverter;
+    private final AvroToMapConverter avroToMapConverter;
+    private final AvroToStructConverter avroToStructConverter;
+    private final AvroToRowConverter avroToRowConverter;
     private final RowToStructConverter rowToStructConverter;
     private final MapToRowConverter mapToRowConverter;
     private final StructToRowConverter structToRowConverter;
@@ -70,6 +86,9 @@ public class UnifiedTypeConverter {
         this.structToMapConverter = new StructToMapConverter(this);
         this.rowToMapConverter = new RowToMapConverter(this);
         this.mapToStructConverter = new MapToStructConverter(this);
+        this.avroToMapConverter = new AvroToMapConverter(this);
+        this.avroToStructConverter = new AvroToStructConverter(this);
+        this.avroToRowConverter = new AvroToRowConverter(this);
         this.rowToStructConverter = new RowToStructConverter(this);
         this.mapToRowConverter = new MapToRowConverter(this);
         this.structToRowConverter = new StructToRowConverter(this);
@@ -77,10 +96,10 @@ public class UnifiedTypeConverter {
 
     /**
      * Convert any supported source object to a schema-less Map.
-     * Handles Kafka Connect Struct, Flink Row, or existing Map.
+     * Handles Avro GenericRecord, Kafka Connect Struct, Flink Row, or existing Map.
      * Nested structures are recursively converted to nested Maps.
      *
-     * @param source the source object must be either of type Struct, Row, or Map
+     * @param source the source object must be of type GenericRecord, Struct, Row, or Map
      * (contained values of the respective entries can be of any supported type)
      * @return the converted Map, or null if source is null
      * @throws KryptoniteException if the source type is not supported
@@ -98,6 +117,10 @@ public class UnifiedTypeConverter {
             return rowToMapConverter.convert((Row) source);
         }
 
+        if (source instanceof GenericRecord) {
+            return avroToMapConverter.convert((GenericRecord) source);
+        }
+
         if (source instanceof Map<?, ?>) {
             return mapToMapConverter((Map<?, ?>) source);
         }
@@ -110,7 +133,7 @@ public class UnifiedTypeConverter {
      * Convert any supported source object to a Kafka Connect Struct.
      * The target schema dictates the structure and types of the result.
      *
-     * @param source the source object must be either of type Struct, Row, or Map
+     * @param source the source object must be of type GenericRecord, Struct, Row, or Map
      * (contained values of the respective entries can be of any supported type)
      * @param targetSchema the Kafka Connect Schema describing the target structure
      * @return the converted Struct, or null if source is null
@@ -130,6 +153,10 @@ public class UnifiedTypeConverter {
             return structToStructConverter((Struct) source, targetSchema);
         }
 
+        if (source instanceof GenericRecord) {
+            return avroToStructConverter.convert((GenericRecord) source, targetSchema);
+        }
+
         if (source instanceof Row) {
             return rowToStructConverter.convert((Row) source, targetSchema);
         }
@@ -146,7 +173,7 @@ public class UnifiedTypeConverter {
      * Convert any supported source object to a Flink Row.
      * The target DataType dictates the structure and types of the result.
      *
-     * @param source the source object must be either of type Struct, Row, or Map
+     * @param source the source object must be of type GenericRecord, Struct, Row, or Map
      * (contained values of the respective entries can be of any supported type)
      * @param targetType the Flink DataType describing the target structure
      * @return the converted Row, or null if source is null
@@ -164,6 +191,10 @@ public class UnifiedTypeConverter {
 
         if (source instanceof Row) {
             return rowToRowConverter((Row) source, targetType);
+        }
+
+        if (source instanceof GenericRecord) {
+            return avroToRowConverter.convert((GenericRecord) source, targetType);
         }
 
         if (source instanceof Struct) {
@@ -185,8 +216,11 @@ public class UnifiedTypeConverter {
     /**
      * Convert any value (primitive or complex) to the appropriate Flink representation.
      * Use this method when converting deserialized values back to Flink types.
+     * Avro types (GenericRecord, GenericArray, Utf8, GenericEnumSymbol, GenericFixed,
+     * ByteBuffer) are handled automatically.
      *
-     * @param value the value to convert (can be primitive, array, List, Map, Struct, Row)
+     * @param value the value to convert (can be primitive, array, List, Map, Struct, Row,
+     *              or any Avro generic type)
      * @param targetType the target Flink DataType
      * @return the converted value suitable for Flink
      */
@@ -197,8 +231,11 @@ public class UnifiedTypeConverter {
     /**
      * Convert any value (primitive or complex) to the appropriate Kafka Connect representation.
      * Use this method when converting deserialized values back to Connect types.
+     * Avro types (GenericRecord, GenericArray, Utf8, GenericEnumSymbol, GenericFixed,
+     * ByteBuffer) are handled automatically.
      *
-     * @param value the value to convert (can be primitive, array, List, Map, Struct, Row)
+     * @param value the value to convert (can be primitive, array, List, Map, Struct, Row,
+     *              or any Avro generic type)
      * @param targetSchema the target Kafka Connect Schema
      * @return the converted value suitable for Kafka Connect
      */
@@ -210,8 +247,11 @@ public class UnifiedTypeConverter {
      * Convert any value (primitive or complex) to a schema-less Map representation.
      * Use this method when converting deserialized values back to a generic Map structure
      * which is used in the HTTP API service.
+     * Avro types (GenericRecord, GenericArray, Utf8, GenericEnumSymbol, GenericFixed,
+     * ByteBuffer) are handled automatically.
      *
-     * @param value the value to convert (can be primitive, array, List, Map, Struct, Row)
+     * @param value the value to convert (can be primitive, array, List, Map, Struct, Row,
+     *              or any Avro generic type)
      * @return the converted value (primitives pass through, complex types become Maps/Lists)
      */
     public Object convertForMap(Object value) {
@@ -228,6 +268,12 @@ public class UnifiedTypeConverter {
     Object toMapValue(Object value) {
         if (value == null) {
             return null;
+        }
+
+        value = normalizeAvroValue(value);
+
+        if (value instanceof GenericRecord) {
+            return avroToMapConverter.convert((GenericRecord) value);
         }
 
         if (value instanceof Struct) {
@@ -273,6 +319,8 @@ public class UnifiedTypeConverter {
             return null;
         }
 
+        value = normalizeAvroValue(value);
+
         switch (targetSchema.type()) {
             case STRUCT:
                 return toStruct(value, targetSchema);
@@ -300,6 +348,8 @@ public class UnifiedTypeConverter {
             return null;
         }
 
+        value = normalizeAvroValue(value);
+
         var logicalType = targetType.getLogicalType();
 
         switch (logicalType.getTypeRoot()) {
@@ -323,6 +373,16 @@ public class UnifiedTypeConverter {
     }
 
     // ==================== Private helper methods ====================
+
+    private static Object normalizeAvroValue(Object value) {
+        if (value instanceof Utf8 || value instanceof GenericEnumSymbol) {
+            return value.toString();
+        }
+        if (value instanceof GenericFixed) {
+            return ((GenericFixed) value).bytes();
+        }
+        return value;
+    }
 
     private Map<String, Object> mapToMapConverter(Map<?, ?> source) {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>();
