@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.crypto.tink.InsecureSecretKeyAccess;
 import com.google.crypto.tink.TinkJsonProtoKeysetFormat;
 import com.google.crypto.tink.aead.AeadConfig;
@@ -46,7 +47,8 @@ import picocli.CommandLine;
 
 class KeysetGeneratorCommandTest {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    private static final YAMLMapper YAML_MAPPER = new YAMLMapper();
 
     @BeforeAll
     static void setup() throws Exception {
@@ -61,61 +63,9 @@ class KeysetGeneratorCommandTest {
         return cmd;
     }
 
-    @Test
-    @DisplayName("generate AES_GCM keyset in FULL format with identifier")
-    void testAesGcmFullFormat() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "my-test-key", "-f", "FULL");
-
-        assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
-        assertEquals("my-test-key", root.get("identifier").asText());
-        assertNotNull(root.get("material"));
-        JsonNode material = root.get("material");
-        assertTrue(material.has("primaryKeyId"));
-        assertTrue(material.has("key"));
-        JsonNode keyEntry = material.get("key").get(0);
-        assertEquals("type.googleapis.com/google.crypto.tink.AesGcmKey",
-            keyEntry.get("keyData").get("typeUrl").asText());
-        assertEquals("ENABLED", keyEntry.get("status").asText());
-        assertEquals("TINK", keyEntry.get("outputPrefixType").asText());
-    }
-
-    @Test
-    @DisplayName("generate AES_GCM_SIV keyset in FULL format with identifier")
-    void testAesGcmSivFullFormat() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM_SIV", "-i", "my-siv-key", "-f", "FULL");
-
-        assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
-        assertEquals("my-siv-key", root.get("identifier").asText());
-        JsonNode keyEntry = root.get("material").get("key").get(0);
-        assertEquals("type.googleapis.com/google.crypto.tink.AesSivKey",
-            keyEntry.get("keyData").get("typeUrl").asText());
-    }
-
-    @Test
-    @DisplayName("generate AES_GCM keyset in RAW format without wrapper")
-    void testAesGcmRawFormat() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW");
-
-        assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
-        assertFalse(root.has("identifier"));
-        assertTrue(root.has("primaryKeyId"));
-        assertTrue(root.has("key"));
-    }
+    // -------------------------------------------------------------------------
+    // Format-agnostic: content correctness, Tink loadability, input validation
+    // -------------------------------------------------------------------------
 
     @Test
     @DisplayName("generated AES_GCM keyset can be loaded by Tink")
@@ -157,7 +107,7 @@ class KeysetGeneratorCommandTest {
         int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-s", "128");
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         JsonNode keyEntry = root.get("key").get(0);
         assertEquals("type.googleapis.com/google.crypto.tink.AesGcmKey",
             keyEntry.get("keyData").get("typeUrl").asText());
@@ -177,7 +127,7 @@ class KeysetGeneratorCommandTest {
 
         assertEquals(0, exitCode);
         assertTrue(err.toString().contains("ignored for AES_GCM_SIV"));
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         assertTrue(root.has("primaryKeyId"));
     }
 
@@ -200,7 +150,7 @@ class KeysetGeneratorCommandTest {
         int exitCode = cmd.execute("-a", "FPE_FF31", "-f", "RAW", "-s", String.valueOf(keySizeBits));
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         assertTrue(root.has("primaryKeyId"));
         JsonNode keyEntry = root.get("key").get(0);
         assertEquals(FpeKeysetGenerator.FPE_TYPE_URL,
@@ -214,82 +164,6 @@ class KeysetGeneratorCommandTest {
     }
 
     @Test
-    @DisplayName("FPE_FF31 keyset in FULL format includes identifier")
-    void testFpeFullFormat() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "FPE_FF31", "-i", "my-fpe-key", "-f", "FULL", "-s", "128");
-
-        assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
-        assertEquals("my-fpe-key", root.get("identifier").asText());
-        assertNotNull(root.get("material"));
-    }
-
-    @Test
-    @DisplayName("FULL format without identifier returns error")
-    void testFullFormatWithoutIdentifierFails() {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "FULL");
-
-        assertEquals(1, exitCode);
-        assertTrue(err.toString().contains("--identifier is required"));
-    }
-
-    @Test
-    @DisplayName("pretty-print produces indented JSON output")
-    void testPrettyPrint() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-p");
-
-        assertEquals(0, exitCode);
-        String output = out.toString();
-        assertTrue(output.contains("\n"), "pretty-printed output should contain newlines");
-        assertTrue(output.contains("  "), "pretty-printed output should contain indentation");
-    }
-
-    @Test
-    @DisplayName("single-line output by default (no pretty-print)")
-    void testSingleLineDefault() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW");
-
-        assertEquals(0, exitCode);
-        String output = out.toString().trim();
-        assertFalse(output.contains("\n"), "default output should be single-line");
-    }
-
-    @Test
-    @DisplayName("write keyset to output file")
-    void testOutputToFile(@TempDir File tempDir) throws Exception {
-        File outputFile = new File(tempDir, "keyset.json");
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "file-key", "-f", "FULL",
-            "-o", outputFile.getAbsolutePath());
-
-        assertEquals(0, exitCode);
-        assertTrue(outputFile.exists());
-        String content = Files.readString(outputFile.toPath());
-        JsonNode root = OBJECT_MAPPER.readTree(content);
-        assertEquals("file-key", root.get("identifier").asText());
-        assertNotNull(root.get("material"));
-    }
-
-    @Test
     @DisplayName("generate AES_GCM keyset with multiple keys and sequential IDs")
     void testMultiKeyAesGcm() throws Exception {
         StringWriter out = new StringWriter();
@@ -299,7 +173,7 @@ class KeysetGeneratorCommandTest {
         int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-n", "5", "--initial-key-id", "20000");
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         assertEquals(5, root.get("key").size());
         assertEquals(20000, root.get("primaryKeyId").asInt());
 
@@ -330,7 +204,7 @@ class KeysetGeneratorCommandTest {
         int exitCode = cmd.execute("-a", "AES_GCM_SIV", "-f", "RAW", "-n", "3", "--initial-key-id", "50000");
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         assertEquals(3, root.get("key").size());
         assertEquals(50000, root.get("primaryKeyId").asInt());
 
@@ -350,7 +224,7 @@ class KeysetGeneratorCommandTest {
             "--initial-key-id", "30000", "-s", "192");
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         assertEquals(4, root.get("key").size());
         assertEquals(30000, root.get("primaryKeyId").asInt());
 
@@ -382,24 +256,11 @@ class KeysetGeneratorCommandTest {
             "-n", "3", "--initial-key-id", "40000");
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         assertEquals("multi-key-set", root.get("identifier").asText());
         JsonNode material = root.get("material");
         assertEquals(3, material.get("key").size());
         assertEquals(40000, material.get("primaryKeyId").asInt());
-    }
-
-    @Test
-    @DisplayName("num-keys out of range returns error")
-    void testNumKeysOutOfRange() {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-n", "0");
-
-        assertEquals(1, exitCode);
-        assertTrue(err.toString().contains("--num-keys must be between 1 and 1000"));
     }
 
     @Test
@@ -412,76 +273,10 @@ class KeysetGeneratorCommandTest {
         int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW");
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         assertEquals(1, root.get("key").size());
         assertEquals(10000, root.get("primaryKeyId").asInt());
         assertEquals(10000, root.get("key").get(0).get("keyId").asInt());
-    }
-
-    @Test
-    @DisplayName("multiple keysets in FULL format produces JSON array with suffixed identifiers")
-    void testMultipleKeysetsFull() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "demo-key", "-f", "FULL",
-            "-k", "3", "-n", "2", "--initial-key-id", "10000");
-
-        assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
-        assertTrue(root.isArray(), "output should be a JSON array");
-        assertEquals(3, root.size());
-
-        for (int k = 0; k < 3; k++) {
-            JsonNode keyset = root.get(k);
-            assertEquals("demo-key_" + (k + 1), keyset.get("identifier").asText());
-            JsonNode material = keyset.get("material");
-            assertEquals(2, material.get("key").size());
-            int expectedStartId = 10000 + (k * 2);
-            assertEquals(expectedStartId, material.get("primaryKeyId").asInt());
-            assertEquals(expectedStartId, material.get("key").get(0).get("keyId").asInt());
-            assertEquals(expectedStartId + 1, material.get("key").get(1).get("keyId").asInt());
-        }
-    }
-
-    @Test
-    @DisplayName("multiple keysets in RAW format produces JSON array without identifiers")
-    void testMultipleKeysetsRaw() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "FPE_FF31", "-f", "RAW", "-k", "2",
-            "-n", "3", "--initial-key-id", "5000", "-s", "128");
-
-        assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
-        assertTrue(root.isArray(), "output should be a JSON array");
-        assertEquals(2, root.size());
-
-        for (int k = 0; k < 2; k++) {
-            JsonNode keyset = root.get(k);
-            assertFalse(keyset.has("identifier"));
-            assertEquals(3, keyset.get("key").size());
-            int expectedStartId = 5000 + (k * 3);
-            assertEquals(expectedStartId, keyset.get("primaryKeyId").asInt());
-        }
-    }
-
-    @Test
-    @DisplayName("single keyset (default) does not produce array")
-    void testSingleKeysetNoArray() throws Exception {
-        StringWriter out = new StringWriter();
-        StringWriter err = new StringWriter();
-        CommandLine cmd = createCommand(out, err);
-
-        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "solo", "-f", "FULL");
-
-        assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
-        assertFalse(root.isArray(), "single keyset should not be an array");
-        assertEquals("solo", root.get("identifier").asText());
     }
 
     @Test
@@ -495,7 +290,7 @@ class KeysetGeneratorCommandTest {
             "-k", "3", "-n", "4", "--initial-key-id", "1000");
 
         assertEquals(0, exitCode);
-        JsonNode root = OBJECT_MAPPER.readTree(out.toString());
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
         Set<Integer> allKeyIds = new HashSet<>();
         for (int k = 0; k < 3; k++) {
             JsonNode keys = root.get(k).get("material").get("key");
@@ -505,6 +300,32 @@ class KeysetGeneratorCommandTest {
             }
         }
         assertEquals(12, allKeyIds.size());
+    }
+
+    @Test
+    @DisplayName("FULL format without identifier returns error")
+    void testFullFormatWithoutIdentifierFails() {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "FULL");
+
+        assertEquals(1, exitCode);
+        assertTrue(err.toString().contains("--identifier is required"));
+    }
+
+    @Test
+    @DisplayName("num-keys out of range returns error")
+    void testNumKeysOutOfRange() {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-n", "0");
+
+        assertEquals(1, exitCode);
+        assertTrue(err.toString().contains("--num-keys must be between 1 and 1000"));
     }
 
     @Test
@@ -573,5 +394,373 @@ class KeysetGeneratorCommandTest {
 
         assertEquals(1, exitCode);
         assertTrue(err.toString().contains("--kek-config file does not exist"));
+    }
+
+    // -------------------------------------------------------------------------
+    // JSON output tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("JSON: AES_GCM keyset in FULL format includes identifier and material")
+    void testJsonAesGcmFullFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "my-test-key", "-f", "FULL");
+
+        assertEquals(0, exitCode);
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
+        assertEquals("my-test-key", root.get("identifier").asText());
+        assertNotNull(root.get("material"));
+        JsonNode material = root.get("material");
+        assertTrue(material.has("primaryKeyId"));
+        assertTrue(material.has("key"));
+        JsonNode keyEntry = material.get("key").get(0);
+        assertEquals("type.googleapis.com/google.crypto.tink.AesGcmKey",
+            keyEntry.get("keyData").get("typeUrl").asText());
+        assertEquals("ENABLED", keyEntry.get("status").asText());
+        assertEquals("TINK", keyEntry.get("outputPrefixType").asText());
+    }
+
+    @Test
+    @DisplayName("JSON: AES_GCM_SIV keyset in FULL format includes identifier and material")
+    void testJsonAesGcmSivFullFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM_SIV", "-i", "my-siv-key", "-f", "FULL");
+
+        assertEquals(0, exitCode);
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
+        assertEquals("my-siv-key", root.get("identifier").asText());
+        JsonNode keyEntry = root.get("material").get("key").get(0);
+        assertEquals("type.googleapis.com/google.crypto.tink.AesSivKey",
+            keyEntry.get("keyData").get("typeUrl").asText());
+    }
+
+    @Test
+    @DisplayName("JSON: AES_GCM keyset in RAW format has no identifier wrapper")
+    void testJsonAesGcmRawFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW");
+
+        assertEquals(0, exitCode);
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
+        assertFalse(root.has("identifier"));
+        assertTrue(root.has("primaryKeyId"));
+        assertTrue(root.has("key"));
+    }
+
+    @Test
+    @DisplayName("JSON: FPE_FF31 keyset in FULL format includes identifier and material")
+    void testJsonFpeFullFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "FPE_FF31", "-i", "my-fpe-key", "-f", "FULL", "-s", "128");
+
+        assertEquals(0, exitCode);
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
+        assertEquals("my-fpe-key", root.get("identifier").asText());
+        assertNotNull(root.get("material"));
+        assertEquals(FpeKeysetGenerator.FPE_TYPE_URL,
+            root.get("material").get("key").get(0).get("keyData").get("typeUrl").asText());
+    }
+
+    @Test
+    @DisplayName("JSON: output is compact single-line by default")
+    void testJsonSingleLineDefault() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW");
+
+        assertEquals(0, exitCode);
+        assertFalse(out.toString().trim().contains("\n"), "default JSON output should be single-line");
+    }
+
+    @Test
+    @DisplayName("JSON: --pretty flag produces indented multi-line output")
+    void testJsonPrettyPrint() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "-p");
+
+        assertEquals(0, exitCode);
+        String output = out.toString();
+        assertTrue(output.contains("\n"), "pretty-printed output should contain newlines");
+        assertTrue(output.contains("  "), "pretty-printed output should contain indentation");
+    }
+
+    @Test
+    @DisplayName("JSON: single keyset output is not an array")
+    void testJsonSingleKeysetNotArray() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "solo", "-f", "FULL");
+
+        assertEquals(0, exitCode);
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
+        assertFalse(root.isArray(), "single keyset should not be an array");
+        assertEquals("solo", root.get("identifier").asText());
+    }
+
+    @Test
+    @DisplayName("JSON: multiple keysets in FULL format produces array with suffixed identifiers")
+    void testJsonMultipleKeysetsFull() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "demo-key", "-f", "FULL",
+            "-k", "3", "-n", "2", "--initial-key-id", "10000");
+
+        assertEquals(0, exitCode);
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
+        assertTrue(root.isArray(), "output should be a JSON array");
+        assertEquals(3, root.size());
+
+        for (int k = 0; k < 3; k++) {
+            JsonNode keyset = root.get(k);
+            assertEquals("demo-key_" + (k + 1), keyset.get("identifier").asText());
+            JsonNode material = keyset.get("material");
+            assertEquals(2, material.get("key").size());
+            int expectedStartId = 10000 + (k * 2);
+            assertEquals(expectedStartId, material.get("primaryKeyId").asInt());
+            assertEquals(expectedStartId, material.get("key").get(0).get("keyId").asInt());
+            assertEquals(expectedStartId + 1, material.get("key").get(1).get("keyId").asInt());
+        }
+    }
+
+    @Test
+    @DisplayName("JSON: multiple keysets in RAW format produces array without identifiers")
+    void testJsonMultipleKeysetsRaw() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "FPE_FF31", "-f", "RAW", "-k", "2",
+            "-n", "3", "--initial-key-id", "5000", "-s", "128");
+
+        assertEquals(0, exitCode);
+        JsonNode root = JSON_MAPPER.readTree(out.toString());
+        assertTrue(root.isArray(), "output should be a JSON array");
+        assertEquals(2, root.size());
+
+        for (int k = 0; k < 2; k++) {
+            JsonNode keyset = root.get(k);
+            assertFalse(keyset.has("identifier"));
+            assertEquals(3, keyset.get("key").size());
+            int expectedStartId = 5000 + (k * 3);
+            assertEquals(expectedStartId, keyset.get("primaryKeyId").asInt());
+        }
+    }
+
+    @Test
+    @DisplayName("JSON: keyset written to output file is valid JSON")
+    void testJsonOutputToFile(@TempDir File tempDir) throws Exception {
+        File outputFile = new File(tempDir, "keyset.json");
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "file-key", "-f", "FULL",
+            "-o", outputFile.getAbsolutePath());
+
+        assertEquals(0, exitCode);
+        assertTrue(outputFile.exists());
+        JsonNode root = JSON_MAPPER.readTree(Files.readString(outputFile.toPath()));
+        assertEquals("file-key", root.get("identifier").asText());
+        assertNotNull(root.get("material"));
+    }
+
+    // -------------------------------------------------------------------------
+    // YAML output tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("YAML: AES_GCM keyset in FULL format includes identifier and material")
+    void testYamlAesGcmFullFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "my-test-key", "-f", "FULL", "--yaml");
+
+        assertEquals(0, exitCode);
+        JsonNode root = YAML_MAPPER.readTree(out.toString());
+        assertEquals("my-test-key", root.get("identifier").asText());
+        assertNotNull(root.get("material"));
+        JsonNode material = root.get("material");
+        assertTrue(material.has("primaryKeyId"));
+        assertTrue(material.has("key"));
+        JsonNode keyEntry = material.get("key").get(0);
+        assertEquals("type.googleapis.com/google.crypto.tink.AesGcmKey",
+            keyEntry.get("keyData").get("typeUrl").asText());
+        assertEquals("ENABLED", keyEntry.get("status").asText());
+        assertEquals("TINK", keyEntry.get("outputPrefixType").asText());
+    }
+
+    @Test
+    @DisplayName("YAML: AES_GCM_SIV keyset in FULL format includes identifier and material")
+    void testYamlAesGcmSivFullFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM_SIV", "-i", "my-siv-key", "-f", "FULL", "--yaml");
+
+        assertEquals(0, exitCode);
+        JsonNode root = YAML_MAPPER.readTree(out.toString());
+        assertEquals("my-siv-key", root.get("identifier").asText());
+        JsonNode keyEntry = root.get("material").get("key").get(0);
+        assertEquals("type.googleapis.com/google.crypto.tink.AesSivKey",
+            keyEntry.get("keyData").get("typeUrl").asText());
+    }
+
+    @Test
+    @DisplayName("YAML: AES_GCM keyset in RAW format has no identifier wrapper")
+    void testYamlAesGcmRawFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "--yaml");
+
+        assertEquals(0, exitCode);
+        JsonNode root = YAML_MAPPER.readTree(out.toString());
+        assertFalse(root.has("identifier"));
+        assertTrue(root.has("primaryKeyId"));
+        assertTrue(root.has("key"));
+    }
+
+    @Test
+    @DisplayName("YAML: FPE_FF31 keyset in FULL format includes identifier and material")
+    void testYamlFpeFullFormat() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "FPE_FF31", "-i", "my-fpe-key", "-f", "FULL", "-s", "128", "--yaml");
+
+        assertEquals(0, exitCode);
+        JsonNode root = YAML_MAPPER.readTree(out.toString());
+        assertEquals("my-fpe-key", root.get("identifier").asText());
+        assertNotNull(root.get("material"));
+        assertEquals(FpeKeysetGenerator.FPE_TYPE_URL,
+            root.get("material").get("key").get(0).get("keyData").get("typeUrl").asText());
+    }
+
+    @Test
+    @DisplayName("YAML: output is multi-line without document start marker")
+    void testYamlMultiLineOutput() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-f", "RAW", "--yaml");
+
+        assertEquals(0, exitCode);
+        String output = out.toString();
+        assertFalse(output.startsWith("---"), "YAML output should not have document start marker");
+        assertTrue(output.contains("\n"), "YAML output should be multi-line");
+        assertTrue(output.contains(": "), "YAML output should contain key-value separators");
+    }
+
+    @Test
+    @DisplayName("YAML: single keyset output is not a sequence")
+    void testYamlSingleKeysetNotArray() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "solo", "-f", "FULL", "--yaml");
+
+        assertEquals(0, exitCode);
+        JsonNode root = YAML_MAPPER.readTree(out.toString());
+        assertFalse(root.isArray(), "single keyset should not be a sequence");
+        assertEquals("solo", root.get("identifier").asText());
+    }
+
+    @Test
+    @DisplayName("YAML: multiple keysets in FULL format produces sequence with suffixed identifiers")
+    void testYamlMultipleKeysetsFull() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "demo-key", "-f", "FULL",
+            "-k", "3", "-n", "2", "--initial-key-id", "10000", "--yaml");
+
+        assertEquals(0, exitCode);
+        JsonNode root = YAML_MAPPER.readTree(out.toString());
+        assertTrue(root.isArray(), "output should be a YAML sequence");
+        assertEquals(3, root.size());
+
+        for (int k = 0; k < 3; k++) {
+            JsonNode keyset = root.get(k);
+            assertEquals("demo-key_" + (k + 1), keyset.get("identifier").asText());
+            JsonNode material = keyset.get("material");
+            assertEquals(2, material.get("key").size());
+            int expectedStartId = 10000 + (k * 2);
+            assertEquals(expectedStartId, material.get("primaryKeyId").asInt());
+            assertEquals(expectedStartId, material.get("key").get(0).get("keyId").asInt());
+            assertEquals(expectedStartId + 1, material.get("key").get(1).get("keyId").asInt());
+        }
+    }
+
+    @Test
+    @DisplayName("YAML: multiple keysets in RAW format produces sequence without identifiers")
+    void testYamlMultipleKeysetsRaw() throws Exception {
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "FPE_FF31", "-f", "RAW", "-k", "2",
+            "-n", "3", "--initial-key-id", "5000", "-s", "128", "--yaml");
+
+        assertEquals(0, exitCode);
+        JsonNode root = YAML_MAPPER.readTree(out.toString());
+        assertTrue(root.isArray(), "output should be a YAML sequence");
+        assertEquals(2, root.size());
+
+        for (int k = 0; k < 2; k++) {
+            JsonNode keyset = root.get(k);
+            assertFalse(keyset.has("identifier"));
+            assertEquals(3, keyset.get("key").size());
+            int expectedStartId = 5000 + (k * 3);
+            assertEquals(expectedStartId, keyset.get("primaryKeyId").asInt());
+        }
+    }
+
+    @Test
+    @DisplayName("YAML: keyset written to output file is valid YAML")
+    void testYamlOutputToFile(@TempDir File tempDir) throws Exception {
+        File outputFile = new File(tempDir, "keyset.yaml");
+        StringWriter out = new StringWriter();
+        StringWriter err = new StringWriter();
+        CommandLine cmd = createCommand(out, err);
+
+        int exitCode = cmd.execute("-a", "AES_GCM", "-i", "file-key", "-f", "FULL",
+            "--yaml", "-o", outputFile.getAbsolutePath());
+
+        assertEquals(0, exitCode);
+        assertTrue(outputFile.exists());
+        String content = Files.readString(outputFile.toPath());
+        assertFalse(content.startsWith("---"), "YAML file should not have document start marker");
+        JsonNode root = YAML_MAPPER.readTree(content);
+        assertEquals("file-key", root.get("identifier").asText());
+        assertNotNull(root.get("material"));
     }
 }

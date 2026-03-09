@@ -1,6 +1,6 @@
 # Keyset Tool
 
-The Keyset Tool is a command-line utility for generating Tink keyset JSON configurations used by all Kryptonite for Kafka modules. It supports both plain and encrypted keyset generation for the supported cipher key types and cloud KMS integrations.
+The Keyset Tool is a command-line utility for generating Tink keyset configurations (JSON or YAML) used by all Kryptonite for Kafka modules. It supports both plain and encrypted keyset generation for the supported cipher key types and cloud KMS integrations.
 
 ---
 
@@ -27,7 +27,7 @@ java -jar kryptonite-keyset-tool-<VERSION>.jar [OPTIONS]
 ```
 
 ```text
-Usage: kryptonite-keyset-tool [-ehpV] -a=<algorithm> [-f=<outputFormat>]
+Usage: kryptonite-keyset-tool [-ehpV] [--yaml] -a=<algorithm> [-f=<outputFormat>]
                               [-i=<identifier>] [--initial-key-id=<initialKeyId>]
                               [-k=<numKeysets>] [--kek-config=<kekConfigFile>]
                               [--kek-type=<kekType>] [--kek-uri=<kekUri>]
@@ -51,10 +51,11 @@ Or run directly via Maven:
 | `-f, --output-format` | No | `FULL` | `FULL` (with identifier wrapper) or `RAW` (bare Tink keyset) |
 | `-s, --key-size` | No | `256` | Key size in bits. `AES_GCM`: 128 or 256. `AES_GCM_SIV`: fixed (ignored). `FPE_FF31`: 128, 192, or 256 |
 | `-n, --num-keys` | No | `1` | Number of keys per keyset (1–1000) — useful for key rotation setups |
-| `-k, --num-keysets` | No | `1` | Number of keysets to generate. When >1, output is a JSON array; identifiers are suffixed `_1`, `_2`, etc. |
+| `-k, --num-keysets` | No | `1` | Number of keysets to generate. When >1, output is a JSON array (or YAML sequence with `--yaml`); identifiers are suffixed `_1`, `_2`, etc. |
 | `--initial-key-id` | No | `10000` | Starting key ID, incremented by 1 per additional key |
 | `-o, --output` | No | `stdout` | Output file path (default: `stdout`) |
-| `-p, --pretty` | No | `false` | Pretty-print JSON output (default: single-line) |
+| `-p, --pretty` | No | `false` | Pretty-print JSON output (default: single-line; ignored for YAML) |
+| `--yaml` | No | `false` | Output YAML instead of JSON |
 | `-e, --encrypt` | No | `false` | Encrypt the generated keyset(s) using a KMS key encryption key (KEK). Requires: `--kek-type`, `--kek-uri`, `--kek-config` |
 | `--kek-type` | When `-e` or `--encrypt` | — | `GCP`, `AWS`, or `AZURE` |
 | `--kek-uri` | When `-e` or `--encrypt` | — | KMS key URI (see format below) |
@@ -83,10 +84,10 @@ Example with `-n 3 -k 2 --initial-key-id 1000`:
 
 ## Plain Keysets
 
-### Single AES-GCM keyset (`FULL` format)
+### Single AES-GCM keyset (`FULL` format, JSON)
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -i my-aes-key -f FULL -p
 ```
 
@@ -113,10 +114,35 @@ Output:
 }
 ```
 
-### Single AES-GCM-SIV keyset (`RAW` format)
+### Single AES-GCM keyset (`FULL` format, YAML)
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
+  -a AES_GCM -i my-aes-key -f FULL --yaml
+```
+
+Output:
+
+```yaml
+identifier: my-aes-key
+material:
+  primaryKeyId: 10000
+  key:
+  - keyData:
+      typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+      value: "<BASE64_ENCODED_KEY_HERE>"
+      keyMaterialType: SYMMETRIC
+    status: ENABLED
+    keyId: 10000
+    outputPrefixType: TINK
+```
+
+YAML output is always multi-line. The `--pretty` flag is ignored when `--yaml` is set.
+
+### Single AES-GCM-SIV keyset (`RAW` format, JSON)
+
+```bash
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM_SIV -i my-det-key -f RAW -p
 ```
 
@@ -138,10 +164,33 @@ Output:
   }
 ```
 
+### Single AES-GCM-SIV keyset (`RAW` format, YAML)
+
+```bash
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
+  -a AES_GCM_SIV -f RAW --yaml
+```
+
+Output:
+
+```yaml
+primaryKeyId: 10000
+key:
+- keyData:
+    typeUrl: type.googleapis.com/google.crypto.tink.AesSivKey
+    value: "<BASE64_ENCODED_KEY_HERE>"
+    keyMaterialType: SYMMETRIC
+  status: ENABLED
+  keyId: 10000
+  outputPrefixType: TINK
+```
+
+Use `AES_GCM_SIV` for deterministic encryption of Kafka record keys — determinism preserves topic partitioning.
+
 ### FPE keyset 192-bit (`FULL` format)
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a FPE_FF31 -i my-fpe-key -f FULL -s 192 -p
 ```
 
@@ -171,7 +220,7 @@ FPE keyset output uses `typeUrl: io.github.hpgrahsl.kryptonite/crypto.custom.mys
 ### Single multi-key keyset
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -i my-rotating-key -f FULL -n 3 --initial-key-id 20000 -p
 ```
 
@@ -214,10 +263,10 @@ Output:
 }
 ```
 
-### Multiple single-key keysets
+### Multiple single-key keysets (JSON array)
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -i demo-key -f FULL -k 2 -n 1 --initial-key-id 10000 -p
 ```
 
@@ -259,12 +308,48 @@ Output:
 
 Produces a JSON array of 2 keyset objects with identifiers `demo-key_1` and `demo-key_2` each containing a single key.
 
+### Multiple single-key keysets (YAML sequence)
+
+```bash
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
+  -a AES_GCM -i demo-key -f FULL -k 2 -n 1 --initial-key-id 10000 --yaml
+```
+
+Output:
+
+```yaml
+- identifier: demo-key_1
+  material:
+    primaryKeyId: 10000
+    key:
+    - keyData:
+        typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+        value: "<BASE64_ENCODED_KEY_HERE>"
+        keyMaterialType: SYMMETRIC
+      status: ENABLED
+      keyId: 10000
+      outputPrefixType: TINK
+- identifier: demo-key_2
+  material:
+    primaryKeyId: 10001
+    key:
+    - keyData:
+        typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+        value: "<BASE64_ENCODED_KEY_HERE>"
+        keyMaterialType: SYMMETRIC
+      status: ENABLED
+      keyId: 10001
+      outputPrefixType: TINK
+```
+
+Produces a YAML sequence of 2 keyset objects. This format is particularly convenient for Kroxylicious filter configurations, which are natively YAML-based.
+
 ### RAW keyset format
 
 Use `RAW` format when uploading directly as a secret value to a cloud secret manager. Note that the `identifier` wrapper is not needed there — the secret name itself acts as the identifier:
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -f RAW -p
 ```
 
@@ -289,7 +374,7 @@ Output:
 #### Writing keysets to output files
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -f RAW -o /path/to/keyset.json -p
 ```
 
@@ -311,6 +396,27 @@ File `keyset.json`:
 }
 ```
 
+```bash
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
+  -a AES_GCM -i my-aes-key -f FULL -o /path/to/keyset.yaml --yaml
+```
+
+File `keyset.yaml`:
+
+```yaml
+identifier: my-aes-key
+material:
+  primaryKeyId: 10000
+  key:
+  - keyData:
+      typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+      value: "<BASE64_ENCODED_KEY_HERE>"
+      keyMaterialType: SYMMETRIC
+    status: ENABLED
+    keyId: 10000
+    outputPrefixType: TINK
+```
+
 ---
 
 ## Encrypted Keysets
@@ -322,14 +428,14 @@ The `--kek-config` option takes a **file path** to a JSON credentials file — n
 ### Encrypted keyset with GCP Cloud KMS
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -i my-key -f RAW -p \
   -e --kek-type GCP \
   --kek-uri "gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek" \
   --kek-config /path/to/gcp-credentials.json
 ```
 
-`gcp-credentials.json`: 
+`gcp-credentials.json`:
 
 ```json
 {
@@ -349,7 +455,7 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 ### Encrypted keyset with AWS KMS
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -i my-key -f RAW -p \
   -e --kek-type AWS \
   --kek-uri "aws-kms://arn:aws:kms:eu-central-1:123456789012:key/abcd-1234-efgh-5678" \
@@ -368,7 +474,7 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 ### Encrypted keyset with Azure Key Vault
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM -i my-key -f RAW -p \
   -e --kek-type AZURE \
   --kek-uri "azure-kv://my-vault.vault.azure.net/keys/my-kek-key" \
@@ -394,7 +500,7 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 Example keyset tool call with GCP KMS keyset encryption intended for `key_source=CONFIG_ENCRYPTED` uses which expects `FULL` keyset format.
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM_SIV -i det-key -f FULL -k 3 -n 2 -p \
   -e --kek-type GCP \
   --kek-uri "gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek" \
@@ -405,7 +511,7 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 Example keyset tool call with GCP KMS keyset encryption intended for `key_source=KMS_ENCRYPTED` uses which expects `RAW` keyset format.
 
 ```bash
-java -jar kryptonite-keyset-tool-0.1.0.jar \
+java -jar kryptonite-keyset-tool-0.2.0-SNAPSHOT.jar \
   -a AES_GCM_SIV -f RAW -k 3 -n 2 -p \
   -e --kek-type GCP \
   --kek-uri "gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek" \
@@ -415,11 +521,157 @@ java -jar kryptonite-keyset-tool-0.1.0.jar \
 
 ---
 
-## Output format with/out keyset encryption
+## Output structures by format and encryption mode
 
-| `--output-format` | With `-e` | Resulting JSON structure |
-|---|---|---|
-| `FULL` | No | `{"identifier": "...", "material": {<plain Tink keyset>}}` |
-| `FULL` | Yes | `{"identifier": "...", "material": {<encrypted Tink keyset>}` |
-| `RAW` | No | `{<plain Tink keyset>}` |
-| `RAW` | Yes | `{<encrypted Tink keyset>}` |
+| `--output-format` | `--yaml` | `-e` | Resulting structure |
+|---|---|---|---|
+| `FULL` | No | No | JSON object with identifier and material containing plain Tink keyset ([details](#full-format-plain)) |
+| `FULL` | No | Yes | JSON object with identifier and material containing encrypted Tink keyset ([details](#full-format-encrypted)) |
+| `FULL` | Yes | No | YAML mapping with identifier and material containing plain Tink keyset ([details](#full-format-plain)) |
+| `FULL` | Yes | Yes | YAML mapping with identifier and material containing encrypted Tink keyset ([details](#full-format-encrypted)) |
+| `RAW` | No | No | JSON object with plain Tink keyset fields ([details](#raw-format-plain)) |
+| `RAW` | No | Yes | JSON object with encrypted Tink keyset fields ([details](#raw-format-encrypted)) |
+| `RAW` | Yes | No | YAML mapping of plain Tink keyset fields ([details](#raw-format-plain)) |
+| `RAW` | Yes | Yes | YAML mapping of encrypted Tink keyset fields ([details](#raw-format-encrypted)) |
+
+### FULL format, plain
+
+**JSON** (`-f FULL -p`):
+
+```json
+{
+  "identifier": "my-key",
+  "material": {
+    "primaryKeyId": 10000,
+    "key": [ {
+      "keyData": {
+        "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+        "value": "<BASE64_ENCODED_KEY_HERE>",
+        "keyMaterialType": "SYMMETRIC"
+      },
+      "status": "ENABLED",
+      "keyId": 10000,
+      "outputPrefixType": "TINK"
+    } ]
+  }
+}
+```
+
+**YAML** (`-f FULL --yaml`):
+
+```yaml
+identifier: my-key
+material:
+  primaryKeyId: 10000
+  key:
+  - keyData:
+      typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+      value: "<BASE64_ENCODED_KEY_HERE>"
+      keyMaterialType: SYMMETRIC
+    status: ENABLED
+    keyId: 10000
+    outputPrefixType: TINK
+```
+
+### FULL format, encrypted
+
+**JSON** (`-f FULL -e -p`):
+
+```json
+{
+  "identifier": "my-key",
+  "material": {
+    "encryptedKeyset": "<BASE64_ENCODED_ENCRYPTED_KEYSET>",
+    "keysetInfo": {
+      "primaryKeyId": 10000,
+      "keyInfo": [ {
+        "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+        "status": "ENABLED",
+        "keyId": 10000,
+        "outputPrefixType": "TINK"
+      } ]
+    }
+  }
+}
+```
+
+**YAML** (`-f FULL -e --yaml`):
+
+```yaml
+identifier: my-key
+material:
+  encryptedKeyset: "<BASE64_ENCODED_ENCRYPTED_KEYSET>"
+  keysetInfo:
+    primaryKeyId: 10000
+    keyInfo:
+    - typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+      status: ENABLED
+      keyId: 10000
+      outputPrefixType: TINK
+```
+
+### RAW format, plain
+
+**JSON** (`-f RAW -p`):
+
+```json
+{
+  "primaryKeyId": 10000,
+  "key": [ {
+    "keyData": {
+      "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+      "value": "<BASE64_ENCODED_KEY_HERE>",
+      "keyMaterialType": "SYMMETRIC"
+    },
+    "status": "ENABLED",
+    "keyId": 10000,
+    "outputPrefixType": "TINK"
+  } ]
+}
+```
+
+**YAML** (`-f RAW --yaml`):
+
+```yaml
+primaryKeyId: 10000
+key:
+- keyData:
+    typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+    value: "<BASE64_ENCODED_KEY_HERE>"
+    keyMaterialType: SYMMETRIC
+  status: ENABLED
+  keyId: 10000
+  outputPrefixType: TINK
+```
+
+### RAW format, encrypted
+
+**JSON** (`-f RAW -e -p`):
+
+```json
+{
+  "encryptedKeyset": "<BASE64_ENCODED_ENCRYPTED_KEYSET>",
+  "keysetInfo": {
+    "primaryKeyId": 10000,
+    "keyInfo": [ {
+      "typeUrl": "type.googleapis.com/google.crypto.tink.AesGcmKey",
+      "status": "ENABLED",
+      "keyId": 10000,
+      "outputPrefixType": "TINK"
+    } ]
+  }
+}
+```
+
+**YAML** (`-f RAW -e --yaml`):
+
+```yaml
+encryptedKeyset: "<BASE64_ENCODED_ENCRYPTED_KEYSET>"
+keysetInfo:
+  primaryKeyId: 10000
+  keyInfo:
+  - typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+    status: ENABLED
+    keyId: 10000
+    outputPrefixType: TINK
+```
