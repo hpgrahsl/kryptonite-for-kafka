@@ -33,6 +33,7 @@ import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
+import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
@@ -43,6 +44,7 @@ public class CipherFieldService {
     KryptoniteConfiguration config;
     Kryptonite kryptonite;
     SerdeProcessor serdeProcessor = new KryoSerdeProcessor();
+    UnifiedTypeConverter typeConverter = new UnifiedTypeConverter();
     
     public CipherFieldService(KryptoniteConfiguration config) {
         this.config = config;
@@ -107,7 +109,8 @@ public class CipherFieldService {
                 new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
         var plaintext = kryptonite.decipherField(encryptedField);
         var restored = serdeProcessor.bytesToObject(plaintext);
-        return restored;
+        var converted = typeConverter.convertForMap(restored);
+        return converted;
     }
 
     private Object decryptFPE(String data, FieldMetaData fieldMetaData) {
