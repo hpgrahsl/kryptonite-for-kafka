@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
 import com.google.crypto.tink.Aead;
@@ -43,10 +45,10 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
 
 @Command(
-    name = "keyset-generator",
+    name = "kryptonite-keyset-tool",
     mixinStandardHelpOptions = true,
-    version = "keyset-generator 0.1.0",
-    description = "Generates Tink keyset JSON configurations for use with kryptonite-for-kafka modules."
+    version = "kryptonite-keyset-tool 0.2.0",
+    description = "Generates Tink keyset configurations (JSON or YAML) for use with kryptonite-for-kafka modules."
 )
 public class KeysetGeneratorCommand implements Callable<Integer> {
 
@@ -140,8 +142,12 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
     private int initialKeyId;
 
     @Option(names = {"-p", "--pretty"}, defaultValue = "false",
-            description = "Pretty-print JSON output (default: single-line)")
+            description = "Pretty-print JSON output (default: single-line, ignored for YAML)")
     private boolean pretty;
+
+    @Option(names = {"--yaml"}, defaultValue = "false",
+            description = "Output YAML instead of JSON")
+    private boolean yaml;
 
     @Option(names = {"-e", "--encrypt"}, defaultValue = "false",
             description = "Encrypt the generated keyset(s) using a KMS key encryption key (KEK). "
@@ -207,9 +213,16 @@ public class KeysetGeneratorCommand implements Callable<Integer> {
             err.println("NOTE: --key-size is ignored for AES_GCM_SIV (fixed key size).");
         }
 
-        ObjectMapper mapper = new ObjectMapper();
-        if (pretty) {
-            mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        ObjectMapper mapper;
+        if (yaml) {
+            mapper = YAMLMapper.builder()
+                .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER)
+                .build();
+        } else {
+            mapper = new ObjectMapper();
+            if (pretty) {
+                mapper.enable(SerializationFeature.INDENT_OUTPUT);
+            }
         }
 
         Aead kekAead = null;
