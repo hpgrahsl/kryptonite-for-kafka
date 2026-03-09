@@ -101,6 +101,12 @@ class AvroSchemaDeriver {
         Schema unwrapped = unwrapNullableUnion(schema);
         boolean wasNullable = unwrapped != schema;
 
+        if (unwrapped.getType() == Schema.Type.UNION) {
+            throw new SchemaDerivationException(
+                    "Encrypted field path '" + String.join(".", pathParts) + "': a non-nullable union type"
+                            + " was encountered while traversing the path — only nullable unions"
+                            + " [\"null\", T] are supported. See 'Known Limitations' in the filter README.");
+        }
         if (unwrapped.getType() != Schema.Type.RECORD) {
             throw new SchemaDerivationException(
                     "Expected RECORD at path segment '" + pathParts[index]
@@ -132,6 +138,13 @@ class AvroSchemaDeriver {
                                             String fieldName) {
         Schema unwrapped = unwrapNullableUnion(fieldSchema);
         boolean wasNullable = unwrapped != fieldSchema;
+
+        if (unwrapped.getType() == Schema.Type.UNION) {
+            throw new SchemaDerivationException(
+                    "Field '" + fieldName + "' has a non-nullable union schema — only nullable"
+                            + " unions [\"null\", T] are supported for encrypted fields."
+                            + " See 'Known Limitations' in the filter README.");
+        }
 
         Schema transformed;
         if (mode == FieldConfig.FieldMode.ELEMENT) {
@@ -166,6 +179,12 @@ class AvroSchemaDeriver {
         Schema unwrapped = unwrapNullableUnion(encryptedSchema);
         boolean wasNullable = unwrapped != encryptedSchema;
 
+        if (unwrapped.getType() == Schema.Type.UNION) {
+            throw new SchemaDerivationException(
+                    "Encrypted field path '" + String.join(".", pathParts) + "': a non-nullable union type"
+                            + " was encountered while traversing the path — only nullable unions"
+                            + " [\"null\", T] are supported. See 'Known Limitations' in the filter README.");
+        }
         if (unwrapped.getType() != Schema.Type.RECORD) {
             throw new SchemaDerivationException(
                     "Expected RECORD at path segment '" + pathParts[index]
@@ -193,6 +212,12 @@ class AvroSchemaDeriver {
      */
     private Schema resolveFieldSchema(Schema schema, String[] pathParts, int index) {
         Schema unwrapped = unwrapNullableUnion(schema);
+        if (unwrapped.getType() == Schema.Type.UNION) {
+            throw new SchemaDerivationException(
+                    "Encrypted field path '" + String.join(".", pathParts) + "': a non-nullable union type"
+                            + " was encountered while traversing the path — only nullable unions"
+                            + " [\"null\", T] are supported. See 'Known Limitations' in the filter README.");
+        }
         if (unwrapped.getType() != Schema.Type.RECORD) {
             throw new FieldNotFoundException(pathParts[index]);
         }

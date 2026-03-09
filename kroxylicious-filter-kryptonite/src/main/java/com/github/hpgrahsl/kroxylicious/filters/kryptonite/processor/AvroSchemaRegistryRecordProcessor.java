@@ -266,7 +266,20 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
     // ---- Schema helpers ----
 
     private Schema avroSchema(int schemaId) {
-        return ((AvroSchema) adapter.fetchSchema(schemaId)).rawSchema();
+        try {
+            return ((AvroSchema) adapter.fetchSchema(schemaId)).rawSchema();
+        } catch (RuntimeException e) {
+            String msg = e.getMessage();
+            if (msg != null && (msg.contains("Undefined name") || msg.contains("Unknown type"))) {
+                throw new IllegalStateException(
+                        "Cannot resolve Avro schema for schema ID " + schemaId + ": it references a named"
+                                + " type that is not defined inline in the schema document. All Avro types on"
+                                + " encrypted field paths must be defined inline in the schema. Cross-schema"
+                                + " SR schema references are not supported — see 'Known Limitations' in the filter README.",
+                        e);
+            }
+            throw e;
+        }
     }
 
     // ---- Crypto helpers ----
