@@ -1,13 +1,9 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
-
-import java.io.ByteArrayOutputStream;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
 /**
  * v1 {@link StructuredRecordAccessor} for JSON Schema records.
@@ -114,36 +110,33 @@ public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
     }
 
     /**
-     * Serializes a single {@link JsonNode} to Kryo bytes compatible with all other Kryptonite modules.
+     * Serializes a single {@link JsonNode} to bytes via {@code serdeProcessor}, compatible with all
+     * other Kryptonite modules.
      *
      * <p>Converts the {@link JsonNode} to its natural Java value first (String, Boolean, Integer,
-     * Long, Double, Map, List, null), then uses {@code writeClassAndObject} — matching the format
-     * produced by {@code KryoSerdeProcessor.objectToBytes()} in Connect SMT, ksqlDB, Flink, and Funqy.
+     * Long, Double, Map, List, null), then delegates to {@link SerdeProcessor#objectToBytes(Object)}.
      */
-    public static byte[] nodeToBytes(JsonNode node) {
+    public static byte[] nodeToBytes(JsonNode node, SerdeProcessor serdeProcessor) {
         try {
             Object javaValue = MAPPER.treeToValue(node, Object.class);
-            Output output = new Output(new ByteArrayOutputStream());
-            KryoInstance.get().writeClassAndObject(output, javaValue);
-            return output.toBytes();
+            return serdeProcessor.objectToBytes(javaValue);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize JsonNode to Kryo bytes", e);
+            throw new RuntimeException("Failed to serialize JsonNode to bytes", e);
         }
     }
 
     /**
-     * Restores a {@link JsonNode} from Kryo bytes produced by any Kryptonite module.
+     * Restores a {@link JsonNode} from bytes produced by any Kryptonite module.
      *
-     * <p>Uses {@code readClassAndObject} to recover the Java value, then converts it back
-     * to a {@link JsonNode} via Jackson — matching the format read by
-     * {@code KryoSerdeProcessor.bytesToObject()} in Connect SMT, ksqlDB, Flink, and Funqy.
+     * <p>Delegates to {@link SerdeProcessor#bytesToObject(byte[])} to recover the Java value,
+     * then converts it back to a {@link JsonNode} via Jackson.
      */
-    public static JsonNode bytesToNode(byte[] bytes) {
+    public static JsonNode bytesToNode(byte[] bytes, SerdeProcessor serdeProcessor) {
         try {
-            Object javaValue = KryoInstance.get().readClassAndObject(new Input(bytes));
+            Object javaValue = serdeProcessor.bytesToObject(bytes);
             return MAPPER.valueToTree(javaValue);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to restore JsonNode from Kryo bytes", e);
+            throw new RuntimeException("Failed to restore JsonNode from bytes", e);
         }
     }
 }

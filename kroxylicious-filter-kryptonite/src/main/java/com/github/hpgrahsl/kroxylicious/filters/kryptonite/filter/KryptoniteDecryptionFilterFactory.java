@@ -2,6 +2,8 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.RecordFormat;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.AvroSchemaRegistryRecordProcessor;
@@ -62,14 +64,15 @@ public class KryptoniteDecryptionFilterFactory
 
     private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig cfg) {
         RecordFormat format = cfg.getRecordFormat() != null ? cfg.getRecordFormat() : RecordFormat.JSON_SR;
+        SerdeProcessor serdeProcessor = new KryoSerdeProcessor();
         return switch (format) {
-            case JSON -> new PlainJsonRecordProcessor(kryptonite, "");
+            case JSON -> new PlainJsonRecordProcessor(kryptonite, serdeProcessor, "");
             case JSON_SR -> {
                 SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
                         List.of(cfg.getSchemaRegistryUrl()), 100,
                         List.of(new JsonSchemaProvider()), cfg.getSchemaRegistryConfig());
                 SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
-                yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, "");
+                yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeProcessor, "");
             }
             case AVRO -> {
                 SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
@@ -77,7 +80,7 @@ public class KryptoniteDecryptionFilterFactory
                         List.of(new JsonSchemaProvider(), new AvroSchemaProvider()),
                         cfg.getSchemaRegistryConfig());
                 SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
-                yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, "");
+                yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeProcessor, "");
             }
             default -> throw new IllegalArgumentException("Unsupported recordFormat for decryption: " + format);
         };

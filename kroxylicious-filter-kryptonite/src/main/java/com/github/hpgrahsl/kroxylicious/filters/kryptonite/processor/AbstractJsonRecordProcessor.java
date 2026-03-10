@@ -13,6 +13,7 @@ import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 
@@ -32,10 +33,12 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     protected final Kryptonite kryptonite;
+    protected final SerdeProcessor serdeProcessor;
     protected final String defaultKeyId;
 
-    protected AbstractJsonRecordProcessor(Kryptonite kryptonite, String defaultKeyId) {
+    protected AbstractJsonRecordProcessor(Kryptonite kryptonite, SerdeProcessor serdeProcessor, String defaultKeyId) {
         this.kryptonite = kryptonite;
+        this.serdeProcessor = serdeProcessor;
         this.defaultKeyId = defaultKeyId;
     }
 
@@ -61,7 +64,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
-                    byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(node);
+                    byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(node, serdeProcessor);
                     EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
                     accessor.setField(fc.getName(), encodeEncryptedField(ef));
                 }
@@ -93,7 +96,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 } else {
                     EncryptedField ef = decodeEncryptedField(leafNode.asText());
                     accessor.setField(fc.getName(),
-                            JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef)));
+                            JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef), serdeProcessor));
                 }
             }
         }
@@ -114,7 +117,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (JsonNode element : source) {
-                byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(element);
+                byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(element, serdeProcessor);
                 EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
                 result.add(encodeEncryptedField(ef));
             }
@@ -135,7 +138,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             });
         } else {
             source.properties().forEach(entry -> {
-                byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(entry.getValue());
+                byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(entry.getValue(), serdeProcessor);
                 EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
                 result.put(entry.getKey(), encodeEncryptedField(ef));
             });
@@ -157,7 +160,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             for (JsonNode element : source) {
                 if (element.isTextual()) {
                     EncryptedField ef = decodeEncryptedField(element.asText());
-                    result.add(JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef)));
+                    result.add(JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef), serdeProcessor));
                 } else {
                     result.add(element);
                 }
@@ -182,7 +185,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 JsonNode value = entry.getValue();
                 if (value.isTextual()) {
                     EncryptedField ef = decodeEncryptedField(value.asText());
-                    result.set(entry.getKey(), JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef)));
+                    result.set(entry.getKey(), JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherField(ef), serdeProcessor));
                 } else {
                     result.set(entry.getKey(), value);
                 }

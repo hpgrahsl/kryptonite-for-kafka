@@ -1,5 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
@@ -58,7 +59,7 @@ public class AvroGenericRecordAccessor implements StructuredRecordAccessor {
             BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(payload, null);
             GenericRecord record = reader.read(null, decoder);
             return new AvroGenericRecordAccessor(record, schema);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             throw new AvroAccessorException("Failed to deserialize Avro payload", e);
         }
     }
@@ -80,7 +81,11 @@ public class AvroGenericRecordAccessor implements StructuredRecordAccessor {
             if (!(next instanceof GenericRecord)) return null;
             current = (GenericRecord) next;
         }
-        return current.get(parts[parts.length - 1]);
+        try {
+            return current.get(parts[parts.length - 1]);
+        } catch (org.apache.avro.AvroRuntimeException e) {
+            return null;
+        }
     }
 
     /**
@@ -118,6 +123,23 @@ public class AvroGenericRecordAccessor implements StructuredRecordAccessor {
         } catch (IOException e) {
             throw new AvroAccessorException("Failed to serialize Avro record", e);
         }
+    }
+
+    /**
+     * Serializes an Avro field value to bytes via {@code serdeProcessor}.
+     * All Avro type handling (Utf8, ByteBuffer, GenericRecord, GenericArray, EnumSymbol, Fixed)
+     * is delegated to the {@link SerdeProcessor} implementation.
+     */
+    public static byte[] avroValueToBytes(Object value, SerdeProcessor serdeProcessor) {
+        return serdeProcessor.objectToBytes(value);
+    }
+
+    /**
+     * Deserializes bytes back to an Avro-compatible value via {@code serdeProcessor}.
+     * Type reconstruction is handled by the {@link SerdeProcessor} implementation.
+     */
+    public static Object bytesToAvroValue(byte[] bytes, SerdeProcessor serdeProcessor) {
+        return serdeProcessor.bytesToObject(bytes);
     }
 
     public static class AvroAccessorException extends RuntimeException {
