@@ -98,7 +98,7 @@ class PlainJsonRecordProcessorTest {
         }
 
         @Test
-        @DisplayName("string field is replaced with encrypted Base64 string")
+        @DisplayName("string field is replaced with encrypted Base64 string, other fields unchanged")
         void stringFieldReplaced() throws Exception {
             when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
             byte[] input = """
