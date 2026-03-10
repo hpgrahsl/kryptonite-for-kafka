@@ -55,6 +55,37 @@
 }
 
 /* ============================================================
+   Version picker — injected into Material/Zensical header
+   ============================================================ */
+
+.k4k-version-picker-wrapper {
+  display: flex;
+  align-items: center;
+  margin-left: 0.8rem;
+}
+
+.k4k-version-picker {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0.2rem;
+  color: var(--md-primary-bg-color);
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  outline: none;
+}
+
+.k4k-version-picker:hover,
+.k4k-version-picker:focus {
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.k4k-version-picker option {
+  background: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}
+
+/* ============================================================
    Core parameter table — enforce minimum width on first column
    ============================================================ */
 
