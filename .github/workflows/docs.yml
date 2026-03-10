@@ -21,7 +21,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-dev
     steps:
       - uses: actions/configure-pages@v5
 
@@ -35,7 +35,7 @@ jobs:
       - name: Install Zensical
         run: pip install zensical mkdocs-glightbox
 
-      - name: Build latest site
+      - name: Build dev site
         run: zensical build --clean
 
       - name: Checkout docs-archive
@@ -45,13 +45,13 @@ jobs:
           path: docs-archive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update latest version in archive
+      - name: Update dev version in archive
         run: |
-          rm -rf docs-archive/latest
-          mkdir -p docs-archive/latest
-          cp -r site/. docs-archive/latest/
+          rm -rf docs-archive/dev docs-archive/latest
+          mkdir -p docs-archive/dev
+          cp -r site/. docs-archive/dev/
           python3 .github/scripts/update-versions.py \
-            docs-archive/versions.json latest
+            docs-archive/versions.json dev
 
       - name: Regenerate root redirect
         run: |
@@ -66,7 +66,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff --staged --quiet || git commit -m "docs: update latest version"
+          git diff --staged --quiet || git commit -m "docs: update dev version"
           git push
 
       - name: Assemble full site artifact

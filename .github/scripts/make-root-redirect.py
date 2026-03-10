@@ -20,9 +20,9 @@ def find_latest(versions):
         if 'latest' in v.get('aliases', []):
             return v['version']
     for v in versions:
-        if v['version'] not in ('latest',):
+        if v['version'] not in ('dev',):
             return v['version']
-    return versions[0]['version'] if versions else 'latest'
+    return versions[0]['version'] if versions else 'dev'
 
 
 def main():

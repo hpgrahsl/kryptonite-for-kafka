@@ -5,7 +5,7 @@ Usage:
   update-versions.py <versions-file> <version> [alias] [--max-releases N]
 
 Examples:
-  update-versions.py versions.json latest
+  update-versions.py versions.json dev
   update-versions.py versions.json v0.7 latest --max-releases 3
 """
 
@@ -43,20 +43,21 @@ def main():
         with open(versions_file) as f:
             versions = json.load(f)
 
-    # Remove 'latest' alias from all existing entries
+    # Remove 'latest' alias (and its title suffix) from all existing entries
     for v in versions:
         aliases = v.get('aliases', [])
         if 'latest' in aliases:
             aliases.remove('latest')
+            v['title'] = v['version']  # strip " (latest)" suffix
         if not aliases:
             v.pop('aliases', None)
 
-    # Separate the floating 'latest' entry (tracks master) from pinned releases
-    latest_entry = next((v for v in versions if v['version'] == 'latest'), None)
-    release_entries = [v for v in versions if v['version'] != 'latest']
+    # Separate the floating 'dev' entry (tracks master) from pinned releases
+    dev_entry = next((v for v in versions if v['version'] == 'dev'), None)
+    release_entries = [v for v in versions if v['version'] != 'dev']
 
-    if new_version == 'latest':
-        latest_entry = {'version': 'latest', 'title': 'latest'}
+    if new_version == 'dev':
+        dev_entry = {'version': 'dev', 'title': 'dev'}
     else:
         # Remove existing entry for this version (will re-add at front)
         release_entries = [v for v in release_entries if v['version'] != new_version]
@@ -65,7 +66,7 @@ def main():
         entry = {'version': new_version, 'title': new_version}
         if alias:
             entry['aliases'] = [alias]
-            entry['title'] = f'{new_version} (latest)'
+            entry['title'] = f'{new_version} ({alias})'
 
         release_entries.insert(0, entry)
 
@@ -73,10 +74,10 @@ def main():
         if len(release_entries) > max_releases:
             release_entries = release_entries[:max_releases]
 
-    # Reassemble: 'latest' (master) first, then pinned releases newest-first
+    # Reassemble: 'dev' (master) first, then pinned releases newest-first
     new_versions = []
-    if latest_entry:
-        new_versions.append(latest_entry)
+    if dev_entry:
+        new_versions.append(dev_entry)
     new_versions.extend(release_entries)
 
     with open(versions_file, 'w') as f:
