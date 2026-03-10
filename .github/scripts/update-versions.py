@@ -43,22 +43,24 @@ def main():
         with open(versions_file) as f:
             versions = json.load(f)
 
-    # Remove 'latest' alias (and its title suffix) from all existing entries
-    for v in versions:
-        aliases = v.get('aliases', [])
-        if 'latest' in aliases:
-            aliases.remove('latest')
-            v['title'] = v['version']  # strip " (latest)" suffix
-        if not aliases:
-            v.pop('aliases', None)
-
-    # Separate the floating 'dev' entry (tracks master) from pinned releases
+    # Separate the floating 'dev' entry (tracks master) from pinned releases.
+    # Also evict the legacy 'latest' slot (old master location before rename to 'dev').
     dev_entry = next((v for v in versions if v['version'] == 'dev'), None)
-    release_entries = [v for v in versions if v['version'] != 'dev']
+    release_entries = [v for v in versions if v['version'] not in ('dev', 'latest')]
 
     if new_version == 'dev':
         dev_entry = {'version': 'dev', 'title': 'dev'}
     else:
+        # Remove 'latest' alias (and its title suffix) from all existing entries,
+        # so only the newly-published release carries the alias.
+        for v in release_entries:
+            aliases = v.get('aliases', [])
+            if 'latest' in aliases:
+                aliases.remove('latest')
+                v['title'] = v['version']  # strip " (latest)" suffix
+            if not aliases:
+                v.pop('aliases', None)
+
         # Remove existing entry for this version (will re-add at front)
         release_entries = [v for v in release_entries if v['version'] != new_version]
 
