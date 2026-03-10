@@ -1,6 +1,7 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 
 import java.util.List;
 import java.util.Map;
@@ -51,15 +52,15 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "record_format") RecordFormat recordFormat,
             @JsonProperty(value = "schema_mode") SchemaMode schemaMode,
             @JsonProperty(value = "topic_field_configs", required = true) List<TopicFieldConfig> topicFieldConfigs) {
-        this.keySource = keySource != null ? keySource : "CONFIG";
-        this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : "TINK/AES_GCM";
-        this.cipherDataKeyIdentifier = cipherDataKeyIdentifier != null ? cipherDataKeyIdentifier : "";
+        this.keySource = keySource != null ? keySource : KryptoniteSettings.KEY_SOURCE_DEFAULT;
+        this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT;
+        this.cipherDataKeyIdentifier = cipherDataKeyIdentifier != null ? cipherDataKeyIdentifier : KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER_DEFAULT;
         this.cipherDataKeys = cipherDataKeys;
-        this.kmsType = kmsType != null ? kmsType : "NONE";
-        this.kmsConfig = kmsConfig != null ? kmsConfig : "{}";
-        this.kekType = kekType != null ? kekType : "NONE";
-        this.kekUri = kekUri != null ? kekUri : "";
-        this.kekConfig = kekConfig != null ? kekConfig : "{}";
+        this.kmsType = kmsType != null ? kmsType : KryptoniteSettings.KMS_TYPE_DEFAULT;
+        this.kmsConfig = kmsConfig != null ? kmsConfig : KryptoniteSettings.KMS_CONFIG_DEFAULT;
+        this.kekType = kekType != null ? kekType : KryptoniteSettings.KEK_TYPE_DEFAULT;
+        this.kekUri = kekUri != null ? kekUri : KryptoniteSettings.KEK_URI_DEFAULT;
+        this.kekConfig = kekConfig != null ? kekConfig : KryptoniteSettings.KEK_CONFIG_DEFAULT;
         this.schemaRegistryUrl = schemaRegistryUrl;
         this.schemaRegistryConfig = schemaRegistryConfig != null ? schemaRegistryConfig : Map.of();
         this.recordFormat = recordFormat != null ? recordFormat : RecordFormat.JSON_SR;

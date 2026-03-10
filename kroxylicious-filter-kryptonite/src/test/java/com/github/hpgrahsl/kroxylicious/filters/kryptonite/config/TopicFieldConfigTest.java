@@ -1,5 +1,7 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.config;
 
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -15,8 +17,8 @@ class TopicFieldConfigTest {
     @DisplayName("FieldConfig set deduplicates entries with the same name")
     void fieldConfigSetDeduplicatesByName() {
         // FieldConfig.equals is name-only, so two configs with same name = one entry in a Set
-        FieldConfig fc1 = FieldConfig.builder().name("age").algorithm("TINK/AES_GCM").build();
-        FieldConfig fc2 = FieldConfig.builder().name("age").algorithm("TINK/AES_GCM_SIV").build();
+        FieldConfig fc1 = FieldConfig.builder().name("age").algorithm(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT).build();
+        FieldConfig fc2 = FieldConfig.builder().name("age").algorithm(TinkAesGcmSiv.CIPHER_ALGORITHM).build();
 
         Set<FieldConfig> fieldConfigs = new HashSet<>();
         fieldConfigs.add(fc1);

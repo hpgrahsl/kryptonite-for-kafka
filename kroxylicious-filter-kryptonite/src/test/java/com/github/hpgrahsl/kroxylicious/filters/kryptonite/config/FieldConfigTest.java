@@ -1,5 +1,7 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.config;
 
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,21 +23,21 @@ class FieldConfigTest {
         void buildsWithAllFields() {
             var fc = FieldConfig.builder()
                     .name("age")
-                    .algorithm("TINK/AES_GCM")
+                    .algorithm(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT)
                     .keyId("key1")
                     .schema(Map.of("type", "integer"))
                     .fieldMode(FieldConfig.FieldMode.ELEMENT)
                     .fpeTweak("tweak")
-                    .encoding("BASE64")
+                    .encoding(KryptoniteSettings.CIPHER_TEXT_ENCODING_DEFAULT)
                     .build();
 
             assertThat(fc.getName()).isEqualTo("age");
-            assertThat(fc.getAlgorithm()).contains("TINK/AES_GCM");
+            assertThat(fc.getAlgorithm()).contains(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
             assertThat(fc.getKeyId()).contains("key1");
             assertThat(fc.getSchema()).isPresent();
             assertThat(fc.getFieldMode()).contains(FieldConfig.FieldMode.ELEMENT);
             assertThat(fc.getFpeTweak()).contains("tweak");
-            assertThat(fc.getEncoding()).contains("BASE64");
+            assertThat(fc.getEncoding()).contains(KryptoniteSettings.CIPHER_TEXT_ENCODING_DEFAULT);
         }
 
         @Test
@@ -100,8 +102,8 @@ class FieldConfigTest {
         @Test
         @DisplayName("two instances with same name are equal regardless of other fields")
         void equalityBasedOnNameOnly() {
-            var fc1 = FieldConfig.builder().name("age").algorithm("TINK/AES_GCM").keyId("k1").build();
-            var fc2 = FieldConfig.builder().name("age").algorithm("TINK/AES_GCM_SIV").keyId("k2")
+            var fc1 = FieldConfig.builder().name("age").algorithm(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT).keyId("k1").build();
+            var fc2 = FieldConfig.builder().name("age").algorithm(TinkAesGcmSiv.CIPHER_ALGORITHM).keyId("k2")
                     .fieldMode(FieldConfig.FieldMode.ELEMENT).build();
 
             assertThat(fc1).isEqualTo(fc2);
@@ -110,8 +112,8 @@ class FieldConfigTest {
         @Test
         @DisplayName("same name produces same hashCode")
         void hashCodeBasedOnNameOnly() {
-            var fc1 = FieldConfig.builder().name("age").algorithm("TINK/AES_GCM").build();
-            var fc2 = FieldConfig.builder().name("age").algorithm("TINK/AES_GCM_SIV").build();
+            var fc1 = FieldConfig.builder().name("age").algorithm(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT).build();
+            var fc2 = FieldConfig.builder().name("age").algorithm(TinkAesGcmSiv.CIPHER_ALGORITHM).build();
 
             assertThat(fc1.hashCode()).isEqualTo(fc2.hashCode());
         }

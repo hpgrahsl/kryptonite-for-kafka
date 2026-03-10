@@ -197,16 +197,16 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
     // --- Crypto helpers ---
 
     private boolean isFpe(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
+        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
         return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
     }
 
     protected FieldMetaData buildFieldMetaData(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
+        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
         String keyId = fc.getKeyId().orElse(defaultKeyId);
         String fpeTweak = fc.getFpeTweak().orElse(KryptoniteSettings.CIPHER_FPE_TWEAK_DEFAULT);
         String fpeAlphabet = determineAlphabet(fc);
-        String encoding = fc.getEncoding().orElse("BASE64");
+        String encoding = fc.getEncoding().orElse(KryptoniteSettings.CIPHER_TEXT_ENCODING_DEFAULT);
         return FieldMetaData.builder()
                 .algorithm(algorithm)
                 .dataType(String.class.getName())
@@ -226,7 +226,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
     }
 
     protected PayloadMetaData buildPayloadMetaData(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse("TINK/AES_GCM");
+        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
         String algorithmId = Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(algorithm));
         String keyId = fc.getKeyId().orElse(defaultKeyId);
         return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
