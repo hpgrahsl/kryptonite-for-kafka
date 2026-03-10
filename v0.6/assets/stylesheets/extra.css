@@ -1,0 +1,56 @@
+/* ============================================================
+   Four Integration Modules — custom card grid
+   Text on the left, image on the right inside each card.
+   2 columns on wide screens, 1 column on narrow screens.
+   ============================================================ */
+
+.k4k-modules {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.8rem;
+  margin: 1em 0;
+}
+
+@media screen and (max-width: 76.1875em) {
+  .k4k-modules {
+    grid-template-columns: 1fr;
+  }
+}
+
+.k4k-module-card {
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  /*gap: 1rem;*/
+  transition: box-shadow 125ms;
+}
+
+.k4k-module-card:hover {
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.1), 0 0 0.05rem rgba(0, 0, 0, 0.1);
+}
+
+.k4k-module-body {
+  width: 100%;
+}
+
+.k4k-module-body p:last-child {
+  margin-bottom: 0;
+}
+
+.k4k-module-img {
+  width: 100%;
+}
+
+.k4k-module-img a {
+  display: block;
+}
+
+.k4k-module-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.1rem;
+}
+
