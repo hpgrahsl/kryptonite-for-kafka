@@ -1250,14 +1250,14 @@
   /**
    * Determine whether the current page is inside a versioned path, e.g.
    *   /kryptonite-for-kafka/v0.7/...
-   *   /kryptonite-for-kafka/latest/...
+   *   /kryptonite-for-kafka/dev/...
    *
    * Returns { siteRoot, currentVersion } or null if not in a versioned path.
    */
   function parseSiteInfo() {
     var path = window.location.pathname;
-    // Match /base/vX.Y/... or /base/latest/... (base may be empty for root deployments)
-    var m = path.match(/^((?:\/[^/]+)?\/)((v\d+\.\d+|latest)\/)/);
+    // Match /base/vX.Y/... or /base/dev/... (base may be empty for root deployments)
+    var m = path.match(/^((?:\/[^/]+)?\/)((v\d+\.\d+|dev)\/)/);
     if (!m) return null;
     return {
       siteRoot: window.location.origin + m[1],
