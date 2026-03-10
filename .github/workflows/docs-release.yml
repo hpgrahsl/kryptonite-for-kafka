@@ -60,6 +60,27 @@ jobs:
       - name: Build release site
         run: cd _build-src && zensical build --clean
 
+      - name: Inject current version picker assets
+        run: |
+          python3 - <<'EOF'
+          import pathlib
+
+          site = pathlib.Path('_build-src/site')
+
+          # Overwrite extra.css — already referenced by all versions
+          pathlib.Path(site / 'assets/stylesheets/extra.css').write_text(
+              pathlib.Path('docs/assets/stylesheets/extra.css').read_text()
+          )
+
+          # Inline picker JS before </body> — avoids relative-path issues
+          # for tags that predate extra_javascript: version-picker.js
+          script_tag = '<script>' + pathlib.Path('docs/assets/javascripts/version-picker.js').read_text() + '</script>'
+          for html in site.rglob('*.html'):
+              content = html.read_text()
+              if 'k4k-version-picker' not in content:
+                  html.write_text(content.replace('</body>', script_tag + '\n</body>', 1))
+          EOF
+
       - name: Checkout docs-archive
         uses: actions/checkout@v4
         with:
