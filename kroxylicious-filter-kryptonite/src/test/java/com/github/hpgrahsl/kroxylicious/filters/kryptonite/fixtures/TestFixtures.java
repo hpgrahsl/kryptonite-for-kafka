@@ -1,5 +1,7 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures;
 
+import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import org.apache.avro.Schema;
@@ -16,13 +18,54 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Shared test utilities: wire-format helpers, Avro serialization helpers, and FieldConfig factories.
+ * Shared test utilities: wire-format helpers, Avro serialization helpers, FieldConfig factories,
+ * and real {@link Kryptonite} instance factories backed by plaintext test keysets.
  */
 public final class TestFixtures {
 
     private TestFixtures() {}
+
+    // ---- Kryptonite factories ----
+
+    /**
+     * Real {@link Kryptonite} backed by the full plaintext test keyset (keyA, keyB, key8, key9).
+     * Default key: keyA (AES-GCM). keyB (AES-GCM), key9/key8 (AES-SIV) also available via FieldConfig.
+     */
+    public static Kryptonite realKryptonite() {
+        Map<String, String> cfg = new HashMap<>();
+        cfg.put("key_source", "CONFIG");
+        cfg.put("cipher_algorithm", "TINK/AES_GCM");
+        cfg.put("cipher_data_key_identifier", "keyA");
+        cfg.put("cipher_data_keys", PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG);
+        cfg.put("kms_type", "NONE");
+        cfg.put("kms_config", "{}");
+        cfg.put("kek_type", "NONE");
+        cfg.put("kek_uri", "xyz-kms://");
+        cfg.put("kek_config", "{}");
+        return Kryptonite.createFromConfig(cfg);
+    }
+
+    /**
+     * Real {@link Kryptonite} backed by only the FPE test keysets (keyC, keyD, keyE).
+     * Default key: keyC.
+     */
+    public static Kryptonite fpeKryptonite() {
+        Map<String, String> cfg = new HashMap<>();
+        cfg.put("key_source", "CONFIG");
+        cfg.put("cipher_algorithm", "CUSTOM/MYSTO_FPE_FF3_1");
+        cfg.put("cipher_data_key_identifier", "keyC");
+        cfg.put("cipher_data_keys", PlaintextKeysets.CIPHER_DATA_KEYS_CONFIG_FPE);
+        cfg.put("kms_type", "NONE");
+        cfg.put("kms_config", "{}");
+        cfg.put("kek_type", "NONE");
+        cfg.put("kek_uri", "xyz-kms://");
+        cfg.put("kek_config", "{}");
+        return Kryptonite.createFromConfig(cfg);
+    }
 
     // ---- SR wire format helpers ----
 

@@ -157,6 +157,12 @@
 
         <!-- Test dependencies -->
         <dependency>
+            <groupId>com.github.hpgrahsl</groupId>
+            <artifactId>kryptonite-test-fixtures</artifactId>
+            <version>0.2.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.kroxylicious</groupId>
             <artifactId>kroxylicious-integration-test-support</artifactId>
             <scope>test</scope>
