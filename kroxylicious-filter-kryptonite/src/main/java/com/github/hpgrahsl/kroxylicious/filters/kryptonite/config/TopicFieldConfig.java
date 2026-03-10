@@ -15,8 +15,8 @@ public class TopicFieldConfig {
     private final Set<FieldConfig> fieldConfigs;
 
     public TopicFieldConfig(
-            @JsonProperty(value = "topicPattern", required = true) String topicPattern,
-            @JsonProperty(value = "fieldConfigs", required = true) Set<FieldConfig> fieldConfigs) {
+            @JsonProperty(value = "topic_pattern", required = true) String topicPattern,
+            @JsonProperty(value = "field_configs", required = true) Set<FieldConfig> fieldConfigs) {
         this.topicPattern = Objects.requireNonNull(topicPattern, "TopicFieldConfig.topicPattern must not be null");
         this.fieldConfigs = Objects.requireNonNull(fieldConfigs, "TopicFieldConfig.fieldConfigs must not be null");
     }

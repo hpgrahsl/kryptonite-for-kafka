@@ -37,20 +37,20 @@ public class KryptoniteFilterConfig {
     private final List<TopicFieldConfig> topicFieldConfigs;
 
     public KryptoniteFilterConfig(
-            @JsonProperty(value = "keySource") String keySource,
-            @JsonProperty(value = "cipherAlgorithm") String cipherAlgorithm,
-            @JsonProperty(value = "cipherDataKeyIdentifier") String cipherDataKeyIdentifier,
-            @JsonProperty(value = "cipherDataKeys") List<Map<String, Object>> cipherDataKeys,
-            @JsonProperty(value = "kmsType") String kmsType,
-            @JsonProperty(value = "kmsConfig") String kmsConfig,
-            @JsonProperty(value = "kekType") String kekType,
-            @JsonProperty(value = "kekUri") String kekUri,
-            @JsonProperty(value = "kekConfig") String kekConfig,
-            @JsonProperty(value = "schemaRegistryUrl") String schemaRegistryUrl,
-            @JsonProperty(value = "schemaRegistryConfig") Map<String, String> schemaRegistryConfig,
-            @JsonProperty(value = "recordFormat") RecordFormat recordFormat,
-            @JsonProperty(value = "schemaMode") SchemaMode schemaMode,
-            @JsonProperty(value = "topicFieldConfigs", required = true) List<TopicFieldConfig> topicFieldConfigs) {
+            @JsonProperty(value = "key_source") String keySource,
+            @JsonProperty(value = "cipher_algorithm") String cipherAlgorithm,
+            @JsonProperty(value = "cipher_data_key_identifier") String cipherDataKeyIdentifier,
+            @JsonProperty(value = "cipher_data_keys") List<Map<String, Object>> cipherDataKeys,
+            @JsonProperty(value = "kms_type") String kmsType,
+            @JsonProperty(value = "kms_config") String kmsConfig,
+            @JsonProperty(value = "kek_type") String kekType,
+            @JsonProperty(value = "kek_uri") String kekUri,
+            @JsonProperty(value = "kek_config") String kekConfig,
+            @JsonProperty(value = "schema_registry_url") String schemaRegistryUrl,
+            @JsonProperty(value = "schema_registry_config") Map<String, String> schemaRegistryConfig,
+            @JsonProperty(value = "record_format") RecordFormat recordFormat,
+            @JsonProperty(value = "schema_mode") SchemaMode schemaMode,
+            @JsonProperty(value = "topic_field_configs", required = true) List<TopicFieldConfig> topicFieldConfigs) {
         this.keySource = keySource != null ? keySource : "CONFIG";
         this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : "TINK/AES_GCM";
         this.cipherDataKeyIdentifier = cipherDataKeyIdentifier != null ? cipherDataKeyIdentifier : "";
