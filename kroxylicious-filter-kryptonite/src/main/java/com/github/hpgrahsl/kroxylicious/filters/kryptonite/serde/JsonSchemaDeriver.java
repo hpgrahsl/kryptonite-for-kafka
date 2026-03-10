@@ -40,10 +40,10 @@ class JsonSchemaDeriver {
      * ELEMENT mode on objects: replaces each direct property type with {@code "string"}.
      *
      * <p>No metadata is injected into the schema document. Metadata ({@code originalSchemaId},
-     * {@code encryptedFields}, {@code encryptedFieldModes}) is stored in the sidecar subject
+     * {@code encryptedFields}, {@code encryptedFieldModes}) is stored in the encryption metadata subject
      * by {@link ConfluentSchemaRegistryAdapter}.
      *
-     * @return {@link DeriveEncryptedResult} carrying the schema JSON plus field metadata for the sidecar
+     * @return {@link DeriveEncryptedResult} carrying the schema JSON plus field metadata for the encryption metadata subject
      */
     DeriveEncryptedResult deriveEncrypted(String originalSchemaJson,
                                           Set<FieldConfig> encryptedFieldConfigs) {
@@ -79,18 +79,18 @@ class JsonSchemaDeriver {
         }
     }
 
-    /** Result of {@link #deriveEncrypted}: schema JSON plus field metadata for the sidecar. */
+    /** Result of {@link #deriveEncrypted}: schema JSON plus field metadata for the encryption metadata subject. */
     record DeriveEncryptedResult(String schemaJson, List<String> encryptedFields,
                                  Map<String, String> encryptedFieldModes) {}
 
     /**
      * Consume path: derives the partial-decrypt schema.
      *
-     * <p>{@code encryptedFieldModes} is supplied by the caller from the sidecar (not read from
+     * <p>{@code encryptedFieldModes} is supplied by the caller from the encryption metadata (not read from
      * the schema document). Still-encrypted fields retain their encrypted type representation.
      * The output schema is a clean document with no metadata injected.
      *
-     * @param encryptedFieldModes mode map from sidecar ({@code fieldName → "ELEMENT"|"OBJECT"});
+     * @param encryptedFieldModes mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"});
      *                            absent fields default to OBJECT
      */
     String derivePartialDecrypt(String originalSchemaJson, String encryptedSchemaJson,

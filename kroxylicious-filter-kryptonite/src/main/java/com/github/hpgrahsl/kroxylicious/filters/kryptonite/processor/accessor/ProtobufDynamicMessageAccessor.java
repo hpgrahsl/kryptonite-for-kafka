@@ -11,8 +11,8 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
  * 4-byte schema ID and the protobuf payload. The adapter's {@code stripPrefix} / {@code attachPrefix}
  * will need a Protobuf-aware variant for this format.
  *
- * <p>Metadata embedding strategy for Protobuf: the recommended approach is the sidecar subject
- * strategy — register a JSON document under {@code "<topic>-kryptonite-meta"} containing
+ * <p>Metadata embedding strategy for Protobuf: the recommended approach is the encryption metadata subject
+ * strategy — register a JSON document under {@code "<topic>-value__k4k_meta"} containing
  * {@code originalSchemaId} and {@code encryptedFields}. See plan for details.
  */
 public class ProtobufDynamicMessageAccessor implements StructuredRecordAccessor {

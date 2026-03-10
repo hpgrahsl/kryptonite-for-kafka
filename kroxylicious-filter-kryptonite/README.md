@@ -44,10 +44,10 @@ For schema-aware record formats (`JSON_SR`, `AVRO`) the filter auto-manages seve
 | Subject | Purpose |
 |---|---|
 | `<topicName>-value__k4k_enc` | Encrypted schema (field types replaced with `string`) |
-| `<topicName>-value__k4k_meta` | Sidecar: stores original schema ID, encrypted field list, and per-field modes |
+| `<topicName>-value__k4k_meta` | Encryption metadata: stores original schema ID, encrypted field list, and per-field modes |
 | `<topicName>-value__k4k_dec_<hash>` | Partial-decrypt schema for consumers that decrypt only a subset of fields |
 
-The sidecar subject is registered with `NONE` compatibility mode, as is the encrypted schema subject. All schema documents are clean — no custom keywords are injected into the schema JSON or Avro schema itself.
+The encryption metadata subject is registered with `NONE` compatibility mode, as is the encrypted schema subject. All schema documents are clean — no custom keywords are injected into the schema JSON or Avro schema itself.
 
 ## Failure handling
 

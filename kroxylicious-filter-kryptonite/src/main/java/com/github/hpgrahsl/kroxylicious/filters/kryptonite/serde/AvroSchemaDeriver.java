@@ -14,7 +14,7 @@ import java.util.Set;
  * Derives modified Avro {@link Schema} objects for the Schema Registry produce and consume paths.
  *
  * <p>Used internally by {@link ConfluentSchemaRegistryAdapter} for the {@code AVRO} record format.
- * No metadata is injected into derived schemas — metadata is stored in the sidecar subject.
+ * No metadata is injected into derived schemas — metadata is stored in the encryption metadata subject.
  *
  * <p>Union handling: Avro nullable fields use the pattern {@code ["null", T]}. Type replacement
  * preserves the null branch and replaces {@code T} with {@code string}. Null-branch ordering
@@ -37,7 +37,7 @@ class AvroSchemaDeriver {
      * ELEMENT mode on array fields: replaces {@code items} with {@code string}.
      * ELEMENT mode on map fields: replaces {@code values} with {@code string}.
      *
-     * @return pair of (encrypted Schema, encryptedFieldModes map for sidecar)
+     * @return pair of (encrypted Schema, encryptedFieldModes map for encryption metadata)
      */
     DeriveEncryptedResult deriveEncrypted(Schema originalSchema, Set<FieldConfig> fieldConfigs) {
         List<String> encryptedFields = new ArrayList<>();
@@ -60,7 +60,7 @@ class AvroSchemaDeriver {
         return new DeriveEncryptedResult(result, encryptedFields, encryptedFieldModes);
     }
 
-    /** Result of {@link #deriveEncrypted}: derived Schema plus field metadata for the sidecar. */
+    /** Result of {@link #deriveEncrypted}: derived Schema plus field metadata for the encryption metadata subject. */
     record DeriveEncryptedResult(Schema schema, List<String> encryptedFields,
                                  Map<String, String> encryptedFieldModes) {}
 
@@ -70,7 +70,7 @@ class AvroSchemaDeriver {
      * <p>Starts from the encrypted schema and restores field types for {@code decryptedFields}
      * using the original schema. Still-encrypted fields remain as {@code string}.
      *
-     * @param encryptedFieldModes mode map from sidecar ({@code fieldName → "ELEMENT"|"OBJECT"})
+     * @param encryptedFieldModes mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"})
      */
     Schema derivePartialDecrypt(Schema encryptedSchema, Schema originalSchema,
                                 List<String> decryptedFields,

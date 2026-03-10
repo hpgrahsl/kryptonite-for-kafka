@@ -26,9 +26,9 @@ import java.util.stream.Collectors;
  * <p>Wire format: {@code [0x00][4-byte big-endian int schemaId][payload bytes]}.
  *
  * <p>Encryption metadata ({@code originalSchemaId}, {@code encryptedFields},
- * {@code encryptedFieldModes}) is stored in a sidecar subject
- * {@code "<topicName>-value__kryptonite-meta"} as a JSON Schema document with a
- * {@code x-kryptonite-sidecar} custom keyword. Schema documents (encrypted schema,
+ * {@code encryptedFieldModes}) is stored in an encryption metadata subject
+ * {@code "<topicName>-value__k4k_meta"} as a JSON Schema document with a
+ * {@code x-kryptonite-metadata} custom keyword. Schema documents (encrypted schema,
  * partial-decrypt schema) are clean and contain no custom keywords.
  *
  * <p>Thread-safe after construction: all mutable state is in {@link ConcurrentHashMap} instances;
@@ -42,8 +42,8 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
 
     /** Encrypted schema subject: {@code "<topicName>-value__k4k_enc"} */
     public static final String ENCRYPTED_SUBJECT_SUFFIX = "-value__k4k_enc";
-    /** Sidecar metadata subject: {@code "<topicName>-value__k4k_meta"} */
-    public static final String SIDECAR_SUBJECT_SUFFIX = "-value__k4k_meta";
+    /** Encryption metadata subject: {@code "<topicName>-value__k4k_meta"} */
+    public static final String ENCRYPTION_METADATA_SUBJECT_SUFFIX = "-value__k4k_meta";
     /** Partial-decrypt subject prefix: {@code "<topicName>-value__k4k_dec_<stableHash>"} */
     public static final String PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX = "-value__k4k_dec_";
 
@@ -57,8 +57,8 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     // Decrypt path: (encryptedSchemaId, fieldNames) → outputSchemaId
     private final ConcurrentHashMap<DecryptCacheKey, Integer> decryptOutputIdCache = new ConcurrentHashMap<>();
 
-    // Sidecar cache: encryptedSchemaId → SidecarMetadata
-    private final ConcurrentHashMap<Integer, SidecarMetadata> sidecarCache = new ConcurrentHashMap<>();
+    // Encryption metadata cache: encryptedSchemaId → EncryptionMetadata
+    private final ConcurrentHashMap<Integer, EncryptionMetadata> encryptionMetadataCache = new ConcurrentHashMap<>();
 
     public ConfluentSchemaRegistryAdapter(SchemaRegistryClient srClient) {
         this.srClient = srClient;
@@ -125,13 +125,13 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                     encryptedFieldModes = result.encryptedFieldModes();
                 }
 
-                // Register sidecar
-                SidecarMetadata sidecar = new SidecarMetadata(
+                // Register encryption metadata
+                EncryptionMetadata encryptionMetadata = new EncryptionMetadata(
                         id, encryptedSchemaId,
                         encryptedFields,
                         encryptedFieldModes);
-                registerSidecar(topicName, sidecar);
-                sidecarCache.put(encryptedSchemaId, sidecar);
+                registerEncryptionMetadata(topicName, encryptionMetadata);
+                encryptionMetadataCache.put(encryptedSchemaId, encryptionMetadata);
 
                 LOG.info("Registered encrypted schema under subject='{}' with id={}", encryptedSubject, encryptedSchemaId);
                 // Prime the decrypt cache for full decrypt direction
@@ -157,11 +157,11 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                 LOG.debug("Decrypt cache miss for encryptedSchemaId={} topic='{}' — resolving output schema",
                         encryptedSchemaId, topicName);
 
-                SidecarMetadata sidecar = getOrFetchSidecar(encryptedSchemaId, topicName);
-                int originalSchemaId = sidecar.getOriginalSchemaId();
-                List<String> allEncryptedFields = sidecar.getEncryptedFields();
-                Map<String, String> encryptedFieldModes = sidecar.getEncryptedFieldModes() != null
-                        ? sidecar.getEncryptedFieldModes() : Map.of();
+                EncryptionMetadata encryptionMetadata = getOrFetchEncryptionMetadata(encryptedSchemaId, topicName);
+                int originalSchemaId = encryptionMetadata.getOriginalSchemaId();
+                List<String> allEncryptedFields = encryptionMetadata.getEncryptedFields();
+                Map<String, String> encryptedFieldModes = encryptionMetadata.getEncryptedFieldModes() != null
+                        ? encryptionMetadata.getEncryptedFieldModes() : Map.of();
 
                 // Full decrypt: decrypted field set == all encrypted fields → return original schema ID
                 if (fieldNamesSet.containsAll(allEncryptedFields) && allEncryptedFields.containsAll(fieldNamesSet)) {
@@ -214,7 +214,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
 
     @Override
     public int getOriginalSchemaId(int encryptedSchemaId, String topicName) {
-        return getOrFetchSidecar(encryptedSchemaId, topicName).getOriginalSchemaId();
+        return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getOriginalSchemaId();
     }
 
     // --- Schema fetch (Phase 3/4) ---
@@ -228,31 +228,31 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
         }
     }
 
-    // --- Sidecar helpers ---
+    // --- Encryption metadata helpers ---
 
-    private void registerSidecar(String topicName, SidecarMetadata sidecar) throws Exception {
+    private void registerEncryptionMetadata(String topicName, EncryptionMetadata encryptionMetadata) throws Exception {
         ObjectNode envelope = MAPPER.createObjectNode();
         envelope.put("type", "object");
-        envelope.set("x-kryptonite-sidecar", MAPPER.valueToTree(sidecar));
-        String sidecarSubject = topicName + SIDECAR_SUBJECT_SUFFIX;
-        srClient.updateCompatibility(sidecarSubject, "NONE");
-        srClient.register(sidecarSubject, new JsonSchema(MAPPER.writeValueAsString(envelope)));
-        LOG.debug("Registered sidecar under subject='{}'", sidecarSubject);
+        envelope.set("x-kryptonite-metadata", MAPPER.valueToTree(encryptionMetadata));
+        String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX;
+        srClient.updateCompatibility(metadataSubject, "NONE");
+        srClient.register(metadataSubject, new JsonSchema(MAPPER.writeValueAsString(envelope)));
+        LOG.debug("Registered encryption metadata under subject='{}'", metadataSubject);
     }
 
-    private SidecarMetadata getOrFetchSidecar(int encryptedSchemaId, String topicName) {
-        return sidecarCache.computeIfAbsent(encryptedSchemaId, id -> {
+    private EncryptionMetadata getOrFetchEncryptionMetadata(int encryptedSchemaId, String topicName) {
+        return encryptionMetadataCache.computeIfAbsent(encryptedSchemaId, id -> {
             try {
-                String sidecarSubject = topicName + SIDECAR_SUBJECT_SUFFIX;
-                SchemaMetadata meta = srClient.getLatestSchemaMetadata(sidecarSubject);
+                String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX;
+                SchemaMetadata meta = srClient.getLatestSchemaMetadata(metadataSubject);
                 ObjectNode envelope = (ObjectNode) MAPPER.readTree(meta.getSchema());
-                SidecarMetadata sidecar = MAPPER.treeToValue(
-                        envelope.get("x-kryptonite-sidecar"), SidecarMetadata.class);
-                LOG.debug("Fetched sidecar for encryptedSchemaId={} from subject='{}'", id, sidecarSubject);
-                return sidecar;
+                EncryptionMetadata encryptionMetadata = MAPPER.treeToValue(
+                        envelope.get("x-kryptonite-metadata"), EncryptionMetadata.class);
+                LOG.debug("Fetched encryption metadata for encryptedSchemaId={} from subject='{}'", id, metadataSubject);
+                return encryptionMetadata;
             } catch (Exception e) {
                 throw new SchemaRegistryAdapterException(
-                        "Failed to fetch sidecar for encryptedSchemaId=" + id + " topic=" + topicName, e);
+                        "Failed to fetch encryption metadata for encryptedSchemaId=" + id + " topic=" + topicName, e);
             }
         });
     }
