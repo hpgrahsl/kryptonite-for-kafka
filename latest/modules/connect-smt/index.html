@@ -1,0 +1,1631 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Client-side field-level cryptography for Apache Kafka">
+      
+      
+      
+        <link rel="canonical" href="https://hpgrahsl.github.io/kryptonite-for-kafka/modules/connect-smt/">
+      
+      
+        <link rel="prev" href="../../keyset-tool/">
+      
+      
+        <link rel="next" href="../flink-udfs/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.24">
+    
+    
+      
+        <title>Apache Kafka Connect SMT - Kryptonite for Apache Kafka</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.28978c9b.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#apache-kafka-connect-smt" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Kryptonite for Apache Kafka" class="md-header__button md-logo" aria-label="Kryptonite for Apache Kafka" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kryptonite for Apache Kafka
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Apache Kafka Connect SMT
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/hpgrahsl/kryptonite-for-kafka" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hpgrahsl/kryptonite-for-kafka
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../key-management/" class="md-tabs__link">
+        
+  
+  Key Management
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../kms/overview/" class="md-tabs__link">
+          
+  
+  Cloud KMS
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../keyset-tool/" class="md-tabs__link">
+        
+  
+  Keyset Tool
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="././" class="md-tabs__link">
+          
+  
+  Modules
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../security/" class="md-tabs__link">
+        
+  
+  Security
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../configuration/" class="md-tabs__link">
+        
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Kryptonite for Apache Kafka" class="md-nav__button md-logo" aria-label="Kryptonite for Apache Kafka" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    Kryptonite for Apache Kafka
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/hpgrahsl/kryptonite-for-kafka" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hpgrahsl/kryptonite-for-kafka
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../key-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud KMS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud KMS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kms/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kms/gcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP Cloud KMS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kms/aws/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS KMS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kms/azure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Azure Key Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../keyset-tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyset Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Kafka Connect SMT
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Kafka Connect SMT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation / Deployment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schemaless-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schemaless records
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schemaless records">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#encrypt-selected-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decrypt-selected-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema-aware-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema-aware records
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schema-aware records">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#encrypt-selected-fields_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decrypt-selected-fields_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#format-preserving-encryption-fpe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Format-Preserving Encryption (FPE)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#externalising-key-material" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Externalising Key Material
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../flink-udfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Flink UDFs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ksqldb-udfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ksqlDB UDFs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../funqy-http/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarkus HTTP Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation / Deployment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schemaless-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schemaless records
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schemaless records">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#encrypt-selected-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decrypt-selected-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema-aware-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema-aware records
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schema-aware records">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#encrypt-selected-fields_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#decrypt-selected-fields_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decrypt selected fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#format-preserving-encryption-fpe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Format-Preserving Encryption (FPE)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#externalising-key-material" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Externalising Key Material
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+<h1 id="apache-kafka-connect-smt"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg></span> Apache Kafka Connect SMT</h1>
+<p>The <code>CipherField</code> Single Message Transformation (SMT) provides field-level encryption and decryption for Kafka Connect source and sink connectors. It works with both schemaless (JSON) and schema-aware (Avro, Protobuf, JSON Schema) records.</p>
+<p><strong>Field-Level Encryption with Sink Connectors</strong></p>
+<div class="k4k-module-img">
+<a href="../../assets/images/03a_csflc_source_connectors.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/03a_csflc_source_connectors.png" alt="Kafka Connect SMT"></a>
+</div>
+
+<p><strong>Field-Level Decryption with Sink Connectors</strong></p>
+<div class="k4k-module-img">
+<a href="../../assets/images/03b_csflc_sink_connectors.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/03b_csflc_sink_connectors.png" alt="Kafka Connect SMT"></a>
+</div>
+
+<hr />
+<h2 id="installation-deployment">Installation / Deployment</h2>
+<ol>
+<li>Download the ZIP archive from the <a href="https://github.com/hpgrahsl/kryptonite-for-kafka/releases">GitHub Releases page</a>.</li>
+<li>Extract the archive and place the root folder into the configured plugin path of your Kafka Connect deployment.</li>
+<li>(Re)Start the Connect worker(s).</li>
+</ol>
+<p>If building from sources:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./mvnw<span class="w"> </span>clean<span class="w"> </span>package<span class="w"> </span>-DskipTests<span class="w"> </span>-pl<span class="w"> </span>connect-transform-kryptonite
+</code></pre></div>
+<hr />
+<h2 id="basic-usage">Basic Usage</h2>
+<p>The SMT is registered as a transformation on a connector:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;transforms&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cipher&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value&quot;</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">}</span>
+</code></pre></div>
+<p>Use <code>CipherField$Value</code> to transform the record value. If you really need to apply the SMT to encrypt/decrypt fields of a record's key you'd choose <code>CipherField$Key</code> instead.</p>
+<hr />
+<h3 id="schemaless-records">Schemaless records</h3>
+<h4 id="encrypt-selected-fields">Encrypt selected fields</h4>
+<p>Given this JSON record value as input:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;some foo bla text&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;myInt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;myBoolean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">&quot;mySubDoc1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hello json&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;myArray1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;str_1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;str_2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;str_N&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">&quot;mySubDoc2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;k1&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;k2&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;k3&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="p">}</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>To encrypt the fields named <code>myString</code>, <code>myArray1</code>, and <code>mySubDoc2</code> you could configure the SMT as follows:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;transforms&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cipher&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.cipher_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ENCRYPT&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;identifier\&quot;:\&quot;my-key\&quot;,\&quot;material\&quot;:{\&quot;primaryKeyId\&quot;:123456789,\&quot;key\&quot;:[{\&quot;keyData\&quot;:{\&quot;typeUrl\&quot;:\&quot;type.googleapis.com/google.crypto.tink.AesGcmKey\&quot;,\&quot;value\&quot;:\&quot;&lt;BASE64_KEY&gt;\&quot;,\&quot;keyMaterialType\&quot;:\&quot;SYMMETRIC\&quot;},\&quot;status\&quot;:\&quot;ENABLED\&quot;,\&quot;keyId\&quot;:123456789,\&quot;outputPrefixType\&quot;:\&quot;TINK\&quot;}]}}]&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.cipher_data_key_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-key&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.field_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;name\&quot;:\&quot;myString\&quot;},{\&quot;name\&quot;:\&quot;myArray1\&quot;},{\&quot;name\&quot;:\&quot;mySubDoc2\&quot;}]&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.field_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OBJECT&quot;</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>The settings in detail:</p>
+<ol>
+<li><code>cipher_mode: "ENCRYPT"</code> runs the SMT in encrypt mode</li>
+<li><code>cipher_data_keys: "..."</code> specifies the keysets that are available to choose from directly in the configuration. Learn more about other <a href="../../key-management/">key management</a> options and how to generate your own keysets with the provided <a href="../../keyset-tool/">keytool</a>.</li>
+<li><code>cipher_data_key_identifier": "my-key"</code>: specifies the default keyset identifier to use for encryption operations when no field-level overrides are in place.</li>
+<li><code>field_config": "..."</code> defines which payload field(s) should get processed by the SMT. Each field could define overrides for any SMT defaults to influence the SMT's behaviour on field-level. For instance, you can choose a different keyset identifier and/or a different cipher algorithm for some of the fields.</li>
+<li><code>field_mode": "OBJECT"</code> instructs the SMT to process any field value with a complex data type (<code>ARRAY,MAP,STRUCT</code>) in its entirety. </li>
+</ol>
+<p>The result of applying the SMT with these settings based on the input record value looks like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;M007MIScg8F0A/cAddWbayvUPObjxuGFxisu5MUckDhB...&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;myInt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;myBoolean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;mySubDoc1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hello json&quot;</span><span class="p">},</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">&quot;myArray1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UuEKnrv91bLImQvKqXTET7RTP93XeLfNRhzJaXVc6OGA...&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="nt">&quot;mySubDoc2&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fLAnBod5U8eS+LVNEm3vDJ1m32/HM170ASgJLKdPF78qDx...&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>All encrypted fields became Base64-encoded ciphertext. The fields <code>myArray1</code> and <code>mySubDoc2</code> have been encrypted as a whole due to <code>OBJECT</code> mode encryption.</p>
+<h4 id="decrypt-selected-fields">Decrypt selected fields</h4>
+<p>Given the record value input being result of the encryption shown right above:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;M007MIScg8F0A/cAddWbayvUPObjxuGFxisu5MUckDhB...&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">&quot;myInt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">&quot;myBoolean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">&quot;mySubDoc1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hello json&quot;</span><span class="p">},</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">&quot;myArray1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UuEKnrv91bLImQvKqXTET7RTP93XeLfNRhzJaXVc6OGA...&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">  </span><span class="nt">&quot;mySubDoc2&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;fLAnBod5U8eS+LVNEm3vDJ1m32/HM170ASgJLKdPF78qDx...&quot;</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>To decrypt the fields named <code>myString</code>, <code>myArray1</code>, and <code>mySubDoc2</code> you could configure the SMT as follows:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;transforms&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;decipher&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.cipher_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DECRYPT&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;identifier\&quot;:\&quot;my-key\&quot;,\&quot;material\&quot;:{\&quot;primaryKeyId\&quot;:123456789,\&quot;key\&quot;:[{\&quot;keyData\&quot;:{\&quot;typeUrl\&quot;:\&quot;type.googleapis.com/google.crypto.tink.AesGcmKey\&quot;,\&quot;value\&quot;:\&quot;&lt;BASE64_KEY&gt;\&quot;,\&quot;keyMaterialType\&quot;:\&quot;SYMMETRIC\&quot;},\&quot;status\&quot;:\&quot;ENABLED\&quot;,\&quot;keyId\&quot;:123456789,\&quot;outputPrefixType\&quot;:\&quot;TINK\&quot;}]}}]&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.field_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;name\&quot;:\&quot;myString\&quot;},{\&quot;name\&quot;:\&quot;myArray1\&quot;},{\&quot;name\&quot;:\&quot;mySubDoc2\&quot;}]&quot;</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">}</span>
+</code></pre></div>
+<p>The settings in detail:</p>
+<ol>
+<li><code>cipher_mode: "DECRYPT"</code> runs the SMT in decrypt mode</li>
+<li><code>cipher_data_keys: "..."</code> specifies the keysets that are available to choose from directly in the configuration. Learn more about other <a href="../../key-management/">key management</a> options and how to generate your own keysets with the provided <a href="../../keyset-tool/">keytool</a>.</li>
+<li><code>field_config": "..."</code> defines which payload field(s) should get processed by the SMT.</li>
+</ol>
+<p>The result of applying the SMT with these settings based on the partially encrypted record value is the original plaintext input record value:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;some foo bla text&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&quot;myInt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">&quot;myBoolean&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">&quot;mySubDoc1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;myString&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hello json&quot;</span><span class="p">},</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nt">&quot;myArray1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;str_1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;str_2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;str_N&quot;</span><span class="p">],</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span><span class="nt">&quot;mySubDoc2&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;k1&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;k2&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;k3&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="p">}</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="schema-aware-records">Schema-aware records</h3>
+<h4 id="encrypt-selected-fields_1">Encrypt selected fields</h4>
+<p>Schema-aware encryption works with the same configuration as schemaless encryption. The difference is that <strong>the SMT will automatically redact the schema accordingly</strong> as encrypted fields are always represented as <code>STRING</code> type, regardless of their original type.</p>
+<h4 id="decrypt-selected-fields_1">Decrypt selected fields</h4>
+<p>For decryption of schema-aware records, include the <code>schema</code> in each field config entry so the SMT can properly restore the original schema for the field in question when processing the records:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;transforms&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;decipher&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.cipher_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DECRYPT&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;identifier\&quot;:\&quot;my-key\&quot;,\&quot;material\&quot;:{\&quot;primaryKeyId\&quot;:123456789,\&quot;key\&quot;:[{\&quot;keyData\&quot;:{\&quot;typeUrl\&quot;:\&quot;type.googleapis.com/google.crypto.tink.AesGcmKey\&quot;,\&quot;value\&quot;:\&quot;&lt;BASE64_KEY&gt;\&quot;,\&quot;keyMaterialType\&quot;:\&quot;SYMMETRIC\&quot;},\&quot;status\&quot;:\&quot;ENABLED\&quot;,\&quot;keyId\&quot;:123456789,\&quot;outputPrefixType\&quot;:\&quot;TINK\&quot;}]}}]&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.field_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;name\&quot;:\&quot;myString\&quot;,\&quot;schema\&quot;:{\&quot;type\&quot;:\&quot;STRING\&quot;}},{\&quot;name\&quot;:\&quot;myArray1\&quot;,\&quot;schema\&quot;:{\&quot;type\&quot;:\&quot;ARRAY\&quot;,\&quot;valueSchema\&quot;:{\&quot;type\&quot;:\&quot;STRING\&quot;}}},{\&quot;name\&quot;:\&quot;mySubDoc2\&quot;,\&quot;schema\&quot;:{\&quot;type\&quot;:\&quot;MAP\&quot;,\&quot;keySchema\&quot;:{\&quot;type\&quot;:\&quot;STRING\&quot;},\&quot;valueSchema\&quot;:{\&quot;type\&quot;:\&quot;INT32\&quot;}}}]&quot;</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h3 id="format-preserving-encryption-fpe">Format-Preserving Encryption (FPE)</h3>
+<p>FPE keeps the original format and length of field values. Configure it per-field via <code>field_config</code> by specifying all necessary FPE-related settings.</p>
+<p>Let's imagine a record with sensitive fields:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;customerId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CUST-12345&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;creditCardNumber&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4455202014528870&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="nt">&quot;ssn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;230564998&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;customer@example.com&quot;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>To encrypt the sensitive fields <code>creditCardNumber</code> and <code>ssn</code> while keeping their numeric format intact you can use the following <code>field_config</code> settings to apply the FPE cipher:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;transforms&quot;</span><span class="p">:</span><span class="s2">&quot;cipher&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.type&quot;</span><span class="p">:</span><span class="s2">&quot;com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.cipher_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ENCRYPT&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{ \&quot;identifier\&quot;: \&quot;my-fpe-key\&quot;, \&quot;material\&quot;: { \&quot;primaryKeyId\&quot;: 2000001, \&quot;key\&quot;: [{ \&quot;keyData\&quot;: { \&quot;typeUrl\&quot;: \&quot;io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\&quot;, \&quot;value\&quot;: \&quot;&lt;BASE64_ENCODED_FPE_KEY&gt;\&quot;, \&quot;keyMaterialType\&quot;: \&quot;SYMMETRIC\&quot; }, \&quot;status\&quot;: \&quot;ENABLED\&quot;, \&quot;keyId\&quot;: 2000001, \&quot;outputPrefixType\&quot;: \&quot;RAW\&quot; }] } }]&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.cipher_data_key_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-fpe-key&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.field_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;name\&quot;:\&quot;creditCardNumber\&quot;,\&quot;algorithm\&quot;:\&quot;CUSTOM/MYSTO_FPE_FF3_1\&quot;,\&quot;fpeAlphabetType\&quot;:\&quot;DIGITS\&quot;},{\&quot;name\&quot;:\&quot;ssn\&quot;,\&quot;algorithm\&quot;:\&quot;CUSTOM/MYSTO_FPE_FF3_1\&quot;,\&quot;fpeAlphabetType\&quot;:\&quot;DIGITS\&quot;}]&quot;</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="p">}</span>
+</code></pre></div>
+<p>After FPE encryption, the 16-digit credit card number remains a 16-digit number and the 9-digit social security number remains a 9-digit number.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">&quot;customerId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CUST-12345&quot;</span><span class="p">,</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="nt">&quot;creditCardNumber&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;7823956140762231&quot;</span><span class="p">,</span><span class="w">  </span><span class="c1">// still 16 digits</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">&quot;ssn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;845721369&quot;</span><span class="p">,</span><span class="w">  </span><span class="c1">// still 9 digits</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;customer@example.com&quot;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>To successfully decrypt both fields you MUST configure the SMT with the exact same FPE settings:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">&quot;transforms&quot;</span><span class="p">:</span><span class="s2">&quot;decipher&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.type&quot;</span><span class="p">:</span><span class="s2">&quot;com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField$Value&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.cipher_mode&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;DECRYPT&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{ \&quot;identifier\&quot;: \&quot;my-fpe-key\&quot;, \&quot;material\&quot;: { \&quot;primaryKeyId\&quot;: 2000001, \&quot;key\&quot;: [{ \&quot;keyData\&quot;: { \&quot;typeUrl\&quot;: \&quot;io.github.hpgrahsl.kryptonite/crypto.custom.mysto.fpe.FpeKey\&quot;, \&quot;value\&quot;: \&quot;&lt;BASE64_ENCODED_FPE_KEY&gt;\&quot;, \&quot;keyMaterialType\&quot;: \&quot;SYMMETRIC\&quot; }, \&quot;status\&quot;: \&quot;ENABLED\&quot;, \&quot;keyId\&quot;: 2000001, \&quot;outputPrefixType\&quot;: \&quot;RAW\&quot; }] } }]&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span><span class="nt">&quot;transforms.decipher.field_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;name\&quot;:\&quot;creditCardNumber\&quot;,\&quot;algorithm\&quot;:\&quot;CUSTOM/MYSTO_FPE_FF3_1\&quot;,\&quot;fpeAlphabetType\&quot;:\&quot;DIGITS\&quot;},{\&quot;name\&quot;:\&quot;ssn\&quot;,\&quot;algorithm\&quot;:\&quot;CUSTOM/MYSTO_FPE_FF3_1\&quot;,\&quot;fpeAlphabetType\&quot;:\&quot;DIGITS\&quot;}]&quot;</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="p">}</span>
+</code></pre></div>
+<p>The result of a successful decryption shows the original record value:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">&quot;customerId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CUST-12345&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">&quot;creditCardNumber&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;4455202014528870&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="nt">&quot;ssn&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;230564998&quot;</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span><span class="nt">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;customer@example.com&quot;</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="externalising-key-material">Externalising Key Material</h2>
+<p>Since keyset material that is inlined into the connector's JSON configuration is visible via the Connect REST API, use the file-based config provider to keep secrets such as keysets outside of the connector configuration.</p>
+<p><strong>1. Add to the Connect worker configuration:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="na">connect.config.providers</span><span class="o">=</span><span class="s">file</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="na">connect.config.providers.file.class</span><span class="o">=</span><span class="s">org.apache.kafka.common.config.provider.FileConfigProvider</span>
+</code></pre></div>
+<p><strong>2. Create a properties file on each worker node</strong> (e.g. <code>/secrets/kryptonite/classified.properties</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="na">cipher_data_keys</span><span class="o">=</span><span class="s">[{&quot;identifier&quot;:&quot;my-key&quot;,&quot;material&quot;:{...}}]</span>
+</code></pre></div>
+<p><strong>3. Reference it in the connector config:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">{</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="nt">&quot;transforms.cipher.cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;${file:/secrets/kryptonite/classified.properties:cipher_data_keys}&quot;</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="configuration-reference">Configuration Reference</h2>
+<p>See the full <a href="../../configuration/">Configuration Reference</a> for all parameters.</p>
+<p><strong>Core parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cipher_mode</code></td>
+<td><code>ENCRYPT</code> or <code>DECRYPT</code></td>
+</tr>
+<tr>
+<td><code>cipher_data_keys</code></td>
+<td>JSON array of keyset objects</td>
+</tr>
+<tr>
+<td><code>cipher_data_key_identifier</code></td>
+<td>Default keyset identifier for encryption</td>
+</tr>
+<tr>
+<td><code>field_config</code></td>
+<td>JSON array of field names (and optional per-field overrides)</td>
+</tr>
+<tr>
+<td><code>field_mode</code></td>
+<td><code>OBJECT</code> or <code>ELEMENT</code></td>
+</tr>
+<tr>
+<td><code>key_source</code></td>
+<td><code>CONFIG</code>, <code>CONFIG_ENCRYPTED</code>, <code>KMS</code>, or <code>KMS_ENCRYPTED</code></td>
+</tr>
+<tr>
+<td><code>cipher_algorithm</code></td>
+<td><code>TINK/AES_GCM</code> (default), <code>TINK/AES_GCM_SIV</code>, <code>CUSTOM/MYSTO_FPE_FF3_1</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["navigation.tabs","navigation.sections","navigation.expand","navigation.top","search.highlight","search.suggest","content.code.copy","content.code.annotate"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.16f8adc2.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
+      
+        <script src="../../assets/javascripts/glightbox-init.js"></script>
+      
+        <script src="../../assets/javascripts/version-picker.js"></script>
+      
+    
+  </body>
+</html>
