@@ -8,11 +8,11 @@ import java.util.Set;
  * Abstracts Schema Registry wire-format handling and schema ID lifecycle management.
  *
  * <p>This interface keeps SR wire format handling separate from field transformation logic,
- * allowing Avro/Protobuf adapters to be added in future phases without touching processor or
+ * allowing a Protobuf adapter to be added in a future phase without touching processor or
  * filter code.
  *
- * <p>v1 implementation: {@link ConfluentSchemaRegistryAdapter} — Confluent wire format
- * {@code [0x00][4-byte big-endian int schemaId][payload]}.
+ * <p>Current implementation: {@link ConfluentSchemaRegistryAdapter} — Confluent wire format
+ * {@code [0x00][4-byte big-endian int schemaId][payload]}. Supports JSON Schema and Avro.
  *
  * <p>Future: {@code ApicurioSchemaRegistryAdapter} — Apicurio wire format
  * {@code [0x00][8-byte long globalId][payload]}.
@@ -33,13 +33,15 @@ public interface SchemaRegistryAdapter {
     byte[] attachPrefix(int schemaId, byte[] payload);
 
     /**
-     * Produce path (Mode A): returns the {@code encryptedSchemaId} for the given
+     * Produce path: returns the {@code encryptedSchemaId} for the given
      * {@code originalSchemaId} and topic name.
      *
      * <p>On first encounter: fetches the original schema, derives the encrypted schema document
-     * (targeted fields typed as {@code string}, {@code x-kryptonite} block embedded), registers
-     * it under {@code "<topicName>-value__kryptonite"} with NONE compatibility, caches both
-     * directions ({@code originalId↔encryptedId}), and returns the {@code encryptedSchemaId}.
+     * (targeted field types replaced with {@code string}), registers it under
+     * {@code "<topicName>-value__k4k_enc"} with NONE compatibility, registers the encryption
+     * metadata (original schema ID, encrypted field list, per-field modes) under
+     * {@code "<topicName>-value__k4k_meta"}, caches the result, and returns the
+     * {@code encryptedSchemaId}.
      *
      * <p>On subsequent calls: returns from in-memory cache — zero SR network calls.
      *
@@ -51,16 +53,16 @@ public interface SchemaRegistryAdapter {
     int getOrRegisterEncryptedSchemaId(int originalSchemaId, String topicName, Set<FieldConfig> fieldConfigs);
 
     /**
-     * Consume path (Mode A): returns the schema ID to attach to the decrypted payload.
+     * Consume path: returns the schema ID to attach to the decrypted payload.
      *
-     * <p>Reads {@code x-kryptonite.encryptedFields} from the encrypted schema to determine
+     * <p>Reads {@code encryptedFields} from the encryption metadata subject to determine
      * whether the operation is a full or partial decrypt:
      * <ul>
      *   <li>Full decrypt ({@code decryptedFieldConfigs} covers all encrypted fields): returns
-     *       {@code originalSchemaId} read from {@code x-kryptonite.originalSchemaId}. No new
-     *       schema registration needed.</li>
+     *       {@code originalSchemaId} from the encryption metadata. No new schema registration
+     *       needed.</li>
      *   <li>Partial decrypt: derives a partial-decrypt schema, registers it under
-     *       {@code "<topicName>-value__kryptonite_dec_<stableHash>"} with NONE compatibility,
+     *       {@code "<topicName>-value__k4k_dec_<stableHash>"} with NONE compatibility,
      *       and returns the new {@code partialDecryptSchemaId}.</li>
      * </ul>
      *
@@ -93,15 +95,14 @@ public interface SchemaRegistryAdapter {
     int getOriginalSchemaId(int encryptedSchemaId, String topicName);
 
     /**
-     * Fetches and caches the parsed schema by schema ID.
+     * Fetches the parsed schema by schema ID.
      *
-     * <p>NOT called in the JSON path (v1) — JSON traversal uses Jackson directly and is
-     * schema-independent.
+     * <p>Not used in the JSON path — JSON traversal uses Jackson directly and is schema-independent.
      *
-     * <p>REQUIRED for Avro (Phase 3): returns {@code AvroSchema}; caller does
+     * <p>Used by the Avro processor: returns {@code AvroSchema}; caller does
      * {@code .rawSchema()} → {@code org.apache.avro.Schema}.
      *
-     * <p>REQUIRED for Protobuf (Phase 4): returns {@code ProtobufSchema}; caller does
+     * <p>Future Protobuf (Phase 4): will return {@code ProtobufSchema}; caller does
      * {@code .toDescriptor()} → {@code FileDescriptor}.
      *
      * <p>Return type is {@code Object} to avoid coupling this interface to a specific SR client
