@@ -1,4 +1,4 @@
-name: Docs (dev)
+name: Docs Snapshot
 
 on:
   push:

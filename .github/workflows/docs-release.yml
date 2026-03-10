@@ -1,4 +1,4 @@
-name: Docs (release)
+name: Docs Release
 
 on:
   release:
