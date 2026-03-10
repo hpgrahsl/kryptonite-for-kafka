@@ -70,7 +70,7 @@ class PlainJsonRecordProcessorTest {
         return Base64.getEncoder().encodeToString(out.toBytes());
     }
 
-    private static byte[] kryoBytes(JsonNode node) {
+    private static byte[] serdeBytes(JsonNode node) {
         return JsonObjectNodeAccessor.nodeToBytes(node, SERDE);
     }
 
@@ -247,7 +247,7 @@ class PlainJsonRecordProcessorTest {
             // Encode FAKE_EF as the "encrypted" field value in the input JSON
             String encryptedBase64 = encodeEf(FAKE_EF);
             // Mock: decipherField returns Kryo-encoded int 30
-            byte[] plaintextBytes = kryoBytes(IntNode.valueOf(30));
+            byte[] plaintextBytes = serdeBytes(IntNode.valueOf(30));
             when(kryptonite.decipherField(any(EncryptedField.class))).thenReturn(plaintextBytes);
 
             byte[] input = MAPPER.writeValueAsBytes(
@@ -310,8 +310,8 @@ class PlainJsonRecordProcessorTest {
         void arrayElementsDecryptedIndividually() throws Exception {
             String encBase64 = encodeEf(FAKE_EF);
             when(kryptonite.decipherField(any(EncryptedField.class)))
-                    .thenReturn(kryoBytes(TextNode.valueOf("x")))
-                    .thenReturn(kryoBytes(TextNode.valueOf("y")));
+                    .thenReturn(serdeBytes(TextNode.valueOf("x")))
+                    .thenReturn(serdeBytes(TextNode.valueOf("y")));
 
             JsonNode encArray = MAPPER.createArrayNode().add(encBase64).add(encBase64);
             byte[] input = MAPPER.writeValueAsBytes(MAPPER.createObjectNode().set("tags", encArray));
@@ -332,8 +332,8 @@ class PlainJsonRecordProcessorTest {
         void objectValuesDecryptedIndividually() throws Exception {
             String encBase64 = encodeEf(FAKE_EF);
             when(kryptonite.decipherField(any(EncryptedField.class)))
-                    .thenReturn(kryoBytes(TextNode.valueOf("v1")))
-                    .thenReturn(kryoBytes(TextNode.valueOf("v2")));
+                    .thenReturn(serdeBytes(TextNode.valueOf("v1")))
+                    .thenReturn(serdeBytes(TextNode.valueOf("v2")));
 
             JsonNode encLabels = MAPPER.createObjectNode()
                     .put("k1", encBase64)
