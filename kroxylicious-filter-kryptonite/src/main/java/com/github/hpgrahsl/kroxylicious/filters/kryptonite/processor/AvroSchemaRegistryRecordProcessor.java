@@ -33,13 +33,15 @@ import java.util.Set;
  * {@link Kryptonite}. Field traversal uses {@link AvroGenericRecordAccessor}.
  *
  * <p>Plaintext bytes format: Kryo {@code writeClassAndObject} — same as all other Kryptonite
- * modules (Connect SMT, ksqlDB UDFs, Flink UDFs, Funqy). Cross-module compatible for
- * primitive Avro field types (string, int, long, float, double, boolean).
+ * modules (Connect SMT, ksqlDB UDFs, Flink UDFs, Funqy). Cross-module compatible for all
+ * Avro field types whose Kryo serializers are registered in
+ * {@link com.github.hpgrahsl.kryptonite.serdes.KryoInstance}.
  *
- * <p>v1 type support: string ({@link Utf8} preserved as-is), int, long, float,
- * double, boolean. Complex OBJECT-mode fields (nested records) are not supported in v1 and
- * will throw {@link UnsupportedOperationException}. ELEMENT mode encrypts individual
- * array/map primitive elements.
+ * <p>Supported field types: all Avro primitives (string/{@code Utf8}, int, long, float, double,
+ * boolean, bytes/{@code ByteBuffer}) and complex types ({@code GenericData.Record},
+ * {@code GenericData.Array}, {@code GenericData.EnumSymbol}, {@code GenericData.Fixed}).
+ * OBJECT mode encrypts the entire field value for any of these types. ELEMENT mode encrypts
+ * individual elements of array and map fields.
  */
 public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
