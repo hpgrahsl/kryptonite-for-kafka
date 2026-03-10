@@ -68,7 +68,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         for (FieldConfig fc : fieldConfigs) {
             Object fieldValue = accessor.getField(fc.getName());
             if (fieldValue == null) continue;
-            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
 
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof List<?> list) {
                 accessor.setField(fc.getName(), encryptListElements(list, fc));
@@ -113,7 +113,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         for (FieldConfig fc : fieldConfigs) {
             Object fieldValue = accessor.getField(fc.getName());
             if (fieldValue == null) continue;
-            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
 
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof List<?> list) {
                 accessor.setField(fc.getName(), decryptListElements(list, fc));

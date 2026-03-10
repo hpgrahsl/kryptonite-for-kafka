@@ -53,7 +53,7 @@ class JsonSchemaDeriver {
             Map<String, String> encryptedFieldModes = new LinkedHashMap<>();
 
             for (FieldConfig fc : encryptedFieldConfigs) {
-                FieldConfig.FieldMode mode = fc.getFieldMode().orElse(null);
+                FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
                 boolean replaced;
                 if (mode == FieldConfig.FieldMode.ELEMENT) {
                     replaced = replaceArrayItemsType(root, fc.getName(), "string");
@@ -61,10 +61,13 @@ class JsonSchemaDeriver {
                         replaced = replaceObjectPropertyTypes(root, fc.getName(), "string");
                     }
                     if (replaced) {
-                        encryptedFieldModes.put(fc.getName(), "ELEMENT");
+                        encryptedFieldModes.put(fc.getName(), mode.name());
                     }
                 } else {
                     replaced = replaceLeafType(root, fc.getName(), "string");
+                    if (replaced) {
+                        encryptedFieldModes.put(fc.getName(), mode.name());
+                    }
                 }
                 if (replaced) {
                     encryptedFieldNames.add(fc.getName());
@@ -90,8 +93,7 @@ class JsonSchemaDeriver {
      * the schema document). Still-encrypted fields retain their encrypted type representation.
      * The output schema is a clean document with no metadata injected.
      *
-     * @param encryptedFieldModes mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"});
-     *                            absent fields default to OBJECT
+     * @param encryptedFieldModes mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"})
      */
     String derivePartialDecrypt(String originalSchemaJson, String encryptedSchemaJson,
                                 Set<FieldConfig> decryptedFieldConfigs,
@@ -106,7 +108,7 @@ class JsonSchemaDeriver {
                     .collect(Collectors.toSet());
 
             for (String fieldName : decryptedNames) {
-                if ("ELEMENT".equals(encryptedFieldModes.getOrDefault(fieldName, "OBJECT"))) {
+                if (FieldConfig.FieldMode.ELEMENT.name().equals(encryptedFieldModes.get(fieldName))) {
                     restoreElementModeTypes(encryptedRoot, originalRoot, fieldName);
                 } else {
                     restoreLeafType(encryptedRoot, originalRoot, fieldName);

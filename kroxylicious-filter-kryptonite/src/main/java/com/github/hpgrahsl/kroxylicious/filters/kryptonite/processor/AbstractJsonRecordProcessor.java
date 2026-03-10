@@ -49,7 +49,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             Object fieldValue = accessor.getField(fc.getName());
             if (fieldValue == null) continue;
             JsonNode node = (JsonNode) fieldValue;
-            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
                 accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
@@ -79,7 +79,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         for (FieldConfig fc : fieldConfigs) {
             Object fieldValue = accessor.getField(fc.getName());
             if (fieldValue == null) continue;
-            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ArrayNode arr) {
                 accessor.setField(fc.getName(), decryptArrayElements(arr, fc));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ObjectNode obj) {

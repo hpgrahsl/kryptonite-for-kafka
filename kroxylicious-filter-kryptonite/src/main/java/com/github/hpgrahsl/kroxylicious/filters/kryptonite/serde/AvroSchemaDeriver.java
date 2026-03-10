@@ -46,13 +46,11 @@ class AvroSchemaDeriver {
         Schema result = originalSchema;
         for (FieldConfig fc : fieldConfigs) {
             String[] pathParts = fc.getName().split("\\.");
-            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.FieldMode.OBJECT);
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
             try {
                 result = replaceFieldType(result, pathParts, 0, mode);
                 encryptedFields.add(fc.getName());
-                if (mode == FieldConfig.FieldMode.ELEMENT) {
-                    encryptedFieldModes.put(fc.getName(), "ELEMENT");
-                }
+                encryptedFieldModes.put(fc.getName(), mode.name());
             } catch (FieldNotFoundException e) {
                 LOG.debug("deriveEncrypted: field path '{}' not found in Avro schema — leaving unchanged", fc.getName());
             }
@@ -70,7 +68,7 @@ class AvroSchemaDeriver {
      * <p>Starts from the encrypted schema and restores field types for {@code decryptedFields}
      * using the original schema. Still-encrypted fields remain as {@code string}.
      *
-     * @param encryptedFieldModes mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"})
+     * @param encryptedFieldModes explicit mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"})
      */
     Schema derivePartialDecrypt(Schema encryptedSchema, Schema originalSchema,
                                 List<String> decryptedFields,
@@ -78,7 +76,7 @@ class AvroSchemaDeriver {
         Schema result = encryptedSchema;
         for (String fieldName : decryptedFields) {
             String[] pathParts = fieldName.split("\\.");
-            String mode = encryptedFieldModes.getOrDefault(fieldName, "OBJECT");
+            String mode = encryptedFieldModes.get(fieldName);
             try {
                 Schema originalFieldSchema = resolveFieldSchema(originalSchema, pathParts, 0);
                 result = restoreFieldType(result, pathParts, 0, originalFieldSchema, mode);

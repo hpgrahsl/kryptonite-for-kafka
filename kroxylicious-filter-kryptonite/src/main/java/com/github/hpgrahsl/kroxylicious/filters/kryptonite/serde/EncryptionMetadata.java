@@ -18,7 +18,7 @@ public class EncryptionMetadata {
     private int originalSchemaId;
     private int encryptedSchemaId;
     private List<String> encryptedFields;
-    /** Only ELEMENT-mode fields appear here; absent field = OBJECT mode (default). */
+    /** Every encrypted field appears here with its explicit mode: {@code "OBJECT"} or {@code "ELEMENT"}. */
     private Map<String, String> encryptedFieldModes;
 
     public EncryptionMetadata() {}
