@@ -23,6 +23,10 @@ import java.util.Set;
  * <p>OBJECT mode on complex types (nested records, arrays, maps, enums, fixed) encrypts the
  * entire field value; type replacement collapses the field schema to {@code string}
  * (or {@code ["null","string"]} for nullable unions). The original schema is restored on decrypt.
+ *
+ * <p>ELEMENT mode on record fields: each direct field of the record is replaced with
+ * {@code string}; the record container and field names are preserved. The original sub-field
+ * schemas are restored on decrypt.
  */
 class AvroSchemaDeriver {
 
@@ -36,6 +40,7 @@ class AvroSchemaDeriver {
      * (or {@code ["null","string"]} for nullable unions).
      * ELEMENT mode on array fields: replaces {@code items} with {@code string}.
      * ELEMENT mode on map fields: replaces {@code values} with {@code string}.
+     * ELEMENT mode on record fields: replaces each direct field schema with {@code string}.
      *
      * @return pair of (encrypted Schema, encryptedFieldModes map for encryption metadata)
      */
@@ -163,8 +168,18 @@ class AvroSchemaDeriver {
         return switch (fieldSchema.getType()) {
             case ARRAY -> Schema.createArray(STRING_SCHEMA);
             case MAP -> Schema.createMap(STRING_SCHEMA);
+            case RECORD -> {
+                List<Schema.Field> stringFields = fieldSchema.getFields().stream()
+                        .map(f -> new Schema.Field(f.name(), STRING_SCHEMA, f.doc(), f.defaultVal(), f.order()))
+                        .toList();
+                Schema newRecord = Schema.createRecord(
+                        fieldSchema.getName(), fieldSchema.getDoc(),
+                        fieldSchema.getNamespace(), fieldSchema.isError(), stringFields);
+                fieldSchema.getAliases().forEach(newRecord::addAlias);
+                yield newRecord;
+            }
             default -> throw new SchemaDerivationException(
-                    "ELEMENT mode requires array or map field type, but field '" + fieldName
+                    "ELEMENT mode requires array, map or record field type, but field '" + fieldName
                             + "' has type " + fieldSchema.getType());
         };
     }

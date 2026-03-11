@@ -16,6 +16,8 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayl
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +44,7 @@ import java.util.Set;
  * boolean, bytes/{@code ByteBuffer}) and complex types ({@code GenericData.Record},
  * {@code GenericData.Array}, {@code GenericData.EnumSymbol}, {@code GenericData.Fixed}).
  * OBJECT mode encrypts the entire field value for any of these types. ELEMENT mode encrypts
- * individual elements of array and map fields.
+ * individual elements of array and map fields, or individual field values of record fields.
  */
 public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
@@ -77,6 +79,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptListElements(list, fc));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof Map<?, ?> map) {
                 accessor.setField(fc.getName(), encryptMapValues(map, fc));
+            } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof GenericRecord record) {
+                accessor.setField(fc.getName(), encryptRecordFieldValues(record, fc));
             } else {
                 if (isFpe(fc)) {
                     if (!(fieldValue instanceof CharSequence cs)) continue;
@@ -122,6 +126,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), decryptListElements(list, fc));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof Map<?, ?> map) {
                 accessor.setField(fc.getName(), decryptMapValues(map, fc));
+            } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof GenericRecord record) {
+                accessor.setField(fc.getName(), decryptRecordFieldValues(record, fc));
             } else {
                 if (!(fieldValue instanceof CharSequence cs)) continue;
                 if (isFpe(fc)) {
@@ -243,6 +249,33 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                     result.put(k, v);
                 }
             });
+        }
+        return result;
+    }
+
+    private GenericRecord encryptRecordFieldValues(GenericRecord source, FieldConfig fc) {
+        GenericData.Record result = new GenericData.Record(source.getSchema());
+        for (Schema.Field f : source.getSchema().getFields()) {
+            Object value = source.get(f.name());
+            if (value == null) { result.put(f.name(), null); continue; }
+            byte[] plaintext = AvroGenericRecordAccessor.avroValueToBytes(value, serdeProcessor);
+            EncryptedField ef = kryptonite.cipherField(plaintext, buildPayloadMetaData(fc));
+            result.put(f.name(), encodeEncryptedField(ef));
+        }
+        return result;
+    }
+
+    private GenericRecord decryptRecordFieldValues(GenericRecord source, FieldConfig fc) {
+        GenericData.Record result = new GenericData.Record(source.getSchema());
+        for (Schema.Field f : source.getSchema().getFields()) {
+            Object value = source.get(f.name());
+            if (value == null) { result.put(f.name(), null); continue; }
+            if (value instanceof CharSequence cs) {
+                EncryptedField ef = decodeEncryptedField(cs.toString());
+                result.put(f.name(), AvroGenericRecordAccessor.bytesToAvroValue(kryptonite.decipherField(ef), serdeProcessor));
+            } else {
+                result.put(f.name(), value);
+            }
         }
         return result;
     }

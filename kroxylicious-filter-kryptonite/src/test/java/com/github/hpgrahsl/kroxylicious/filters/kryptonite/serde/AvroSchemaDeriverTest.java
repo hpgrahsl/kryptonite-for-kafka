@@ -170,6 +170,21 @@ class AvroSchemaDeriverTest {
         }
 
         @Test
+        @DisplayName("record field: each direct field type becomes STRING; container and field names preserved")
+        void recordFieldEachFieldTypeBecomesString() {
+            var fc = FieldConfig.builder().name("inner").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            var result = deriver.deriveEncrypted(WITH_NESTED, Set.of(fc));
+
+            Schema innerSchema = result.schema().getField("inner").schema();
+            assertThat(innerSchema.getType()).isEqualTo(Schema.Type.RECORD);
+            assertThat(innerSchema.getName()).isEqualTo("Inner");
+            assertThat(innerSchema.getField("x").schema().getType()).isEqualTo(Schema.Type.STRING);
+            assertThat(innerSchema.getField("y").schema().getType()).isEqualTo(Schema.Type.STRING);
+            // outer id field unchanged
+            assertThat(result.schema().getField("id").schema().getType()).isEqualTo(Schema.Type.STRING);
+        }
+
+        @Test
         @DisplayName("ELEMENT mode on a primitive field throws SchemaDerivationException")
         void elementModeOnPrimitiveThrows() {
             var fc = FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
@@ -184,6 +199,15 @@ class AvroSchemaDeriverTest {
             var result = deriver.deriveEncrypted(WITH_ARRAY, Set.of(fc));
 
             assertThat(result.encryptedFieldModes()).containsEntry("tags", "ELEMENT");
+        }
+
+        @Test
+        @DisplayName("encryptedFieldModes lists ELEMENT for record fields")
+        void elementFieldListedInModesForRecord() {
+            var fc = FieldConfig.builder().name("inner").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            var result = deriver.deriveEncrypted(WITH_NESTED, Set.of(fc));
+
+            assertThat(result.encryptedFieldModes()).containsEntry("inner", "ELEMENT");
         }
     }
 
@@ -270,6 +294,24 @@ class AvroSchemaDeriverTest {
             List<Schema> types = countSchema.getTypes();
             assertThat(types).extracting(Schema::getType)
                     .containsExactlyInAnyOrder(Schema.Type.NULL, Schema.Type.INT);
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: record field sub-types restored to original")
+        void elementModeRecordRestored() {
+            var fc = FieldConfig.builder().name("inner").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            var encResult = deriver.deriveEncrypted(WITH_NESTED, Set.of(fc));
+
+            Schema restored = deriver.derivePartialDecrypt(
+                    encResult.schema(), WITH_NESTED,
+                    List.of("inner"),
+                    encResult.encryptedFieldModes()
+            );
+
+            Schema innerSchema = restored.getField("inner").schema();
+            assertThat(innerSchema.getType()).isEqualTo(Schema.Type.RECORD);
+            assertThat(innerSchema.getField("x").schema().getType()).isEqualTo(Schema.Type.INT);
+            assertThat(innerSchema.getField("y").schema().getType()).isEqualTo(Schema.Type.STRING);
         }
 
         @Test

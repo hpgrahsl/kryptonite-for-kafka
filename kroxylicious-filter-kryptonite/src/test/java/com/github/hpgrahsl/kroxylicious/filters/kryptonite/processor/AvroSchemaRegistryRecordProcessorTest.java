@@ -250,6 +250,40 @@ class AvroSchemaRegistryRecordProcessorTest {
         }
 
         @Test
+        @DisplayName("record field: each field value individually encrypted; field names preserved")
+        void recordFieldValuesEncryptedIndividually() throws Exception {
+            GenericRecord personal = new GenericData.Record(PERSONAL_ORIG);
+            personal.put("age", 42);
+            personal.put("lastname", new Utf8("Doe"));
+            GenericRecord person = new GenericData.Record(PERSON_ORIG);
+            person.put("name", new Utf8("John"));
+            person.put("personal", personal);
+
+            byte[] avroPayload = avroSerialize(person, PERSON_ORIG);
+            byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroPayload);
+
+            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
+            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
+            when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            byte[] result = processor.encryptFields(wireBytes, TOPIC,
+                    Set.of(FieldConfig.builder().name("personal").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
+
+            GenericRecord out = avroDeserialize(stripWirePrefix(result), PERSON_ENC);
+            assertThat(out.get("name").toString()).isEqualTo("John"); // unchanged
+            GenericRecord outPersonal = (GenericRecord) out.get("personal");
+            assertThat(outPersonal.get("age")).isInstanceOf(CharSequence.class);     // was int, now encrypted string
+            assertThat(outPersonal.get("lastname")).isInstanceOf(CharSequence.class); // was string, now encrypted string
+
+            verify(kryptonite, times(2)).cipherField(any(), any()); // age + lastname
+        }
+
+        @Test
         @DisplayName("map field: each value individually encrypted")
         void mapValuesEncryptedIndividually() throws Exception {
             GenericRecord rec = new GenericData.Record(MAP_ORIG);
@@ -330,6 +364,50 @@ class AvroSchemaRegistryRecordProcessorTest {
             var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
             byte[] result = processor.decryptFields(inputWire, TOPIC, Set.of());
             assertThat(result).isEqualTo(inputWire);
+        }
+    }
+
+    // ---- decryptFields — ELEMENT mode ----
+
+    @Nested
+    @DisplayName("decryptFields — ELEMENT mode")
+    class DecryptElementMode {
+
+        @Test
+        @DisplayName("record field: each encrypted string individually decrypted; original types restored")
+        void recordFieldValuesDecryptedIndividually() throws Exception {
+            String encBase64 = encodeEf(FAKE_EF);
+            GenericRecord personal = new GenericData.Record(PERSONAL_ENC);
+            personal.put("age", new Utf8(encBase64));
+            personal.put("lastname", new Utf8(encBase64));
+            GenericRecord person = new GenericData.Record(PERSON_ENC);
+            person.put("name", new Utf8("John"));
+            person.put("personal", personal);
+
+            byte[] avroPayload = avroSerialize(person, PERSON_ENC);
+            byte[] wireBytes = toWireBytes(ENCRYPTED_ID, avroPayload);
+
+            byte[] agePlaintext = AvroGenericRecordAccessor.avroValueToBytes(42, SERDE);
+            byte[] lastnamePlaintext = AvroGenericRecordAccessor.avroValueToBytes(new Utf8("Doe"), SERDE);
+            when(kryptonite.decipherField(any(EncryptedField.class)))
+                    .thenReturn(agePlaintext)
+                    .thenReturn(lastnamePlaintext);
+            when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, avroPayload));
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
+            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
+            when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
+
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            byte[] result = processor.decryptFields(wireBytes, TOPIC,
+                    Set.of(FieldConfig.builder().name("personal").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
+
+            GenericRecord out = avroDeserialize(stripWirePrefix(result), PERSON_ORIG);
+            assertThat(out.get("name").toString()).isEqualTo("John");
+            GenericRecord outPersonal = (GenericRecord) out.get("personal");
+            assertThat(outPersonal.get("age")).isEqualTo(42);
+            assertThat(outPersonal.get("lastname").toString()).isEqualTo("Doe");
         }
     }
 

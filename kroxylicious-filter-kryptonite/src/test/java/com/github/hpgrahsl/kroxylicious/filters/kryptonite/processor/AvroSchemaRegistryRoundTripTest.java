@@ -355,6 +355,42 @@ class AvroSchemaRegistryRoundTripTest {
         }
 
         @Test
+        @DisplayName("record field: each field value encrypted individually and all restored; container preserved")
+        void recordValuesRoundTrip() throws Exception {
+            GenericRecord personal = new GenericData.Record(PERSONAL_ORIG);
+            personal.put("age", 42);
+            personal.put("lastname", new Utf8("Doe"));
+            GenericRecord person = new GenericData.Record(PERSON_ORIG);
+            person.put("name", new Utf8("John"));
+            person.put("personal", personal);
+
+            byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroSerialize(person, PERSON_ORIG));
+
+            // ELEMENT mode on 'personal': each field becomes string → encrypted schema uses PERSONAL_ENC
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
+
+            FieldConfig fc = FieldConfig.builder().name("personal").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, TOPIC, fields);
+            GenericRecord encPerson = deserializeResult(encrypted, PERSON_ENC);
+            GenericRecord encPersonal = (GenericRecord) encPerson.get("personal");
+            assertThat(encPersonal.get("age")).isInstanceOf(CharSequence.class);
+            assertIsValidBase64(encPersonal.get("age").toString());
+            assertThat(encPersonal.get("lastname")).isInstanceOf(CharSequence.class);
+            assertIsValidBase64(encPersonal.get("lastname").toString());
+            assertThat(encPerson.get("name").toString()).isEqualTo("John"); // unchanged
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            GenericRecord outPerson = deserializeResult(decrypted, PERSON_ORIG);
+            GenericRecord outPersonal = (GenericRecord) outPerson.get("personal");
+            assertThat((int) outPersonal.get("age")).isEqualTo(42);
+            assertThat(outPersonal.get("lastname").toString()).isEqualTo("Doe");
+            assertThat(outPerson.get("name").toString()).isEqualTo("John");
+        }
+
+        @Test
         @DisplayName("map values: each value encrypted individually and all restored; keys preserved")
         void mapValuesRoundTrip() throws Exception {
             GenericRecord record = new GenericData.Record(MAP_ORIG);
