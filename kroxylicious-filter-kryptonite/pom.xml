@@ -31,6 +31,9 @@
         <maven.compiler.testRelease>${java.version}</maven.compiler.testRelease>
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <maven.failsafe.version>3.5.4</maven.failsafe.version>
+        <testcontainers.version>1.21.0</testcontainers.version>
+        <it.kafka.image>confluentinc/cp-kafka:${confluent.version}</it.kafka.image>
+        <it.schema.registry.image>confluentinc/cp-schema-registry:${confluent.version}</it.schema.registry.image>
         <maven.shade.version>3.6.0</maven.shade.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -221,6 +224,24 @@
             <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -252,6 +273,7 @@
                 <version>${maven.failsafe.version}</version>
                 <configuration>
                     <skipTests>${skipITs}</skipTests>
+                    <argLine>${jdk.17.plus.jvm.options}</argLine>
                     <environmentVariables>
                         <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
                     </environmentVariables>
