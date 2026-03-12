@@ -11,7 +11,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
-
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -33,9 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.awaitility.Awaitility.await;
 
 /**
  * End-to-end roundtrip tests for the Kroxylicious Kryptonite filter (AVRO format).
@@ -61,7 +63,11 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  * <p>Activate with: {@code -De2e.tests=true}
  */
 @Testcontainers
-@EnabledIfSystemProperty(named = "e2e.tests", matches = "true", disabledReason = "End-to-end tests are disabled by default; enable with -De2e.tests=true")
+@EnabledIfSystemProperty(
+    named = "e2e.tests",
+    matches = "true",
+    disabledReason = "End-to-end tests are disabled by default; enable with -De2e.tests=true"
+)
 @SuppressWarnings("resource")
 class AvroProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
 
@@ -241,14 +247,16 @@ class AvroProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
             TopicPartition tp = new TopicPartition(topic, 0);
             consumer.assign(List.of(tp));
             consumer.seekToBeginning(List.of(tp));
-            long deadline = System.currentTimeMillis() + 30_000;
-            while (System.currentTimeMillis() < deadline) {
-                ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofSeconds(1));
+            AtomicReference<ConsumerRecord<String, GenericRecord>> resultRecord = new AtomicReference<>();
+            await().atMost(15, TimeUnit.SECONDS).until(() -> {
+                ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofMillis(500));
                 if (!records.isEmpty()) {
-                    return records.iterator().next().value();
+                    resultRecord.set(records.iterator().next());
+                    return true;
                 }
-            }
-            throw new AssertionError("No record received from topic " + topic + " within 30s");
+                return false;
+            });
+            return resultRecord.get().value();
         }
     }
 

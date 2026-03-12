@@ -6,9 +6,6 @@ import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Ports;
 
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
-import io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer;
-
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -38,15 +35,21 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.awaitility.Awaitility.await;
 
 /**
- * End-to-end roundtrip tests for the Kroxylicious Kryptonite filter (JSON_SR format).
+ * End-to-end roundtrip tests for the Kroxylicious Kryptonite filter (JSON
+ * format).
  *
- * <p>Container topology (managed by {@link AbstractKroxyliciousBaseIT}):
- * Kafka + Schema Registry + Kroxylicious proxy — all in Docker via Testcontainers.
+ * <p>
+ * Container topology (managed by {@link AbstractKroxyliciousBaseIT}):
+ * Kafka + Kroxylicious proxy — all in Docker via Testcontainers.
+ * No Schema Registry is required; records are plain JSON strings.
  *
- * <p>Uses Confluent {@link KafkaJsonSchemaSerializer}/{@link KafkaJsonSchemaDeserializer} so
- * produce/consume works exactly as in production code.
+ * <p>
+ * Uses Kafka's built-in {@code StringSerializer}/{@code StringDeserializer} —
+ * the JSON payload is carried as a plain string value.
  *
- * <p>Test payload schema ({@code $schema: draft-07}):
+ * <p>
+ * Test payload schema:
+ * 
  * <pre>
  * {
  *   "firstname": string   — OBJECT mode encryption (string)
@@ -58,7 +61,8 @@ import static org.awaitility.Awaitility.await;
  * }
  * </pre>
  *
- * <p>Activate with: {@code -De2e.tests=true}
+ * <p>
+ * Activate with: {@code -De2e.tests=true}
  */
 @Testcontainers
 @EnabledIfSystemProperty(
@@ -67,7 +71,7 @@ import static org.awaitility.Awaitility.await;
     disabledReason = "End-to-end tests are disabled by default; enable with -De2e.tests=true"
 )
 @SuppressWarnings("resource")
-class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
+class JsonProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -87,13 +91,13 @@ class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
             DockerImageName.parse(KROXYLICIOUS_IMAGE))
             .withNetwork(NETWORK)
             .withNetworkAliases("kroxylicious")
-            .dependsOn(KAFKA, SCHEMA_REGISTRY)
+            .dependsOn(KAFKA)
             .withCopyFileToContainer(
                     MountableFile.forHostPath(System.getProperty("filter.jar.path",
                             "target/kroxylicious-filter-kryptonite-0.1.0-SNAPSHOT.jar")),
                     "/opt/kroxylicious/plugins/kroxylicious-filter-kryptonite.jar")
             .withCopyFileToContainer(
-                    MountableFile.forClasspathResource("e2e-proxy-config-jsonsr.yaml"),
+                    MountableFile.forClasspathResource("e2e-proxy-config-json.yaml"),
                     "/opt/kroxylicious/config/e2e-config.yaml")
             .withEnv("KROXYLICIOUS_CLASSPATH", "/opt/kroxylicious/plugins/*")
             .withEnv("JAVA_OPTIONS",
@@ -110,14 +114,13 @@ class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
                         Ports.Binding.bindPort(PROXY_BROKER_PORT + 1));
                 cmd.withHostConfig(hc.withPortBindings(portBindings));
             })
-            // .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("e2e.kroxylicious")))
             .withCommand("--config", "/opt/kroxylicious/config/e2e-config.yaml")
             .waitingFor(Wait.forLogMessage(".*Kroxylicious is started.*\\n", 1)
                     .withStartupTimeout(Duration.ofSeconds(30)));
 
     @Test
     void objectModeRoundTrip() throws Exception {
-        String topic = "e2e-jsonsr-" + UUID.randomUUID();
+        String topic = "e2e-json-" + UUID.randomUUID();
         createTopic(topic);
 
         JsonNode original = MAPPER.readTree(PAYLOAD);
@@ -133,7 +136,7 @@ class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
 
     @Test
     void elementModeRoundTrip() throws Exception {
-        String topic = "e2e-jsonsr-" + UUID.randomUUID();
+        String topic = "e2e-json-" + UUID.randomUUID();
         createTopic(topic);
 
         produceViaProxy(topic, MAPPER.readTree(PAYLOAD));
@@ -150,13 +153,12 @@ class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
 
     @Test
     void encryptedAtRest() throws Exception {
-        String topic = "e2e-jsonsr-" + UUID.randomUUID();
+        String topic = "e2e-json-" + UUID.randomUUID();
         createTopic(topic);
 
         produceViaProxy(topic, MAPPER.readTree(PAYLOAD));
 
-        // Consume directly from Kafka bypassing the proxy; KafkaJsonSchemaDeserializer
-        // resolves the encrypted schema automatically via the schema ID in the wire bytes
+        // Consume directly from Kafka bypassing the proxy
         JsonNode atRest = consumeDirect(topic);
 
         // OBJECT-mode fields must be encrypted strings
@@ -189,12 +191,12 @@ class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
     // -------------------------------------------------------------------------
 
     private static void produceViaProxy(String topic, JsonNode payload) throws Exception {
-        try (KafkaProducer<String, JsonNode> producer = new KafkaProducer<>(Map.of(
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
                 "bootstrap.servers", kroxyliciousBootstrap(),
                 "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                "value.serializer", KafkaJsonSchemaSerializer.class.getName(),
-                "schema.registry.url", schemaRegistryURL()))) {
-            producer.send(new ProducerRecord<>(topic, payload)).get(30, TimeUnit.SECONDS);
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer"))) {
+            producer.send(new ProducerRecord<>(topic, MAPPER.writeValueAsString(payload)))
+                    .get(30, TimeUnit.SECONDS);
         }
     }
 
@@ -207,27 +209,25 @@ class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
     }
 
     private static JsonNode consumeFrom(String topic, String bootstrap) throws Exception {
-        try (KafkaConsumer<String, JsonNode> consumer = new KafkaConsumer<>(Map.of(
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(Map.of(
                 "bootstrap.servers", bootstrap,
                 "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
-                "value.deserializer", KafkaJsonSchemaDeserializer.class.getName(),
-                "schema.registry.url", schemaRegistryURL(),
-                "json.value.type", JsonNode.class.getName(),
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
                 "auto.offset.reset", "earliest",
                 "group.id", UUID.randomUUID().toString()))) {
             TopicPartition tp = new TopicPartition(topic, 0);
             consumer.assign(List.of(tp));
             consumer.seekToBeginning(List.of(tp));
-            AtomicReference<ConsumerRecord<String, JsonNode>> resultRecord = new AtomicReference<>();
+            AtomicReference<ConsumerRecord<String, String>> resultRecord = new AtomicReference<>();
             await().atMost(15, TimeUnit.SECONDS).until(() -> {
-                ConsumerRecords<String, JsonNode> records = consumer.poll(Duration.ofMillis(500));
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
                 if (!records.isEmpty()) {
                     resultRecord.set(records.iterator().next());
                     return true;
                 }
                 return false;
             });
-            return resultRecord.get().value();
+            return MAPPER.readTree(resultRecord.get().value());
         }
     }
 
