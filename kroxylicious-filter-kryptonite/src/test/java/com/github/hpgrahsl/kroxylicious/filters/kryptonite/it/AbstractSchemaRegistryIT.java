@@ -60,7 +60,7 @@ abstract class AbstractSchemaRegistryIT {
                     .withEnv("CLUSTER_ID", "MkU3OEVBNTcwNTJENDM2Qk")
                     .withExposedPorts(9092)
                     .waitingFor(Wait.forListeningPort()
-                            .withStartupTimeout(Duration.ofSeconds(10)));
+                            .withStartupTimeout(Duration.ofSeconds(30)));
 
     @SuppressWarnings("resource")
     protected static final GenericContainer<?> SCHEMA_REGISTRY =
@@ -73,11 +73,15 @@ abstract class AbstractSchemaRegistryIT {
                     .withExposedPorts(8081)
                     .waitingFor(Wait.forHttp("/subjects")
                             .forStatusCode(200)
-                            .withStartupTimeout(Duration.ofSeconds(10)));
+                            .withStartupTimeout(Duration.ofSeconds(30)));
 
     static {
         KAFKA.start();
         SCHEMA_REGISTRY.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            SCHEMA_REGISTRY.stop();
+            KAFKA.stop();
+        }, "it-container-shutdown"));
     }
 
     protected static String schemaRegistryUrl() {

@@ -82,9 +82,9 @@ class FieldConfigTest {
         }
 
         @Test
-        @DisplayName("DEFAULT_MODE constant is ELEMENT")
-        void defaultModeIsElement() {
-            assertThat(FieldConfig.DEFAULT_MODE).isEqualTo(FieldConfig.FieldMode.ELEMENT);
+        @DisplayName("DEFAULT_MODE constant is OBJECT")
+        void defaultModeIsObject() {
+            assertThat(FieldConfig.DEFAULT_MODE).isEqualTo(FieldConfig.FieldMode.OBJECT);
         }
 
         @Test

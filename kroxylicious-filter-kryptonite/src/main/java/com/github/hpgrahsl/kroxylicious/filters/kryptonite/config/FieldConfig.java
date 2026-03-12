@@ -1,6 +1,5 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.config;
 
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 
 import java.util.Map;
@@ -14,7 +13,8 @@ public class FieldConfig {
         OBJECT
     }
 
-    public static final FieldMode DEFAULT_MODE = FieldMode.valueOf(KryptoniteSettings.FIELD_MODE_DEFAULT);
+    //public static final FieldMode DEFAULT_MODE = FieldMode.valueOf(KryptoniteSettings.FIELD_MODE_DEFAULT);
+    public static final FieldMode DEFAULT_MODE = FieldMode.OBJECT;
 
     private String name;
     private String algorithm;
