@@ -206,6 +206,50 @@ See `sample-proxy-config-json.yaml`, `sample-proxy-config-jsonschema.yaml`, and 
 
 The module produces a fat JAR that can be dropped into any Kroxylicious deployment as a custom filter plugin.
 
+## Testing
+
+### Unit and integration tests
+
+Run the standard Maven test lifecycle — no extra flags needed:
+
+```bash
+./mvnw test -pl kroxylicious-filter-kryptonite
+```
+
+Integration tests (Surefire, class name suffix `*IT`) spin up Kafka and Schema Registry containers via Testcontainers and cover the full encrypt/decrypt round-trip at the processor level for all three record formats.
+
+### End-to-end tests
+
+The e2e tests (`*ProxyRoundTripIT` classes under `e2e/`) launch a fully containerized topology — Kafka, optionally a Confluent Schema Registry, and a real Kroxylicious proxy loaded with the filter fat JAR — and exercise the proxy from a Kafka client's perspective.
+
+They are **disabled by default** and require the fat JAR to be built first:
+
+```bash
+# 1. build the fat JAR
+./mvnw package -pl kroxylicious-filter-kryptonite -DskipTests
+
+# 2. run all ITs including e2e
+./mvnw verify -pl kroxylicious-filter-kryptonite -De2e.tests=true
+```
+
+Three test classes cover the supported record formats:
+
+| Class | Format | Schema Registry |
+|---|---|---|
+| `JsonProxyRoundTripIT` | `JSON` | no |
+| `JsonSrProxyRoundTripIT` | `JSON_SR` | yes |
+| `AvroProxyRoundTripIT` | `AVRO` | yes |
+
+Each class runs three scenarios: object-mode round-trip, element-mode round-trip, and encrypted-at-rest verification (direct Kafka read bypassing the proxy).
+
+Container images can be overridden via system properties:
+
+| Property | Default |
+|---|---|
+| `e2e.kafka.image` | `confluentinc/cp-kafka:7.9.0` |
+| `e2e.schema.registry.image` | `confluentinc/cp-schema-registry:7.9.0` |
+| `e2e.kroxylicious.image` | `quay.io/kroxylicious/kroxylicious:0.19.0` |
+
 ## Known Limitations
 
 ### FPE: String/text fields only
