@@ -19,6 +19,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -39,19 +40,32 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 /**
  * End-to-end roundtrip tests for the Kroxylicious Kryptonite filter (AVRO format).
  *
- * <p>Mirrors {@link JsonSrProxyRoundTripIT} — same field names, same payload values,
- * same three test cases — but uses Avro records and the Avro proxy config.
+ * <p>Container topology (managed by {@link AbstractKroxyliciousBaseIT}):
+ * Kafka + Schema Registry + Kroxylicious proxy — all in Docker via Testcontainers.
  *
  * <p>Uses Confluent {@link KafkaAvroSerializer}/{@link KafkaAvroDeserializer} so
  * produce/consume works exactly as in production code.
  *
+ * <p>Test payload Avro record schema ({@code Person}):
+ * <pre>
+ * {
+ *   "firstname": string   — OBJECT mode encryption (string)
+ *   "lastname":  string   — OBJECT mode encryption (string)
+ *   "age":       int      — OBJECT mode encryption (non-string primitive)
+ *   "address":   record   — OBJECT mode encryption (entire nested record as one blob)
+ *   "tags":      string[] — ELEMENT mode encryption (each array element individually)
+ *   "scores":    {k:int}  — ELEMENT mode encryption (each map value individually)
+ * }
+ * </pre>
+ *
  * <p>Activate with: {@code -De2e.tests=true}
  */
 @Testcontainers
+@EnabledIfSystemProperty(named = "e2e.tests", matches = "true", disabledReason = "End-to-end tests are disabled by default; enable with -De2e.tests=true")
 @SuppressWarnings("resource")
 class AvroProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
 
-    private static final String PERSON_SCHEMA_JSON = """
+    private static final String PERSON_SCHEMA = """
             {
               "type": "record",
               "name": "Person",
@@ -74,7 +88,7 @@ class AvroProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
             }
             """;
 
-    private static final Schema PERSON_SCHEMA = new Schema.Parser().parse(PERSON_SCHEMA_JSON);
+    private static final Schema PERSON_SCHEMA_AVRO = new Schema.Parser().parse(PERSON_SCHEMA);
 
     @Container
     protected static final GenericContainer<?> KROXYLICIOUS = new GenericContainer<>(
@@ -109,12 +123,12 @@ class AvroProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
                     .withStartupTimeout(Duration.ofSeconds(30)));
 
     private static GenericRecord buildPayload() {
-        Schema addressSchema = PERSON_SCHEMA.getField("address").schema();
+        Schema addressSchema = PERSON_SCHEMA_AVRO.getField("address").schema();
         GenericRecord address = new GenericData.Record(addressSchema);
         address.put("street", "123 Main St");
         address.put("city", "Springfield");
 
-        GenericRecord person = new GenericData.Record(PERSON_SCHEMA);
+        GenericRecord person = new GenericData.Record(PERSON_SCHEMA_AVRO);
         person.put("firstname", "Alice");
         person.put("lastname", "Smith");
         person.put("age", 30);

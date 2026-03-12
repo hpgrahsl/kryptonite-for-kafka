@@ -6,18 +6,11 @@ import com.github.dockerjava.api.model.Ports;
 
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
-import org.testcontainers.utility.MountableFile;
-
-import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -156,13 +149,6 @@ abstract class AbstractKroxyliciousBaseIT {
                             .forStatusCode(200)
                             .withStartupTimeout(Duration.ofSeconds(30)));
 
-    // @BeforeAll
-    // static void checkEnabledE2E() {
-    //     Assumptions.assumeTrue(
-    //             Boolean.parseBoolean(System.getProperty("e2e.tests", "false")),
-    //             "e2e tests skipped — enable with -De2e.tests=true");
-    // }
-
     /**
      * Bootstrap address for Kafka clients routed through the Kroxylicious proxy.
      */
@@ -193,20 +179,20 @@ abstract class AbstractKroxyliciousBaseIT {
         }
     }
 
-    /** Confluent SR wire format: magic byte (0x00) + 4-byte big-endian schema ID + payload. */
-    protected static byte[] toWireBytes(int schemaId, byte[] payload) {
-        ByteBuffer buf = ByteBuffer.allocate(5 + payload.length);
-        buf.put((byte) 0x00);
-        buf.putInt(schemaId);
-        buf.put(payload);
-        return buf.array();
-    }
+    // /** Confluent SR wire format: magic byte (0x00) + 4-byte big-endian schema ID + payload. */
+    // protected static byte[] toWireBytes(int schemaId, byte[] payload) {
+    //     ByteBuffer buf = ByteBuffer.allocate(5 + payload.length);
+    //     buf.put((byte) 0x00);
+    //     buf.putInt(schemaId);
+    //     buf.put(payload);
+    //     return buf.array();
+    // }
 
-    /** Strips the 5-byte Confluent SR wire prefix and returns the raw Avro payload. */
-    protected static byte[] stripWirePrefix(byte[] wireBytes) {
-        byte[] payload = new byte[wireBytes.length - 5];
-        System.arraycopy(wireBytes, 5, payload, 0, payload.length);
-        return payload;
-    }
+    // /** Strips the 5-byte Confluent SR wire prefix and returns the raw Avro payload. */
+    // protected static byte[] stripWirePrefix(byte[] wireBytes) {
+    //     byte[] payload = new byte[wireBytes.length - 5];
+    //     System.arraycopy(wireBytes, 5, payload, 0, payload.length);
+    //     return payload;
+    // }
 
 }

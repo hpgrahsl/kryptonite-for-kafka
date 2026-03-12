@@ -16,6 +16,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -57,6 +58,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  * <p>Activate with: {@code -De2e.tests=true}
  */
 @Testcontainers
+@EnabledIfSystemProperty(named = "e2e.tests", matches = "true", disabledReason = "End-to-end tests are disabled by default; enable with -De2e.tests=true")
 @SuppressWarnings("resource")
 class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
 
