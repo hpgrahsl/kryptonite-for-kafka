@@ -1,5 +1,5 @@
 ---
-# Kroxylicious proxy configuration for e2e integration tests (JSON_SR format)
+# Kroxylicious proxy configuration for e2e integration tests (AVRO format)
 #
 # All six fields in the topic_field_configs cover different type/mode combinations:
 #   firstname, lastname  — string,  OBJECT mode
@@ -12,7 +12,7 @@
 #   - Kafka reachable at kafka:9092 (container network alias)
 #   - Schema Registry reachable at schema-registry:8081 (container network alias)
 #   - Proxy gateway binds to localhost:9192 (bootstrap); broker node 1 → localhost:9193
-#     Both ports are mapped to fixed host ports in AbstractKroxyliciousE2EIT.
+#     Both ports are mapped to fixed host ports in AbstractKroxyliciousBaseIT.
 
 management:
   endpoints:
@@ -83,10 +83,10 @@ filterDefinitions:
                 keyId: 1000000004
                 outputPrefixType: TINK
       schema_registry_url: http://schema-registry:8081
-      record_format: JSON_SR
+      record_format: AVRO
       schema_mode: DYNAMIC
       topic_field_configs:
-        - topic_pattern: 'e2e-jsonsr-*'
+        - topic_pattern: 'e2e-avro-*'
           field_configs:
             - name: firstname
             - name: lastname
@@ -148,10 +148,10 @@ filterDefinitions:
                 keyId: 1000000004
                 outputPrefixType: TINK
       schema_registry_url: http://schema-registry:8081
-      record_format: JSON_SR
+      record_format: AVRO
       schema_mode: DYNAMIC
       topic_field_configs:
-        - topic_pattern: 'e2e-jsonsr-*'
+        - topic_pattern: 'e2e-avro-*'
           field_configs:
             - name: firstname
             - name: lastname

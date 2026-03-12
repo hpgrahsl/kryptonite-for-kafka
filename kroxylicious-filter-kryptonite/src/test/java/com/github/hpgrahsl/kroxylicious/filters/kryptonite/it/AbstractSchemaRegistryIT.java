@@ -78,10 +78,6 @@ abstract class AbstractSchemaRegistryIT {
     static {
         KAFKA.start();
         SCHEMA_REGISTRY.start();
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            SCHEMA_REGISTRY.stop();
-            KAFKA.stop();
-        }, "it-container-shutdown"));
     }
 
     protected static String schemaRegistryUrl() {
