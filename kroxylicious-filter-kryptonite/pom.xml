@@ -32,8 +32,6 @@
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <maven.failsafe.version>3.5.4</maven.failsafe.version>
         <testcontainers.version>1.21.0</testcontainers.version>
-        <it.kafka.image>confluentinc/cp-kafka:${confluent.version}</it.kafka.image>
-        <it.schema.registry.image>confluentinc/cp-schema-registry:${confluent.version}</it.schema.registry.image>
         <maven.shade.version>3.6.0</maven.shade.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -116,6 +114,12 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-avro-serializer</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
+        <!-- Confluent JSON Schema SerDe -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-json-schema-serializer</artifactId>
             <version>${confluent.version}</version>
         </dependency>
 
@@ -281,6 +285,8 @@
                         <container.logs.dir>${project.build.directory}/container-logs/</container.logs.dir>
                         <filter.jar.path>${project.build.directory}/${project.artifactId}-${project.version}.jar</filter.jar.path>
                         <e2e.kroxylicious.image>quay.io/kroxylicious/kroxylicious:${kroxylicious.version}</e2e.kroxylicious.image>
+                        <e2e.kafka.image>confluentinc/cp-kafka:${confluent.version}</e2e.kafka.image>
+                        <e2e.schema.registry.image>confluentinc/cp-schema-registry:${confluent.version}</e2e.schema.registry.image>
                     </systemPropertyVariables>
                     <runOrder>random</runOrder>
                 </configuration>

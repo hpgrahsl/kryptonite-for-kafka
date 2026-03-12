@@ -25,9 +25,9 @@ import java.time.Duration;
  *                                                [kafka:9092]
  * </pre>
  *
- * <p>The Kafka image can be overridden at runtime via the {@code it.kafka.image} system property,
- * e.g. {@code -Dit.kafka.image=confluentinc/cp-kafka:8.0.0}. Similarly for
- * {@code it.schema.registry.image}. Kafka is configured for KRaft single-node mode using
+ * <p>The Kafka image can be overridden at runtime via the {@code e2e.kafka.image} system property,
+ * e.g. {@code -De2e.kafka.image=confluentinc/cp-kafka:8.0.0}. Similarly for
+ * {@code e2e.schema.registry.image}. Kafka is configured for KRaft single-node mode using
  * standard {@code KAFKA_*} environment variables understood by the Confluent cp-kafka image;
  * substitute the appropriate variables when using a different image.
  */
@@ -36,9 +36,9 @@ abstract class AbstractSchemaRegistryIT {
     private static final Network NETWORK = Network.newNetwork();
 
     public static final String KAFKA_IMAGE =
-            System.getProperty("it.kafka.image", "confluentinc/cp-kafka:7.9.0");
+            System.getProperty("e2e.kafka.image", "confluentinc/cp-kafka:7.9.0");
     public static final String SCHEMA_REGISTRY_IMAGE =
-            System.getProperty("it.schema.registry.image", "confluentinc/cp-schema-registry:7.9.0");
+            System.getProperty("e2e.schema.registry.image", "confluentinc/cp-schema-registry:7.9.0");
 
     @SuppressWarnings("resource")
     protected static final GenericContainer<?> KAFKA =
