@@ -2,9 +2,12 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.it;
 
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
@@ -31,6 +34,8 @@ import java.time.Duration;
  * standard {@code KAFKA_*} environment variables understood by the Confluent cp-kafka image;
  * substitute the appropriate variables when using a different image.
  */
+@Testcontainers
+@SuppressWarnings("resource")
 abstract class AbstractSchemaRegistryIT {
 
     private static final Network NETWORK = Network.newNetwork();
@@ -40,7 +45,7 @@ abstract class AbstractSchemaRegistryIT {
     public static final String SCHEMA_REGISTRY_IMAGE =
             System.getProperty("e2e.schema.registry.image", "confluentinc/cp-schema-registry:7.9.0");
 
-    @SuppressWarnings("resource")
+    @Container
     protected static final GenericContainer<?> KAFKA =
             new GenericContainer<>(DockerImageName.parse(KAFKA_IMAGE))
                     .withNetwork(NETWORK)
@@ -62,7 +67,7 @@ abstract class AbstractSchemaRegistryIT {
                     .waitingFor(Wait.forListeningPort()
                             .withStartupTimeout(Duration.ofSeconds(30)));
 
-    @SuppressWarnings("resource")
+    @Container
     protected static final GenericContainer<?> SCHEMA_REGISTRY =
             new GenericContainer<>(DockerImageName.parse(SCHEMA_REGISTRY_IMAGE))
                     .withNetwork(NETWORK)
@@ -74,11 +79,6 @@ abstract class AbstractSchemaRegistryIT {
                     .waitingFor(Wait.forHttp("/subjects")
                             .forStatusCode(200)
                             .withStartupTimeout(Duration.ofSeconds(30)));
-
-    static {
-        KAFKA.start();
-        SCHEMA_REGISTRY.start();
-    }
 
     protected static String schemaRegistryUrl() {
         return "http://localhost:" + SCHEMA_REGISTRY.getMappedPort(8081);
