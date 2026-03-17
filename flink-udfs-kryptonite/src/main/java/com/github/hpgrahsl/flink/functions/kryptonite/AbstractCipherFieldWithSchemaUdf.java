@@ -24,12 +24,10 @@ import java.util.Map;
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 
-import com.esotericsoftware.kryo.io.Input;
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 
 public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFieldUdf {
 
@@ -56,8 +54,7 @@ public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFie
             return null;
         }
         try {
-            var encryptedField = KryoInstance.get().readObject(
-                    new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
+            var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
             var plaintext = kryptonite.decipherField(encryptedField);
             var restored = serdeProcessor.bytesToObject(plaintext);
             var converted = typeConverter.convertForFlink(restored, type);

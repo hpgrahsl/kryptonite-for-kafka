@@ -44,8 +44,10 @@ public class KryoSerdeProcessor implements SerdeProcessor {
 
   public KryoSerdeProcessor() {}
 
-  public byte[] objectToBytes(Object object,Class<?> clazz) {
-    return objectToBytes(object);
+  public byte[] objectToBytes(Object object, Class<?> clazz) {
+    var output = new Output(new ByteArrayOutputStream());
+    KryoInstance.get().writeObject(output, object);
+    return output.toBytes();
   }
 
   public byte[] objectToBytes(Object object) {
@@ -54,8 +56,9 @@ public class KryoSerdeProcessor implements SerdeProcessor {
     return output.toBytes();
   }
 
+  @SuppressWarnings("unchecked")
   public Object bytesToObject(byte[] bytes, Class<?> clazz) {
-    return bytesToObject(bytes);
+    return KryoInstance.get().readObject(new Input(bytes), (Class<Object>) clazz);
   }
 
   public Object bytesToObject(byte[] bytes) {
