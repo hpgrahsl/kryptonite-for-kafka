@@ -122,7 +122,8 @@ public class Kryptonite implements AutoCloseable {
 
   }
 
-  public static final String KRYPTONITE_VERSION = "k2";
+  public static final String KRYPTONITE_VERSION = "k1";
+  public static final String KRYPTONITE_VERSION_K2 = "k2";
 
   public static final Map<CipherSpec,String> CIPHERSPEC_ID_LUT = Map.of(
       CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"02",
