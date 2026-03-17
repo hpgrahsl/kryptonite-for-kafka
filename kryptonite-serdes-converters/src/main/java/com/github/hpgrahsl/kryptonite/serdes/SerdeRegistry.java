@@ -45,9 +45,9 @@ public final class SerdeRegistry {
     Map<String, SerdeProcessor> byName = new LinkedHashMap<>();
     ServiceLoader.load(SerdeProcessorProvider.class, SerdeProcessorProvider.class.getClassLoader())
         .forEach(p -> {
-          SerdeProcessor processor = p.create();
-          byCode.put(p.serdeCode(), processor);
-          byName.put(p.serdeName(), processor);
+          SerdeProcessor proc = p.create();
+          byCode.put(p.serdeCode(), proc);
+          byName.put(p.serdeName(), proc);
         });
     BY_CODE = Collections.unmodifiableMap(byCode);
     BY_NAME = Collections.unmodifiableMap(byName);
@@ -63,13 +63,13 @@ public final class SerdeRegistry {
    * @throws IllegalArgumentException if no provider is registered for {@code code}
    */
   public static SerdeProcessor getProcessorByCode(String code) {
-    SerdeProcessor processor = BY_CODE.get(code);
-    if (processor == null) {
+    SerdeProcessor proc = BY_CODE.get(code);
+    if (proc == null) {
       throw new IllegalArgumentException(
           "unknown serde code '" + code + "' — no SerdeProcessorProvider registered for it; "
               + "add the corresponding kryptonite serde module to the classpath");
     }
-    return processor;
+    return proc;
   }
 
   /**
@@ -80,13 +80,13 @@ public final class SerdeRegistry {
    * @throws IllegalArgumentException if no provider is registered for {@code name}
    */
   public static SerdeProcessor getProcessorByName(String name) {
-    SerdeProcessor processor = BY_NAME.get(name);
-    if (processor == null) {
+    SerdeProcessor proc = BY_NAME.get(name);
+    if (proc == null) {
       throw new IllegalArgumentException(
           "unknown serde name '" + name + "' — no SerdeProcessorProvider registered for it; "
               + "add the corresponding kryptonite serde module to the classpath");
     }
-    return processor;
+    return proc;
   }
 
 }

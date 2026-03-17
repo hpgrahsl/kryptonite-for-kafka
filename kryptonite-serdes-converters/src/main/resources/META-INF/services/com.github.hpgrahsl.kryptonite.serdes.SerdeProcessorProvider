@@ -1,2 +1,1 @@
-com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessorProvider
-com.github.hpgrahsl.kryptonite.serdes.avro.AvroSerdeProcessorProvider
+com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessorProvider
