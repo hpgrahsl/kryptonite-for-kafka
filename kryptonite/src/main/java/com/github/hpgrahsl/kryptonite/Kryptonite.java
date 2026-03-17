@@ -123,6 +123,7 @@ public class Kryptonite {
   }
 
   public static final String KRYPTONITE_VERSION = "k1";
+  public static final String KRYPTONITE_VERSION_K2 = "k2";
 
   public static final Map<CipherSpec,String> CIPHERSPEC_ID_LUT = Map.of(
       CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"02",
@@ -150,13 +151,20 @@ public class Kryptonite {
     }
   }
 
+  /**
+   * @deprecated use {@link #cipherFieldRaw(byte[], PayloadMetaData)} and assemble
+   *             {@link EncryptedField} from the returned ciphertext if needed.
+   *             This overloading will be removed once all callers migrated.
+   */
+  @Deprecated
   public EncryptedField cipherField(byte[] plaintext, PayloadMetaData metadata) {
+    return new EncryptedField(metadata, cipherFieldRaw(plaintext, metadata));
+  }
+
+  public byte[] cipherFieldRaw(byte[] plaintext, PayloadMetaData metadata) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(metadata.getAlgorithmId());
-      return new EncryptedField(
-          metadata,
-          cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKeysetHandle(metadata.getKeyId()), metadata.asBytes())
-      );
+      return cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKeysetHandle(metadata.getKeyId()), metadata.asBytes());
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(),e);
     }
@@ -174,13 +182,22 @@ public class Kryptonite {
     }
   }
 
+  /**
+   * @deprecated use {@link #decipherFieldRaw(byte[], PayloadMetaData)} instead.
+   *             This overload will be removed once all callers migrated.
+   */
+  @Deprecated
   public byte[] decipherField(EncryptedField encryptedField) {
+    return decipherFieldRaw(encryptedField.ciphertext(), encryptedField.getMetaData());
+  }
+
+  public byte[] decipherFieldRaw(byte[] ciphertext, PayloadMetaData metadata) {
     try {
-      var cipherSpec = ID_CIPHERSPEC_LUT.get(encryptedField.getMetaData().getAlgorithmId());
+      var cipherSpec = ID_CIPHERSPEC_LUT.get(metadata.getAlgorithmId());
       return cipherSpec.getAlgorithm().decipher(
-          encryptedField.ciphertext(),
-          keyVault.readKeysetHandle(encryptedField.getMetaData().getKeyId()),
-          encryptedField.associatedData()
+          ciphertext,
+          keyVault.readKeysetHandle(metadata.getKeyId()),
+          metadata.asBytes()
       );
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(),e);
