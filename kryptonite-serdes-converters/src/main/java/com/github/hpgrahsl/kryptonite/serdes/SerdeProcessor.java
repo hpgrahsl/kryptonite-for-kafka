@@ -16,6 +16,12 @@
 
 package com.github.hpgrahsl.kryptonite.serdes;
 
+/**
+ * Serialization/deserialization contract for field values and {@code EncryptedField} envelopes.
+ *
+ * <p><b>Thread-safety:</b> implementations must be thread-safe. {@link SerdeRegistry} caches a
+ * single shared instance per implementation for the lifetime of the JVM.
+ */
 public interface SerdeProcessor {
 
   byte[] objectToBytes(Object object,Class<?> clazz);
