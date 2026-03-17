@@ -16,14 +16,11 @@
 
 package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
 import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
 import org.apache.kafka.common.config.AbstractConfig;
@@ -32,7 +29,6 @@ import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -148,11 +144,9 @@ public abstract class RecordHandler implements FieldPathMatcher {
     var valueBytes = serdeProcessor.objectToBytes(object);
     var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
     LOGGER.debug("encrypted field: {}", encryptedField);
-    var output = new Output(new ByteArrayOutputStream());
-    KryoInstance.get().writeObject(output, encryptedField);
     // NOTE: at some point the base 64 decoding should be optional / configurable
     // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
-    var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
+    var encodedField = Base64.getEncoder().encodeToString(serdeProcessor.objectToBytes(encryptedField, EncryptedField.class));
     LOGGER.trace("returning encoded field: {}", encodedField);
     return encodedField;
   }
@@ -182,7 +176,7 @@ public abstract class RecordHandler implements FieldPathMatcher {
     // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
     var decodedField = Base64.getDecoder().decode((String) object);
     LOGGER.trace("decoded field: {}", decodedField);
-    var encryptedField = KryoInstance.get().readObject(new Input(decodedField), EncryptedField.class);
+    var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(decodedField, EncryptedField.class);
     var plaintext = kryptonite.decipherField(encryptedField);
     LOGGER.trace("decrypted field: {}", plaintext);
     var restoredField = serdeProcessor.bytesToObject(plaintext);

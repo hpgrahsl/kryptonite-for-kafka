@@ -30,10 +30,8 @@ import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.esotericsoftware.kryo.io.Input;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -101,7 +99,7 @@ public class CipherFieldDecryptUdf extends AbstractCipherFieldUdf implements Con
   private Object decryptData(String data) {
     try {
       LOGGER.debug("BASE64 encoded ciphertext: {}",data);
-      var encryptedField = KryoInstance.get().readObject(new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
+      var encryptedField = (EncryptedField) getSerdeProcessor().bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
       LOGGER.trace("encrypted data: {}",encryptedField);
       var plaintext = getKryptonite().decipherField(encryptedField);
       LOGGER.trace("plaintext byte sequence: {}",plaintext);

@@ -16,15 +16,12 @@
 
 package com.github.hpgrahsl.funqy.http.kryptonite;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import jakarta.enterprise.context.ApplicationScoped;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
@@ -34,7 +31,6 @@ import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
@@ -73,9 +69,7 @@ public class CipherFieldService {
     private String encryptNonFPE(Object data, FieldMetaData fieldMetaData) {
         var valueBytes = serdeProcessor.objectToBytes(data);
         var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-        var output = new Output(new ByteArrayOutputStream());
-        KryoInstance.get().writeObject(output, encryptedField);
-        var encodedField = Base64.getEncoder().encodeToString(output.toBytes());
+        var encodedField = Base64.getEncoder().encodeToString(serdeProcessor.objectToBytes(encryptedField, EncryptedField.class));
         return encodedField;
     }
 
@@ -105,8 +99,7 @@ public class CipherFieldService {
         if (data == null) {
             return null;
         }
-        var encryptedField = KryoInstance.get().readObject(
-                new Input(Base64.getDecoder().decode(data)), EncryptedField.class);
+        var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
         var plaintext = kryptonite.decipherField(encryptedField);
         var restored = serdeProcessor.bytesToObject(plaintext);
         var converted = typeConverter.convertForMap(restored);
