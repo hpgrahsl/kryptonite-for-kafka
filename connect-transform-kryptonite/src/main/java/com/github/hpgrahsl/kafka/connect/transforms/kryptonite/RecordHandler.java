@@ -159,9 +159,7 @@ public abstract class RecordHandler implements FieldPathMatcher {
 
   public Object encrypt(Object object, FieldMetaData fieldMetaData) {
     LOGGER.trace("object to be encrypted: {}", object);
-    var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
-        Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm())),
-        fieldMetaData.getKeyId());
+    var metadata = PayloadMetaData.from(fieldMetaData);
     var encodedField = FieldHandler.encryptField(object, metadata, kryptonite, config.getString(KryptoniteSettings.SERDE_TYPE));
     LOGGER.trace("returning encoded field: {}", encodedField);
     return encodedField;

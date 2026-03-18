@@ -122,8 +122,7 @@ public class Kryptonite {
 
   }
 
-  public static final String KRYPTONITE_VERSION = "k1"; //TODO: after migration this should become "k2"
-  public static final String KRYPTONITE_VERSION_K2 = "k2"; //TODO: after migration this should be removed
+  public static final String KRYPTONITE_VERSION = "k2";
 
   public static final Map<CipherSpec,String> CIPHERSPEC_ID_LUT = Map.of(
       CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"02",

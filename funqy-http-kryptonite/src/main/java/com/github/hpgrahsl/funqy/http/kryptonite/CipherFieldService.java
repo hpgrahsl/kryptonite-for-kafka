@@ -63,9 +63,7 @@ public class CipherFieldService {
     }
 
     private String encryptNonFPE(Object data, FieldMetaData fieldMetaData) {
-        var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
-                Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm())),
-                fieldMetaData.getKeyId());
+        var metadata = PayloadMetaData.from(fieldMetaData);
         return FieldHandler.encryptField(data, metadata, kryptonite, config.serdeType.name());
     }
 

@@ -63,7 +63,7 @@ import java.util.Base64;
  */
 public final class FieldHandler {
 
-  static final String WIRE_FORMAT_VERSION = Kryptonite.KRYPTONITE_VERSION_K2;
+  static final String WIRE_FORMAT_VERSION = Kryptonite.KRYPTONITE_VERSION;
   private static final byte[] MAGIC_BYTES_VERSION = WIRE_FORMAT_VERSION.getBytes(StandardCharsets.UTF_8);
   private static final KryoSerdeProcessor LEGACY_SERDE = new KryoSerdeProcessor();
 
