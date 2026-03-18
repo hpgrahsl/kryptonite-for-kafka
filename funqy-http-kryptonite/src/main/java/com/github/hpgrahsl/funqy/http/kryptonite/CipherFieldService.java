@@ -17,13 +17,11 @@
 package com.github.hpgrahsl.funqy.http.kryptonite;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import com.github.hpgrahsl.kryptonite.CipherMode;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
@@ -31,15 +29,13 @@ import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 @ApplicationScoped
 public class CipherFieldService {
 
     KryptoniteConfiguration config;
     Kryptonite kryptonite;
-    SerdeProcessor serdeProcessor = new KryoSerdeProcessor();
     UnifiedTypeConverter typeConverter = new UnifiedTypeConverter();
     
     public CipherFieldService(KryptoniteConfiguration config) {
@@ -67,10 +63,10 @@ public class CipherFieldService {
     }
 
     private String encryptNonFPE(Object data, FieldMetaData fieldMetaData) {
-        var valueBytes = serdeProcessor.objectToBytes(data);
-        var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-        var encodedField = Base64.getEncoder().encodeToString(serdeProcessor.objectToBytes(encryptedField, EncryptedField.class));
-        return encodedField;
+        var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
+                Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm())),
+                fieldMetaData.getKeyId());
+        return FieldHandler.encryptField(data, metadata, kryptonite, config.serdeType.name());
     }
 
     private String encryptFPE(String data, FieldMetaData fieldMetaData) {
@@ -99,11 +95,8 @@ public class CipherFieldService {
         if (data == null) {
             return null;
         }
-        var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
-        var plaintext = kryptonite.decipherField(encryptedField);
-        var restored = serdeProcessor.bytesToObject(plaintext);
-        var converted = typeConverter.convertForMap(restored);
-        return converted;
+        var restored = FieldHandler.decryptField(data, kryptonite);
+        return typeConverter.convertForMap(restored);
     }
 
     private Object decryptFPE(String data, FieldMetaData fieldMetaData) {
@@ -116,7 +109,7 @@ public class CipherFieldService {
     }
 
     public Object processDataWithFieldConfig(Object data, Map<String, FieldConfig> fieldConfig, CipherMode cipherMode) {
-        return new RecordHandler(config, serdeProcessor, kryptonite,cipherMode,fieldConfig)
+        return new RecordHandler(config, kryptonite, cipherMode, fieldConfig)
                     .matchFields(data,"");
     }
 

@@ -28,6 +28,7 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.SerdeType;
 
 @Singleton
 public class KryptoniteConfiguration {
@@ -85,10 +86,14 @@ public class KryptoniteConfiguration {
     @ConfigProperty(name="cipher_algorithm", defaultValue = "TINK/AES_GCM")
     public String cipherAlgorithm;
 
+    @ConfigProperty(name="serde_type")
+    public SerdeType serdeType;
+
     public static KryptoniteConfiguration fromSettings(String cipherDataKeys, String cipherDataKeyIdentifier,
             String cipherTextEncoding, String cipherFpeTweak, AlphabetTypeFPE cipherFpeAlphabetType, String cipherFpeAlphabetCustom, 
             KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig,
-            String kekUri, String dynamicKeyIdPrefix, String pathDelimiter, FieldMode fieldMode, String cipherAlgorithm) {
+            String kekUri, String dynamicKeyIdPrefix, String pathDelimiter, FieldMode fieldMode, String cipherAlgorithm,
+            SerdeType serdeType) {
         var kc = new KryptoniteConfiguration();
         kc.cipherDataKeys = cipherDataKeys;
         kc.cipherDataKeyIdentifier = cipherDataKeyIdentifier;
@@ -105,6 +110,7 @@ public class KryptoniteConfiguration {
         kc.pathDelimiter = pathDelimiter;
         kc.fieldMode = fieldMode;
         kc.cipherAlgorithm = cipherAlgorithm;
+        kc.serdeType = serdeType;
         return kc;
     }
 
@@ -124,7 +130,8 @@ public class KryptoniteConfiguration {
             Map.entry(KryptoniteSettings.KEK_URI,kekUri),
             Map.entry(KryptoniteSettings.PATH_DELIMITER,pathDelimiter),
             Map.entry(KryptoniteSettings.FIELD_MODE,fieldMode.name()),
-            Map.entry(KryptoniteSettings.CIPHER_ALGORITHM,cipherAlgorithm)
+            Map.entry(KryptoniteSettings.CIPHER_ALGORITHM,cipherAlgorithm),
+            Map.entry(KryptoniteSettings.SERDE_TYPE,serdeType.name())
         );
     }
 }
