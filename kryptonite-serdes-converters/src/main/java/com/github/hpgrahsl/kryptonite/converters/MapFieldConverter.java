@@ -53,11 +53,11 @@ public class MapFieldConverter {
      * Prepares a field value for encryption.
      *
      * <ul>
-     *   <li>AVRO serde: converts to {@link AvroPayload} via Jackson ({@code Object → JsonNode})
-     *       then Avro mapping. The {@code fieldPath} is used as the Avro record name (sanitized
+     *   <li>AVRO serde: converts to {@link AvroPayload}.
+     *       The {@code fieldPath} is used as the Avro record name (sanitized
      *       to a valid Avro identifier by {@link com.github.hpgrahsl.kryptonite.converters.avro.JsonSchemaDeriver}).
      *       If {@code fieldPath} is {@code null}, the JSON node type name is used as fallback
-     *       (e.g. {@code "STRING"}, {@code "NUMBER"}). Schema derivation is stateless — no
+     *       (e.g. {@code "STRING"}, {@code "NUMBER"}). Schema derivation is stateless - no
      *       caching occurs on the encrypt path.</li>
      *   <li>KRYO serde: returns the value as-is; Kryo handles all types natively.</li>
      * </ul>
@@ -65,7 +65,7 @@ public class MapFieldConverter {
      * @param value     the plaintext field value
      * @param fieldPath field path used as Avro record name (e.g. {@code "order.amount"}),
      *                  or {@code null} to use the value's JSON node type name as fallback
-     * @param serdeName the configured serde name (e.g. {@code "AVRO"}, {@code "K0"})
+     * @param serdeName the configured serde name (e.g. {@code "AVRO"})
      * @return value ready to pass to {@link com.github.hpgrahsl.kryptonite.serdes.FieldHandler#encryptField}
      */
     public Object toCanonical(Object value, String fieldPath, String serdeName) {
@@ -81,10 +81,10 @@ public class MapFieldConverter {
      * Converts serde output back to plain Java types after decryption.
      *
      * <ul>
-     *   <li>{@link AvroPayload}: Avro path — converts back to plain Java types via Jackson
+     *   <li>{@link AvroPayload}: Avro path converts back to plain Java types via Jackson
      *       ({@code LinkedHashMap}, {@code ArrayList}, {@code String}, {@code Long},
      *       {@code Double}, {@code Boolean}, {@code null}).</li>
-     *   <li>Anything else: legacy Kryo path — delegates to {@link UnifiedTypeConverter}.</li>
+     *   <li>Anything else: legacy Kryo path which delegates to {@link UnifiedTypeConverter}.</li>
      * </ul>
      *
      * @param serdeOutput the raw object returned by
