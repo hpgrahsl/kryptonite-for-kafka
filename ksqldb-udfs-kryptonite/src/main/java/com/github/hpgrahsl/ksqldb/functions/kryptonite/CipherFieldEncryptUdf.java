@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
-import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
@@ -183,9 +182,7 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
   private String encryptData(Object data, FieldMetaData fieldMetaData) {
     try {
       LOGGER.debug("encrypting: {} (having meta-data {})", data, fieldMetaData);
-      var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
-              Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(fieldMetaData.getAlgorithm())),
-              fieldMetaData.getKeyId());
+      var metadata = PayloadMetaData.from(fieldMetaData);
       var encodedField = FieldHandler.encryptField(data, metadata, getKryptonite(), getSerdeType());
       LOGGER.debug("BASE64 encoded ciphertext: {}", encodedField);
       return encodedField;

@@ -103,9 +103,7 @@ public class RecordHandler {
   }
 
   public Object encrypt(Object object, FieldMetaData fieldMetaData) {
-    var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
-        Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm())),
-        fieldMetaData.getKeyId());
+    var metadata = PayloadMetaData.from(fieldMetaData);
     return FieldHandler.encryptField(object, metadata, kryptonite, config.serdeType.name());
   }
 
