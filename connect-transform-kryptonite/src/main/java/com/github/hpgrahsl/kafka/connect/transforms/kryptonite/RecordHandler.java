@@ -21,7 +21,7 @@ import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -38,20 +38,18 @@ public abstract class RecordHandler implements FieldPathMatcher {
   private static final Logger LOGGER = LoggerFactory.getLogger(RecordHandler.class);
 
   private final AbstractConfig config;
-  private final SerdeProcessor serdeProcessor;
   private final Kryptonite kryptonite;
-  
+
   protected final String pathDelimiter;
   protected final CipherMode cipherMode;
   protected final Map<String, FieldConfig> fieldConfig;
   protected final Map<String, Schema> schemaCache;
 
   public RecordHandler(AbstractConfig config,
-      SerdeProcessor serdeProcessor, Kryptonite kryptonite,
+      Kryptonite kryptonite,
       CipherMode cipherMode,
       Map<String, FieldConfig> fieldConfig) {
     this.config = config;
-    this.serdeProcessor = serdeProcessor;
     this.kryptonite = kryptonite;
     this.schemaCache = new HashMap<>();
     this.pathDelimiter = config.getString(KryptoniteSettings.PATH_DELIMITER);
@@ -110,6 +108,26 @@ public abstract class RecordHandler implements FieldPathMatcher {
     return Optional.ofNullable(schemaCache.get(fieldPath));
   }
 
+  /**
+   * For a key-appended path (e.g. "mymap.k1"), checks if the parent path ("mymap")
+   * is configured in ELEMENT mode. Returns the parent path if so, empty otherwise.
+   * This handles ELEMENT mode map entries where both field config and schema cache
+   * are stored under the parent path, not the per-key path.
+   *
+   * @param fieldPath the key-appended field path
+   * @return Optional containing the parent path if it is an ELEMENT mode field, empty otherwise
+   */
+  protected Optional<String> resolveElementModeParentPath(String fieldPath) {
+    int lastDelim = fieldPath.lastIndexOf(pathDelimiter);
+    if (lastDelim < 0) return Optional.empty();
+    var parentPath = fieldPath.substring(0, lastDelim);
+    var parentFc = fieldConfig.get(parentPath);
+    if (parentFc == null) return Optional.empty();
+    var mode = parentFc.getFieldMode()
+        .orElse(FieldMode.valueOf(config.getString(KryptoniteSettings.FIELD_MODE)));
+    return mode == FieldMode.ELEMENT ? Optional.of(parentPath) : Optional.empty();
+  }
+
   public AbstractConfig getConfig() {
     return config;
   }
@@ -141,12 +159,10 @@ public abstract class RecordHandler implements FieldPathMatcher {
 
   public Object encrypt(Object object, FieldMetaData fieldMetaData) {
     LOGGER.trace("object to be encrypted: {}", object);
-    var valueBytes = serdeProcessor.objectToBytes(object);
-    var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-    LOGGER.debug("encrypted field: {}", encryptedField);
-    // NOTE: at some point the base 64 decoding should be optional / configurable
-    // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
-    var encodedField = Base64.getEncoder().encodeToString(serdeProcessor.objectToBytes(encryptedField, EncryptedField.class));
+    var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
+        Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm())),
+        fieldMetaData.getKeyId());
+    var encodedField = FieldHandler.encryptField(object, metadata, kryptonite, config.getString(KryptoniteSettings.SERDE_TYPE));
     LOGGER.trace("returning encoded field: {}", encodedField);
     return encodedField;
   }
@@ -172,14 +188,7 @@ public abstract class RecordHandler implements FieldPathMatcher {
       return null;
     }
     LOGGER.debug("object to be decrypted: {}", object);
-    // NOTE: at some point the base 64 decoding should be optional / configurable
-    // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
-    var decodedField = Base64.getDecoder().decode((String) object);
-    LOGGER.trace("decoded field: {}", decodedField);
-    var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(decodedField, EncryptedField.class);
-    var plaintext = kryptonite.decipherField(encryptedField);
-    LOGGER.trace("decrypted field: {}", plaintext);
-    var restoredField = serdeProcessor.bytesToObject(plaintext);
+    var restoredField = FieldHandler.decryptField((String) object, kryptonite);
     LOGGER.trace("restored field: {}", restoredField);
     return restoredField;
   }
@@ -225,7 +234,8 @@ public abstract class RecordHandler implements FieldPathMatcher {
   private FieldMetaData determineFieldMetaData(Object object, String fieldPath) {
     
     var fieldMetaData = Optional.ofNullable(fieldConfig.get(fieldPath))
-          .map(fc -> 
+          .or(() -> resolveElementModeParentPath(fieldPath).map(fieldConfig::get))
+          .map(fc ->
             FieldMetaData.builder()
               .algorithm(fc.getAlgorithm().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_ALGORITHM)))
               .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))

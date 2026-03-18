@@ -19,9 +19,10 @@ package com.github.hpgrahsl.kafka.connect.transforms.kryptonite;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.FieldMode;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -39,10 +40,10 @@ public class SchemaawareRecordHandler extends RecordHandler {
   protected UnifiedTypeConverter typeConverter;
 
   public SchemaawareRecordHandler(AbstractConfig config,
-                                  SerdeProcessor serdeProcessor, Kryptonite kryptonite,
+                                  Kryptonite kryptonite,
                                   CipherMode cipherMode,
                                   Map<String, FieldConfig> fieldConfig) {
-    super(config, serdeProcessor, kryptonite, cipherMode, fieldConfig);
+    super(config, kryptonite, cipherMode, fieldConfig);
     typeConverter = new UnifiedTypeConverter();
   }
 
@@ -93,14 +94,15 @@ public class SchemaawareRecordHandler extends RecordHandler {
   public Object decrypt(Object object, String fieldPath) {
     var decryptedField = super.decrypt(object, fieldPath);
     return getCachedSchema(fieldPath)
+      .or(() -> resolveElementModeParentPath(fieldPath).flatMap(this::getCachedSchema))
       .map(schema -> {
         var convertedField = typeConverter.convertForConnect(decryptedField, schema);
         LOGGER.trace("converted field with schema {}: {}", schema, convertedField);
         return convertedField;
       })
       .orElseGet(() -> {
-        LOGGER.trace("no schema cached for field '{}', returning as-is", fieldPath);
-        return decryptedField;
+        LOGGER.error("no schema found in schema cache for field '{}', the field misses a mandatory schema configuration", fieldPath);
+        throw new KryptoniteException("no schema found in schema cache for field '" + fieldPath + "')");
       });
   }
 

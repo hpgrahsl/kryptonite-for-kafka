@@ -21,7 +21,7 @@ import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
@@ -37,10 +37,10 @@ public class SchemalessRecordHandler extends RecordHandler {
   protected UnifiedTypeConverter typeConverter;
 
   public SchemalessRecordHandler(AbstractConfig config,
-                                 SerdeProcessor serdeProcessor, Kryptonite kryptonite,
+                                 Kryptonite kryptonite,
                                  CipherMode cipherMode,
                                  Map<String, FieldConfig> fieldConfig) {
-    super(config, serdeProcessor, kryptonite, cipherMode, fieldConfig);
+    super(config, kryptonite, cipherMode, fieldConfig);
     typeConverter = new UnifiedTypeConverter();
   }
 
