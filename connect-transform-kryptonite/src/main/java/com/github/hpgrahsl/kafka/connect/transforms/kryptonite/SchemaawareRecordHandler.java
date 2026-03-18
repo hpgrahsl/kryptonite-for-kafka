@@ -21,7 +21,7 @@ import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
-import com.github.hpgrahsl.kryptonite.converters.ConnectFieldConverter;
+import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -46,9 +46,8 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
                                   Kryptonite kryptonite,
                                   CipherMode cipherMode,
                                   Map<String, FieldConfig> fieldConfig) {
-    this.handler = new RecordHandler(config, kryptonite, cipherMode, fieldConfig);
-    this.fieldConverter = new ConnectFieldConverter();
-    this.schemaCache = initializeSchemaCache(fieldConfig, config);
+    super(config, kryptonite, cipherMode, fieldConfig);
+    typeConverter = new UnifiedTypeConverter();
   }
 
   @Override
@@ -95,89 +94,19 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
     return dataNew;
   }
 
-  private Object processField(Object object, String matchedPath, Schema connectSchema) {
-    try {
-      LOGGER.debug("{} field {}", handler.cipherMode, matchedPath);
-      var fieldMetaData = handler.determineFieldMetaData(object, matchedPath);
-      LOGGER.trace("field meta-data for path '{}' {}", matchedPath, fieldMetaData);
-      if (CipherMode.ENCRYPT == handler.cipherMode) {
-        if (handler.isCipherFPE(fieldMetaData)) {
-          return handler.encryptFPE(object, fieldMetaData);
-        }
-        var serdeName = handler.getConfig().getString(KryptoniteSettings.SERDE_TYPE);
-        var canonical = fieldConverter.toCanonical(object, connectSchema, matchedPath, serdeName);
-        return handler.encryptNonFPE(canonical, fieldMetaData);
-      } else {
-        if (handler.isCipherFPE(fieldMetaData)) {
-          return handler.decryptFPE(object, fieldMetaData);
-        }
-        var decrypted = handler.decryptNonFPE(object);
-        return getCachedSchema(matchedPath)
-            .or(() -> handler.resolveElementModeParentPath(matchedPath).flatMap(this::getCachedSchema))
-            .map(schema -> {
-              var convertedField = fieldConverter.fromCanonical(decrypted, schema);
-              LOGGER.trace("converted field with schema {}: {}", schema, convertedField);
-              return convertedField;
-            })
-            .orElseThrow(() -> {
-              LOGGER.error("no schema found in schema cache for field '{}', the field misses a mandatory schema configuration", matchedPath);
-              return new KryptoniteException("no schema found in schema cache for field '" + matchedPath + "')");
-            });
-      }
-    } catch (Exception e) {
-      throw new DataException("error: " + handler.cipherMode + " of field path '" + matchedPath + "' having data '" + object + "' failed unexpectedly", e);
-    }
-  }
-
-  private List<?> processListField(List<?> list, String matchedPath, Schema elementSchema) {
-    return list.stream().map(e -> {
-      if (e instanceof List) return processListField((List<?>) e, matchedPath, elementSchema);
-      if (e instanceof Map) return processMapField((Map<?, ?>) e, matchedPath, elementSchema);
-      return processField(e, matchedPath, elementSchema);
-    }).collect(Collectors.toList());
-  }
-
-  private Map<?, ?> processMapField(Map<?, ?> map, String matchedPath, Schema valueSchema) {
-    return map.entrySet().stream()
-        .map(e -> {
-          var pathUpdate = matchedPath + handler.pathDelimiter + e.getKey();
-          if (e.getValue() instanceof List)
-            return new AbstractMap.SimpleEntry<>(e.getKey(), processListField((List<?>) e.getValue(), pathUpdate, valueSchema));
-          if (e.getValue() instanceof Map)
-            return new AbstractMap.SimpleEntry<>(e.getKey(), processMapField((Map<?, ?>) e.getValue(), pathUpdate, valueSchema));
-          return new AbstractMap.SimpleEntry<>(e.getKey(), processField(e.getValue(), pathUpdate, valueSchema));
-        }).collect(LinkedHashMap::new, (lhm, e) -> lhm.put(e.getKey(), e.getValue()), HashMap::putAll);
-  }
-
-  private Optional<Schema> getCachedSchema(String fieldPath) {
-    return Optional.ofNullable(schemaCache.get(fieldPath));
-  }
-
-  private static Map<String, Schema> initializeSchemaCache(Map<String, FieldConfig> fieldConfig, AbstractConfig config) {
-    Map<String, Schema> cache = new HashMap<>();
-    for (Map.Entry<String, FieldConfig> entry : fieldConfig.entrySet()) {
-      String fieldPath = entry.getKey();
-      FieldConfig fc = entry.getValue();
-      fc.getSchema().ifPresent(schemaMap -> {
-        try {
-          Schema schema = SchemaParser.parseSchema(schemaMap);
-          var fieldMode = fc.getFieldMode()
-              .orElse(FieldMode.valueOf(config.getString(KryptoniteSettings.FIELD_MODE)));
-          if (fieldMode == FieldMode.ELEMENT) {
-            if (schema.type() == Schema.Type.ARRAY) {
-              schema = schema.valueSchema();
-              LOGGER.trace("caching element schema for ARRAY field '{}' in ELEMENT mode", fieldPath);
-            } else if (schema.type() == Schema.Type.MAP) {
-              schema = schema.valueSchema();
-              LOGGER.trace("caching value schema for MAP field '{}' in ELEMENT mode", fieldPath);
-            }
-          }
-          cache.put(fieldPath, schema);
-          LOGGER.trace("cached schema for field '{}': {}", fieldPath, schema);
-        } catch (DataException e) {
-          LOGGER.error("failed to parse schema for field '{}': {}", fieldPath, e.getMessage());
-          throw e;
-        }
+  @Override
+  public Object decrypt(Object object, String fieldPath) {
+    var decryptedField = super.decrypt(object, fieldPath);
+    return getCachedSchema(fieldPath)
+      .or(() -> resolveElementModeParentPath(fieldPath).flatMap(this::getCachedSchema))
+      .map(schema -> {
+        var convertedField = typeConverter.convertForConnect(decryptedField, schema);
+        LOGGER.trace("converted field with schema {}: {}", schema, convertedField);
+        return convertedField;
+      })
+      .orElseGet(() -> {
+        LOGGER.error("no schema found in schema cache for field '{}', the field misses a mandatory schema configuration", fieldPath);
+        throw new KryptoniteException("no schema found in schema cache for field '" + fieldPath + "')");
       });
     }
     LOGGER.info("initialized schema cache with {} entries", cache.size());
