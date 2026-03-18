@@ -165,6 +165,14 @@ class JsonSchemaDeriverTest {
         assertNotNull(second.getField("b"));
     }
 
+    @Test
+    void heterogeneousArrayOfArraysThrows() throws Exception {
+        // two distinct array types in one array would require a union of two ARRAY schemas,
+        // which the Avro spec forbids
+        var node = MAPPER.readTree("[[1, 2], [\"a\", \"b\"]]");
+        assertThrows(IllegalArgumentException.class, () -> deriver.derive(node, "f"));
+    }
+
     // --- sanitizeName ---
 
     @Test

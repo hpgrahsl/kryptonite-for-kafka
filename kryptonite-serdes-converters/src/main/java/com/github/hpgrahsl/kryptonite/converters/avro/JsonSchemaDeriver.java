@@ -33,6 +33,13 @@ import java.util.Set;
  * is stateless and has no cache. Caching on the decrypt path is handled separately by
  * {@link com.github.hpgrahsl.kryptonite.serdes.avro.AvroSerdeProcessor}.
  *
+ * <p><b>Known limitation — heterogeneous arrays of objects:</b> all object elements in an
+ * array share the same invented record name (parent path + {@code "_i"}). If two elements
+ * have different field sets they produce two RECORD schemas with the same full name, which
+ * Avro rejects in a union. Homogeneous object arrays and mixed-primitive arrays are fully
+ * supported. A two-pass index-based naming strategy would fix this but is deferred until
+ * a concrete use case demands it.
+ *
  * <p>Type mapping rules:
  * <ul>
  *   <li>null → {@code Schema.Type.NULL}</li>
@@ -41,7 +48,10 @@ import java.util.Set;
  *   <li>decimal number → {@code Schema.Type.DOUBLE}</li>
  *   <li>string → {@code Schema.Type.STRING}</li>
  *   <li>array → {@code Schema.Type.ARRAY}; homogeneous elements use a single item schema,
- *       heterogeneous or null-mixed elements produce a union item schema</li>
+ *       heterogeneous or null-mixed elements produce a union item schema; array element
+ *       name paths are formed by appending {@code "_i"} to the parent path (e.g.
+ *       {@code "order_tags_i"}) — kept short because the name is stored inline in the
+ *       serialized schema bytes for every encrypted field value</li>
  *   <li>object → {@code Schema.Type.RECORD}; field path is used as the record name
  *       (sanitized to a valid Avro identifier)</li>
  * </ul>
@@ -91,7 +101,7 @@ public class JsonSchemaDeriver {
         boolean hasNull = false;
         Set<Schema> distinctSchemas = new LinkedHashSet<>();
         for (var element : array) {
-            var elementSchema = deriveSchema(element, namePath + "_item");
+            var elementSchema = deriveSchema(element, namePath + "_i");
             if (elementSchema.getType() == Schema.Type.NULL) {
                 hasNull = true;
             } else {
@@ -108,6 +118,16 @@ public class JsonSchemaDeriver {
             itemsSchema = distinctSchemas.iterator().next();
         } else {
             // heterogeneous or mixed with nulls: union, null branch first
+            // Avro spec: a union may not contain more than one schema of the same type,
+            // except for named types (record, fixed, enum). Two array schemas are forbidden.
+            long arrayTypeCount = distinctSchemas.stream()
+                .filter(s -> s.getType() == Schema.Type.ARRAY)
+                .count();
+            if (arrayTypeCount > 1) {
+                throw new IllegalArgumentException(
+                    "Cannot derive Avro schema for array at '" + namePath + "': " +
+                    "elements contain more than one array type which is forbidden in an Avro union");
+            }
             List<Schema> unionTypes = new ArrayList<>();
             if (hasNull) {
                 unionTypes.add(Schema.create(Schema.Type.NULL));
