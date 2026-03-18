@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Serde layer for Avro generic values. Implements {@link SerdeProcessor} with serde code {@code "01"}.
@@ -48,6 +49,8 @@ import java.nio.charset.StandardCharsets;
  * are not reachable for this k2-only serde. They throw {@link UnsupportedOperationException}.
  */
 public class AvroSerdeProcessor implements SerdeProcessor {
+
+    private final ConcurrentHashMap<String, Schema> schemaCache = new ConcurrentHashMap<>();
 
     @Override
     public String serdeCode() {
@@ -116,6 +119,12 @@ public class AvroSerdeProcessor implements SerdeProcessor {
     /**
      * Deserializes framed wire bytes back to an {@link AvroPayload}.
      *
+     * <p>The parsed {@link Schema} is cached by schema JSON string so that
+     * {@code Schema.Parser.parse()} is only invoked once per distinct schema.
+     * Subsequent decryptions of fields with the same schema pay only a map
+     * lookup. The cache is unbounded but in practice holds only as many entries
+     * as there are distinct field schemas in the deployed topology.
+     *
      * @param bytes framed bytes produced by {@link #toBytes(AvroPayload)}
      * @return the decoded Avro value and its schema
      */
@@ -125,7 +134,8 @@ public class AvroSerdeProcessor implements SerdeProcessor {
         var schemaLen = buf.getInt();
         var schemaBytes = new byte[schemaLen];
         buf.get(schemaBytes);
-        var schema = new Schema.Parser().parse(new String(schemaBytes, StandardCharsets.UTF_8));
+        var schemaJson = new String(schemaBytes, StandardCharsets.UTF_8);
+        var schema = schemaCache.computeIfAbsent(schemaJson, new Schema.Parser()::parse);
 
         var remaining = new byte[buf.remaining()];
         buf.get(remaining);
