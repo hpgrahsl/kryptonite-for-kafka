@@ -20,6 +20,7 @@ import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMo
 import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
+import com.github.hpgrahsl.kryptonite.converters.FunqyFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 import java.nio.charset.StandardCharsets;
@@ -34,16 +35,19 @@ public class RecordHandler {
   protected final String pathDelimiter;
   protected final CipherMode cipherMode;
   protected final Map<String, FieldConfig> fieldConfig;
+  protected final FunqyFieldConverter fieldConverter;
 
   public RecordHandler(KryptoniteConfiguration config,
       Kryptonite kryptonite,
       CipherMode cipherMode,
-      Map<String, FieldConfig> fieldConfig) {
+      Map<String, FieldConfig> fieldConfig,
+      FunqyFieldConverter fieldConverter) {
     this.config = config;
     this.kryptonite = kryptonite;
     this.pathDelimiter = config.pathDelimiter;
     this.cipherMode = cipherMode;
     this.fieldConfig = fieldConfig;
+    this.fieldConverter = fieldConverter;
   }
 
   public KryptoniteConfiguration getConfig() {
@@ -87,10 +91,10 @@ public class RecordHandler {
         if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
           return encryptFPE(object, fieldMetaData);  
         } 
-        return encrypt(object, fieldMetaData);
+        return encrypt(object, fieldMetaData, matchedPath);
       } else {
         if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
-          return decryptFPE(object, fieldMetaData);  
+          return decryptFPE(object, fieldMetaData);
         }
         return decrypt(object);
       }
@@ -99,9 +103,9 @@ public class RecordHandler {
     }
   }
 
-  public Object encrypt(Object object, FieldMetaData fieldMetaData) {
+  public Object encrypt(Object object, FieldMetaData fieldMetaData, String fieldPath) {
     var metadata = PayloadMetaData.from(fieldMetaData);
-    return FieldHandler.encryptField(object, metadata, kryptonite, config.serdeType.name());
+    return FieldHandler.encryptField(fieldConverter.fromFunqy(object, fieldPath, config.serdeType.name()), metadata, kryptonite, config.serdeType.name());
   }
 
   public String encryptFPE(Object object, FieldMetaData fieldMetaData) {
@@ -115,7 +119,7 @@ public class RecordHandler {
   }
 
   public Object decrypt(Object object) {
-    return FieldHandler.decryptField((String) object, kryptonite);
+    return fieldConverter.toFunqy(FieldHandler.decryptField((String) object, kryptonite));
   }
 
   public String decryptFPE(Object object, FieldMetaData fieldMetaData) {
