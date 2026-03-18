@@ -25,10 +25,8 @@ import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
-import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
-import com.github.hpgrahsl.kryptonite.converters.FlinkFieldConverter;
+import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFieldUdf {
@@ -57,7 +55,7 @@ public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFie
         }
         try {
             var restored = FieldHandler.decryptField(data, kryptonite);
-            return fieldConverter.fromCanonical(restored, type);
+            return typeConverter.convertForFlink(restored, type);
         } catch (Exception exc) {
             throw new KryptoniteException("failed to decrypt data", exc);
         }

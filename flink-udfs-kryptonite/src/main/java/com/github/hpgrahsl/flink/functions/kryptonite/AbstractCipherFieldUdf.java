@@ -51,7 +51,9 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
 
     String encryptData(Object data, FieldMetaData fieldMetaData) {
         try {
-            var metadata = PayloadMetaData.from(fieldMetaData);
+            var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
+                    Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(fieldMetaData.getAlgorithm())),
+                    fieldMetaData.getKeyId());
             return FieldHandler.encryptField(data, metadata, kryptonite,
                     udfConfiguration.getOrDefault(KryptoniteSettings.SERDE_TYPE, KryptoniteSettings.SERDE_TYPE_DEFAULT));
         } catch (Exception exc) {
