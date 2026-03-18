@@ -17,7 +17,6 @@
 package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import java.util.AbstractMap;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,8 +29,8 @@ import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
@@ -98,13 +97,9 @@ public class CipherFieldDecryptUdf extends AbstractCipherFieldUdf implements Con
 
   private Object decryptData(String data) {
     try {
-      LOGGER.debug("BASE64 encoded ciphertext: {}",data);
-      var encryptedField = (EncryptedField) getSerdeProcessor().bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
-      LOGGER.trace("encrypted data: {}",encryptedField);
-      var plaintext = getKryptonite().decipherField(encryptedField);
-      LOGGER.trace("plaintext byte sequence: {}",plaintext);
-      var restored = getSerdeProcessor().bytesToObject(plaintext);
-      LOGGER.debug("restored data: {}",restored);
+      LOGGER.debug("BASE64 encoded ciphertext: {}", data);
+      var restored = FieldHandler.decryptField(data, getKryptonite());
+      LOGGER.debug("restored data: {}", restored);
       return restored;
     } catch (Exception exc) {
       throw new KryptoniteException("failed to decrypt data", exc);

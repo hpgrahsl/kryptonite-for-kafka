@@ -17,8 +17,6 @@
 package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,11 +32,12 @@ import org.apache.kafka.connect.data.Struct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
+import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
@@ -183,13 +182,12 @@ public class CipherFieldEncryptUdf extends AbstractCipherFieldUdf implements Con
 
   private String encryptData(Object data, FieldMetaData fieldMetaData) {
     try {
-      LOGGER.debug("encrypting: {} (having meta-data {})",data,fieldMetaData);
-      var valueBytes = getSerdeProcessor().objectToBytes(data);
-      LOGGER.trace("plaintext byte sequence: {}", Arrays.toString(valueBytes));
-      var encryptedField = getKryptonite().cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-      LOGGER.trace("encrypted data: {}", encryptedField);
-      var encodedField = Base64.getEncoder().encodeToString(getSerdeProcessor().objectToBytes(encryptedField, EncryptedField.class));
-      LOGGER.debug("BASE64 encoded ciphertext: {}",encodedField);
+      LOGGER.debug("encrypting: {} (having meta-data {})", data, fieldMetaData);
+      var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
+              Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(fieldMetaData.getAlgorithm())),
+              fieldMetaData.getKeyId());
+      var encodedField = FieldHandler.encryptField(data, metadata, getKryptonite(), getSerdeType());
+      LOGGER.debug("BASE64 encoded ciphertext: {}", encodedField);
       return encodedField;
     } catch (Exception exc) {
       throw new KryptoniteException("failed to encrypt data", exc);
