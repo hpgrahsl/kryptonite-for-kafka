@@ -22,57 +22,39 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.avro.Schema;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
- * Derives Avro {@link Schema} instances from {@link JsonNode} values according to the
- * JSON ↔ Avro conversion spec, with a per-instance field-path cache.
+ * Derives Avro {@link Schema} instances from {@link JsonNode} values.
  *
- * <p>This is the only custom logic required for JSON → Avro conversion. All actual
- * encoding/decoding delegates to standard Avro library facilities.
+ * <p>Schemas are always derived fresh from the node structure on every call — this class
+ * is stateless and has no cache. Caching on the decrypt path is handled separately by
+ * {@link com.github.hpgrahsl.kryptonite.serdes.avro.AvroSerdeProcessor}.
  *
- * <p><b>Cache behaviour:</b> schemas are cached by field path. A {@code "null"} schema
- * entry is treated as tentative and silently promoted on first non-null value. Any other
- * structural change triggers a fail-fast exception.
+ * <p>Type mapping rules:
+ * <ul>
+ *   <li>null → {@code Schema.Type.NULL}</li>
+ *   <li>boolean → {@code Schema.Type.BOOLEAN}</li>
+ *   <li>integral number → {@code Schema.Type.LONG}</li>
+ *   <li>decimal number → {@code Schema.Type.DOUBLE}</li>
+ *   <li>string → {@code Schema.Type.STRING}</li>
+ *   <li>array → {@code Schema.Type.ARRAY}; homogeneous elements use a single item schema,
+ *       heterogeneous or null-mixed elements produce a union item schema</li>
+ *   <li>object → {@code Schema.Type.RECORD}; field path is used as the record name
+ *       (sanitized to a valid Avro identifier)</li>
+ * </ul>
  */
 public class JsonSchemaDeriver {
 
     static final String RECORD_NAMESPACE = null; // unused on purpose right now
 
-    // field path → derived Schema; "null" type entries are tentative
-    private final Map<String, Schema> schemaCache = new HashMap<>();
-
     /**
-     * Returns the Avro schema for the given JSON value at the given field path,
-     * using the cache where possible.
+     * Returns the Avro schema for the given JSON value at the given field path.
      */
     public Schema derive(JsonNode node, String fieldPath) {
-        var derived = deriveSchema(node, sanitizeName(fieldPath));
-        var cached = schemaCache.get(fieldPath);
-
-        if (cached == null) {
-            schemaCache.put(fieldPath, derived);
-            return derived;
-        }
-
-        // tentative null schema: promote silently on first non-null value
-        if (cached.getType() == Schema.Type.NULL && derived.getType() != Schema.Type.NULL) {
-            schemaCache.put(fieldPath, derived);
-            return derived;
-        }
-
-        // structural change: fail fast
-        if (!cached.equals(derived)) {
-            throw new IllegalStateException(
-                "Schema mismatch for field path '" + fieldPath + "': " +
-                "cached=" + cached + ", derived=" + derived);
-        }
-
-        return cached;
+        return deriveSchema(node, sanitizeName(fieldPath));
     }
 
     private Schema deriveSchema(JsonNode node, String namePath) {
