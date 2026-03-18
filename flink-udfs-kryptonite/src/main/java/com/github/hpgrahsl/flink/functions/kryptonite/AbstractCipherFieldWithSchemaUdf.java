@@ -16,7 +16,6 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,9 +24,9 @@ import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFieldUdf {
 
@@ -54,11 +53,8 @@ public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFie
             return null;
         }
         try {
-            var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
-            var plaintext = kryptonite.decipherField(encryptedField);
-            var restored = serdeProcessor.bytesToObject(plaintext);
-            var converted = typeConverter.convertForFlink(restored, type);
-            return converted;
+            var restored = FieldHandler.decryptField(data, kryptonite);
+            return typeConverter.convertForFlink(restored, type);
         } catch (Exception exc) {
             throw new KryptoniteException("failed to decrypt data", exc);
         }

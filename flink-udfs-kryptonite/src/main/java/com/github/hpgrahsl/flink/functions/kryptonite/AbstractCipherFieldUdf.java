@@ -16,24 +16,21 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.functions.ScalarFunction;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 public abstract class AbstractCipherFieldUdf extends ScalarFunction {
 
     protected transient Kryptonite kryptonite;
-    protected transient SerdeProcessor serdeProcessor;
     private transient Map<String, String> udfConfiguration;
 
     @Override
@@ -46,7 +43,6 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
         try {
             udfConfiguration = UdfConfiguration.load(context);
             kryptonite = Kryptonite.createFromConfig(udfConfiguration);
-            serdeProcessor = new KryoSerdeProcessor();
         } catch (Exception e) {
             throw new KryptoniteException(
                     "failed to initialize the function with the given configuration " + udfConfiguration, e);
@@ -55,10 +51,11 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
 
     String encryptData(Object data, FieldMetaData fieldMetaData) {
         try {
-            var valueBytes = serdeProcessor.objectToBytes(data);
-            var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-            var encodedField = Base64.getEncoder().encodeToString(serdeProcessor.objectToBytes(encryptedField, EncryptedField.class));
-            return encodedField;
+            var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
+                    Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(fieldMetaData.getAlgorithm())),
+                    fieldMetaData.getKeyId());
+            return FieldHandler.encryptField(data, metadata, kryptonite,
+                    udfConfiguration.getOrDefault(KryptoniteSettings.SERDE_TYPE, KryptoniteSettings.SERDE_TYPE_DEFAULT));
         } catch (Exception exc) {
             throw new KryptoniteException("failed to encrypt data", exc);
         }
@@ -69,10 +66,7 @@ public abstract class AbstractCipherFieldUdf extends ScalarFunction {
             return null;
         }
         try {
-            var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
-            var plaintext = kryptonite.decipherField(encryptedField);
-            var restored = serdeProcessor.bytesToObject(plaintext);
-            return restored;
+            return FieldHandler.decryptField(data, kryptonite);
         } catch (Exception exc) {
             throw new KryptoniteException("failed to decrypt data", exc);
         }
