@@ -19,7 +19,6 @@ package com.github.hpgrahsl.kryptonite.converters.avro;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import org.apache.avro.Schema;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -28,12 +27,7 @@ class JsonSchemaDeriverTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private JsonSchemaDeriver deriver;
-
-    @BeforeEach
-    void setUp() {
-        deriver = new JsonSchemaDeriver();
-    }
+    private final JsonSchemaDeriver deriver = new JsonSchemaDeriver();
 
     // --- primitive types ---
 
@@ -151,41 +145,24 @@ class JsonSchemaDeriverTest {
         assertNotEquals(outer.getName(), addressField.schema().getName());
     }
 
-    // --- cache behaviour ---
+    // --- repeated calls ---
 
     @Test
-    void cacheHitReturnsSameSchema() throws Exception {
-        var node = MAPPER.readTree("\"hello\"");
-        var first = deriver.derive(node, "myField");
-        var second = deriver.derive(node, "myField");
-        assertEquals(first, second);
+    void differentPrimitiveTypesAtSameFieldPathReturnRespectiveSchemas() {
+        var nullSchema = deriver.derive(NullNode.getInstance(), "myField");
+        var longSchema = deriver.derive(MAPPER.valueToTree(99L), "myField");
+        assertEquals(Schema.Type.NULL, nullSchema.getType());
+        assertEquals(Schema.Type.LONG, longSchema.getType());
     }
 
     @Test
-    void tentativeNullSchemaPromotedOnFirstNonNull() {
-        // first call: null → tentative NULL cached
-        deriver.derive(NullNode.getInstance(), "myField");
-        // second call: long → NULL promoted to LONG, no exception
-        var promoted = deriver.derive(MAPPER.valueToTree(99L), "myField");
-        assertEquals(Schema.Type.LONG, promoted.getType());
-        // third call: long again → cache hit, no exception
-        var third = deriver.derive(MAPPER.valueToTree(1L), "myField");
-        assertEquals(Schema.Type.LONG, third.getType());
-    }
-
-    @Test
-    void structuralChangeFails() {
-        deriver.derive(MAPPER.valueToTree(42L), "myField");
-        assertThrows(IllegalStateException.class,
-            () -> deriver.derive(MAPPER.valueToTree("hello"), "myField"));
-    }
-
-    @Test
-    void structuralChangeExceptionMessageContainsFieldPath() {
-        deriver.derive(MAPPER.valueToTree(42L), "order.amount");
-        var ex = assertThrows(IllegalStateException.class,
-            () -> deriver.derive(MAPPER.valueToTree("oops"), "order.amount"));
-        assertTrue(ex.getMessage().contains("order.amount"));
+    void objectsWithDifferentStructuresAtSameFieldPathBothSucceed() throws Exception {
+        var first = deriver.derive(MAPPER.readTree("{\"a\": 1}"), "myField");
+        var second = deriver.derive(MAPPER.readTree("{\"b\": \"x\"}"), "myField");
+        assertEquals(Schema.Type.RECORD, first.getType());
+        assertEquals(Schema.Type.RECORD, second.getType());
+        assertNotNull(first.getField("a"));
+        assertNotNull(second.getField("b"));
     }
 
     // --- sanitizeName ---
