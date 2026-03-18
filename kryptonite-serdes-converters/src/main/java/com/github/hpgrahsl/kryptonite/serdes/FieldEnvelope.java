@@ -19,29 +19,17 @@ package com.github.hpgrahsl.kryptonite.serdes;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 
 /**
- * Result of {@link FieldHandler#deserialize}: carries the decoded {@link EncryptedField} together
- * with the serde code that identifies which {@link SerdeProcessor} was used to serialize the
- * plaintext field value at encrypt time.
+ * Internal result type used by {@link FieldHandler}: carries a decoded {@link EncryptedField}
+ * together with the serde code that identifies which {@link SerdeProcessor} was used to
+ * serialize the plaintext field value at encrypt time.
  *
  * <p>For k1 (legacy Kryo) envelopes the serde code is always
  * {@link KryoSerdeProcessorProvider#SERDE_CODE} ({@code "00"}).
  * For k2 envelopes it is read directly from the binary header.
  *
- * <p>Usage on the decrypt path:
- * <pre>{@code
- * FieldEnvelope envelope = FieldHandler.deserialize(rawBytes);
- * byte[] plaintext = kryptonite.decipherField(envelope.encryptedField());
- * SerdeProcessor serde = SerdeRegistry.getProcessorByCode(envelope.serdeCode());
- * Object value = serde.bytesToObject(plaintext);
- * }</pre>
+ * <p>Callers should use {@link FieldHandler#encryptField} and {@link FieldHandler#decryptField}
+ * rather than working with this type directly.
  */
 public record FieldEnvelope(EncryptedField encryptedField, String serdeCode) {
-
-  /**
-   * Convenience factory for k1 (Kryo) envelopes where the serde code is implicit.
-   */
-  public static FieldEnvelope k1(EncryptedField encryptedField) {
-    return new FieldEnvelope(encryptedField, KryoSerdeProcessorProvider.SERDE_CODE);
-  }
 
 }

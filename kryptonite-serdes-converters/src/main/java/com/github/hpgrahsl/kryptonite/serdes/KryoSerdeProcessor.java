@@ -44,6 +44,11 @@ public class KryoSerdeProcessor implements SerdeProcessor {
 
   public KryoSerdeProcessor() {}
 
+  @Override
+  public String serdeCode() {
+    return KryoSerdeProcessorProvider.SERDE_CODE;
+  }
+
   public byte[] objectToBytes(Object object, Class<?> clazz) {
     var output = new Output(new ByteArrayOutputStream());
     KryoInstance.get().writeObject(output, object);
