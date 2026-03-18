@@ -20,7 +20,7 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.Field
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
-import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;

@@ -25,7 +25,7 @@ import org.apache.flink.table.types.DataType;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
-import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFieldUdf {
