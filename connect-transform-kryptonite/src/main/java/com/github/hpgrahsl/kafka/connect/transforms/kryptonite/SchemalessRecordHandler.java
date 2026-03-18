@@ -20,7 +20,7 @@ import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.CipherField.Field
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
-import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.MapFieldConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -42,8 +42,8 @@ public class SchemalessRecordHandler implements FieldPathMatcher {
                                  Kryptonite kryptonite,
                                  CipherMode cipherMode,
                                  Map<String, FieldConfig> fieldConfig) {
-    super(config, kryptonite, cipherMode, fieldConfig);
-    typeConverter = new UnifiedTypeConverter();
+    this.recordHandler = new RecordHandler(config, kryptonite, cipherMode, fieldConfig);
+    this.fieldConverter = new MapFieldConverter();
   }
 
   @SuppressWarnings("unchecked")
