@@ -106,8 +106,8 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
   private static final Logger LOGGER = LoggerFactory.getLogger(CipherField.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private RecordHandler recordHandlerWithSchema;
-  private RecordHandler recordHandlerWithoutSchema;
+  private FieldPathMatcher recordHandlerWithSchema;
+  private FieldPathMatcher recordHandlerWithoutSchema;
   private SchemaRewriter schemaRewriter;
   private Cache<Schema, Schema> schemaCache;
 
