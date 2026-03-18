@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.serdes;
+package com.github.hpgrahsl.kryptonite.serdes.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+
 import org.apache.avro.Schema.Parser;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;

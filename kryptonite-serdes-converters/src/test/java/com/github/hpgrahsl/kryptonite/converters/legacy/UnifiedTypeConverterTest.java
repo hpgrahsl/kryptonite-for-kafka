@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.converters;
+package com.github.hpgrahsl.kryptonite.converters.legacy;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
+import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
 
 class UnifiedTypeConverterTest {
 

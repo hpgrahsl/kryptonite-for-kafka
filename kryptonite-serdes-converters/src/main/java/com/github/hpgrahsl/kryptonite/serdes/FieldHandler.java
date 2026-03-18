@@ -19,6 +19,9 @@ package com.github.hpgrahsl.kryptonite.serdes;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessorProvider;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;

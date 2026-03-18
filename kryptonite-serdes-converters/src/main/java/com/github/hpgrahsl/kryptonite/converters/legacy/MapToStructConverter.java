@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.converters;
+package com.github.hpgrahsl.kryptonite.converters.legacy;
 
-import org.apache.flink.types.Row;
+import java.util.Map;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -24,33 +25,33 @@ import org.apache.kafka.connect.data.Struct;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 
 /**
- * Converter for Flink Row to Kafka Connect Struct.
+ * Converter for Map&lt;String, Object&gt; to Kafka Connect Struct.
  * Requires a target Schema to guide the conversion.
  * Delegates nested conversions back to the UnifiedTypeConverter.
  */
-public class RowToStructConverter {
+public class MapToStructConverter {
 
     private final UnifiedTypeConverter parent;
 
-    public RowToStructConverter(UnifiedTypeConverter parent) {
+    public MapToStructConverter(UnifiedTypeConverter parent) {
         this.parent = parent;
     }
 
     /**
-     * Convert a Flink Row to a Kafka Connect Struct.
+     * Convert a Map to a Kafka Connect Struct.
      *
-     * @param row the Row to convert
+     * @param map the Map to convert
      * @param targetSchema the target Schema describing the Struct structure
      * @return the converted Struct
      * @throws KryptoniteException if conversion fails
      */
-    public Struct convert(Row row, Schema targetSchema) {
-        if (row == null) {
+    public Struct convert(Map<String, Object> map, Schema targetSchema) {
+        if (map == null) {
             return null;
         }
 
         if (targetSchema == null) {
-            throw new KryptoniteException("targetSchema must not be null for Row to Struct conversion");
+            throw new KryptoniteException("targetSchema must not be null for Map to Struct conversion");
         }
 
         if (targetSchema.type() != Schema.Type.STRUCT) {
@@ -62,7 +63,7 @@ public class RowToStructConverter {
             Struct result = new Struct(targetSchema);
 
             for (Field field : targetSchema.fields()) {
-                Object sourceValue = row.getField(field.name());
+                Object sourceValue = map.get(field.name());
                 Schema fieldSchema = field.schema();
 
                 // Delegate to parent for proper handling based on target schema
@@ -74,7 +75,7 @@ public class RowToStructConverter {
         } catch (KryptoniteException ke) {
             throw ke;
         } catch (Exception exc) {
-            throw new KryptoniteException("Failed to convert Row to Struct", exc);
+            throw new KryptoniteException("Failed to convert Map to Struct", exc);
         }
     }
 

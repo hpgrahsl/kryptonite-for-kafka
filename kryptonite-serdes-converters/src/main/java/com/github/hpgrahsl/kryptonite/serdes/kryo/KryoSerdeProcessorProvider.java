@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.serdes;
+package com.github.hpgrahsl.kryptonite.serdes.kryo;
 
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessorProvider;
 
 /**
  * Built-in {@link SerdeProcessorProvider} for the Kryo-based serde (implicit in version k1, explicit version k2 code "00").
