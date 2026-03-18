@@ -16,6 +16,8 @@
 
 package com.github.hpgrahsl.kryptonite.serdes;
 
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+
 /**
  * Built-in {@link SerdeProcessorProvider} for the Kryo-based serde (implicit in version k1, explicit version k2 code "00").
  *
@@ -28,7 +30,7 @@ public class KryoSerdeProcessorProvider implements SerdeProcessorProvider {
   public static final String SERDE_CODE = "00";
 
   /** Config-facing name used to select KRYO serde in settings. */
-  public static final String SERDE_NAME = "KRYO";
+  public static final String SERDE_NAME = KryptoniteSettings.SerdeType.KRYO.name();
 
   @Override
   public String serdeCode() {
