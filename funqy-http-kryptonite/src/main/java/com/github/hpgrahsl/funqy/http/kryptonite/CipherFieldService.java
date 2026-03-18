@@ -28,7 +28,7 @@ import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.converters.MapFieldConverter;
+import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 @ApplicationScoped
@@ -36,7 +36,7 @@ public class CipherFieldService {
 
     KryptoniteConfiguration config;
     Kryptonite kryptonite;
-    MapFieldConverter fieldConverter = new MapFieldConverter();
+    UnifiedTypeConverter typeConverter = new UnifiedTypeConverter();
     
     public CipherFieldService(KryptoniteConfiguration config) {
         this.config = config;
@@ -63,8 +63,10 @@ public class CipherFieldService {
     }
 
     private String encryptNonFPE(Object data, FieldMetaData fieldMetaData) {
-        var metadata = PayloadMetaData.from(fieldMetaData);
-        return FieldHandler.encryptField(fieldConverter.toCanonical(data, null, config.serdeType.name()), metadata, kryptonite, config.serdeType.name());
+        var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION_K2,
+                Kryptonite.CIPHERSPEC_ID_LUT.get(CipherSpec.fromName(fieldMetaData.getAlgorithm())),
+                fieldMetaData.getKeyId());
+        return FieldHandler.encryptField(data, metadata, kryptonite, config.serdeType.name());
     }
 
     private String encryptFPE(String data, FieldMetaData fieldMetaData) {
@@ -93,7 +95,8 @@ public class CipherFieldService {
         if (data == null) {
             return null;
         }
-        return fieldConverter.fromCanonical(FieldHandler.decryptField(data, kryptonite));
+        var restored = FieldHandler.decryptField(data, kryptonite);
+        return typeConverter.convertForMap(restored);
     }
 
     private Object decryptFPE(String data, FieldMetaData fieldMetaData) {
@@ -106,7 +109,7 @@ public class CipherFieldService {
     }
 
     public Object processDataWithFieldConfig(Object data, Map<String, FieldConfig> fieldConfig, CipherMode cipherMode) {
-        return new RecordHandler(config, kryptonite, cipherMode, fieldConfig, fieldConverter)
+        return new RecordHandler(config, kryptonite, cipherMode, fieldConfig)
                     .matchFields(data,"");
     }
 
