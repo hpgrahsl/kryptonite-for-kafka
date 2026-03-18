@@ -236,4 +236,11 @@ class JsonAvroConverterTest {
         assertEquals(2L, result.get("b").longValue());
     }
 
+    // --- schema deriver visible for testing ---
+
+    @Test
+    void schemaDeriverAccessorReturnsInstance() {
+        assertNotNull(converter.schemaDeriver());
+    }
+
 }

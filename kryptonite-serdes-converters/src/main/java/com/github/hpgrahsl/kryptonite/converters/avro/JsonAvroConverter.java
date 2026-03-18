@@ -43,14 +43,11 @@ import java.util.Map;
  * <p>This is the converter layer — it handles type mapping only. It has no knowledge
  * of bytes or wire format; that is the serde layer's concern ({@link AvroSerdeProcessor}).
  *
- * <p>On the encode side ({@link #toAvroGeneric}), schema derivation is delegated to
- * {@link JsonSchemaDeriver}, which is stateless and derives fresh on every call.
- * On the decode side ({@link #fromAvroGeneric}), the schema comes from the caller
+ * <p>On the encode side, schema derivation is delegated to {@link JsonSchemaDeriver}
+ * (with field-path caching). On the decode side, the schema comes from the caller
  * (extracted from the wire bytes by the serde layer).
  *
- * <p>{@code MAP} is never produced on the encode side — JSON objects always map to
- * Avro {@code RECORD}. {@code MAP} is only handled on the decode side for Avro data
- * originating outside this converter.
+ * <p>Map is never produced on the encode side — JSON objects always map to Avro records.
  */
 public class JsonAvroConverter {
 
@@ -220,6 +217,11 @@ public class JsonAvroConverter {
         }
         throw new IllegalArgumentException(
             "Cannot resolve union branch for value type: " + value.getClass().getName());
+    }
+
+    // visible for testing
+    JsonSchemaDeriver schemaDeriver() {
+        return schemaDeriver;
     }
 
 }
