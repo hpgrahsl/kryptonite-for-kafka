@@ -24,7 +24,8 @@ public class KryptoniteSettings {
   }
 
   public enum SerdeType {
-    KRYO
+    KRYO,
+    AVRO
   }
 
   public enum AlphabetTypeFPE {
