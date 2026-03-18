@@ -37,13 +37,13 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Converts between Kafka Connect schema-aware values ({@link Struct} / Java primitives guided
  * by a Connect {@link Schema}) and Avro generic representation ({@link AvroPayload}).
  *
- * <p>This class is fully self-contained and handles both directions:
+ * <p>This class is fully self-contained — it does not delegate to any legacy converter.
+ * Both directions are handled:
  * <ul>
  *   <li>{@link #toAvroGeneric} — Connect value → {@link AvroPayload} (encrypt path)</li>
  *   <li>{@link #fromAvroGeneric} — {@link AvroPayload} → Connect value (decrypt path)</li>
@@ -77,11 +77,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ConnectAvroConverter {
 
-    private record SchemaCacheKey(Schema connectSchema, String namePath) {}
-
-    private final ConcurrentHashMap<SchemaCacheKey, org.apache.avro.Schema> schemaCache =
-            new ConcurrentHashMap<>();
-
     // --- public API ---
 
     /**
@@ -93,10 +88,7 @@ public class ConnectAvroConverter {
      * @return an {@link AvroPayload} wrapping the Avro generic value and its derived schema
      */
     public AvroPayload toAvroGeneric(Object value, Schema connectSchema, String namePath) {
-        var sanitized = sanitize(namePath);
-        var avroSchema = schemaCache.computeIfAbsent(
-                new SchemaCacheKey(connectSchema, sanitized),
-                k -> schemaToAvro(k.connectSchema(), k.namePath()));
+        var avroSchema = schemaToAvro(connectSchema, sanitize(namePath));
         var avroValue = valueToAvro(value, avroSchema, connectSchema);
         return new AvroPayload(avroValue, avroSchema);
     }
@@ -114,29 +106,29 @@ public class ConnectAvroConverter {
 
     // --- schema mapping: Connect Schema → Avro Schema ---
 
-    private org.apache.avro.Schema schemaToAvro(Schema connectSchema, String namePath) {
+    private org.apache.avro.Schema schemaToAvro(Schema cs, String namePath) {
         // logical types annotate base types — check name first
-        if (Date.LOGICAL_NAME.equals(connectSchema.name())) {
+        if (Date.LOGICAL_NAME.equals(cs.name())) {
             return LogicalTypes.date()
                     .addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT));
         }
-        if (Time.LOGICAL_NAME.equals(connectSchema.name())) {
+        if (Time.LOGICAL_NAME.equals(cs.name())) {
             return LogicalTypes.timeMillis()
                     .addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT));
         }
-        if (Timestamp.LOGICAL_NAME.equals(connectSchema.name())) {
+        if (Timestamp.LOGICAL_NAME.equals(cs.name())) {
             return LogicalTypes.timestampMillis()
                     .addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.LONG));
         }
-        if (Decimal.LOGICAL_NAME.equals(connectSchema.name())) {
-            int scale = Integer.parseInt(connectSchema.parameters().get(Decimal.SCALE_FIELD));
-            String precisionString = connectSchema.parameters().getOrDefault("precision", "38");
-            int precision = Integer.parseInt(precisionString);
+        if (Decimal.LOGICAL_NAME.equals(cs.name())) {
+            int scale = Integer.parseInt(cs.parameters().get(Decimal.SCALE_FIELD));
+            String precStr = cs.parameters().getOrDefault("precision", "38");
+            int precision = Integer.parseInt(precStr);
             return LogicalTypes.decimal(precision, scale)
                     .addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES));
         }
 
-        return switch (connectSchema.type()) {
+        return switch (cs.type()) {
             case INT8, INT16, INT32 -> org.apache.avro.Schema.create(org.apache.avro.Schema.Type.INT);
             case INT64             -> org.apache.avro.Schema.create(org.apache.avro.Schema.Type.LONG);
             case FLOAT32           -> org.apache.avro.Schema.create(org.apache.avro.Schema.Type.FLOAT);
@@ -144,29 +136,29 @@ public class ConnectAvroConverter {
             case BOOLEAN           -> org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN);
             case STRING            -> org.apache.avro.Schema.create(org.apache.avro.Schema.Type.STRING);
             case BYTES             -> org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES);
-            case STRUCT            -> structSchemaToAvro(connectSchema, namePath);
+            case STRUCT            -> structSchemaToAvro(cs, namePath);
             case ARRAY             -> {
-                var elementSchema = schemaToAvro(connectSchema.valueSchema(), namePath + "_i");
+                var elemSchema = schemaToAvro(cs.valueSchema(), namePath + "_i");
                 yield org.apache.avro.Schema.createArray(
-                        connectSchema.valueSchema().isOptional() ? nullUnion(elementSchema) : elementSchema);
+                        cs.valueSchema().isOptional() ? nullUnion(elemSchema) : elemSchema);
             }
             case MAP               -> {
-                if (connectSchema.keySchema().type() != Schema.Type.STRING) {
+                if (cs.keySchema().type() != Schema.Type.STRING) {
                     throw new KryptoniteException(
                             "ConnectAvroConverter: MAP with non-STRING key schema is not supported");
                 }
-                var valueSchema = schemaToAvro(connectSchema.valueSchema(), namePath + "_v");
+                var valSchema = schemaToAvro(cs.valueSchema(), namePath + "_v");
                 yield org.apache.avro.Schema.createMap(
-                        connectSchema.valueSchema().isOptional() ? nullUnion(valueSchema) : valueSchema);
+                        cs.valueSchema().isOptional() ? nullUnion(valSchema) : valSchema);
             }
             default -> throw new KryptoniteException(
-                    "ConnectAvroConverter: unsupported Connect schema type: " + connectSchema.type());
+                    "ConnectAvroConverter: unsupported Connect schema type: " + cs.type());
         };
     }
 
-    private org.apache.avro.Schema structSchemaToAvro(Schema connectSchema, String namePath) {
+    private org.apache.avro.Schema structSchemaToAvro(Schema cs, String namePath) {
         var fields = new ArrayList<org.apache.avro.Schema.Field>();
-        for (var f : connectSchema.fields()) {
+        for (var f : cs.fields()) {
             var fieldNamePath = namePath + "_" + sanitize(f.name());
             var fieldAvroSchema = schemaToAvro(f.schema(), fieldNamePath);
             if (f.schema().isOptional()) {
@@ -184,7 +176,7 @@ public class ConnectAvroConverter {
 
     // --- encode: Connect value → Avro generic value ---
 
-    private Object valueToAvro(Object value, org.apache.avro.Schema avroSchema, Schema connectSchema) {
+    private Object valueToAvro(Object value, org.apache.avro.Schema avroSchema, Schema cs) {
         if (value == null) {
             return null;
         }
@@ -193,20 +185,20 @@ public class ConnectAvroConverter {
                 ? nonNullBranch(avroSchema) : avroSchema;
 
         // logical types
-        if (Date.LOGICAL_NAME.equals(connectSchema.name())) {
+        if (Date.LOGICAL_NAME.equals(cs.name())) {
             return (int) (((java.util.Date) value).getTime() / 86_400_000L);
         }
-        if (Time.LOGICAL_NAME.equals(connectSchema.name())) {
+        if (Time.LOGICAL_NAME.equals(cs.name())) {
             return (int) ((java.util.Date) value).getTime();
         }
-        if (Timestamp.LOGICAL_NAME.equals(connectSchema.name())) {
+        if (Timestamp.LOGICAL_NAME.equals(cs.name())) {
             return ((java.util.Date) value).getTime();
         }
-        if (Decimal.LOGICAL_NAME.equals(connectSchema.name())) {
+        if (Decimal.LOGICAL_NAME.equals(cs.name())) {
             return ByteBuffer.wrap(((BigDecimal) value).unscaledValue().toByteArray());
         }
 
-        return switch (connectSchema.type()) {
+        return switch (cs.type()) {
             case INT8    -> ((Byte) value).intValue();
             case INT16   -> ((Short) value).intValue();
             case INT32   -> (Integer) value;
@@ -217,17 +209,17 @@ public class ConnectAvroConverter {
             case STRING  -> new Utf8((String) value);
             case BYTES   -> value instanceof byte[]
                     ? ByteBuffer.wrap((byte[]) value) : (ByteBuffer) value;
-            case STRUCT  -> structToAvro((Struct) value, effectiveAvro, connectSchema);
-            case ARRAY   -> listToAvro((List<?>) value, effectiveAvro, connectSchema);
-            case MAP     -> mapToAvro((Map<?, ?>) value, effectiveAvro, connectSchema);
+            case STRUCT  -> structToAvro((Struct) value, effectiveAvro, cs);
+            case ARRAY   -> listToAvro((List<?>) value, effectiveAvro, cs);
+            case MAP     -> mapToAvro((Map<?, ?>) value, effectiveAvro, cs);
             default -> throw new KryptoniteException(
-                    "ConnectAvroConverter: unsupported Connect type on encode: " + connectSchema.type());
+                    "ConnectAvroConverter: unsupported Connect type on encode: " + cs.type());
         };
     }
 
-    private GenericRecord structToAvro(Struct struct, org.apache.avro.Schema avroSchema, Schema connectSchema) {
+    private GenericRecord structToAvro(Struct struct, org.apache.avro.Schema avroSchema, Schema cs) {
         var record = new GenericData.Record(avroSchema);
-        for (var field : connectSchema.fields()) {
+        for (var field : cs.fields()) {
             var fieldAvroField = avroSchema.getField(field.name());
             record.put(field.name(),
                     valueToAvro(struct.get(field.name()), fieldAvroField.schema(), field.schema()));
@@ -235,28 +227,28 @@ public class ConnectAvroConverter {
         return record;
     }
 
-    private GenericData.Array<Object> listToAvro(List<?> list, org.apache.avro.Schema avroSchema, Schema connectSchema) {
-        var elementAvroSchema = avroSchema.getElementType();
+    private GenericData.Array<Object> listToAvro(List<?> list, org.apache.avro.Schema avroSchema, Schema cs) {
+        var elemAvroSchema = avroSchema.getElementType();
         var array = new GenericData.Array<Object>(list.size(), avroSchema);
-        for (var e : list) {
-            array.add(valueToAvro(e, elementAvroSchema, connectSchema.valueSchema()));
+        for (var elem : list) {
+            array.add(valueToAvro(elem, elemAvroSchema, cs.valueSchema()));
         }
         return array;
     }
 
-    private Map<String, Object> mapToAvro(Map<?, ?> map, org.apache.avro.Schema avroSchema, Schema connectSchema) {
-        var valueAvroSchema = avroSchema.getValueType();
+    private Map<String, Object> mapToAvro(Map<?, ?> map, org.apache.avro.Schema avroSchema, Schema cs) {
+        var valAvroSchema = avroSchema.getValueType();
         var result = new HashMap<String, Object>(map.size());
         for (var entry : map.entrySet()) {
             result.put(entry.getKey().toString(),
-                    valueToAvro(entry.getValue(), valueAvroSchema, connectSchema.valueSchema()));
+                    valueToAvro(entry.getValue(), valAvroSchema, cs.valueSchema()));
         }
         return result;
     }
 
     // --- decode: Avro generic value → Connect value ---
 
-    private Object avroToValue(Object avroValue, org.apache.avro.Schema avroSchema, Schema connectSchema) {
+    private Object avroToValue(Object avroValue, org.apache.avro.Schema avroSchema, Schema cs) {
         if (avroValue == null) {
             return null;
         }
@@ -277,11 +269,11 @@ public class ConnectAvroConverter {
             return new java.util.Date((Long) avroValue);
         }
         if (logicalType instanceof LogicalTypes.Decimal) {
-            var decimal = (LogicalTypes.Decimal) logicalType;
-            var buffer = (ByteBuffer) avroValue;
-            var bytes = new byte[buffer.remaining()];
-            buffer.get(bytes);
-            return new BigDecimal(new BigInteger(bytes), decimal.getScale());
+            var dec = (LogicalTypes.Decimal) logicalType;
+            var buf = (ByteBuffer) avroValue;
+            var bytes = new byte[buf.remaining()];
+            buf.get(bytes);
+            return new BigDecimal(new BigInteger(bytes), dec.getScale());
         }
 
         return switch (avroSchema.getType()) {
@@ -289,7 +281,7 @@ public class ConnectAvroConverter {
             case BOOLEAN -> (Boolean) avroValue;
             case INT     -> {
                 int v = (Integer) avroValue;
-                yield switch (connectSchema.type()) {
+                yield switch (cs.type()) {
                     case INT8  -> (byte) v;
                     case INT16 -> (short) v;
                     default    -> v;
@@ -300,22 +292,22 @@ public class ConnectAvroConverter {
             case DOUBLE  -> (Double) avroValue;
             case STRING  -> avroValue.toString();
             case BYTES   -> {
-                var buffer = (ByteBuffer) avroValue;
-                var bytes = new byte[buffer.remaining()];
-                buffer.get(bytes);
+                var buf = (ByteBuffer) avroValue;
+                var bytes = new byte[buf.remaining()];
+                buf.get(bytes);
                 yield bytes;
             }
-            case RECORD  -> avroToStruct((GenericRecord) avroValue, avroSchema, connectSchema);
-            case ARRAY   -> avroToList((Iterable<?>) avroValue, avroSchema, connectSchema);
-            case MAP     -> avroToMap((Map<?, ?>) avroValue, avroSchema, connectSchema);
+            case RECORD  -> avroToStruct((GenericRecord) avroValue, avroSchema, cs);
+            case ARRAY   -> avroToList((Iterable<?>) avroValue, avroSchema, cs);
+            case MAP     -> avroToMap((Map<?, ?>) avroValue, avroSchema, cs);
             default -> throw new KryptoniteException(
                     "ConnectAvroConverter: unsupported Avro type on decode: " + avroSchema.getType());
         };
     }
 
-    private Struct avroToStruct(GenericRecord record, org.apache.avro.Schema avroSchema, Schema connectSchema) {
-        var struct = new Struct(connectSchema);
-        for (var field : connectSchema.fields()) {
+    private Struct avroToStruct(GenericRecord record, org.apache.avro.Schema avroSchema, Schema cs) {
+        var struct = new Struct(cs);
+        for (var field : cs.fields()) {
             var fieldAvroSchema = avroSchema.getField(field.name()).schema();
             struct.put(field.name(),
                     avroToValue(record.get(field.name()), fieldAvroSchema, field.schema()));
@@ -323,21 +315,21 @@ public class ConnectAvroConverter {
         return struct;
     }
 
-    private List<Object> avroToList(Iterable<?> avroArray, org.apache.avro.Schema avroSchema, Schema connectSchema) {
-        var elementAvroSchema = avroSchema.getElementType();
+    private List<Object> avroToList(Iterable<?> avroArray, org.apache.avro.Schema avroSchema, Schema cs) {
+        var elemAvroSchema = avroSchema.getElementType();
         var list = new ArrayList<Object>();
-        for (var e : avroArray) {
-            list.add(avroToValue(e, elementAvroSchema, connectSchema.valueSchema()));
+        for (var elem : avroArray) {
+            list.add(avroToValue(elem, elemAvroSchema, cs.valueSchema()));
         }
         return list;
     }
 
-    private Map<String, Object> avroToMap(Map<?, ?> avroMap, org.apache.avro.Schema avroSchema, Schema connectSchema) {
-        var valueAvroSchema = avroSchema.getValueType();
+    private Map<String, Object> avroToMap(Map<?, ?> avroMap, org.apache.avro.Schema avroSchema, Schema cs) {
+        var valAvroSchema = avroSchema.getValueType();
         var result = new LinkedHashMap<String, Object>(avroMap.size());
         for (var entry : avroMap.entrySet()) {
             result.put(entry.getKey().toString(),
-                    avroToValue(entry.getValue(), valueAvroSchema, connectSchema.valueSchema()));
+                    avroToValue(entry.getValue(), valAvroSchema, cs.valueSchema()));
         }
         return result;
     }

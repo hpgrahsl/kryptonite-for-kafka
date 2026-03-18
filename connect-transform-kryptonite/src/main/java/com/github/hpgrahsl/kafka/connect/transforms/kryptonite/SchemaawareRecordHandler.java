@@ -21,7 +21,7 @@ import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
-import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.ConnectFieldConverter;
 
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.connect.data.Schema;
@@ -39,7 +39,7 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
   private static final Logger LOGGER = LoggerFactory.getLogger(SchemaawareRecordHandler.class);
 
   private final RecordHandler handler;
-  private final UnifiedTypeConverter typeConverter;
+  private final ConnectFieldConverter fieldConverter;
   private final Map<String, Schema> schemaCache;
 
   public SchemaawareRecordHandler(AbstractConfig config,
@@ -47,7 +47,7 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
                                   CipherMode cipherMode,
                                   Map<String, FieldConfig> fieldConfig) {
     this.handler = new RecordHandler(config, kryptonite, cipherMode, fieldConfig);
-    this.typeConverter = new UnifiedTypeConverter();
+    this.fieldConverter = new ConnectFieldConverter();
     this.schemaCache = initializeSchemaCache(fieldConfig, config);
   }
 
@@ -104,7 +104,12 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
         if (handler.isCipherFPE(fieldMetaData)) {
           return handler.encryptFPE(object, fieldMetaData);
         }
-        return handler.encryptNonFPE(object, fieldMetaData);
+        var serdeName = handler.getConfig().getString(KryptoniteSettings.SERDE_TYPE);
+        var connectSchema = getCachedSchema(matchedPath)
+            .or(() -> handler.resolveElementModeParentPath(matchedPath).flatMap(this::getCachedSchema))
+            .orElse(null);
+        var canonical = fieldConverter.toCanonical(object, connectSchema, matchedPath, serdeName);
+        return handler.encryptNonFPE(canonical, fieldMetaData);
       } else {
         if (handler.isCipherFPE(fieldMetaData)) {
           return handler.decryptFPE(object, fieldMetaData);
@@ -113,7 +118,7 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
         return getCachedSchema(matchedPath)
             .or(() -> handler.resolveElementModeParentPath(matchedPath).flatMap(this::getCachedSchema))
             .map(schema -> {
-              var convertedField = typeConverter.convertForConnect(decrypted, schema);
+              var convertedField = fieldConverter.fromCanonical(decrypted, schema);
               LOGGER.trace("converted field with schema {}: {}", schema, convertedField);
               return convertedField;
             })
