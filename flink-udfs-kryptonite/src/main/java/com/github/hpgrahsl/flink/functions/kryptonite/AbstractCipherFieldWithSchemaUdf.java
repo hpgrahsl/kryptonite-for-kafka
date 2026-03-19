@@ -25,20 +25,20 @@ import org.apache.flink.table.types.DataType;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
-import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
+import com.github.hpgrahsl.kryptonite.converters.FlinkFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFieldUdf {
 
     private static final int SCHEMA_LRU_CACHE_SIZE = 64;
 
-    private transient UnifiedTypeConverter typeConverter;
+    private transient FlinkFieldConverter fieldConverter;
     private transient Map<String, DataType> schemaCache;
 
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-        typeConverter = new UnifiedTypeConverter();
+        fieldConverter = new FlinkFieldConverter();
         schemaCache = Collections.synchronizedMap(
                 new LinkedHashMap<String, DataType>(SCHEMA_LRU_CACHE_SIZE, 0.75f, true) {
                     @Override
@@ -54,7 +54,7 @@ public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFie
         }
         try {
             var restored = FieldHandler.decryptField(data, kryptonite);
-            return typeConverter.convertForFlink(restored, type);
+            return fieldConverter.fromCanonical(restored, type);
         } catch (Exception exc) {
             throw new KryptoniteException("failed to decrypt data", exc);
         }
