@@ -66,10 +66,10 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
             .orElse(FieldMode.valueOf(handler.getConfig().getString(KryptoniteSettings.FIELD_MODE)))) {
           if (f.schema().type() == Type.ARRAY) {
             LOGGER.trace("processing {} field element-wise", Type.ARRAY);
-            dataNew.put(schemaNew.field(f.name()), processListField((List<?>) dataOriginal.get(f.name()), updatedPath));
+            dataNew.put(schemaNew.field(f.name()), processListField((List<?>) dataOriginal.get(f.name()), updatedPath, f.schema().valueSchema()));
           } else if (f.schema().type() == Type.MAP) {
             LOGGER.trace("processing {} field element-wise", Type.MAP);
-            dataNew.put(schemaNew.field(f.name()), processMapField((Map<?, ?>) dataOriginal.get(f.name()), updatedPath));
+            dataNew.put(schemaNew.field(f.name()), processMapField((Map<?, ?>) dataOriginal.get(f.name()), updatedPath, f.schema().valueSchema()));
           } else if (f.schema().type() == Type.STRUCT) {
             if (dataOriginal.get(f.name()) != null) {
               LOGGER.trace("processing {} field element-wise", Type.STRUCT);
@@ -81,11 +81,11 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
             }
           } else {
             LOGGER.trace("processing primitive field of type {}", f.schema().type());
-            dataNew.put(schemaNew.field(f.name()), processField(dataOriginal.get(f.name()), updatedPath));
+            dataNew.put(schemaNew.field(f.name()), processField(dataOriginal.get(f.name()), updatedPath, f.schema()));
           }
         } else {
           LOGGER.trace("processing field of type {}", f.schema().type());
-          dataNew.put(schemaNew.field(f.name()), processField(dataOriginal.get(f.name()), updatedPath));
+          dataNew.put(schemaNew.field(f.name()), processField(dataOriginal.get(f.name()), updatedPath, f.schema()));
         }
       } else {
         LOGGER.trace("copying non-matched field '{}'", updatedPath);
@@ -95,7 +95,7 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
     return dataNew;
   }
 
-  private Object processField(Object object, String matchedPath) {
+  private Object processField(Object object, String matchedPath, Schema connectSchema) {
     try {
       LOGGER.debug("{} field {}", handler.cipherMode, matchedPath);
       var fieldMetaData = handler.determineFieldMetaData(object, matchedPath);
@@ -105,9 +105,6 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
           return handler.encryptFPE(object, fieldMetaData);
         }
         var serdeName = handler.getConfig().getString(KryptoniteSettings.SERDE_TYPE);
-        var connectSchema = getCachedSchema(matchedPath)
-            .or(() -> handler.resolveElementModeParentPath(matchedPath).flatMap(this::getCachedSchema))
-            .orElse(null);
         var canonical = fieldConverter.toCanonical(object, connectSchema, matchedPath, serdeName);
         return handler.encryptNonFPE(canonical, fieldMetaData);
       } else {
@@ -132,23 +129,23 @@ public class SchemaawareRecordHandler implements FieldPathMatcher {
     }
   }
 
-  private List<?> processListField(List<?> list, String matchedPath) {
+  private List<?> processListField(List<?> list, String matchedPath, Schema elementSchema) {
     return list.stream().map(e -> {
-      if (e instanceof List) return processListField((List<?>) e, matchedPath);
-      if (e instanceof Map) return processMapField((Map<?, ?>) e, matchedPath);
-      return processField(e, matchedPath);
+      if (e instanceof List) return processListField((List<?>) e, matchedPath, elementSchema);
+      if (e instanceof Map) return processMapField((Map<?, ?>) e, matchedPath, elementSchema);
+      return processField(e, matchedPath, elementSchema);
     }).collect(Collectors.toList());
   }
 
-  private Map<?, ?> processMapField(Map<?, ?> map, String matchedPath) {
+  private Map<?, ?> processMapField(Map<?, ?> map, String matchedPath, Schema valueSchema) {
     return map.entrySet().stream()
         .map(e -> {
           var pathUpdate = matchedPath + handler.pathDelimiter + e.getKey();
           if (e.getValue() instanceof List)
-            return new AbstractMap.SimpleEntry<>(e.getKey(), processListField((List<?>) e.getValue(), pathUpdate));
+            return new AbstractMap.SimpleEntry<>(e.getKey(), processListField((List<?>) e.getValue(), pathUpdate, valueSchema));
           if (e.getValue() instanceof Map)
-            return new AbstractMap.SimpleEntry<>(e.getKey(), processMapField((Map<?, ?>) e.getValue(), pathUpdate));
-          return new AbstractMap.SimpleEntry<>(e.getKey(), processField(e.getValue(), pathUpdate));
+            return new AbstractMap.SimpleEntry<>(e.getKey(), processMapField((Map<?, ?>) e.getValue(), pathUpdate, valueSchema));
+          return new AbstractMap.SimpleEntry<>(e.getKey(), processField(e.getValue(), pathUpdate, valueSchema));
         }).collect(LinkedHashMap::new, (lhm, e) -> lhm.put(e.getKey(), e.getValue()), HashMap::putAll);
   }
 
