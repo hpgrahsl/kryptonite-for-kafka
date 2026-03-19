@@ -19,12 +19,15 @@ package com.github.hpgrahsl.flink.functions.kryptonite;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
+import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.converters.FlinkFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
@@ -70,6 +73,13 @@ public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFie
      */
     protected DataType getCachedSchema(String schemaString) {
         return schemaCache.computeIfAbsent(schemaString, SchemaParser::parseType);
+    }
+
+    protected String encryptData(Object data, DataType dataType, FieldMetaData fieldMetaData) {
+        var serdeName = Optional.ofNullable(getConfigurationSetting(KryptoniteSettings.SERDE_TYPE))
+                                .orElse(KryptoniteSettings.SERDE_TYPE_DEFAULT);
+        var canonical = fieldConverter.toCanonical(data, dataType, serdeName);
+        return encryptData(canonical, fieldMetaData);
     }
 
 }
