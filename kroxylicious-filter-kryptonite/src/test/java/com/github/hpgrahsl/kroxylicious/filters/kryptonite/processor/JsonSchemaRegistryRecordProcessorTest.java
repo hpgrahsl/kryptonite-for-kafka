@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
@@ -105,7 +105,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
 
             when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -133,7 +133,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
 
             when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any())).thenReturn(toWireBytes(ENCRYPTED_ID, new byte[0]));
 
@@ -160,7 +160,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
 
             when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -172,7 +172,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             JsonNode tags = out.get("tags");
             assertThat(tags.isArray()).isTrue();
             tags.forEach(el -> assertThat(el.isTextual()).isTrue());
-            verify(kryptonite, times(2)).cipherField(any(), any());
+            verify(kryptonite, times(2)).cipherFieldRaw(any(), any());
         }
 
         @Test
@@ -183,7 +183,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
 
             when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
-            when(kryptonite.cipherField(any(), any())).thenThrow(new RuntimeException("crypto error"));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenThrow(new RuntimeException("crypto error"));
 
             assertThatThrownBy(() -> processor.encryptFields(inputWire, TOPIC,
                     Set.of(FieldConfig.builder().name("age").build())))
@@ -207,7 +207,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] inputWire = toWireBytes(ENCRYPTED_ID, jsonPayload);
 
             when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, jsonPayload));
-            when(kryptonite.decipherField(any(EncryptedField.class)))
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
                     .thenReturn(JsonObjectNodeAccessor.nodeToBytes(IntNode.valueOf(30), SERDE));
             when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
             when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
@@ -231,7 +231,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] inputWire = toWireBytes(ENCRYPTED_ID, jsonPayload);
 
             when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, jsonPayload));
-            when(kryptonite.decipherField(any(EncryptedField.class)))
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
                     .thenReturn(JsonObjectNodeAccessor.nodeToBytes(IntNode.valueOf(30), SERDE));
             // Partial decrypt: only age decrypted → partial schema ID 99
             when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any()))
@@ -255,7 +255,7 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] inputWire = toWireBytes(ENCRYPTED_ID, jsonPayload);
 
             when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, jsonPayload));
-            when(kryptonite.decipherField(any(EncryptedField.class)))
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
                     .thenReturn(JsonObjectNodeAccessor.nodeToBytes(TextNode.valueOf("x"), SERDE))
                     .thenReturn(JsonObjectNodeAccessor.nodeToBytes(TextNode.valueOf("y"), SERDE));
             when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);

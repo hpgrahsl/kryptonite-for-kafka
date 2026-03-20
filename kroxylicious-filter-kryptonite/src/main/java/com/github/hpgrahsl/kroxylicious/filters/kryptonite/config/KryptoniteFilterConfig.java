@@ -28,11 +28,13 @@ public class KryptoniteFilterConfig {
     private final String schemaRegistryUrl;
     private final Map<String, String> schemaRegistryConfig;
 
-    // --- Record format (v1: JSON_SR only) ---
+    // --- Record format ---
     private final RecordFormat recordFormat;
 
     // --- Schema deployment mode (v1: DYNAMIC only) ---
     private final SchemaMode schemaMode;
+
+    private final String serdeType;
 
     // --- Topic-to-field routing ---
     private final List<TopicFieldConfig> topicFieldConfigs;
@@ -51,6 +53,7 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "schema_registry_config") Map<String, String> schemaRegistryConfig,
             @JsonProperty(value = "record_format") RecordFormat recordFormat,
             @JsonProperty(value = "schema_mode") SchemaMode schemaMode,
+            @JsonProperty(value = "serde_type") String serdeType,
             @JsonProperty(value = "topic_field_configs", required = true) List<TopicFieldConfig> topicFieldConfigs) {
         this.keySource = keySource != null ? keySource : KryptoniteSettings.KEY_SOURCE_DEFAULT;
         this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT;
@@ -65,6 +68,7 @@ public class KryptoniteFilterConfig {
         this.schemaRegistryConfig = schemaRegistryConfig != null ? schemaRegistryConfig : Map.of();
         this.recordFormat = recordFormat != null ? recordFormat : RecordFormat.JSON_SR;
         this.schemaMode = schemaMode != null ? schemaMode : SchemaMode.DYNAMIC;
+        this.serdeType = serdeType != null ? serdeType : KryptoniteSettings.SERDE_TYPE_DEFAULT;
         this.topicFieldConfigs = topicFieldConfigs;
     }
 
@@ -81,5 +85,6 @@ public class KryptoniteFilterConfig {
     public Map<String, String> getSchemaRegistryConfig() { return schemaRegistryConfig; }
     public RecordFormat getRecordFormat() { return recordFormat; }
     public SchemaMode getSchemaMode() { return schemaMode; }
+    public String getSerdeType() { return serdeType; }
     public List<TopicFieldConfig> getTopicFieldConfigs() { return topicFieldConfigs; }
 }

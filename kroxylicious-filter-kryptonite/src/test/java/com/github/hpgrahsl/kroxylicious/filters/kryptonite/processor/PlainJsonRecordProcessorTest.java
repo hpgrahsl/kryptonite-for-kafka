@@ -8,8 +8,8 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
@@ -83,7 +83,7 @@ class PlainJsonRecordProcessorTest {
         @Test
         @DisplayName("integer field is replaced with encrypted Base64 string; other fields unchanged")
         void intFieldReplaced() throws Exception {
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             byte[] input = """
                     {"name":"Alice","age":30}""".getBytes();
 
@@ -94,13 +94,13 @@ class PlainJsonRecordProcessorTest {
             assertThat(out.get("name").asText()).isEqualTo("Alice");     // unchanged
             assertThat(out.get("age").isTextual()).isTrue();              // replaced with string
 
-            verify(kryptonite, times(1)).cipherField(any(), any());
+            verify(kryptonite, times(1)).cipherFieldRaw(any(), any());
         }
 
         @Test
         @DisplayName("string field is replaced with encrypted Base64 string, other fields unchanged")
         void stringFieldReplaced() throws Exception {
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             byte[] input = """
                     {"name":"Alice","age":30}""".getBytes();
 
@@ -115,7 +115,7 @@ class PlainJsonRecordProcessorTest {
         @Test
         @DisplayName("nested dot-path field is replaced; sibling fields unchanged")
         void nestedDotPathFieldReplaced() throws Exception {
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             byte[] input = """
                     {"person":{"name":"Alice","age":30}}""".getBytes();
 
@@ -138,7 +138,7 @@ class PlainJsonRecordProcessorTest {
 
             JsonNode out = MAPPER.readTree(result);
             assertThat(out.get("name").asText()).isEqualTo("Alice");
-            verify(kryptonite, times(0)).cipherField(any(), any());
+            verify(kryptonite, times(0)).cipherFieldRaw(any(), any());
         }
 
         @Test
@@ -150,7 +150,7 @@ class PlainJsonRecordProcessorTest {
             processor.encryptFields(input, TOPIC,
                     Set.of(FieldConfig.builder().name("name").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
 
-            verify(kryptonite, times(0)).cipherField(any(), any());
+            verify(kryptonite, times(0)).cipherFieldRaw(any(), any());
         }
 
         static Stream<Arguments> multiFieldCases() {
@@ -170,7 +170,7 @@ class PlainJsonRecordProcessorTest {
         void onlyTargetedFieldsEncrypted(String label, Set<FieldConfig> fieldConfigs,
                 String unencryptedField, boolean unused1,
                 String encryptedField, boolean unused2) throws Exception {
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             byte[] input = """
                     {"name":"Alice","age":30}""".getBytes();
 
@@ -200,7 +200,7 @@ class PlainJsonRecordProcessorTest {
         @Test
         @DisplayName("array field: each element individually encrypted")
         void arrayElementsEncryptedIndividually() throws Exception {
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             byte[] input = """
                     {"tags":["a","b","c"]}""".getBytes();
 
@@ -213,13 +213,13 @@ class PlainJsonRecordProcessorTest {
             assertThat(tags).hasSize(3);
             tags.forEach(el -> assertThat(el.isTextual()).isTrue());
 
-            verify(kryptonite, times(3)).cipherField(any(), any());
+            verify(kryptonite, times(3)).cipherFieldRaw(any(), any());
         }
 
         @Test
         @DisplayName("object field: each value individually encrypted; keys preserved")
         void objectValuesEncryptedIndividually() throws Exception {
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             byte[] input = """
                     {"labels":{"k1":"v1","k2":"v2"}}""".getBytes();
 
@@ -231,7 +231,7 @@ class PlainJsonRecordProcessorTest {
             assertThat(labels.get("k1").isTextual()).isTrue();
             assertThat(labels.get("k2").isTextual()).isTrue();
 
-            verify(kryptonite, times(2)).cipherField(any(), any());
+            verify(kryptonite, times(2)).cipherFieldRaw(any(), any());
         }
     }
 
@@ -246,9 +246,9 @@ class PlainJsonRecordProcessorTest {
         void encryptedStringFieldDecrypted() throws Exception {
             // Encode FAKE_EF as the "encrypted" field value in the input JSON
             String encryptedBase64 = encodeEf(FAKE_EF);
-            // Mock: decipherField returns Kryo-encoded int 30
+            // Mock: decipherFieldRaw returns Kryo-encoded int 30
             byte[] plaintextBytes = serdeBytes(IntNode.valueOf(30));
-            when(kryptonite.decipherField(any(EncryptedField.class))).thenReturn(plaintextBytes);
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class))).thenReturn(plaintextBytes);
 
             byte[] input = MAPPER.writeValueAsBytes(
                     MAPPER.createObjectNode()
@@ -272,7 +272,7 @@ class PlainJsonRecordProcessorTest {
             processor.decryptFields(input, TOPIC,
                     Set.of(FieldConfig.builder().name("name").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
 
-            verify(kryptonite, times(0)).decipherField(any(EncryptedField.class));
+            verify(kryptonite, times(0)).decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class));
         }
 
         @Test
@@ -284,7 +284,7 @@ class PlainJsonRecordProcessorTest {
             byte[] result = processor.decryptFields(input, TOPIC,
                     Set.of(FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
 
-            verify(kryptonite, times(0)).decipherField(any(EncryptedField.class));
+            verify(kryptonite, times(0)).decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class));
             // field unchanged
             assertThat(MAPPER.readTree(result).get("age").asInt()).isEqualTo(30);
         }
@@ -309,7 +309,7 @@ class PlainJsonRecordProcessorTest {
         @DisplayName("encrypted array elements are individually decrypted and original values restored")
         void arrayElementsDecryptedIndividually() throws Exception {
             String encBase64 = encodeEf(FAKE_EF);
-            when(kryptonite.decipherField(any(EncryptedField.class)))
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
                     .thenReturn(serdeBytes(TextNode.valueOf("x")))
                     .thenReturn(serdeBytes(TextNode.valueOf("y")));
 
@@ -324,14 +324,14 @@ class PlainJsonRecordProcessorTest {
             assertThat(tags.get(0).asText()).isEqualTo("x");
             assertThat(tags.get(1).asText()).isEqualTo("y");
 
-            verify(kryptonite, times(2)).decipherField(any(EncryptedField.class));
+            verify(kryptonite, times(2)).decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class));
         }
 
         @Test
         @DisplayName("encrypted object values are individually decrypted and original values restored")
         void objectValuesDecryptedIndividually() throws Exception {
             String encBase64 = encodeEf(FAKE_EF);
-            when(kryptonite.decipherField(any(EncryptedField.class)))
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
                     .thenReturn(serdeBytes(TextNode.valueOf("v1")))
                     .thenReturn(serdeBytes(TextNode.valueOf("v2")));
 

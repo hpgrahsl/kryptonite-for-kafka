@@ -4,8 +4,8 @@ import com.esotericsoftware.kryo.io.Output;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kryptonite.serdes.KryoInstance;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
+import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.AvroGenericRecordAccessor;
@@ -151,7 +151,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             byte[] avroPayload = avroSerialize(person, PERSON_ORIG);
             byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroPayload);
 
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
@@ -181,7 +181,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             byte[] avroPayload = avroSerialize(flat, FLAT_ORIG);
             byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroPayload);
 
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(FLAT_ORIG));
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
@@ -228,7 +228,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             byte[] avroPayload = avroSerialize(rec, ARRAY_ORIG);
             byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroPayload);
 
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(ARRAY_ORIG));
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
@@ -246,7 +246,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             assertThat(outTags).hasSize(3);
             outTags.forEach(el -> assertThat(el).isInstanceOf(CharSequence.class));
 
-            verify(kryptonite, times(3)).cipherField(any(), any());
+            verify(kryptonite, times(3)).cipherFieldRaw(any(), any());
         }
 
         @Test
@@ -262,7 +262,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             byte[] avroPayload = avroSerialize(person, PERSON_ORIG);
             byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroPayload);
 
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
@@ -280,7 +280,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             assertThat(outPersonal.get("age")).isInstanceOf(CharSequence.class);     // was int, now encrypted string
             assertThat(outPersonal.get("lastname")).isInstanceOf(CharSequence.class); // was string, now encrypted string
 
-            verify(kryptonite, times(2)).cipherField(any(), any()); // age + lastname
+            verify(kryptonite, times(2)).cipherFieldRaw(any(), any()); // age + lastname
         }
 
         @Test
@@ -293,7 +293,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             byte[] avroPayload = avroSerialize(rec, MAP_ORIG);
             byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroPayload);
 
-            when(kryptonite.cipherField(any(), any())).thenReturn(FAKE_EF);
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(MAP_ORIG));
             when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
@@ -311,7 +311,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             assertThat(outMetadata).hasSize(2);
             outMetadata.values().forEach(v -> assertThat(v).isInstanceOf(CharSequence.class));
 
-            verify(kryptonite, times(2)).cipherField(any(), any());
+            verify(kryptonite, times(2)).cipherFieldRaw(any(), any());
         }
     }
 
@@ -338,7 +338,7 @@ class AvroSchemaRegistryRecordProcessorTest {
 
             // decipherField returns Kryo bytes of int 42
             byte[] plaintextBytes = AvroGenericRecordAccessor.avroValueToBytes(42, SERDE);
-            when(kryptonite.decipherField(any(EncryptedField.class))).thenReturn(plaintextBytes);
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class))).thenReturn(plaintextBytes);
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, avroPayload));
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
             when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
@@ -389,7 +389,7 @@ class AvroSchemaRegistryRecordProcessorTest {
 
             byte[] agePlaintext = AvroGenericRecordAccessor.avroValueToBytes(42, SERDE);
             byte[] lastnamePlaintext = AvroGenericRecordAccessor.avroValueToBytes(new Utf8("Doe"), SERDE);
-            when(kryptonite.decipherField(any(EncryptedField.class)))
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
                     .thenReturn(agePlaintext)
                     .thenReturn(lastnamePlaintext);
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, avroPayload));
