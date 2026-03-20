@@ -30,6 +30,6 @@ import com.github.hpgrahsl.kryptonite.EncryptedField;
  * <p>Callers should use {@link FieldHandler#encryptField} and {@link FieldHandler#decryptField}
  * rather than working with this type directly.
  */
-public record FieldEnvelope(EncryptedField encryptedField, String serdeCode) {
+record FieldEnvelope(EncryptedField encryptedField, String serdeCode) {
 
 }
