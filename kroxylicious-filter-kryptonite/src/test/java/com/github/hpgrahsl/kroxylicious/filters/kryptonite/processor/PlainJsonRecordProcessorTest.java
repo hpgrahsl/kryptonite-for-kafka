@@ -49,6 +49,7 @@ class PlainJsonRecordProcessorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "test-topic";
     private static final String DEFAULT_KEY_ID = "keyA";
+    private static final String SERDE_TYPE = "KRYO";
 
     // A fake EncryptedField returned by the mock; encodeEncryptedField turns this into the Base64 wire value
     private static final EncryptedField FAKE_EF =
@@ -58,7 +59,7 @@ class PlainJsonRecordProcessorTest {
 
     @BeforeEach
     void setUp() {
-        processor = new PlainJsonRecordProcessor(kryptonite, SERDE, DEFAULT_KEY_ID);
+        processor = new PlainJsonRecordProcessor(kryptonite, SERDE_TYPE, DEFAULT_KEY_ID);
     }
 
     // ---- Shared helpers ----

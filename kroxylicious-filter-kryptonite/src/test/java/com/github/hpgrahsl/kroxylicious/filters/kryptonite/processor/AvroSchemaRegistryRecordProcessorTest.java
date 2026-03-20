@@ -62,6 +62,7 @@ class AvroSchemaRegistryRecordProcessorTest {
     private static final String DEFAULT_KEY_ID = "keyA";
 
     private static final SerdeProcessor SERDE = new KryoSerdeProcessor();
+    private static final String SERDE_TYPE = "KRYO";
 
     private static final EncryptedField FAKE_EF =
             new EncryptedField(new PayloadMetaData("1", "01", DEFAULT_KEY_ID), new byte[]{1, 2, 3, 4});
@@ -159,7 +160,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
 
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.encryptFields(wireBytes, TOPIC,
                     Set.of(FieldConfig.builder().name("personal.age").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
 
@@ -189,7 +190,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
 
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.encryptFields(wireBytes, TOPIC,
                     Set.of(FieldConfig.builder().name("value").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
 
@@ -203,7 +204,7 @@ class AvroSchemaRegistryRecordProcessorTest {
         @DisplayName("empty fieldConfigs returns input wire bytes unchanged")
         void emptyFieldConfigsReturnUnchanged() {
             byte[] inputWire = toWireBytes(ORIGINAL_ID, new byte[]{});
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.encryptFields(inputWire, TOPIC, Set.of());
             assertThat(result).isEqualTo(inputWire);
         }
@@ -236,7 +237,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
 
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.encryptFields(wireBytes, TOPIC,
                     Set.of(FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
 
@@ -270,7 +271,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
 
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.encryptFields(wireBytes, TOPIC,
                     Set.of(FieldConfig.builder().name("personal").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
 
@@ -301,7 +302,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
 
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.encryptFields(wireBytes, TOPIC,
                     Set.of(FieldConfig.builder().name("metadata").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
 
@@ -346,7 +347,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
 
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.decryptFields(wireBytes, TOPIC,
                     Set.of(FieldConfig.builder().name("personal.age").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
 
@@ -361,7 +362,7 @@ class AvroSchemaRegistryRecordProcessorTest {
         @DisplayName("empty fieldConfigs returns input wire bytes unchanged")
         void emptyFieldConfigsReturnUnchanged() {
             byte[] inputWire = toWireBytes(ENCRYPTED_ID, new byte[]{});
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.decryptFields(inputWire, TOPIC, Set.of());
             assertThat(result).isEqualTo(inputWire);
         }
@@ -399,7 +400,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
 
-            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+            var processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
             byte[] result = processor.decryptFields(wireBytes, TOPIC,
                     Set.of(FieldConfig.builder().name("personal").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
 

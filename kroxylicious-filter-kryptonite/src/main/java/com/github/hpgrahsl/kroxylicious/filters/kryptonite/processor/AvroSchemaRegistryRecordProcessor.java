@@ -1,15 +1,11 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.AvroGenericRecordAccessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
@@ -21,10 +17,8 @@ import org.apache.avro.generic.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,12 +27,9 @@ import java.util.Set;
  * {@link RecordValueProcessor} for Avro records via Confluent Schema Registry.
  *
  * <p>Handles SR wire format framing (strip / attach prefix) and delegates crypto to
- * {@link Kryptonite}. Field traversal uses {@link AvroGenericRecordAccessor}.
- *
- * <p>Plaintext bytes format: Kryo {@code writeClassAndObject} — same as all other Kryptonite
- * modules (Connect SMT, ksqlDB UDFs, Flink UDFs, Funqy). Cross-module compatible for all
- * Avro field types whose Kryo serializers are registered in
- * {@link com.github.hpgrahsl.kryptonite.serdes.KryoInstance}.
+ * {@link FieldHandler}, which owns the full encrypt/decrypt pipeline: serde selection,
+ * serialization, envelope assembly (k1/k2 wire format), Base64 encoding, and version sniffing.
+ * Field traversal uses {@link AvroGenericRecordAccessor}.
  *
  * <p>Supported field types: all Avro primitives (string/{@code Utf8}, int, long, float, double,
  * boolean, bytes/{@code ByteBuffer}) and complex types ({@code GenericData.Record},
@@ -52,14 +43,14 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private final Kryptonite kryptonite;
     private final SchemaRegistryAdapter adapter;
-    private final SerdeProcessor serdeProcessor;
+    private final String serdeType;
     private final String defaultKeyId;
 
     public AvroSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter,
-                                             SerdeProcessor serdeProcessor, String defaultKeyId) {
+                                             String serdeType, String defaultKeyId) {
         this.kryptonite = kryptonite;
         this.adapter = adapter;
-        this.serdeProcessor = serdeProcessor;
+        this.serdeType = serdeType;
         this.defaultKeyId = defaultKeyId;
     }
 
@@ -88,11 +79,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                             cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
-                    byte[] plaintext = AvroGenericRecordAccessor.avroValueToBytes(fieldValue, serdeProcessor);
-                    var payloadMetaData = buildPayloadMetaData(fc);
-                    byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext, payloadMetaData);
-                    EncryptedField ef = new EncryptedField(payloadMetaData, ciphertext);
-                    accessor.setField(fc.getName(), encodeEncryptedField(ef));
+                    accessor.setField(fc.getName(),
+                            FieldHandler.encryptField(fieldValue, buildPayloadMetaData(fc), kryptonite, serdeType));
                 }
             }
         }
@@ -102,9 +90,6 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         LOG.trace("encrypt: topic='{}' originalSchemaId={} encryptedSchemaId={}",
                 topicName, stripped.schemaId(), encryptedSchemaId);
 
-        // Wrap the mutated record with the encrypted schema so the writer uses the correct field types.
-        // The field values already match the encrypted schema (int fields are now strings, etc.),
-        // so no Avro schema evolution is needed — just a schema swap.
         Schema encryptedSchema = avroSchema(encryptedSchemaId);
         AvroGenericRecordAccessor encryptedAccessor =
                 AvroGenericRecordAccessor.of(accessor.getRecord(), encryptedSchema);
@@ -137,9 +122,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                             cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
-                    EncryptedField ef = decodeEncryptedField(cs.toString());
-                    byte[] plaintext = kryptonite.decipherFieldRaw(ef.ciphertext(), ef.getMetaData());
-                    accessor.setField(fc.getName(), AvroGenericRecordAccessor.bytesToAvroValue(plaintext, serdeProcessor));
+                    accessor.setField(fc.getName(), FieldHandler.decryptField(cs.toString(), kryptonite));
                 }
             }
         }
@@ -149,7 +132,6 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         LOG.trace("decrypt: topic='{}' encryptedSchemaId={} outputSchemaId={}",
                 topicName, stripped.schemaId(), outputSchemaId);
 
-        // Wrap the mutated record with the output schema — field values already match.
         Schema outputSchema = avroSchema(outputSchemaId);
         AvroGenericRecordAccessor outputAccessor =
                 AvroGenericRecordAccessor.of(accessor.getRecord(), outputSchema);
@@ -172,10 +154,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         } else {
             for (Object element : source) {
                 if (element == null) { result.add(null); continue; }
-                byte[] plaintext = AvroGenericRecordAccessor.avroValueToBytes(element, serdeProcessor);
-                byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext, buildPayloadMetaData(fc));
-                EncryptedField ef = new EncryptedField(buildPayloadMetaData(fc), ciphertext);
-                result.add(encodeEncryptedField(ef));
+                result.add(FieldHandler.encryptField(element, buildPayloadMetaData(fc), kryptonite, serdeType));
             }
         }
         return result;
@@ -195,10 +174,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         } else {
             source.forEach((k, v) -> {
                 if (v == null) { result.put(k, null); return; }
-                byte[] plaintext = AvroGenericRecordAccessor.avroValueToBytes(v, serdeProcessor);
-                byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext, buildPayloadMetaData(fc));
-                EncryptedField ef = new EncryptedField(buildPayloadMetaData(fc), ciphertext);
-                result.put(k, encodeEncryptedField(ef));
+                result.put(k, FieldHandler.encryptField(v, buildPayloadMetaData(fc), kryptonite, serdeType));
             });
         }
         return result;
@@ -222,9 +198,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             for (Object element : source) {
                 if (element == null) { result.add(null); continue; }
                 if (element instanceof CharSequence cs) {
-                    EncryptedField ef = decodeEncryptedField(cs.toString());
-                    byte[] plaintext = kryptonite.decipherFieldRaw(ef.ciphertext(), ef.getMetaData());
-                    result.add(AvroGenericRecordAccessor.bytesToAvroValue(plaintext, serdeProcessor));
+                    result.add(FieldHandler.decryptField(cs.toString(), kryptonite));
                 } else {
                     result.add(element);
                 }
@@ -249,9 +223,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         } else {
             source.forEach((k, v) -> {
                 if (v instanceof CharSequence cs) {
-                    EncryptedField ef = decodeEncryptedField(cs.toString());
-                    byte[] plaintext = kryptonite.decipherFieldRaw(ef.ciphertext(), ef.getMetaData());
-                    result.put(k, AvroGenericRecordAccessor.bytesToAvroValue(plaintext, serdeProcessor));
+                    result.put(k, FieldHandler.decryptField(cs.toString(), kryptonite));
                 } else {
                     result.put(k, v);
                 }
@@ -265,10 +237,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         for (Schema.Field f : source.getSchema().getFields()) {
             Object value = source.get(f.name());
             if (value == null) { result.put(f.name(), null); continue; }
-            byte[] plaintext = AvroGenericRecordAccessor.avroValueToBytes(value, serdeProcessor);
-            byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext, buildPayloadMetaData(fc));
-            EncryptedField ef = new EncryptedField(buildPayloadMetaData(fc), ciphertext);
-            result.put(f.name(), encodeEncryptedField(ef));
+            result.put(f.name(), FieldHandler.encryptField(value, buildPayloadMetaData(fc), kryptonite, serdeType));
         }
         return result;
     }
@@ -279,9 +248,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             Object value = source.get(f.name());
             if (value == null) { result.put(f.name(), null); continue; }
             if (value instanceof CharSequence cs) {
-                EncryptedField ef = decodeEncryptedField(cs.toString());
-                byte[] plaintext = kryptonite.decipherFieldRaw(ef.ciphertext(), ef.getMetaData());
-                result.put(f.name(), AvroGenericRecordAccessor.bytesToAvroValue(plaintext, serdeProcessor));
+                result.put(f.name(), FieldHandler.decryptField(cs.toString(), kryptonite));
             } else {
                 result.put(f.name(), value);
             }
@@ -344,16 +311,5 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         String algorithmId = Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(algorithm));
         String keyId = fc.getKeyId().orElse(defaultKeyId);
         return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
-    }
-
-    private static String encodeEncryptedField(EncryptedField ef) {
-        Output output = new Output(new ByteArrayOutputStream());
-        KryoInstance.get().writeObject(output, ef);
-        return Base64.getEncoder().encodeToString(output.toBytes());
-    }
-
-    private static EncryptedField decodeEncryptedField(String base64) {
-        byte[] decoded = Base64.getDecoder().decode(base64);
-        return KryoInstance.get().readObject(new Input(decoded), EncryptedField.class);
     }
 }

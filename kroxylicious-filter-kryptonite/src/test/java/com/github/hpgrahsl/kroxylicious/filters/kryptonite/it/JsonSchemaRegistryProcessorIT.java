@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.JsonSchemaRegistryRecordProcessor;
@@ -48,6 +47,7 @@ class JsonSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String DEFAULT_KEY_ID = "keyA";
+    private static final String SERDE_TYPE = "KRYO";
 
     private static SchemaRegistryClient srClient;
     private static Kryptonite kryptonite;
@@ -66,7 +66,7 @@ class JsonSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
     void setUpPerTest() {
         topic = "topic-" + UUID.randomUUID();
         adapter = new ConfluentSchemaRegistryAdapter(srClient);
-        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, new KryoSerdeProcessor(), DEFAULT_KEY_ID);
+        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
     }
 
     // ---- helpers ----

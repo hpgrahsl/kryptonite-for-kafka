@@ -1,25 +1,19 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Set;
 
 /**
@@ -27,18 +21,22 @@ import java.util.Set;
  *
  * <p>Owns all crypto and OBJECT/ELEMENT mode dispatch logic. Subclasses handle only
  * their wire format framing (SR prefix or raw bytes).
+ *
+ * <p>The full encrypt/decrypt pipeline (serde selection, serialization, envelope assembly,
+ * Base64 encoding, version sniffing) is delegated to {@link FieldHandler}, which ensures
+ * consistent wire format handling across all Kryptonite modules.
  */
 abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     protected final Kryptonite kryptonite;
-    protected final SerdeProcessor serdeProcessor;
+    protected final String serdeType;
     protected final String defaultKeyId;
 
-    protected AbstractJsonRecordProcessor(Kryptonite kryptonite, SerdeProcessor serdeProcessor, String defaultKeyId) {
+    protected AbstractJsonRecordProcessor(Kryptonite kryptonite, String serdeType, String defaultKeyId) {
         this.kryptonite = kryptonite;
-        this.serdeProcessor = serdeProcessor;
+        this.serdeType = serdeType;
         this.defaultKeyId = defaultKeyId;
     }
 
@@ -64,11 +62,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
-                    byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(node, serdeProcessor);
-                    var payloadMetaData = buildPayloadMetaData(fc);
-                    byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext,payloadMetaData);
-                    EncryptedField ef = new EncryptedField(payloadMetaData, ciphertext);
-                    accessor.setField(fc.getName(), encodeEncryptedField(ef));
+                    accessor.setField(fc.getName(),
+                            FieldHandler.encryptField(toJavaValue(node), buildPayloadMetaData(fc), kryptonite, serdeType));
                 }
             }
         }
@@ -96,9 +91,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     byte[] plaintext = kryptonite.decipherFieldFPE(ciphertext, buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
-                    EncryptedField ef = decodeEncryptedField(leafNode.asText());
                     accessor.setField(fc.getName(),
-                            JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherFieldRaw(ef.ciphertext(),ef.getMetaData()), serdeProcessor));
+                            toJsonNode(FieldHandler.decryptField(leafNode.asText(), kryptonite)));
                 }
             }
         }
@@ -119,11 +113,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (JsonNode element : source) {
-                byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(element, serdeProcessor);
-                var payloadMetaData = buildPayloadMetaData(fc);
-                byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext, payloadMetaData);
-                EncryptedField ef = new EncryptedField(payloadMetaData, ciphertext);
-                result.add(encodeEncryptedField(ef));
+                result.add(FieldHandler.encryptField(toJavaValue(element), buildPayloadMetaData(fc), kryptonite, serdeType));
             }
         }
         return result;
@@ -141,13 +131,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 result.put(entry.getKey(), new String(ciphertext, StandardCharsets.UTF_8));
             });
         } else {
-            source.properties().forEach(entry -> {
-                byte[] plaintext = JsonObjectNodeAccessor.nodeToBytes(entry.getValue(), serdeProcessor);
-                var payloadMetaData = buildPayloadMetaData(fc);
-                byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext, payloadMetaData);
-                EncryptedField ef = new EncryptedField(payloadMetaData, ciphertext);
-                result.put(entry.getKey(), encodeEncryptedField(ef));
-            });
+            source.properties().forEach(entry ->
+                result.put(entry.getKey(),
+                        FieldHandler.encryptField(toJavaValue(entry.getValue()), buildPayloadMetaData(fc), kryptonite, serdeType))
+            );
         }
         return result;
     }
@@ -165,8 +152,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             for (JsonNode element : source) {
                 if (element.isTextual()) {
-                    EncryptedField ef = decodeEncryptedField(element.asText());
-                    result.add(JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherFieldRaw(ef.ciphertext(), ef.getMetaData()), serdeProcessor));
+                    result.add(toJsonNode(FieldHandler.decryptField(element.asText(), kryptonite)));
                 } else {
                     result.add(element);
                 }
@@ -190,8 +176,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
                 if (value.isTextual()) {
-                    EncryptedField ef = decodeEncryptedField(value.asText());
-                    result.set(entry.getKey(), JsonObjectNodeAccessor.bytesToNode(kryptonite.decipherFieldRaw(ef.ciphertext(), ef.getMetaData()), serdeProcessor));
+                    result.set(entry.getKey(), toJsonNode(FieldHandler.decryptField(value.asText(), kryptonite)));
                 } else {
                     result.set(entry.getKey(), value);
                 }
@@ -238,14 +223,17 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
     }
 
-    protected static String encodeEncryptedField(EncryptedField encryptedField) {
-        Output output = new Output(new ByteArrayOutputStream());
-        KryoInstance.get().writeObject(output, encryptedField);
-        return Base64.getEncoder().encodeToString(output.toBytes());
+    // --- Conversion helpers ---
+
+    private static Object toJavaValue(JsonNode node) {
+        try {
+            return MAPPER.treeToValue(node, Object.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert JsonNode to Java value", e);
+        }
     }
 
-    protected static EncryptedField decodeEncryptedField(String base64) {
-        byte[] decoded = Base64.getDecoder().decode(base64);
-        return KryoInstance.get().readObject(new Input(decoded), EncryptedField.class);
+    private static JsonNode toJsonNode(Object value) {
+        return MAPPER.valueToTree(value);
     }
 }

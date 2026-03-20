@@ -53,6 +53,7 @@ class JsonSchemaRegistryRecordProcessorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "test-topic";
     private static final String DEFAULT_KEY_ID = "keyA";
+    private static final String SERDE_TYPE = "KRYO";
     private static final int ORIGINAL_ID = 1;
     private static final int ENCRYPTED_ID = 42;
     private static final int PARTIAL_DECRYPT_ID = 99;
@@ -64,7 +65,7 @@ class JsonSchemaRegistryRecordProcessorTest {
 
     @BeforeEach
     void setUp() {
-        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE, DEFAULT_KEY_ID);
+        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
     }
 
     // ---- Shared helpers ----

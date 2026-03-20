@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import org.junit.jupiter.api.BeforeAll;
@@ -38,6 +37,7 @@ class FpeRoundTripTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "test-topic";
     private static final String DEFAULT_KEY_ID = "keyC";
+    private static final String SERDE_TYPE = "KRYO";
     private static final String FPE_ALGORITHM = "CUSTOM/MYSTO_FPE_FF3_1";
 
     private static PlainJsonRecordProcessor processor;
@@ -45,7 +45,7 @@ class FpeRoundTripTest {
     @BeforeAll
     static void setUpProcessor() {
         Kryptonite kryptonite = TestFixtures.fpeKryptonite();
-        processor = new PlainJsonRecordProcessor(kryptonite, new KryoSerdeProcessor(), DEFAULT_KEY_ID);
+        processor = new PlainJsonRecordProcessor(kryptonite, SERDE_TYPE, DEFAULT_KEY_ID);
     }
 
     /**

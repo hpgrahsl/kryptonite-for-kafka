@@ -1,7 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
@@ -24,8 +23,8 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
 
     private final SchemaRegistryAdapter adapter;
 
-    public JsonSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter, SerdeProcessor serdeProcessor, String defaultKeyId) {
-        super(kryptonite, serdeProcessor, defaultKeyId);
+    public JsonSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter, String serdeType, String defaultKeyId) {
+        super(kryptonite, serdeType, defaultKeyId);
         this.adapter = adapter;
     }
 

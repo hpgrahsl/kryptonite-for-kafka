@@ -3,7 +3,6 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.it;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.AvroSchemaRegistryRecordProcessor;
@@ -55,6 +54,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String DEFAULT_KEY_ID = "keyA";
+    private static final String SERDE_TYPE = "KRYO";
 
     // ---- Flat schema: id(string), value(double), label(string) ----
     private static final Schema FLAT_ORIG = SchemaBuilder
@@ -108,7 +108,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
     void setUpPerTest() {
         topic = "topic-" + UUID.randomUUID();
         adapter = new ConfluentSchemaRegistryAdapter(srClient);
-        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, new KryoSerdeProcessor(), DEFAULT_KEY_ID);
+        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
     }
 
     // ---- helpers ----
