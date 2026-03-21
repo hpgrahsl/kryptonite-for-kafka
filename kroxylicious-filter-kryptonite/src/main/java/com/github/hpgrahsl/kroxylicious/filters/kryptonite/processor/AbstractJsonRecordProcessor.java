@@ -66,7 +66,42 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(fieldConverter.toCanonical(toJavaValue(node), fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+                }
+            }
+        }
+        return accessor.serialize();
+    }
+
+    /**
+     * Parses {@code jsonBytes}, encrypts the configured fields (OBJECT or ELEMENT mode),
+     * and returns the serialized result, with opt-in schema caching.
+     *
+     * <p>For each field, the schema cache key is derived as {@code topicName + "." + fieldPath}.
+     * This is stable for topic-scoped callers where records on the same topic are structurally
+     * uniform. Use this overload only when that assumption holds (e.g. {@link PlainJsonRecordProcessor}).
+     */
+    protected byte[] encryptJsonPayload(byte[] jsonBytes, Set<FieldConfig> fieldConfigs, String topicName) {
+        JsonObjectNodeAccessor accessor = JsonObjectNodeAccessor.from(jsonBytes);
+        for (FieldConfig fc : fieldConfigs) {
+            Object fieldValue = accessor.getField(fc.getName());
+            if (fieldValue == null) continue;
+            JsonNode node = (JsonNode) fieldValue;
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
+            String schemaCacheKey = topicName + "." + fc.getName();
+            if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
+                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, schemaCacheKey));
+            } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
+                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
+            } else {
+                if (isFpe(fc)) {
+                    if (!node.isTextual()) continue;
+                    byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
+                    accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
+                } else {
+                    accessor.setField(fc.getName(),
+                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType, schemaCacheKey), buildPayloadMetaData(fc), kryptonite, serdeType));
                 }
             }
         }
@@ -95,7 +130,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            toJsonNode(fieldConverter.fromCanonical(FieldHandler.decryptField(leafNode.asText(), kryptonite))));
+                            fieldConverter.fromCanonicalAsJsonNode(FieldHandler.decryptField(leafNode.asText(), kryptonite)));
                 }
             }
         }
@@ -105,6 +140,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
     // --- ELEMENT mode helpers ---
 
     private ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc) {
+        return encryptArrayElements(source, fc, null);
+    }
+
+    private ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc, String schemaCacheKey) {
         ArrayNode result = MAPPER.createArrayNode();
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
@@ -116,13 +155,17 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (JsonNode element : source) {
-                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(toJavaValue(element), fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, fc.getName(), serdeType, schemaCacheKey), buildPayloadMetaData(fc), kryptonite, serdeType));
             }
         }
         return result;
     }
 
     private ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc) {
+        return encryptObjectValues(source, fc, null);
+    }
+
+    private ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc, String schemaCacheKey) {
         ObjectNode result = MAPPER.createObjectNode();
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
@@ -136,7 +179,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             source.properties().forEach(entry ->
                 result.put(entry.getKey(),
-                        FieldHandler.encryptField(fieldConverter.toCanonical(toJavaValue(entry.getValue()), fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType))
+                        FieldHandler.encryptField(fieldConverter.toCanonical(entry.getValue(), fc.getName(), serdeType, schemaCacheKey), buildPayloadMetaData(fc), kryptonite, serdeType))
             );
         }
         return result;
@@ -155,7 +198,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             for (JsonNode element : source) {
                 if (element.isTextual()) {
-                    result.add(toJsonNode(fieldConverter.fromCanonical(FieldHandler.decryptField(element.asText(), kryptonite))));
+                    result.add(fieldConverter.fromCanonicalAsJsonNode(FieldHandler.decryptField(element.asText(), kryptonite)));
                 } else {
                     result.add(element);
                 }
@@ -179,7 +222,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
                 if (value.isTextual()) {
-                    result.set(entry.getKey(), toJsonNode(fieldConverter.fromCanonical(FieldHandler.decryptField(value.asText(), kryptonite))));
+                    result.set(entry.getKey(), fieldConverter.fromCanonicalAsJsonNode(FieldHandler.decryptField(value.asText(), kryptonite)));
                 } else {
                     result.set(entry.getKey(), value);
                 }
@@ -226,17 +269,4 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
     }
 
-    // --- Conversion helpers ---
-
-    private static Object toJavaValue(JsonNode node) {
-        try {
-            return MAPPER.treeToValue(node, Object.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to convert JsonNode to Java value", e);
-        }
-    }
-
-    private static JsonNode toJsonNode(Object value) {
-        return MAPPER.valueToTree(value);
-    }
 }
