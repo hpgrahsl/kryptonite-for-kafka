@@ -78,6 +78,35 @@ public class MapFieldConverter {
     }
 
     /**
+     * Prepares a field value for encryption with opt-in schema caching.
+     *
+     * <p>Behaves identically to {@link #toCanonical(Object, String, String)} except that
+     * when {@code schemaCacheKey} is non-null it is forwarded to
+     * {@link JsonAvroConverter#toAvroGeneric(com.fasterxml.jackson.databind.JsonNode, String, String)}
+     * to enable schema caching. When {@code schemaCacheKey} is {@code null} this is
+     * equivalent to calling {@link #toCanonical(Object, String, String)}.
+     *
+     * <p>Callers in topic-scoped contexts (Kroxylicious proxy, Connect schemaless) should
+     * pass a stable key such as {@code "topicName.fieldPath"} to avoid redundant schema
+     * derivation for structurally identical records on the same topic. Callers without a
+     * stable key (e.g. Funqy HTTP) should use {@link #toCanonical(Object, String, String)}.
+     *
+     * @param value          the plaintext field value
+     * @param fieldPath      field path used as Avro record name
+     * @param serdeName      the configured serde name (e.g. {@code "AVRO"})
+     * @param schemaCacheKey stable cache key, or {@code null} to skip caching
+     * @return value ready to pass to {@link com.github.hpgrahsl.kryptonite.serdes.FieldHandler#encryptField}
+     */
+    public Object toCanonical(Object value, String fieldPath, String serdeName, String schemaCacheKey) {
+        if (KryptoniteSettings.SerdeType.AVRO.name().equals(serdeName)) {
+            var node = MAPPER.<JsonNode>valueToTree(value);
+            var recordName = fieldPath != null ? fieldPath : node.getNodeType().name();
+            return avroConverter.toAvroGeneric(node, recordName, schemaCacheKey);
+        }
+        return value;
+    }
+
+    /**
      * Converts serde output back to plain Java types after decryption.
      *
      * <ul>

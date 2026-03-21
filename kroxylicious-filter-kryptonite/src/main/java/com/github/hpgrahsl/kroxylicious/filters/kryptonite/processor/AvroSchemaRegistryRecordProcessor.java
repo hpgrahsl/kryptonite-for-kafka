@@ -5,6 +5,7 @@ import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
+import com.github.hpgrahsl.kryptonite.converters.KroxyliciousFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.AvroGenericRecordAccessor;
@@ -45,6 +46,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
     private final SchemaRegistryAdapter adapter;
     private final String serdeType;
     private final String defaultKeyId;
+    private final KroxyliciousFieldConverter fieldConverter = new KroxyliciousFieldConverter();
 
     public AvroSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter,
                                              String serdeType, String defaultKeyId) {
@@ -67,9 +69,11 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
 
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof List<?> list) {
-                accessor.setField(fc.getName(), encryptListElements(list, fc));
+                Schema elementSchema = resolveFieldSchema(schema, fc.getName()).getElementType();
+                accessor.setField(fc.getName(), encryptListElements(list, fc, elementSchema));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof Map<?, ?> map) {
-                accessor.setField(fc.getName(), encryptMapValues(map, fc));
+                Schema valueSchema = resolveFieldSchema(schema, fc.getName()).getValueType();
+                accessor.setField(fc.getName(), encryptMapValues(map, fc, valueSchema));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof GenericRecord record) {
                 accessor.setField(fc.getName(), encryptRecordFieldValues(record, fc));
             } else {
@@ -79,8 +83,9 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                             cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
+                    Schema fieldSchema = resolveFieldSchema(schema, fc.getName());
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(fieldValue, buildPayloadMetaData(fc), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(fieldValue, fieldSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
                 }
             }
         }
@@ -122,7 +127,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                             cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
-                    accessor.setField(fc.getName(), FieldHandler.decryptField(cs.toString(), kryptonite));
+                    accessor.setField(fc.getName(),
+                            fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
                 }
             }
         }
@@ -140,7 +146,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     // ---- ELEMENT mode helpers ----
 
-    private List<Object> encryptListElements(List<?> source, FieldConfig fc) {
+    private List<Object> encryptListElements(List<?> source, FieldConfig fc, Schema elementSchema) {
         List<Object> result = new ArrayList<>();
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
@@ -154,13 +160,13 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         } else {
             for (Object element : source) {
                 if (element == null) { result.add(null); continue; }
-                result.add(FieldHandler.encryptField(element, buildPayloadMetaData(fc), kryptonite, serdeType));
+                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, elementSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
             }
         }
         return result;
     }
 
-    private Map<Object, Object> encryptMapValues(Map<?, ?> source, FieldConfig fc) {
+    private Map<Object, Object> encryptMapValues(Map<?, ?> source, FieldConfig fc, Schema valueSchema) {
         Map<Object, Object> result = new java.util.LinkedHashMap<>();
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
@@ -174,7 +180,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         } else {
             source.forEach((k, v) -> {
                 if (v == null) { result.put(k, null); return; }
-                result.put(k, FieldHandler.encryptField(v, buildPayloadMetaData(fc), kryptonite, serdeType));
+                result.put(k, FieldHandler.encryptField(fieldConverter.toCanonical(v, valueSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
             });
         }
         return result;
@@ -198,7 +204,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             for (Object element : source) {
                 if (element == null) { result.add(null); continue; }
                 if (element instanceof CharSequence cs) {
-                    result.add(FieldHandler.decryptField(cs.toString(), kryptonite));
+                    result.add(fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
                 } else {
                     result.add(element);
                 }
@@ -223,7 +229,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         } else {
             source.forEach((k, v) -> {
                 if (v instanceof CharSequence cs) {
-                    result.put(k, FieldHandler.decryptField(cs.toString(), kryptonite));
+                    result.put(k, fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
                 } else {
                     result.put(k, v);
                 }
@@ -237,7 +243,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         for (Schema.Field f : source.getSchema().getFields()) {
             Object value = source.get(f.name());
             if (value == null) { result.put(f.name(), null); continue; }
-            result.put(f.name(), FieldHandler.encryptField(value, buildPayloadMetaData(fc), kryptonite, serdeType));
+            result.put(f.name(), FieldHandler.encryptField(fieldConverter.toCanonical(value, f.schema(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
         }
         return result;
     }
@@ -248,12 +254,34 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             Object value = source.get(f.name());
             if (value == null) { result.put(f.name(), null); continue; }
             if (value instanceof CharSequence cs) {
-                result.put(f.name(), FieldHandler.decryptField(cs.toString(), kryptonite));
+                result.put(f.name(), fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
             } else {
                 result.put(f.name(), value);
             }
         }
         return result;
+    }
+
+    /**
+     * Resolves the Avro {@link Schema} for a (possibly dot-path) field name by traversing
+     * the record schema. Unwraps nullable unions at each step.
+     */
+    private static Schema resolveFieldSchema(Schema schema, String dotPath) {
+        Schema current = schema;
+        for (String part : dotPath.split("\\.")) {
+            if (current.getType() == Schema.Type.UNION) {
+                current = current.getTypes().stream()
+                        .filter(t -> t.getType() != Schema.Type.NULL)
+                        .findFirst().orElseThrow();
+            }
+            current = current.getField(part).schema();
+        }
+        if (current.getType() == Schema.Type.UNION) {
+            current = current.getTypes().stream()
+                    .filter(t -> t.getType() != Schema.Type.NULL)
+                    .findFirst().orElseThrow();
+        }
+        return current;
     }
 
     // ---- Schema helpers ----

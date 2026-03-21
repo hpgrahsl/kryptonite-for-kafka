@@ -9,6 +9,7 @@ import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
+import com.github.hpgrahsl.kryptonite.converters.MapFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
@@ -29,6 +30,8 @@ import java.util.Set;
 abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private final MapFieldConverter fieldConverter = new MapFieldConverter();
 
     protected final Kryptonite kryptonite;
     protected final String serdeType;
@@ -63,7 +66,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(toJavaValue(node), buildPayloadMetaData(fc), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(toJavaValue(node), fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
                 }
             }
         }
@@ -92,7 +95,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            toJsonNode(FieldHandler.decryptField(leafNode.asText(), kryptonite)));
+                            toJsonNode(fieldConverter.fromCanonical(FieldHandler.decryptField(leafNode.asText(), kryptonite))));
                 }
             }
         }
@@ -113,7 +116,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (JsonNode element : source) {
-                result.add(FieldHandler.encryptField(toJavaValue(element), buildPayloadMetaData(fc), kryptonite, serdeType));
+                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(toJavaValue(element), fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
             }
         }
         return result;
@@ -133,7 +136,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             source.properties().forEach(entry ->
                 result.put(entry.getKey(),
-                        FieldHandler.encryptField(toJavaValue(entry.getValue()), buildPayloadMetaData(fc), kryptonite, serdeType))
+                        FieldHandler.encryptField(fieldConverter.toCanonical(toJavaValue(entry.getValue()), fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType))
             );
         }
         return result;
@@ -152,7 +155,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             for (JsonNode element : source) {
                 if (element.isTextual()) {
-                    result.add(toJsonNode(FieldHandler.decryptField(element.asText(), kryptonite)));
+                    result.add(toJsonNode(fieldConverter.fromCanonical(FieldHandler.decryptField(element.asText(), kryptonite))));
                 } else {
                     result.add(element);
                 }
@@ -176,7 +179,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
                 if (value.isTextual()) {
-                    result.set(entry.getKey(), toJsonNode(FieldHandler.decryptField(value.asText(), kryptonite)));
+                    result.set(entry.getKey(), toJsonNode(fieldConverter.fromCanonical(FieldHandler.decryptField(value.asText(), kryptonite))));
                 } else {
                     result.set(entry.getKey(), value);
                 }

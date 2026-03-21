@@ -36,6 +36,7 @@ import org.apache.avro.util.Utf8;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Converts between {@link JsonNode} and Avro generic values.
@@ -45,6 +46,12 @@ import java.util.Map;
  *
  * <p>On the encode side ({@link #toAvroGeneric}), schema derivation is delegated to
  * {@link JsonSchemaDeriver}, which is stateless and derives fresh on every call.
+ * An opt-in overload {@link #toAvroGeneric(JsonNode, String, String)} accepts a
+ * {@code schemaCacheKey} — when non-null, the derived schema is cached in a
+ * {@link ConcurrentHashMap} keyed by that value, and subsequent calls with the same
+ * key skip derivation entirely. Callers in topic-scoped contexts (e.g. Kroxylicious
+ * proxy, Connect schemaless) should pass a stable key such as
+ * {@code "topicName.fieldPath"}.
  * On the decode side ({@link #fromAvroGeneric}), the schema comes from the caller
  * (extracted from the wire bytes by the serde layer).
  *
@@ -57,13 +64,41 @@ public class JsonAvroConverter {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final JsonSchemaDeriver schemaDeriver = new JsonSchemaDeriver();
+    private final ConcurrentHashMap<String, Schema> schemaCache = new ConcurrentHashMap<>();
 
     /**
      * Converts a {@link JsonNode} to an {@link AvroPayload} (Avro generic value + schema).
-     * The schema is derived from the node's structure and cached by field path.
+     * Schema is derived fresh on every call — no caching. Use
+     * {@link #toAvroGeneric(JsonNode, String, String)} when a stable cache key is available.
      */
     public AvroPayload toAvroGeneric(JsonNode node, String fieldPath) {
         var schema = schemaDeriver.derive(node, fieldPath);
+        return new AvroPayload(jsonNodeToAvro(node, schema), schema);
+    }
+
+    /**
+     * Converts a {@link JsonNode} to an {@link AvroPayload} with opt-in schema caching.
+     *
+     * <p>When {@code schemaCacheKey} is non-null the derived schema is stored in an
+     * internal {@link ConcurrentHashMap} on first call and reused on subsequent calls
+     * with the same key, avoiding repeated schema derivation for structurally identical
+     * records. When {@code schemaCacheKey} is {@code null} this behaves identically to
+     * {@link #toAvroGeneric(JsonNode, String)}.
+     *
+     * <p>Callers in topic-scoped contexts should pass a key of the form
+     * {@code "topicName.fieldPath"} (e.g. {@code "orders.customer.address"}) which is
+     * stable for the lifetime of the filter/handler instance, since records on the same
+     * topic are structurally uniform by definition.
+     *
+     * @param node           the JSON value to convert
+     * @param fieldPath      field path used as the Avro record name (schema correctness)
+     * @param schemaCacheKey stable cache key, or {@code null} to skip caching
+     */
+    public AvroPayload toAvroGeneric(JsonNode node, String fieldPath, String schemaCacheKey) {
+        if (schemaCacheKey == null) {
+            return toAvroGeneric(node, fieldPath);
+        }
+        var schema = schemaCache.computeIfAbsent(schemaCacheKey, k -> schemaDeriver.derive(node, fieldPath));
         return new AvroPayload(jsonNodeToAvro(node, schema), schema);
     }
 
