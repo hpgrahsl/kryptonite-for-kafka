@@ -32,7 +32,7 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
     public byte[] encryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
         if (fieldConfigs.isEmpty()) return wireBytes;
         SchemaIdAndPayload stripped = adapter.stripPrefix(wireBytes);
-        byte[] encryptedPayload = encryptJsonPayload(stripped.payload(), fieldConfigs);
+        byte[] encryptedPayload = encryptJsonPayload(stripped.payload(), fieldConfigs, topicName);
         int encryptedSchemaId = adapter.getOrRegisterEncryptedSchemaId(
                 stripped.schemaId(), topicName, fieldConfigs);
         LOG.trace("encrypt: topic='{}' originalSchemaId={} encryptedSchemaId={}",
