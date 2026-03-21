@@ -95,7 +95,7 @@ public class JsonAvroConverter {
      * @param schemaCacheKey stable cache key, or {@code null} to skip caching
      */
     public AvroPayload toAvroGeneric(JsonNode node, String fieldPath, String schemaCacheKey) {
-        if (schemaCacheKey == null) {
+        if (schemaCacheKey == null || node.isNull()) {
             return toAvroGeneric(node, fieldPath);
         }
         var schema = schemaCache.computeIfAbsent(schemaCacheKey, k -> schemaDeriver.derive(node, fieldPath));
