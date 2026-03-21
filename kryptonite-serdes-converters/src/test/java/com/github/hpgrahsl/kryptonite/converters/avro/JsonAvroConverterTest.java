@@ -111,6 +111,32 @@ class JsonAvroConverterTest {
         assertEquals(node, result);
     }
 
+    // --- caching overload ---
+
+    @Test
+    void cachingOverload_nullFirstThenNonNull_cacheNotPoisoned() throws Exception {
+        // Regression: if the first value for a cache key is null, Schema.create(NULL) must NOT
+        // be written to the cache — otherwise the subsequent non-null value would be processed
+        // with a NULL schema and silently produce wrong results.
+        var cacheKey = "my-topic.field";
+
+        var nullNode = NullNode.getInstance();
+        var payload1 = converter.toAvroGeneric(nullNode, "field", cacheKey);
+        assertNull(payload1.value());
+        assertEquals(Schema.Type.NULL, payload1.schema().getType());
+
+        // Second call: non-null string — must derive STRING schema, not use cached NULL
+        var stringNode = MAPPER.readTree("\"hello\"");
+        var payload2 = converter.toAvroGeneric(stringNode, "field", cacheKey);
+        assertInstanceOf(Utf8.class, payload2.value());
+        assertEquals(Schema.Type.STRING, payload2.schema().getType());
+
+        // Third call: non-null string again — now the cache has STRING, must be a cache hit
+        var payload3 = converter.toAvroGeneric(MAPPER.readTree("\"world\""), "field", cacheKey);
+        assertInstanceOf(Utf8.class, payload3.value());
+        assertEquals(Schema.Type.STRING, payload3.schema().getType());
+    }
+
     // --- array round-trips ---
 
     @Test
