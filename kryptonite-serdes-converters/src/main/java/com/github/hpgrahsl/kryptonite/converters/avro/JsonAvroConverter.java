@@ -103,6 +103,20 @@ public class JsonAvroConverter {
     }
 
     /**
+     * Converts a {@link JsonNode} to an {@link AvroPayload} using a caller-supplied Avro schema.
+     *
+     * <p>No schema derivation occurs — the provided schema is used directly. Use this overload
+     * when the Avro schema is already known (e.g. translated from a Schema Registry JSON Schema
+     * document) to avoid redundant derivation entirely.
+     *
+     * @param node   the JSON value to convert
+     * @param schema the Avro schema to use for encoding (must match the structure of {@code node})
+     */
+    public AvroPayload toAvroGeneric(JsonNode node, Schema schema) {
+        return new AvroPayload(jsonNodeToAvro(node, schema), schema);
+    }
+
+    /**
      * Converts an Avro generic value back to a {@link JsonNode} using the provided schema.
      */
     public JsonNode fromAvroGeneric(Object value, Schema schema) {

@@ -22,6 +22,7 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.converters.avro.JsonAvroConverter;
 import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
 import com.github.hpgrahsl.kryptonite.serdes.avro.AvroPayload;
+import org.apache.avro.Schema;
 
 /**
  * Converter between {@code Map<String, Object>} field values and the serde canonical format.
@@ -141,6 +142,32 @@ public class MapFieldConverter {
         if (KryptoniteSettings.SerdeType.AVRO.name().equals(serdeName)) {
             var recordName = fieldPath != null ? fieldPath : node.getNodeType().name();
             return avroConverter.toAvroGeneric(node, recordName, schemaCacheKey);
+        }
+        try {
+            return MAPPER.treeToValue(node, Object.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert JsonNode to Java value", e);
+        }
+    }
+
+    /**
+     * Prepares a {@link JsonNode} field value for encryption using a caller-supplied Avro schema,
+     * bypassing both the {@code Object → JsonNode} roundtrip and schema derivation entirely.
+     *
+     * <p>Use this overload when the Avro schema is already known (e.g. translated from a Schema
+     * Registry JSON Schema document). For AVRO serde the provided schema is forwarded directly to
+     * {@link JsonAvroConverter#toAvroGeneric(JsonNode, Schema)} — no {@link
+     * com.github.hpgrahsl.kryptonite.converters.avro.JsonSchemaDeriver} involvement. For KRYO
+     * serde the {@code schema} parameter is ignored and {@code treeToValue} is used as usual.
+     *
+     * @param node      the plaintext field value as a {@link JsonNode}
+     * @param fieldPath field path (unused for schema resolution here, kept for API symmetry)
+     * @param serdeName the configured serde name (e.g. {@code "AVRO"})
+     * @param schema    the Avro schema to use directly; ignored for non-AVRO serdes
+     */
+    public Object toCanonical(JsonNode node, String fieldPath, String serdeName, Schema schema) {
+        if (KryptoniteSettings.SerdeType.AVRO.name().equals(serdeName)) {
+            return avroConverter.toAvroGeneric(node, schema);
         }
         try {
             return MAPPER.treeToValue(node, Object.class);
