@@ -15,6 +15,7 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -32,6 +33,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -278,6 +280,155 @@ class JsonSchemaRegistryRecordProcessorTest {
             byte[] result = processor.decryptFields(inputWire, TOPIC, Set.of());
             assertThat(result).isEqualTo(inputWire);
             verify(adapter, times(0)).stripPrefix(any());
+        }
+    }
+
+    // ---- encryptFields — AVRO serde path (SR JSON Schema → Avro schema) ----
+
+    @Nested
+    @DisplayName("encryptFields — AVRO serde (SR schema path)")
+    class EncryptFieldsAvroSerde {
+
+        private static final String SERDE_TYPE_AVRO = "AVRO";
+
+        /** Flat JSON Schema with a required string field and a required integer field. */
+        private static final String FLAT_JSON_SCHEMA = """
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string"},
+                    "age":  {"type": "integer"}
+                  },
+                  "required": ["name", "age"]
+                }
+                """;
+
+        private JsonSchemaRegistryRecordProcessor avroProcessor;
+
+        @org.junit.jupiter.api.BeforeEach
+        void setUpAvro() {
+            avroProcessor = new JsonSchemaRegistryRecordProcessor(
+                    kryptonite, adapter, SERDE_TYPE_AVRO, DEFAULT_KEY_ID);
+        }
+
+        @Test
+        @DisplayName("AVRO serde: field encrypted using SR-derived schema; output is base64 string")
+        void avroFieldEncryptedWithSrSchema() throws Exception {
+            byte[] jsonPayload = """
+                    {"name":"Alice","age":30}""".getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new JsonSchema(FLAT_JSON_SCHEMA));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            byte[] result = avroProcessor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
+
+            assertThat(readSchemaId(result)).isEqualTo(ENCRYPTED_ID);
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            assertThat(out.get("name").asText()).isEqualTo("Alice"); // unchanged
+            assertThat(out.get("age").isTextual()).isTrue();          // encrypted → base64 string
+        }
+
+        @Test
+        @DisplayName("AVRO serde: adapter.fetchSchema called exactly once per schemaId (cache hit on second call)")
+        void srSchemaFetchedOncePerSchemaId() throws Exception {
+            byte[] jsonPayload = """
+                    {"name":"Alice","age":30}""".getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new JsonSchema(FLAT_JSON_SCHEMA));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+            when(adapter.getOrRegisterEncryptedSchemaId(any(Integer.class), any(), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(any(Integer.class), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            var fieldConfigs = Set.of(FieldConfig.builder().name("age").build());
+
+            // Two records on same topic with same schemaId
+            avroProcessor.encryptFields(inputWire, TOPIC, fieldConfigs);
+            avroProcessor.encryptFields(inputWire, TOPIC, fieldConfigs);
+
+            // fetchSchema called only once — second record is a cache hit
+            verify(adapter, times(1)).fetchSchema(ORIGINAL_ID);
+        }
+
+        @Test
+        @DisplayName("AVRO serde: nested dot-path field resolved via JsonPointer navigation")
+        void avroNestedFieldResolvedViaJsonPointer() throws Exception {
+            String nestedSchema = """
+                    {
+                      "type": "object",
+                      "properties": {
+                        "person": {
+                          "type": "object",
+                          "properties": {
+                            "age": {"type": "integer"}
+                          },
+                          "required": ["age"]
+                        }
+                      },
+                      "required": ["person"]
+                    }
+                    """;
+            byte[] jsonPayload = """
+                    {"person":{"age":25}}""".getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new JsonSchema(nestedSchema));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+            when(adapter.getOrRegisterEncryptedSchemaId(any(Integer.class), any(), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(any(Integer.class), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            byte[] result = avroProcessor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("person.age").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
+
+            // Encrypted field at the nested path should be a base64 string
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            assertThat(out.get("person").get("age").isTextual()).isTrue();
+        }
+
+        @Test
+        @DisplayName("AVRO serde: field path not found in JSON Schema → IllegalArgumentException")
+        void fieldPathNotFoundThrows() {
+            byte[] jsonPayload = """
+                    {"nonexistent": 42}""".getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new JsonSchema(FLAT_JSON_SCHEMA));
+
+            assertThatThrownBy(() -> avroProcessor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("nonexistent").build())))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("nonexistent");
+        }
+
+        @Test
+        @DisplayName("AVRO serde: KRYO path used when serdeType is KRYO — fetchSchema never called")
+        void kryoSerdeSkipsSrSchemaPath() {
+            byte[] jsonPayload = """
+                    {"age":30}""".getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            // KRYO processor (the default setUp one)
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+            when(adapter.getOrRegisterEncryptedSchemaId(any(Integer.class), any(), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(any(Integer.class), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            processor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("age").build()));
+
+            verify(adapter, times(0)).fetchSchema(anyInt());
         }
     }
 }

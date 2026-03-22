@@ -1,13 +1,25 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.JsonSchemaToAvroSchemaTranslator;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
+import io.confluent.kafka.schemaregistry.json.JsonSchema;
+import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@link RecordValueProcessor} for JSON Schema records via Confluent Schema Registry.
@@ -16,12 +28,32 @@ import java.util.Set;
  * dispatch. This class handles only the SR wire format framing:
  * strip {@code [magic][schemaId]} prefix → process JSON → resolve/register output schema
  * ID → attach prefix.
+ *
+ * <p><b>Encrypt path — AVRO serde:</b> the JSON Schema document for the record is fetched from
+ * SR (the SR client caches this internally). For each field configured in OBJECT mode the
+ * field's sub-schema is extracted via {@link com.fasterxml.jackson.core.JsonPointer} and
+ * translated to an Avro {@link Schema} by {@link JsonSchemaToAvroSchemaTranslator}. The
+ * translated schema is cached by {@code (schemaId, fieldPath)} so only the first record per
+ * topic+field pays the translation cost. Subsequent records are pure cache hits.
+ * ELEMENT mode fields and FPE fields fall back to the value-derived schema path inherited
+ * from {@link AbstractJsonRecordProcessor}.
+ *
+ * <p><b>Encrypt path — non-AVRO serde (KRYO):</b> delegates directly to the base class
+ * {@code encryptJsonPayload} with topic-scoped schema caching (Part 1).
+ *
+ * <p><b>Decrypt path:</b> the Avro schema is embedded in the encrypted envelope wire bytes;
+ * no SR fetch or translation is needed.
  */
 public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(JsonSchemaRegistryRecordProcessor.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonSchemaToAvroSchemaTranslator TRANSLATOR = new JsonSchemaToAvroSchemaTranslator();
 
     private final SchemaRegistryAdapter adapter;
+
+    /** Cache: {@code "schemaId:fieldPath"} → translated Avro {@link Schema}. */
+    private final ConcurrentHashMap<String, Schema> fieldSchemaCache = new ConcurrentHashMap<>();
 
     public JsonSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter, String serdeType, String defaultKeyId) {
         super(kryptonite, serdeType, defaultKeyId);
@@ -32,7 +64,9 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
     public byte[] encryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
         if (fieldConfigs.isEmpty()) return wireBytes;
         SchemaIdAndPayload stripped = adapter.stripPrefix(wireBytes);
-        byte[] encryptedPayload = encryptJsonPayload(stripped.payload(), fieldConfigs, topicName);
+        byte[] encryptedPayload = KryptoniteSettings.SerdeType.AVRO.name().equals(serdeType)
+                ? encryptWithSrSchema(stripped.payload(), fieldConfigs, topicName, stripped.schemaId())
+                : encryptJsonPayload(stripped.payload(), fieldConfigs, topicName);
         int encryptedSchemaId = adapter.getOrRegisterEncryptedSchemaId(
                 stripped.schemaId(), topicName, fieldConfigs);
         LOG.trace("encrypt: topic='{}' originalSchemaId={} encryptedSchemaId={}",
@@ -50,5 +84,89 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
         LOG.trace("decrypt: topic='{}' encryptedSchemaId={} outputSchemaId={}",
                 topicName, stripped.schemaId(), outputSchemaId);
         return adapter.attachPrefix(outputSchemaId, decryptedPayload);
+    }
+
+    // ---- SR-schema-based encrypt path (AVRO serde only) ----
+
+    /**
+     * Encrypts fields using Avro schemas derived from the SR JSON Schema document.
+     *
+     * <p>OBJECT mode, non-FPE: resolves the field's Avro schema from the SR JSON Schema
+     * (cached by {@code schemaId:fieldPath}) and uses it directly — no value-based schema
+     * derivation occurs after the first record.
+     *
+     * <p>ELEMENT mode and FPE fields: fall back to the base class path with topic-scoped
+     * value-derived schema caching.
+     */
+    private byte[] encryptWithSrSchema(byte[] jsonBytes, Set<FieldConfig> fieldConfigs,
+                                       String topicName, int schemaId) {
+        JsonObjectNodeAccessor accessor = JsonObjectNodeAccessor.from(jsonBytes);
+        for (FieldConfig fc : fieldConfigs) {
+            Object fieldValue = accessor.getField(fc.getName());
+            if (fieldValue == null) continue;
+            JsonNode node = (JsonNode) fieldValue;
+            FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
+
+            if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
+                // ELEMENT mode: fall back to value-derived schema with topic-scoped caching
+                String schemaCacheKey = topicName + "." + fc.getName();
+                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, schemaCacheKey));
+            } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
+                String schemaCacheKey = topicName + "." + fc.getName();
+                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
+            } else {
+                // OBJECT mode
+                if (isFpe(fc)) {
+                    if (!node.isTextual()) continue;
+                    byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
+                    accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
+                } else {
+                    Schema avroSchema = resolveFieldAvroSchema(schemaId, fc.getName());
+                    accessor.setField(fc.getName(),
+                            FieldHandler.encryptField(
+                                    fieldConverter.toCanonical(node, fc.getName(), serdeType, avroSchema),
+                                    buildPayloadMetaData(fc), kryptonite, serdeType));
+                }
+            }
+        }
+        return accessor.serialize();
+    }
+
+    /**
+     * Resolves the Avro {@link Schema} for a specific field path within a JSON Schema document.
+     *
+     * <p>On cache miss: fetches the JSON Schema from SR, navigates to the field sub-schema using
+     * {@link com.fasterxml.jackson.core.JsonPointer} ({@code /properties/a/properties/b} for
+     * dot-path {@code a.b}), translates it via {@link JsonSchemaToAvroSchemaTranslator}, and
+     * caches the result. Subsequent calls for the same {@code (schemaId, fieldPath)} are pure
+     * map lookups.
+     *
+     * @param schemaId  the SR schema ID of the original record schema
+     * @param fieldPath dot-separated field path (e.g. {@code "person.age"})
+     * @return the Avro schema for the field
+     * @throws IllegalArgumentException if the field path is not found in the JSON Schema
+     */
+    private Schema resolveFieldAvroSchema(int schemaId, String fieldPath) {
+        String cacheKey = schemaId + ":" + fieldPath;
+        return fieldSchemaCache.computeIfAbsent(cacheKey, k -> {
+            try {
+                JsonSchema jsonSchema = (JsonSchema) adapter.fetchSchema(schemaId);
+                JsonNode schemaRoot = MAPPER.readTree(jsonSchema.canonicalString());
+                String pointer = "/properties/" + fieldPath.replace(".", "/properties/");
+                JsonNode fieldSchemaNode = schemaRoot.at(pointer);
+                if (fieldSchemaNode.isMissingNode()) {
+                    throw new IllegalArgumentException(
+                            "Field '" + fieldPath + "' not found in JSON Schema (schemaId=" + schemaId + ")");
+                }
+                LOG.debug("Translating JSON Schema field '{}' (schemaId={}) to Avro schema", fieldPath, schemaId);
+                return TRANSLATOR.translate(fieldSchemaNode);
+            } catch (RuntimeException re) {
+                throw re;
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        "Failed to resolve Avro schema for field '" + fieldPath + "' (schemaId=" + schemaId + ")", e);
+            }
+        });
     }
 }

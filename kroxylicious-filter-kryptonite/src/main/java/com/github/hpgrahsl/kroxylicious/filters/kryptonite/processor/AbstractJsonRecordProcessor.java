@@ -31,7 +31,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    private final MapFieldConverter fieldConverter = new MapFieldConverter();
+    protected final MapFieldConverter fieldConverter = new MapFieldConverter();
 
     protected final Kryptonite kryptonite;
     protected final String serdeType;
@@ -143,7 +143,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         return encryptArrayElements(source, fc, null);
     }
 
-    private ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc, String schemaCacheKey) {
+    protected ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc, String schemaCacheKey) {
         ArrayNode result = MAPPER.createArrayNode();
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
@@ -165,7 +165,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         return encryptObjectValues(source, fc, null);
     }
 
-    private ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc, String schemaCacheKey) {
+    protected ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc, String schemaCacheKey) {
         ObjectNode result = MAPPER.createObjectNode();
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
@@ -233,7 +233,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
     // --- Crypto helpers ---
 
-    private boolean isFpe(FieldConfig fc) {
+    protected boolean isFpe(FieldConfig fc) {
         String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
         return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
     }
