@@ -22,21 +22,32 @@ import com.github.hpgrahsl.kryptonite.keys.KeyException;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import com.google.crypto.tink.KeysetHandle;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AwsKeyVault extends AbstractKeyVault {
 
   public static final String SECRET_NAME_PREFIX = "k4k/tink_plain/";
 
   private final KeyMaterialResolver keyMaterialResolver;
+  private final boolean lazyLoadEnabled;
 
   public AwsKeyVault(KeyMaterialResolver keyMaterialResolver) {
     this(keyMaterialResolver, false);
   }
 
   public AwsKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
-    super(new HashMap<>());
+    this(keyMaterialResolver, prefetch, true);
+  }
+
+  public AwsKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
+    super(new ConcurrentHashMap<>());
+    if (!prefetch && !lazyLoadEnabled) {
+      throw new IllegalArgumentException(
+          AwsKeyVault.class.getName() + ": prefetch and lazyLoadEnabled cannot both be false — no keys would ever be loaded"
+      );
+    }
     this.keyMaterialResolver = keyMaterialResolver;
+    this.lazyLoadEnabled = lazyLoadEnabled;
     if (prefetch) {
       warmUpKeyCache();
     }
@@ -46,6 +57,12 @@ public class AwsKeyVault extends AbstractKeyVault {
   public KeysetHandle readKeysetHandle(String identifier) {
     var keysetHandle = keysetHandles.get(identifier);
     if (keysetHandle == null) {
+      if (!lazyLoadEnabled) {
+        throw new IllegalStateException(
+            "key id '" + identifier + "' not found in cache and lazy loading is disabled in "
+            + AwsKeyVault.class.getName()
+        );
+      }
       fetchIntoKeyCache(identifier);
       keysetHandle = keysetHandles.get(identifier);
     }
@@ -56,7 +73,8 @@ public class AwsKeyVault extends AbstractKeyVault {
     keyMaterialResolver.resolveIdentifiers().forEach(this::fetchIntoKeyCache);
   }
 
-  private void fetchIntoKeyCache(String identifier) {
+  @Override
+  protected void fetchIntoKeyCache(String identifier) {
     try {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
       keysetHandles.put(identifier, createKeysetHandle(OBJECT_MAPPER.readValue(keyConfig, TinkKeyConfig.class)));

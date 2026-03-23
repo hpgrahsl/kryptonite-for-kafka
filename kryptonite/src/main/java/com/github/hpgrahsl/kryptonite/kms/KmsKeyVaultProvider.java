@@ -24,6 +24,10 @@ public interface KmsKeyVaultProvider {
 
     AbstractKeyVault createKeyVault(String kmsConfig);
 
+    AbstractKeyVault createKeyVault(String kmsConfig, boolean prefetch);
+
+    AbstractKeyVault createKeyVault(String kmsConfig, boolean prefetch, boolean lazyLoadEnabled);
+
     AbstractKeyVault createKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, String kmsConfig);
 
 }

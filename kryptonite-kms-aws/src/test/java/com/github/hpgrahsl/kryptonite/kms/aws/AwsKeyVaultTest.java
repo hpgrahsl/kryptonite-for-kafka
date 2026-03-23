@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
 import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
@@ -75,6 +76,22 @@ public class AwsKeyVaultTest {
         );
         assertThrows(KeyNotFoundException.class,
             () -> awsKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+    }
+
+    @Test
+    void awsKeyVaultWithLazyLoadDisabledThrowsOnCacheMiss() {
+        var awsKeyVault = new AwsKeyVault(SECRET_RESOLVER_PLAIN_KEYS, true, false);
+
+        assertThrows(IllegalStateException.class,
+            () -> awsKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN),
+            "error: cache miss with lazyLoadEnabled=false should throw IllegalStateException");
+    }
+
+    @Test
+    void awsKeyVaultConstructorGuardFiresWhenBothPrefetchAndLazyLoadDisabled() {
+        assertThrows(IllegalArgumentException.class,
+            () -> new AwsKeyVault(SECRET_RESOLVER_PLAIN_KEYS, false, false),
+            "error: prefetch=false and lazyLoadEnabled=false should throw IllegalArgumentException");
     }
 
 }

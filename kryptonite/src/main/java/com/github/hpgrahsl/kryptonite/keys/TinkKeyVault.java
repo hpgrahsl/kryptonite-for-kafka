@@ -16,12 +16,12 @@
 
 package com.github.hpgrahsl.kryptonite.keys;
 
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.google.crypto.tink.KeysetHandle;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class TinkKeyVault extends AbstractKeyVault {
 
@@ -29,10 +29,17 @@ public class TinkKeyVault extends AbstractKeyVault {
     super(createKeysetHandles(keyConfigs));
   }
 
-  protected static Map<String,KeysetHandle> createKeysetHandles(Map<String, TinkKeyConfig> keyConfigs) {
+  protected static ConcurrentHashMap<String, KeysetHandle> createKeysetHandles(Map<String, TinkKeyConfig> keyConfigs) {
     return keyConfigs.entrySet().stream()
-        .map(me -> Map.entry(me.getKey(),createKeysetHandle(me.getValue())))
-        .collect(Collectors.toMap(Entry::getKey,Entry::getValue));
+        .map(me -> Map.entry(me.getKey(), createKeysetHandle(me.getValue())))
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, ConcurrentHashMap::new));
+  }
+
+  @Override
+  protected void fetchIntoKeyCache(String identifier) {
+    throw new UnsupportedOperationException(
+        "TinkKeyVault does not support on-demand key fetching; all keys must be provided at construction time"
+    );
   }
 
 }

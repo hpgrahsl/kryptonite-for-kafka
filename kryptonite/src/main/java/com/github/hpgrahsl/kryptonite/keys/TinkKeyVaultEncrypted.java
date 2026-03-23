@@ -25,23 +25,31 @@ import com.google.crypto.tink.RegistryConfiguration;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class TinkKeyVaultEncrypted extends AbstractKeyVault {
 
   public TinkKeyVaultEncrypted(Map<String, TinkKeyConfigEncrypted> encryptedKeyConfigs, KmsKeyEncryption kmsKeyEncryption) {
-    super(createKeysetHandles(encryptedKeyConfigs,kmsKeyEncryption));
+    super(createKeysetHandles(encryptedKeyConfigs, kmsKeyEncryption));
   }
 
-  protected static Map<String,KeysetHandle> createKeysetHandles(Map<String, TinkKeyConfigEncrypted> keyConfigsEncrypted, KmsKeyEncryption kmsKeyEncryption) {
+  protected static ConcurrentHashMap<String, KeysetHandle> createKeysetHandles(Map<String, TinkKeyConfigEncrypted> keyConfigsEncrypted, KmsKeyEncryption kmsKeyEncryption) {
     try {
       Aead kekAead = kmsKeyEncryption.getKeyEncryptionKeyHandle().getPrimitive(RegistryConfiguration.get(), Aead.class);
       return keyConfigsEncrypted.entrySet().stream()
         .map(me -> Map.entry(me.getKey(), createKeysetHandle(me.getValue(), kekAead)))
-        .collect(Collectors.toMap(Entry::getKey,Entry::getValue));
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, ConcurrentHashMap::new));
     } catch (GeneralSecurityException exc) {
-      throw new KeyException("failed to create keyset handles for "+TinkKeyVaultEncrypted.class.getName(), exc);
+      throw new KeyException("failed to create keyset handles for " + TinkKeyVaultEncrypted.class.getName(), exc);
     }
+  }
+
+  @Override
+  protected void fetchIntoKeyCache(String identifier) {
+    throw new UnsupportedOperationException(
+        "TinkKeyVaultEncrypted does not support on-demand key fetching; all keys must be provided at construction time"
+    );
   }
 
 }

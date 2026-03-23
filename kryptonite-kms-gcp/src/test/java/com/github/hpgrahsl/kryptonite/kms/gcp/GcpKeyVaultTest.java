@@ -79,4 +79,20 @@ public class GcpKeyVaultTest {
             () -> gcpKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
     }
 
+    @Test
+    void gcpKeyVaultWithLazyLoadDisabledThrowsOnCacheMiss() {
+        var gcpKeyVault = new GcpKeyVault(SECRET_RESOLVER_PLAIN_KEYS, true, false);
+
+        assertThrows(IllegalStateException.class,
+            () -> gcpKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN),
+            "error: cache miss with lazyLoadEnabled=false should throw IllegalStateException");
+    }
+
+    @Test
+    void gcpKeyVaultConstructorGuardFiresWhenBothPrefetchAndLazyLoadDisabled() {
+        assertThrows(IllegalArgumentException.class,
+            () -> new GcpKeyVault(SECRET_RESOLVER_PLAIN_KEYS, false, false),
+            "error: prefetch=false and lazyLoadEnabled=false should throw IllegalArgumentException");
+    }
+
 }

@@ -29,7 +29,17 @@ public class AzureKmsKeyVaultProvider implements KmsKeyVaultProvider {
 
     @Override
     public AbstractKeyVault createKeyVault(String kmsConfig) {
-        return new AzureKeyVault(new AzureSecretResolver(kmsConfig), true);
+        return createKeyVault(kmsConfig, true);
+    }
+
+    @Override
+    public AbstractKeyVault createKeyVault(String kmsConfig, boolean prefetch) {
+        return createKeyVault(kmsConfig, prefetch, true);
+    }
+
+    @Override
+    public AbstractKeyVault createKeyVault(String kmsConfig, boolean prefetch, boolean lazyLoadEnabled) {
+        return new AzureKeyVault(new AzureSecretResolver(kmsConfig), prefetch, lazyLoadEnabled);
     }
 
     @Override

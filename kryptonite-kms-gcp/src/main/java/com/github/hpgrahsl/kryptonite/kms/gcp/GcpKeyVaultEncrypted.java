@@ -26,7 +26,7 @@ import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.RegistryConfiguration;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GcpKeyVaultEncrypted extends AbstractKeyVault {
 
@@ -34,16 +34,27 @@ public class GcpKeyVaultEncrypted extends AbstractKeyVault {
 
   private final KeyMaterialResolver keyMaterialResolver;
   private final KmsKeyEncryption kmsKeyEncryption;
+  private final boolean lazyLoadEnabled;
 
   public GcpKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver) {
     this(kmsKeyEncryption, keyMaterialResolver, false);
   }
 
   public GcpKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
-    super(new HashMap<>());
+    this(kmsKeyEncryption, keyMaterialResolver, prefetch, true);
+  }
+
+  public GcpKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
+    super(new ConcurrentHashMap<>());
+    if (!prefetch && !lazyLoadEnabled) {
+      throw new IllegalArgumentException(
+          GcpKeyVaultEncrypted.class.getName() + ": prefetch and lazyLoadEnabled cannot both be false — no keys would ever be loaded"
+      );
+    }
     try {
       this.kmsKeyEncryption = kmsKeyEncryption;
       this.keyMaterialResolver = keyMaterialResolver;
+      this.lazyLoadEnabled = lazyLoadEnabled;
       if (prefetch) {
         warmUpKeyCache();
       }
@@ -56,6 +67,12 @@ public class GcpKeyVaultEncrypted extends AbstractKeyVault {
   public KeysetHandle readKeysetHandle(String identifier) {
     var keysetHandle = keysetHandles.get(identifier);
     if (keysetHandle == null) {
+      if (!lazyLoadEnabled) {
+        throw new IllegalStateException(
+            "key id '" + identifier + "' not found in cache and lazy loading is disabled in "
+            + GcpKeyVaultEncrypted.class.getName()
+        );
+      }
       fetchIntoKeyCache(identifier);
       keysetHandle = keysetHandles.get(identifier);
     }
@@ -66,7 +83,8 @@ public class GcpKeyVaultEncrypted extends AbstractKeyVault {
     keyMaterialResolver.resolveIdentifiers().forEach(this::fetchIntoKeyCache);
   }
 
-  private void fetchIntoKeyCache(String identifier) {
+  @Override
+  protected void fetchIntoKeyCache(String identifier) {
     try {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
       Aead kekAead = kmsKeyEncryption.getKeyEncryptionKeyHandle().getPrimitive(RegistryConfiguration.get(), Aead.class);
