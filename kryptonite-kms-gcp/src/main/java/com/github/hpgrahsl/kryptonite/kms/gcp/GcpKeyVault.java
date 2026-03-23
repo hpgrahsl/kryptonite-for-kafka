@@ -29,14 +29,25 @@ public class GcpKeyVault extends AbstractKeyVault {
   public static final String SECRET_NAME_PREFIX = "k4k-tink-plain_";
 
   private final KeyMaterialResolver keyMaterialResolver;
+  private final boolean lazyLoadEnabled;
 
   public GcpKeyVault(KeyMaterialResolver keyMaterialResolver) {
     this(keyMaterialResolver, false);
   }
 
   public GcpKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
+    this(keyMaterialResolver, prefetch, true);
+  }
+
+  public GcpKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
     super(new ConcurrentHashMap<>());
+    if (!prefetch && !lazyLoadEnabled) {
+      throw new IllegalArgumentException(
+          GcpKeyVault.class.getName() + ": prefetch and lazyLoadEnabled cannot both be false — no keys would ever be loaded"
+      );
+    }
     this.keyMaterialResolver = keyMaterialResolver;
+    this.lazyLoadEnabled = lazyLoadEnabled;
     if (prefetch) {
       warmUpKeyCache();
     }
@@ -46,6 +57,12 @@ public class GcpKeyVault extends AbstractKeyVault {
   public KeysetHandle readKeysetHandle(String identifier) {
     var keysetHandle = keysetHandles.get(identifier);
     if (keysetHandle == null) {
+      if (!lazyLoadEnabled) {
+        throw new IllegalStateException(
+            "key id '" + identifier + "' not found in cache and lazy loading is disabled in "
+            + GcpKeyVault.class.getName()
+        );
+      }
       fetchIntoKeyCache(identifier);
       keysetHandle = keysetHandles.get(identifier);
     }

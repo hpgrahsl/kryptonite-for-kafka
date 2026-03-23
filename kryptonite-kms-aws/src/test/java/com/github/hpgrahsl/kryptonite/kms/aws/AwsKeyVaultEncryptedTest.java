@@ -86,4 +86,27 @@ public class AwsKeyVaultEncryptedTest {
             () -> awsKeyVault.readKeysetHandle(EncryptedKeysetsWithAwsKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
     }
 
+    @Test
+    void awsKeyVaultEncryptedWithLazyLoadDisabledThrowsOnCacheMiss() {
+        var awsKeyVault = new AwsKeyVaultEncrypted(
+            TestFixturesCloudKms.configureKmsKeyEncryption(),
+            SECRET_RESOLVER_ENCRYPTED_KEYS,
+            true, false
+        );
+
+        assertThrows(IllegalStateException.class,
+            () -> awsKeyVault.readKeysetHandle(EncryptedKeysetsWithAwsKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED),
+            "error: cache miss with lazyLoadEnabled=false should throw IllegalStateException");
+    }
+
+    @Test
+    void awsKeyVaultEncryptedConstructorGuardFiresWhenBothPrefetchAndLazyLoadDisabled() {
+        assertThrows(IllegalArgumentException.class,
+            () -> new AwsKeyVaultEncrypted(
+                TestFixturesCloudKms.configureKmsKeyEncryption(),
+                SECRET_RESOLVER_ENCRYPTED_KEYS,
+                false, false),
+            "error: prefetch=false and lazyLoadEnabled=false should throw IllegalArgumentException");
+    }
+
 }

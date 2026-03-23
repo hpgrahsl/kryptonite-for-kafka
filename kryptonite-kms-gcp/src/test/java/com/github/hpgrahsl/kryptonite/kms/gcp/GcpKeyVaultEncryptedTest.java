@@ -87,4 +87,27 @@ public class GcpKeyVaultEncryptedTest {
             () -> gcpKeyVault.readKeysetHandle(EncryptedKeysetsWithGcpKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
     }
 
+    @Test
+    void gcpKeyVaultEncryptedWithLazyLoadDisabledThrowsOnCacheMiss() {
+        var gcpKeyVault = new GcpKeyVaultEncrypted(
+            TestFixturesCloudKms.configureKmsKeyEncryption(),
+            SECRET_RESOLVER_ENCRYPTED_KEYS,
+            true, false
+        );
+
+        assertThrows(IllegalStateException.class,
+            () -> gcpKeyVault.readKeysetHandle(EncryptedKeysetsWithGcpKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED),
+            "error: cache miss with lazyLoadEnabled=false should throw IllegalStateException");
+    }
+
+    @Test
+    void gcpKeyVaultEncryptedConstructorGuardFiresWhenBothPrefetchAndLazyLoadDisabled() {
+        assertThrows(IllegalArgumentException.class,
+            () -> new GcpKeyVaultEncrypted(
+                TestFixturesCloudKms.configureKmsKeyEncryption(),
+                SECRET_RESOLVER_ENCRYPTED_KEYS,
+                false, false),
+            "error: prefetch=false and lazyLoadEnabled=false should throw IllegalArgumentException");
+    }
+
 }

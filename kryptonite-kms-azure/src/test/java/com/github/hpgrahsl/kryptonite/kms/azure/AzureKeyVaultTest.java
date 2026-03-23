@@ -71,7 +71,22 @@ public class AzureKeyVaultTest {
             )
         );
         assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN));
+    }
 
+    @Test
+    void azureKeyVaultWithLazyLoadDisabledThrowsOnCacheMiss() {
+        var azureKeyVault = new AzureKeyVault(SECRET_RESOLVER_PLAIN_KEYS, true, false);
+
+        assertThrows(IllegalStateException.class,
+            () -> azureKeyVault.readKeysetHandle(PlaintextKeysets.UNKNOWN_KEYSET_IDENTIFIER_PLAIN),
+            "error: cache miss with lazyLoadEnabled=false should throw IllegalStateException");
+    }
+
+    @Test
+    void azureKeyVaultConstructorGuardFiresWhenBothPrefetchAndLazyLoadDisabled() {
+        assertThrows(IllegalArgumentException.class,
+            () -> new AzureKeyVault(SECRET_RESOLVER_PLAIN_KEYS, false, false),
+            "error: prefetch=false and lazyLoadEnabled=false should throw IllegalArgumentException");
     }
 
 }

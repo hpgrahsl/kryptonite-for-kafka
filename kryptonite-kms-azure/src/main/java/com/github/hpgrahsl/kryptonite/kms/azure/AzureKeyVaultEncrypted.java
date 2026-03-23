@@ -33,28 +33,45 @@ public class AzureKeyVaultEncrypted extends AbstractKeyVault {
 
   private final KeyMaterialResolver keyMaterialResolver;
   private final KmsKeyEncryption kmsKeyEncryption;
-  
+  private final boolean lazyLoadEnabled;
+
   public AzureKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver) {
-    this(kmsKeyEncryption,keyMaterialResolver,false);
+    this(kmsKeyEncryption, keyMaterialResolver, false);
   }
 
   public AzureKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
+    this(kmsKeyEncryption, keyMaterialResolver, prefetch, true);
+  }
+
+  public AzureKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
     super(new ConcurrentHashMap<>());
+    if (!prefetch && !lazyLoadEnabled) {
+      throw new IllegalArgumentException(
+          AzureKeyVaultEncrypted.class.getName() + ": prefetch and lazyLoadEnabled cannot both be false — no keys would ever be loaded"
+      );
+    }
     try {
       this.kmsKeyEncryption = kmsKeyEncryption;
       this.keyMaterialResolver = keyMaterialResolver;
+      this.lazyLoadEnabled = lazyLoadEnabled;
       if (prefetch) {
         warmUpKeyCache();
       }
     } catch (Exception exc) {
-      throw new KryptoniteException(exc.getMessage(),exc);
+      throw new KryptoniteException(exc.getMessage(), exc);
     }
   }
 
   @Override
   public KeysetHandle readKeysetHandle(String identifier) {
     var keysetHandle = keysetHandles.get(identifier);
-    if(keysetHandle == null) {
+    if (keysetHandle == null) {
+      if (!lazyLoadEnabled) {
+        throw new IllegalStateException(
+            "key id '" + identifier + "' not found in cache and lazy loading is disabled in "
+            + AzureKeyVaultEncrypted.class.getName()
+        );
+      }
       fetchIntoKeyCache(identifier);
       keysetHandle = keysetHandles.get(identifier);
     }

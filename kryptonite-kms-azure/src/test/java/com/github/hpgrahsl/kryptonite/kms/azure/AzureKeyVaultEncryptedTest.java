@@ -79,7 +79,29 @@ public class AzureKeyVaultEncryptedTest {
             )
         );
         assertThrows(KeyNotFoundException.class,() -> azureKeyVault.readKeysetHandle(EncryptedKeysetsWithAzureKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED));
+    }
 
+    @Test
+    void azureKeyVaultEncryptedWithLazyLoadDisabledThrowsOnCacheMiss() {
+        var azureKeyVault = new AzureKeyVaultEncrypted(
+            TestFixturesCloudKms.configureKmsKeyEncryption(),
+            SECRET_RESOLVER_ENCRYPTED_KEYS,
+            true, false
+        );
+
+        assertThrows(IllegalStateException.class,
+            () -> azureKeyVault.readKeysetHandle(EncryptedKeysetsWithAzureKek.UNKNOWN_KEYSET_IDENTIFIER_ENCRYPTED),
+            "error: cache miss with lazyLoadEnabled=false should throw IllegalStateException");
+    }
+
+    @Test
+    void azureKeyVaultEncryptedConstructorGuardFiresWhenBothPrefetchAndLazyLoadDisabled() {
+        assertThrows(IllegalArgumentException.class,
+            () -> new AzureKeyVaultEncrypted(
+                TestFixturesCloudKms.configureKmsKeyEncryption(),
+                SECRET_RESOLVER_ENCRYPTED_KEYS,
+                false, false),
+            "error: prefetch=false and lazyLoadEnabled=false should throw IllegalArgumentException");
     }
 
 }

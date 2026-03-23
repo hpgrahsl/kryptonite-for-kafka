@@ -34,16 +34,27 @@ public class AwsKeyVaultEncrypted extends AbstractKeyVault {
 
   private final KeyMaterialResolver keyMaterialResolver;
   private final KmsKeyEncryption kmsKeyEncryption;
+  private final boolean lazyLoadEnabled;
 
   public AwsKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver) {
     this(kmsKeyEncryption, keyMaterialResolver, false);
   }
 
   public AwsKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
+    this(kmsKeyEncryption, keyMaterialResolver, prefetch, true);
+  }
+
+  public AwsKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
     super(new ConcurrentHashMap<>());
+    if (!prefetch && !lazyLoadEnabled) {
+      throw new IllegalArgumentException(
+          AwsKeyVaultEncrypted.class.getName() + ": prefetch and lazyLoadEnabled cannot both be false — no keys would ever be loaded"
+      );
+    }
     try {
       this.kmsKeyEncryption = kmsKeyEncryption;
       this.keyMaterialResolver = keyMaterialResolver;
+      this.lazyLoadEnabled = lazyLoadEnabled;
       if (prefetch) {
         warmUpKeyCache();
       }
@@ -56,6 +67,12 @@ public class AwsKeyVaultEncrypted extends AbstractKeyVault {
   public KeysetHandle readKeysetHandle(String identifier) {
     var keysetHandle = keysetHandles.get(identifier);
     if (keysetHandle == null) {
+      if (!lazyLoadEnabled) {
+        throw new IllegalStateException(
+            "key id '" + identifier + "' not found in cache and lazy loading is disabled in "
+            + AwsKeyVaultEncrypted.class.getName()
+        );
+      }
       fetchIntoKeyCache(identifier);
       keysetHandle = keysetHandles.get(identifier);
     }
