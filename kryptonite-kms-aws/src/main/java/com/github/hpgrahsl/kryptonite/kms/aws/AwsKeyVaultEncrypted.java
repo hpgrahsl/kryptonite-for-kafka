@@ -26,7 +26,7 @@ import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.RegistryConfiguration;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AwsKeyVaultEncrypted extends AbstractKeyVault {
 
@@ -40,7 +40,7 @@ public class AwsKeyVaultEncrypted extends AbstractKeyVault {
   }
 
   public AwsKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
-    super(new HashMap<>());
+    super(new ConcurrentHashMap<>());
     try {
       this.kmsKeyEncryption = kmsKeyEncryption;
       this.keyMaterialResolver = keyMaterialResolver;
@@ -66,7 +66,8 @@ public class AwsKeyVaultEncrypted extends AbstractKeyVault {
     keyMaterialResolver.resolveIdentifiers().forEach(this::fetchIntoKeyCache);
   }
 
-  private void fetchIntoKeyCache(String identifier) {
+  @Override
+  protected void fetchIntoKeyCache(String identifier) {
     try {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
       Aead kekAead = kmsKeyEncryption.getKeyEncryptionKeyHandle().getPrimitive(RegistryConfiguration.get(), Aead.class);

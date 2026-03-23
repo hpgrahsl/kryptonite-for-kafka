@@ -22,7 +22,7 @@ import com.github.hpgrahsl.kryptonite.keys.KeyException;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import com.google.crypto.tink.KeysetHandle;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AwsKeyVault extends AbstractKeyVault {
 
@@ -35,7 +35,7 @@ public class AwsKeyVault extends AbstractKeyVault {
   }
 
   public AwsKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch) {
-    super(new HashMap<>());
+    super(new ConcurrentHashMap<>());
     this.keyMaterialResolver = keyMaterialResolver;
     if (prefetch) {
       warmUpKeyCache();
@@ -56,7 +56,8 @@ public class AwsKeyVault extends AbstractKeyVault {
     keyMaterialResolver.resolveIdentifiers().forEach(this::fetchIntoKeyCache);
   }
 
-  private void fetchIntoKeyCache(String identifier) {
+  @Override
+  protected void fetchIntoKeyCache(String identifier) {
     try {
       String keyConfig = keyMaterialResolver.resolveKeyset(identifier);
       keysetHandles.put(identifier, createKeysetHandle(OBJECT_MAPPER.readValue(keyConfig, TinkKeyConfig.class)));

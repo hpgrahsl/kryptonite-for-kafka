@@ -18,8 +18,10 @@ package com.github.hpgrahsl.kryptonite.keys;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -33,12 +35,12 @@ public class TinkKeyVaultTest {
 
     public static List<String> KNOWN_KEYSET_IDENTIFIERS = List.of("keyA","keyB","key9","key8");
     public static String UNKNOWN_KEYSET_IDENTIFIER = "keyXYZ";
-    
+
     @Test
     void tinkKeyVaultLoadsFromValidConfigTest() {
         var tinkKeyConfig = ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG);
         var tinkKeyVault = new TinkKeyVault(tinkKeyConfig);
-        
+
         assertAll(
             () -> assertEquals(TestFixtures.CIPHER_DATA_KEYS_COUNT, tinkKeyVault.numKeysetHandles()),
             () -> assertAll(
@@ -48,6 +50,38 @@ public class TinkKeyVaultTest {
             ),
             () -> assertThrows(KeyNotFoundException.class,() -> tinkKeyVault.readKeysetHandle(UNKNOWN_KEYSET_IDENTIFIER))
         );
+    }
+
+    @Test
+    void containsKeysetHandleReturnsTrueForKnownIdentifiers() {
+        var tinkKeyConfig = ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG);
+        var tinkKeyVault = new TinkKeyVault(tinkKeyConfig);
+
+        assertAll(
+            KNOWN_KEYSET_IDENTIFIERS.stream().<Executable>map(
+                id -> () -> assertTrue(tinkKeyVault.containsKeysetHandle(id),
+                    "error: containsKeysetHandle should return true for known identifier " + id)
+            )
+        );
+    }
+
+    @Test
+    void containsKeysetHandleReturnsFalseForUnknownIdentifier() {
+        var tinkKeyConfig = ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG);
+        var tinkKeyVault = new TinkKeyVault(tinkKeyConfig);
+
+        assertFalse(tinkKeyVault.containsKeysetHandle(UNKNOWN_KEYSET_IDENTIFIER),
+            "error: containsKeysetHandle should return false for unknown identifier");
+    }
+
+    @Test
+    void prefetchThrowsUnsupportedOperationForTinkKeyVault() {
+        var tinkKeyConfig = ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG);
+        var tinkKeyVault = new TinkKeyVault(tinkKeyConfig);
+
+        assertThrows(UnsupportedOperationException.class,
+            () -> tinkKeyVault.prefetch(KNOWN_KEYSET_IDENTIFIERS.get(0)),
+            "error: TinkKeyVault.prefetch should throw UnsupportedOperationException");
     }
 
 }

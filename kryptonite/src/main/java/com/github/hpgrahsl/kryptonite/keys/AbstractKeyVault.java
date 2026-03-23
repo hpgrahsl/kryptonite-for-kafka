@@ -16,7 +16,6 @@
 
 package com.github.hpgrahsl.kryptonite.keys;
 
-import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
@@ -24,16 +23,17 @@ import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.CleartextKeysetHandle;
 import com.google.crypto.tink.JsonKeysetReader;
 import com.google.crypto.tink.KeysetHandle;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractKeyVault implements KeyVault {
 
   protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  protected final Map<String, KeysetHandle> keysetHandles;
+  protected final ConcurrentHashMap<String, KeysetHandle> keysetHandles;
 
-  public AbstractKeyVault(Map<String, KeysetHandle> keysetHandles) {
+  public AbstractKeyVault(ConcurrentHashMap<String, KeysetHandle> keysetHandles) {
     this.keysetHandles = keysetHandles;
-  }  
+  }
 
   @Override
   public int numKeysetHandles() {
@@ -43,11 +43,22 @@ public abstract class AbstractKeyVault implements KeyVault {
   @Override
   public KeysetHandle readKeysetHandle(String identifier) {
     var keysetHandle = keysetHandles.get(identifier);
-    if(keysetHandle == null) {
+    if (keysetHandle == null) {
       throw new KeyNotFoundException("could not find key set handle for identifier '"
-          +identifier+"' in " + " key vault");
+          + identifier + "' in key vault");
     }
     return keysetHandle;
+  }
+
+  @Override
+  public boolean containsKeysetHandle(String identifier) {
+    return keysetHandles.containsKey(identifier);
+  }
+
+  protected abstract void fetchIntoKeyCache(String identifier);
+
+  public void prefetch(String identifier) {
+    fetchIntoKeyCache(identifier);
   }
 
   protected static KeysetHandle createKeysetHandle(TinkKeyConfig tinkKeyConfig) {
