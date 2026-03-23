@@ -17,27 +17,30 @@
 package com.github.hpgrahsl.ksqldb.functions.kryptonite;
 
 import java.util.Map;
+import java.util.Optional;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 
 import io.confluent.ksql.function.udf.UdfDescription;
 
 public abstract class AbstractCipherFieldUdf {
 
     private Kryptonite kryptonite;
-    private SerdeProcessor serdeProcessor = new KryoSerdeProcessor();
+    private String serdeType;
 
     public Kryptonite getKryptonite() {
         return kryptonite;
     }
 
-    public SerdeProcessor getSerdeProcessor() {
-        return serdeProcessor;
+    public String getSerdeType() {
+        return serdeType;
     }
 
     public void configure(Map<String, ?> configMap, UdfDescription udfDescription) {
         kryptonite = CustomUdfConfig.KryptoniteUtil.createKryptoniteFromConfig(configMap, udfDescription.name());
+        serdeType = Optional.ofNullable(
+                (String) configMap.get(CustomUdfConfig.getPrefixedConfigParam(udfDescription.name(), CustomUdfConfig.CONFIG_PARAM_SERDE_TYPE)))
+                .orElse(KryptoniteSettings.SERDE_TYPE_DEFAULT);
     }
 
 }

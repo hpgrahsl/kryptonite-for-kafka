@@ -20,7 +20,8 @@ import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMo
 import com.github.hpgrahsl.kryptonite.*;
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
-import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
+import com.github.hpgrahsl.kryptonite.converters.MapFieldConverter;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -29,23 +30,24 @@ import java.util.stream.Collectors;
 public class RecordHandler {
 
   private final KryptoniteConfiguration config;
-  private final SerdeProcessor serdeProcessor;
   private final Kryptonite kryptonite;
 
   protected final String pathDelimiter;
   protected final CipherMode cipherMode;
   protected final Map<String, FieldConfig> fieldConfig;
+  protected final MapFieldConverter fieldConverter;
 
   public RecordHandler(KryptoniteConfiguration config,
-      SerdeProcessor serdeProcessor, Kryptonite kryptonite,
+      Kryptonite kryptonite,
       CipherMode cipherMode,
-      Map<String, FieldConfig> fieldConfig) {
+      Map<String, FieldConfig> fieldConfig,
+      MapFieldConverter fieldConverter) {
     this.config = config;
-    this.serdeProcessor = serdeProcessor;
     this.kryptonite = kryptonite;
     this.pathDelimiter = config.pathDelimiter;
     this.cipherMode = cipherMode;
     this.fieldConfig = fieldConfig;
+    this.fieldConverter = fieldConverter;
   }
 
   public KryptoniteConfiguration getConfig() {
@@ -87,12 +89,12 @@ public class RecordHandler {
       var fieldMetaData = determineFieldMetaData(objectOriginal,object,matchedPath);
       if (CipherMode.ENCRYPT == cipherMode) {
         if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
-          return encryptFPE(object, fieldMetaData);  
-        } 
-        return encrypt(object, fieldMetaData);
+          return encryptFPE(object, fieldMetaData);
+        }
+        return encrypt(object, fieldMetaData, matchedPath);
       } else {
         if (CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE()) {
-          return decryptFPE(object, fieldMetaData);  
+          return decryptFPE(object, fieldMetaData);
         }
         return decrypt(object);
       }
@@ -101,13 +103,9 @@ public class RecordHandler {
     }
   }
 
-  public Object encrypt(Object object, FieldMetaData fieldMetaData) {
-    var valueBytes = serdeProcessor.objectToBytes(object);
-    var encryptedField = kryptonite.cipherField(valueBytes, PayloadMetaData.from(fieldMetaData));
-    // TODO: the base 64 encoding should be optional / is configurable
-    // so that raw bytes be can handled as well (e.g. in binary fields and binary serialization formats)
-    var encodedField = Base64.getEncoder().encodeToString(serdeProcessor.objectToBytes(encryptedField, EncryptedField.class));
-    return encodedField;
+  public Object encrypt(Object object, FieldMetaData fieldMetaData, String fieldPath) {
+    var metadata = PayloadMetaData.from(fieldMetaData);
+    return FieldHandler.encryptField(fieldConverter.toCanonical(object, fieldPath, config.serdeType.name()), metadata, kryptonite, config.serdeType.name());
   }
 
   public String encryptFPE(Object object, FieldMetaData fieldMetaData) {
@@ -121,13 +119,7 @@ public class RecordHandler {
   }
 
   public Object decrypt(Object object) {
-    // TODO: the base 64 decoding should be optional / is configurable
-    // so that raw bytes can be handled as well (e.g. in binary fields and binary serialization formats)
-    var decodedField = Base64.getDecoder().decode((String) object);
-    var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(decodedField, EncryptedField.class);
-    var plaintext = kryptonite.decipherField(encryptedField);
-    var restoredField = serdeProcessor.bytesToObject(plaintext);
-    return restoredField;
+    return fieldConverter.fromCanonical(FieldHandler.decryptField((String) object, kryptonite));
   }
 
   public String decryptFPE(Object object, FieldMetaData fieldMetaData) {

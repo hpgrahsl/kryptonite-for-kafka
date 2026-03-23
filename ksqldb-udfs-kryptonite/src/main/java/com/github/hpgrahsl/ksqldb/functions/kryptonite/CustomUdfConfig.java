@@ -39,6 +39,7 @@ public class CustomUdfConfig {
     public static final String CONFIG_PARAM_CIPHER_FPE_TWEAK = "cipher_fpe_tweak";
     public static final String CONFIG_PARAM_CIPHER_FPE_ALPHABET_TYPE = "cipher_fpe_alphabet_type";
     public static final String CONFIG_PARAM_CIPHER_FPE_ALPHABET_CUSTOM = "cipher_fpe_alphabet_custom";
+    public static final String CONFIG_PARAM_SERDE_TYPE = "serde_type";
 
     public static String getPrefixedConfigParam(String functionName, String configParam) {
         return KSQL_FUNCTION_CONFIG_PREFIX

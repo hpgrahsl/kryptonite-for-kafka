@@ -16,30 +16,32 @@
 
 package com.github.hpgrahsl.flink.functions.kryptonite;
 
-import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.flink.table.functions.FunctionContext;
 import org.apache.flink.table.types.DataType;
 
 import com.github.hpgrahsl.flink.functions.kryptonite.schema.SchemaParser;
-import com.github.hpgrahsl.kryptonite.EncryptedField;
+import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
-import com.github.hpgrahsl.kryptonite.converters.UnifiedTypeConverter;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.converters.FlinkFieldConverter;
+import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFieldUdf {
 
     private static final int SCHEMA_LRU_CACHE_SIZE = 64;
 
-    private transient UnifiedTypeConverter typeConverter;
+    private transient FlinkFieldConverter fieldConverter;
     private transient Map<String, DataType> schemaCache;
 
     @Override
     public void open(FunctionContext context) throws Exception {
         super.open(context);
-        typeConverter = new UnifiedTypeConverter();
+        fieldConverter = new FlinkFieldConverter();
         schemaCache = Collections.synchronizedMap(
                 new LinkedHashMap<String, DataType>(SCHEMA_LRU_CACHE_SIZE, 0.75f, true) {
                     @Override
@@ -54,11 +56,8 @@ public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFie
             return null;
         }
         try {
-            var encryptedField = (EncryptedField) serdeProcessor.bytesToObject(Base64.getDecoder().decode(data), EncryptedField.class);
-            var plaintext = kryptonite.decipherField(encryptedField);
-            var restored = serdeProcessor.bytesToObject(plaintext);
-            var converted = typeConverter.convertForFlink(restored, type);
-            return converted;
+            var restored = FieldHandler.decryptField(data, kryptonite);
+            return fieldConverter.fromCanonical(restored, type);
         } catch (Exception exc) {
             throw new KryptoniteException("failed to decrypt data", exc);
         }
@@ -74,6 +73,13 @@ public abstract class AbstractCipherFieldWithSchemaUdf extends AbstractCipherFie
      */
     protected DataType getCachedSchema(String schemaString) {
         return schemaCache.computeIfAbsent(schemaString, SchemaParser::parseType);
+    }
+
+    protected String encryptData(Object data, DataType dataType, FieldMetaData fieldMetaData) {
+        var serdeName = Optional.ofNullable(getConfigurationSetting(KryptoniteSettings.SERDE_TYPE))
+                                .orElse(KryptoniteSettings.SERDE_TYPE_DEFAULT);
+        var canonical = fieldConverter.toCanonical(data, dataType, serdeName);
+        return encryptData(canonical, fieldMetaData);
     }
 
 }

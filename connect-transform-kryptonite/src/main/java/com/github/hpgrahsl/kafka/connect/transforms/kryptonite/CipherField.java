@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kafka.connect.transforms.kryptonite.validators.*;
 import com.github.hpgrahsl.kryptonite.CipherMode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.serdes.KryoSerdeProcessor;
 import org.apache.kafka.common.cache.Cache;
 import org.apache.kafka.common.cache.LRUCache;
 import org.apache.kafka.common.cache.SynchronizedCache;
@@ -98,15 +97,17 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       .define(KEK_CONFIG, Type.PASSWORD, KEK_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
           "JSON object specifying the KMS-specific client authentication settings (currently only supports GCP Cloud KMS)")
       .define(KEK_URI, Type.PASSWORD, KEK_URI_DEFAULT, ConfigDef.Importance.LOW,
-          "remote/cloud KMS-specific URI to refer to the key encryption key if applicable (currently only supports GCP Cloud KMS key URIs)");
+          "remote/cloud KMS-specific URI to refer to the key encryption key if applicable (currently only supports GCP Cloud KMS key URIs)")
+      .define(SERDE_TYPE, Type.STRING, SERDE_TYPE_DEFAULT, ConfigDef.Importance.LOW,
+          "defines the serde type used for field value serialization (currently only supports 'KRYO')");
 
   private static final String PURPOSE = "(de)cipher connect record fields";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CipherField.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private RecordHandler recordHandlerWithSchema;
-  private RecordHandler recordHandlerWithoutSchema;
+  private FieldPathMatcher recordHandlerWithSchema;
+  private FieldPathMatcher recordHandlerWithoutSchema;
   private SchemaRewriter schemaRewriter;
   private Cache<Schema, Schema> schemaCache;
 
@@ -163,12 +164,10 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
               .readValue(config.getString(FIELD_CONFIG), new TypeReference<Set<FieldConfig>>() {})
               .stream().collect(Collectors.toMap(FieldConfig::getName, Function.identity()));
       var kryptonite = Kryptonite.createFromConfig(adaptToNormalizedStringsMap(config));
-      var serdeProcessor = new KryoSerdeProcessor();
-      recordHandlerWithSchema = new SchemaawareRecordHandler(config, serdeProcessor, kryptonite, CipherMode
-          .valueOf(
-          config.getString(CIPHER_MODE)),fieldPathMap);
-      recordHandlerWithoutSchema = new SchemalessRecordHandler(config, serdeProcessor, kryptonite, CipherMode.valueOf(
-          config.getString(CIPHER_MODE)),fieldPathMap);
+      recordHandlerWithSchema = new SchemaawareRecordHandler(config, kryptonite,
+          CipherMode.valueOf(config.getString(CIPHER_MODE)), fieldPathMap);
+      recordHandlerWithoutSchema = new SchemalessRecordHandler(config, kryptonite,
+          CipherMode.valueOf(config.getString(CIPHER_MODE)), fieldPathMap);
       schemaRewriter = new SchemaRewriter(fieldPathMap, FieldMode.valueOf(config.getString(
           FIELD_MODE)),CipherMode.valueOf(config.getString(CIPHER_MODE)), config.getString(PATH_DELIMITER));
       schemaCache = new SynchronizedCache<>(new LRUCache<>(16));
@@ -196,7 +195,8 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       Map.entry(KMS_CONFIG, Optional.ofNullable(config.getPassword(KMS_CONFIG).value()).orElse(KMS_CONFIG_DEFAULT)),
       Map.entry(KEK_TYPE, Optional.ofNullable(config.getString(KEK_TYPE)).orElse(KEK_TYPE_DEFAULT)),
       Map.entry(KEK_CONFIG, Optional.ofNullable(config.getPassword(KEK_CONFIG).value()).orElse(KEK_CONFIG_DEFAULT)),
-      Map.entry(KEK_URI, Optional.ofNullable(config.getPassword(KEK_URI).value()).orElse(KEK_URI_DEFAULT))
+      Map.entry(KEK_URI, Optional.ofNullable(config.getPassword(KEK_URI).value()).orElse(KEK_URI_DEFAULT)),
+      Map.entry(SERDE_TYPE, Optional.ofNullable(config.getString(SERDE_TYPE)).orElse(SERDE_TYPE_DEFAULT))
     );
   }
 

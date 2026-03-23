@@ -14,48 +14,39 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.converters;
+package com.github.hpgrahsl.kryptonite.converters.legacy;
 
 import java.util.List;
 
+import org.apache.avro.generic.GenericRecord;
+import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.types.Row;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
 
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 
 /**
- * Converter for Kafka Connect Struct to Flink Row.
- * Requires a target DataType to guide the conversion.
- * Delegates nested conversions back to the UnifiedTypeConverter.
+ * Converter for Avro {@link GenericRecord} to Flink {@link Row}.
+ * Requires a target Flink {@link DataType} to guide the conversion.
+ * Delegates nested conversions back to the {@link UnifiedTypeConverter}.
  */
-public class StructToRowConverter {
+public class AvroToRowConverter {
 
     private final UnifiedTypeConverter parent;
 
-    public StructToRowConverter(UnifiedTypeConverter parent) {
+    public AvroToRowConverter(UnifiedTypeConverter parent) {
         this.parent = parent;
     }
 
-    /**
-     * Convert a Kafka Connect Struct to a Flink Row.
-     *
-     * @param struct the Struct to convert
-     * @param targetType the target DataType describing the Row structure
-     * @return the converted Row
-     * @throws KryptoniteException if conversion fails
-     */
-    public Row convert(Struct struct, DataType targetType) {
-        if (struct == null) {
+    public Row convert(GenericRecord record, DataType targetType) {
+        if (record == null) {
             return null;
         }
-
         if (targetType == null) {
-            throw new KryptoniteException("targetType must not be null for Struct to Row conversion");
+            throw new KryptoniteException("targetType must not be null for GenericRecord to Row conversion");
         }
 
         LogicalType logicalType = targetType.getLogicalType();
@@ -66,25 +57,15 @@ public class StructToRowConverter {
 
         try {
             RowType rowType = (RowType) logicalType;
-            List<RowType.RowField> targetFields = rowType.getFields();
+            List<RowType.RowField> fields = rowType.getFields();
 
             Row result = Row.withNames();
 
-            for (RowType.RowField targetField : targetFields) {
-                String fieldName = targetField.getName();
+            for (RowType.RowField field : fields) {
+                String fieldName = field.getName();
+                Object sourceValue = record.get(fieldName);
+                DataType fieldType = DataTypes.of(field.getType());
 
-                // Get value from source Struct
-                Field sourceField = struct.schema().field(fieldName);
-                if (sourceField == null) {
-                    // Field not in source, set to null
-                    result.setField(fieldName, null);
-                    continue;
-                }
-
-                Object sourceValue = struct.get(sourceField);
-                DataType fieldType = org.apache.flink.table.api.DataTypes.of(targetField.getType());
-
-                // Delegate to parent for proper handling based on target type
                 Object convertedValue = parent.toRowValue(sourceValue, fieldType);
                 result.setField(fieldName, convertedValue);
             }
@@ -93,8 +74,7 @@ public class StructToRowConverter {
         } catch (KryptoniteException ke) {
             throw ke;
         } catch (Exception exc) {
-            throw new KryptoniteException("Failed to convert Struct to Row", exc);
+            throw new KryptoniteException("Failed to convert GenericRecord to Row", exc);
         }
     }
-
 }

@@ -16,7 +16,19 @@
 
 package com.github.hpgrahsl.kryptonite.serdes;
 
+/**
+ * Serialization/deserialization contract for plaintext field values.
+ *
+ * <p><b>Thread-safety:</b> implementations must be thread-safe. {@link SerdeRegistry} caches a
+ * single shared instance per implementation for the lifetime of the JVM.
+ */
 public interface SerdeProcessor {
+
+  /**
+   * Returns the 2-character wire code identifying this serde in k2 envelope headers.
+   * Must match {@link SerdeProcessorProvider#serdeCode()} for the corresponding provider.
+   */
+  String serdeCode();
 
   byte[] objectToBytes(Object object,Class<?> clazz);
 

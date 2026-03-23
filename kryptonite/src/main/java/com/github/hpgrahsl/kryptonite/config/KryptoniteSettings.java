@@ -23,6 +23,11 @@ public class KryptoniteSettings {
     AZURE
   }
 
+  public enum SerdeType {
+    KRYO,
+    AVRO
+  }
+
   public enum AlphabetTypeFPE {
     
     DIGITS("0123456789"),
@@ -62,6 +67,7 @@ public class KryptoniteSettings {
   public static final String KEK_TYPE = "kek_type";
   public static final String KEK_CONFIG = "kek_config";
   public static final String KEK_URI = "kek_uri";
+  public static final String SERDE_TYPE = "serde_type";
 
   public static final String PATH_DELIMITER_DEFAULT = ".";
   public static final String FIELD_MODE_DEFAULT = "ELEMENT";
@@ -78,5 +84,6 @@ public class KryptoniteSettings {
   public static final String KEK_TYPE_DEFAULT = "NONE";
   public static final String KEK_CONFIG_DEFAULT = "{}";
   public static final String KEK_URI_DEFAULT = "xyz-kms://";
+  public static final String SERDE_TYPE_DEFAULT = "KRYO";
 
 }

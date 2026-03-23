@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.converters;
+package com.github.hpgrahsl.kryptonite.converters.legacy;
 
-import org.apache.avro.generic.GenericRecord;
+import org.apache.flink.types.Row;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -24,42 +24,58 @@ import org.apache.kafka.connect.data.Struct;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 
 /**
- * Converter for Avro {@link GenericRecord} to Kafka Connect {@link Struct}.
- * Requires a target Connect {@link Schema} to guide the conversion.
- * Delegates nested conversions back to the {@link UnifiedTypeConverter}.
+ * Converter for Flink Row to Kafka Connect Struct.
+ * Requires a target Schema to guide the conversion.
+ * Delegates nested conversions back to the UnifiedTypeConverter.
  */
-public class AvroToStructConverter {
+public class RowToStructConverter {
 
     private final UnifiedTypeConverter parent;
 
-    public AvroToStructConverter(UnifiedTypeConverter parent) {
+    public RowToStructConverter(UnifiedTypeConverter parent) {
         this.parent = parent;
     }
 
-    public Struct convert(GenericRecord record, Schema targetSchema) {
-        if (record == null) {
+    /**
+     * Convert a Flink Row to a Kafka Connect Struct.
+     *
+     * @param row the Row to convert
+     * @param targetSchema the target Schema describing the Struct structure
+     * @return the converted Struct
+     * @throws KryptoniteException if conversion fails
+     */
+    public Struct convert(Row row, Schema targetSchema) {
+        if (row == null) {
             return null;
         }
+
         if (targetSchema == null) {
-            throw new KryptoniteException(
-                "targetSchema must not be null for GenericRecord to Struct conversion");
+            throw new KryptoniteException("targetSchema must not be null for Row to Struct conversion");
         }
+
         if (targetSchema.type() != Schema.Type.STRUCT) {
             throw new KryptoniteException(
                 "targetSchema must be of type STRUCT, got: " + targetSchema.type());
         }
+
         try {
             Struct result = new Struct(targetSchema);
+
             for (Field field : targetSchema.fields()) {
-                Object sourceValue = record.get(field.name());
-                Object convertedValue = parent.toStructValue(sourceValue, field.schema());
+                Object sourceValue = row.getField(field.name());
+                Schema fieldSchema = field.schema();
+
+                // Delegate to parent for proper handling based on target schema
+                Object convertedValue = parent.toStructValue(sourceValue, fieldSchema);
                 result.put(field.name(), convertedValue);
             }
+
             return result;
         } catch (KryptoniteException ke) {
             throw ke;
         } catch (Exception exc) {
-            throw new KryptoniteException("Failed to convert GenericRecord to Struct", exc);
+            throw new KryptoniteException("Failed to convert Row to Struct", exc);
         }
     }
+
 }

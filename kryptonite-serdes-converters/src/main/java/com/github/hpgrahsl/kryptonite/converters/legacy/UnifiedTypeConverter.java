@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.converters;
+package com.github.hpgrahsl.kryptonite.converters.legacy;
 
 import java.lang.reflect.Array;
 import java.math.BigDecimal;

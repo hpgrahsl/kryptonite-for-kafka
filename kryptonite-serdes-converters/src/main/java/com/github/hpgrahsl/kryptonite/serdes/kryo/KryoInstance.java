@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.serdes;
+package com.github.hpgrahsl.kryptonite.serdes.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;

@@ -106,6 +106,11 @@ public class UdfConfiguration {
             KryptoniteSettings.KEK_URI_DEFAULT);
         configuration.putIfAbsent(KryptoniteSettings.KEK_URI,kekUriConfig);
 
+        var serdeType = context.getJobParameter(
+            KryptoniteSettings.SERDE_TYPE,
+            KryptoniteSettings.SERDE_TYPE_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.SERDE_TYPE, serdeType);
+
         return configuration;
     }
 
@@ -183,7 +188,12 @@ public class UdfConfiguration {
         if (kekUri != null) {
             configuration.put(KryptoniteSettings.KEK_URI,kekUri);
         }
-        
+
+        var serdeType = System.getenv(KryptoniteSettings.SERDE_TYPE);
+        if (serdeType != null) {
+            configuration.put(KryptoniteSettings.SERDE_TYPE, serdeType);
+        }
+
         return configuration;
     }
 
