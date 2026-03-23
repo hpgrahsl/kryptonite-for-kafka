@@ -29,7 +29,17 @@ public class AwsKmsKeyVaultProvider implements KmsKeyVaultProvider {
 
     @Override
     public AbstractKeyVault createKeyVault(String kmsConfig) {
-        return new AwsKeyVault(new AwsSecretResolver(kmsConfig, AwsKeyVault.SECRET_NAME_PREFIX), true);
+        return createKeyVault(kmsConfig, true);
+    }
+
+    @Override
+    public AbstractKeyVault createKeyVault(String kmsConfig, boolean prefetch) {
+        return createKeyVault(kmsConfig, prefetch, true);
+    }
+
+    @Override
+    public AbstractKeyVault createKeyVault(String kmsConfig, boolean prefetch, boolean lazyLoadEnabled) {
+        return new AwsKeyVault(new AwsSecretResolver(kmsConfig, AwsKeyVault.SECRET_NAME_PREFIX), prefetch, lazyLoadEnabled);
     }
 
     @Override

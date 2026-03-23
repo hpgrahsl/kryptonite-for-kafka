@@ -140,6 +140,10 @@ public class Kryptonite {
 
   private final AbstractKeyVault keyVault;
 
+  public AbstractKeyVault getKeyVault() {
+    return keyVault;
+  }
+
   public Kryptonite(AbstractKeyVault keyVault) {
     this.keyVault = keyVault;
     try {
