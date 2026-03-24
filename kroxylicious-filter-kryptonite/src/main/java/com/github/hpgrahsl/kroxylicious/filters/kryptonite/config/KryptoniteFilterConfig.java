@@ -39,6 +39,9 @@ public class KryptoniteFilterConfig {
     // --- Topic-to-field routing ---
     private final List<TopicFieldConfig> topicFieldConfigs;
 
+    // --- Executor ---
+    private final int blockingPoolSize;
+
     public KryptoniteFilterConfig(
             @JsonProperty(value = "key_source") String keySource,
             @JsonProperty(value = "cipher_algorithm") String cipherAlgorithm,
@@ -54,7 +57,8 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "record_format") RecordFormat recordFormat,
             @JsonProperty(value = "schema_mode") SchemaMode schemaMode,
             @JsonProperty(value = "serde_type") String serdeType,
-            @JsonProperty(value = "topic_field_configs", required = true) List<TopicFieldConfig> topicFieldConfigs) {
+            @JsonProperty(value = "topic_field_configs", required = true) List<TopicFieldConfig> topicFieldConfigs,
+            @JsonProperty(value = "blocking_pool_size") int blockingPoolSize) {
         this.keySource = keySource != null ? keySource : KryptoniteSettings.KEY_SOURCE_DEFAULT;
         this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT;
         this.cipherDataKeyIdentifier = cipherDataKeyIdentifier != null ? cipherDataKeyIdentifier : KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER_DEFAULT;
@@ -70,6 +74,7 @@ public class KryptoniteFilterConfig {
         this.schemaMode = schemaMode != null ? schemaMode : SchemaMode.DYNAMIC;
         this.serdeType = serdeType != null ? serdeType : KryptoniteSettings.SERDE_TYPE_DEFAULT;
         this.topicFieldConfigs = topicFieldConfigs;
+        this.blockingPoolSize = blockingPoolSize;
     }
 
     public String getKeySource() { return keySource; }
@@ -87,4 +92,5 @@ public class KryptoniteFilterConfig {
     public SchemaMode getSchemaMode() { return schemaMode; }
     public String getSerdeType() { return serdeType; }
     public List<TopicFieldConfig> getTopicFieldConfigs() { return topicFieldConfigs; }
+    public int getBlockingPoolSize() { return blockingPoolSize; }
 }

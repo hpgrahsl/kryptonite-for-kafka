@@ -15,6 +15,7 @@ import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.FilterFactory;
 import io.kroxylicious.proxy.filter.FilterFactoryContext;
 import io.kroxylicious.proxy.plugin.Plugin;
@@ -25,6 +26,8 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * {@link FilterFactory} for the Kryptonite field-level decryption filter.
@@ -43,10 +46,17 @@ public class KryptoniteDecryptionFilterFactory
 
     private static final Logger LOG = LoggerFactory.getLogger(KryptoniteDecryptionFilterFactory.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final int DEFAULT_BLOCKING_POOL_SIZE = Math.max(2, Runtime.getRuntime().availableProcessors());
+
+    private ExecutorService filterBlockingExecutor;
 
     @Override
     public KryptoniteFilterConfig initialize(FilterFactoryContext context, KryptoniteFilterConfig config) {
-        return Plugins.requireConfig(this, config);
+        Plugins.requireConfig(this, config);
+        int poolSize = config.getBlockingPoolSize() > 0 ? config.getBlockingPoolSize() : DEFAULT_BLOCKING_POOL_SIZE;
+        filterBlockingExecutor = Executors.newFixedThreadPool(poolSize);
+        LOG.info("KryptoniteDecryptionFilterFactory initialized with blockingPoolSize={}", poolSize);
+        return config;
     }
 
     @Override
@@ -54,10 +64,18 @@ public class KryptoniteDecryptionFilterFactory
         LOG.info("Creating KryptoniteDecryptionFilter with schemaRegistryUrl={} recordFormat={} schemaMode={}",
                 cfg.getSchemaRegistryUrl(), cfg.getRecordFormat(), cfg.getSchemaMode());
 
+        FilterDispatchExecutor filterDispatchExecutor = context.filterDispatchExecutor();
         Kryptonite kryptonite = Kryptonite.createFromConfig(toConfigMap(cfg));
         RecordValueProcessor processor = createProcessor(kryptonite, cfg);
         TopicFieldConfigResolver resolver = new TopicFieldConfigResolver(cfg.getTopicFieldConfigs());
-        return new KryptoniteDecryptionFilter(processor, resolver);
+        return new KryptoniteDecryptionFilter(processor, resolver, filterBlockingExecutor, filterDispatchExecutor);
+    }
+
+    @Override
+    public void close(KryptoniteFilterConfig initializationData) {
+        if (filterBlockingExecutor != null) {
+            filterBlockingExecutor.shutdown();
+        }
     }
 
     private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig cfg) {

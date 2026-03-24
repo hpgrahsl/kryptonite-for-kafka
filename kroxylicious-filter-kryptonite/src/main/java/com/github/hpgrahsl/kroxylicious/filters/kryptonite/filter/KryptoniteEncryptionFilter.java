@@ -8,6 +8,7 @@ import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformers;
 import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.proxy.filter.ApiVersionsResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
+import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.ProduceRequestFilter;
 import io.kroxylicious.proxy.filter.RequestFilterResult;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
@@ -24,10 +25,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Kroxylicious filter that encrypts targeted fields in Kafka ProduceRequests.
@@ -57,10 +62,15 @@ public class KryptoniteEncryptionFilter implements ProduceRequestFilter, ApiVers
 
     private final RecordValueProcessor processor;
     private final TopicFieldConfigResolver resolver;
+    private final ExecutorService filterBlockingExecutor;
+    private final FilterDispatchExecutor filterDispatchExecutor;
 
-    KryptoniteEncryptionFilter(RecordValueProcessor processor, TopicFieldConfigResolver resolver) {
+    KryptoniteEncryptionFilter(RecordValueProcessor processor, TopicFieldConfigResolver resolver,
+                               ExecutorService filterBlockingExecutor, FilterDispatchExecutor filterDispatchExecutor) {
         this.processor = processor;
         this.resolver = resolver;
+        this.filterBlockingExecutor = filterBlockingExecutor;
+        this.filterDispatchExecutor = filterDispatchExecutor;
     }
 
     // --- ApiVersionsResponseFilter: downgrade Produce API version ---
@@ -80,42 +90,53 @@ public class KryptoniteEncryptionFilter implements ProduceRequestFilter, ApiVers
             FilterContext context) {
 
         // Topic names are guaranteed present via the Produce API version downgrade above
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (ProduceRequestData.TopicProduceData topic : request.topicData()) {
             Optional<Set<FieldConfig>> fieldConfigs = resolver.resolve(topic.name());
-            if (fieldConfigs.isEmpty() || fieldConfigs.get().isEmpty()) continue; // topic not configured or no fields → pass through
+            if (fieldConfigs.isEmpty() || fieldConfigs.get().isEmpty()) continue;
 
             for (ProduceRequestData.PartitionProduceData partition : topic.partitionData()) {
-                applyTransform(partition, context, topic.name(), fieldConfigs.get());
+                futures.add(applyTransformAsync(partition, context, topic.name(), fieldConfigs.get()));
             }
         }
 
-        // Forward the same (mutated) request object — crypto is synchronous, no read pause
-        return context.forwardRequest(header, request);
+        if (futures.isEmpty()) {
+            return context.forwardRequest(header, request);
+        }
+
+        // Wait for all partition tasks to complete, hop back to the filter dispatch thread, then forward
+        CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        return filterDispatchExecutor.completeOnFilterDispatchThread(allDone)
+                .thenCompose(__ -> context.forwardRequest(header, request));
     }
 
-    // --- Batch rebuild ---
+    // --- Async batch rebuild (one task per partition) ---
 
-    private void applyTransform(ProduceRequestData.PartitionProduceData partition,
-                                FilterContext context, String topicName,
-                                Set<FieldConfig> fieldConfigs) {
+    private CompletableFuture<Void> applyTransformAsync(ProduceRequestData.PartitionProduceData partition,
+                                                         FilterContext context, String topicName,
+                                                         Set<FieldConfig> fieldConfigs) {
         AbstractRecords records = (AbstractRecords) partition.records();
-        if (records == null || !records.batchIterator().hasNext()) return;
+        if (records == null || !records.batchIterator().hasNext()) {
+            return CompletableFuture.completedFuture(null);
+        }
 
+        // Buffer and builder created on the filter dispatch thread; handed off exclusively to the blocking executor
         ByteBufferOutputStream stream = context.createByteBufferOutputStream(records.sizeInBytes());
         BatchAwareMemoryRecordsBuilder builder = new BatchAwareMemoryRecordsBuilder(stream);
 
-        for (var rawBatch : records.batches()) {
-            MutableRecordBatch batch = (MutableRecordBatch) rawBatch;
-            builder.addBatchLike(batch);
-            for (Record record : batch) {
-                byte[] originalValue = toBytes(record.value());
-                byte[] transformedValue = encryptOrFail(originalValue, topicName, fieldConfigs);
-                builder.appendWithOffset(record.offset(), record.timestamp(),
-                        record.key(), ByteBuffer.wrap(transformedValue), record.headers());
+        return CompletableFuture.runAsync(() -> {
+            for (var rawBatch : records.batches()) {
+                MutableRecordBatch batch = (MutableRecordBatch) rawBatch;
+                builder.addBatchLike(batch);
+                for (Record record : batch) {
+                    byte[] originalValue = toBytes(record.value());
+                    byte[] transformedValue = encryptOrFail(originalValue, topicName, fieldConfigs);
+                    builder.appendWithOffset(record.offset(), record.timestamp(),
+                            record.key(), ByteBuffer.wrap(transformedValue), record.headers());
+                }
             }
-        }
-
-        partition.setRecords(builder.build());
+            partition.setRecords(builder.build());
+        }, filterBlockingExecutor);
     }
 
     private byte[] encryptOrFail(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
