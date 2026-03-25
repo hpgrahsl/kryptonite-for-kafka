@@ -60,14 +60,14 @@ public class KryptoniteEncryptionFilterFactory
     }
 
     @Override
-    public KryptoniteEncryptionFilter createFilter(FilterFactoryContext context, KryptoniteFilterConfig cfg) {
+    public KryptoniteEncryptionFilter createFilter(FilterFactoryContext context, KryptoniteFilterConfig config) {
         LOG.info("Creating KryptoniteEncryptionFilter with schemaRegistryUrl={} recordFormat={} schemaMode={}",
-                cfg.getSchemaRegistryUrl(), cfg.getRecordFormat(), cfg.getSchemaMode());
+                config.getSchemaRegistryUrl(), config.getRecordFormat(), config.getSchemaMode());
 
         FilterDispatchExecutor filterDispatchExecutor = context.filterDispatchExecutor();
-        Kryptonite kryptonite = Kryptonite.createFromConfig(toConfigMap(cfg));
-        RecordValueProcessor processor = createProcessor(kryptonite, cfg);
-        TopicFieldConfigResolver resolver = new TopicFieldConfigResolver(cfg.getTopicFieldConfigs());
+        Kryptonite kryptonite = Kryptonite.createFromConfig(toConfigMap(config));
+        RecordValueProcessor processor = createProcessor(kryptonite, config);
+        TopicFieldConfigResolver resolver = new TopicFieldConfigResolver(config.getTopicFieldConfigs());
         return new KryptoniteEncryptionFilter(processor, resolver, filterBlockingExecutor, filterDispatchExecutor);
     }
 
@@ -78,25 +78,25 @@ public class KryptoniteEncryptionFilterFactory
         }
     }
 
-    private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig cfg) {
-        RecordFormat format = cfg.getRecordFormat() != null ? cfg.getRecordFormat() : RecordFormat.JSON_SR;
-        String serdeType = cfg.getSerdeType();
+    private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig config) {
+        RecordFormat format = config.getRecordFormat() != null ? config.getRecordFormat() : RecordFormat.JSON_SR;
+        String serdeType = config.getSerdeType();
         return switch (format) {
-            case JSON -> new PlainJsonRecordProcessor(kryptonite, serdeType, cfg.getCipherDataKeyIdentifier());
+            case JSON -> new PlainJsonRecordProcessor(kryptonite, serdeType, config.getCipherDataKeyIdentifier());
             case JSON_SR -> {
                 SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
-                        List.of(cfg.getSchemaRegistryUrl()), 100,
-                        List.of(new JsonSchemaProvider()), cfg.getSchemaRegistryConfig());
+                        List.of(config.getSchemaRegistryUrl()), 100,
+                        List.of(new JsonSchemaProvider()), config.getSchemaRegistryConfig());
                 SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
-                yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, cfg.getCipherDataKeyIdentifier());
+                yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, config.getCipherDataKeyIdentifier());
             }
             case AVRO -> {
                 SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
-                        List.of(cfg.getSchemaRegistryUrl()), 100,
+                        List.of(config.getSchemaRegistryUrl()), 100,
                         List.of(new JsonSchemaProvider(), new AvroSchemaProvider()),
-                        cfg.getSchemaRegistryConfig());
+                        config.getSchemaRegistryConfig());
                 SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
-                yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, cfg.getCipherDataKeyIdentifier());
+                yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, config.getCipherDataKeyIdentifier());
             }
             default -> throw new IllegalArgumentException("Unsupported recordFormat for encryption: " + format);
         };
