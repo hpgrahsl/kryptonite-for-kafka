@@ -6,7 +6,8 @@ import java.util.Map;
 /**
  * Kryptonite encryption metadata stored in Schema Registry alongside the encrypted schema.
  *
- * <p>Registered under subject {@code "<topicName>-value__k4k_meta"} with NONE compatibility.
+ * <p>Registered under subject {@code "<topicName>-value__k4k_meta_<encryptedSchemaId>"} — one subject
+ * per encrypted schema version, so cold-start decrypt always resolves to the exact original schema.
  * This is the sole source of truth for {@code originalSchemaId}, {@code encryptedFields},
  * and {@code encryptedFieldModes} — neither JSON Schema nor Avro schema documents are mutated
  * with custom keywords.

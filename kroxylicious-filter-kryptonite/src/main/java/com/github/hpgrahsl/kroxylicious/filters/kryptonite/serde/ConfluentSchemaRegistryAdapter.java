@@ -42,8 +42,8 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
 
     /** Encrypted schema subject: {@code "<topicName>-value__k4k_enc"} */
     public static final String ENCRYPTED_SUBJECT_SUFFIX = "-value__k4k_enc";
-    /** Encryption metadata subject: {@code "<topicName>-value__k4k_meta"} */
-    public static final String ENCRYPTION_METADATA_SUBJECT_SUFFIX = "-value__k4k_meta";
+    /** Encryption metadata subject: {@code "<topicName>-value__k4k_meta_<encryptedSchemaId>"} */
+    public static final String ENCRYPTION_METADATA_SUBJECT_SUFFIX = "-value__k4k_meta_";
     /** Partial-decrypt subject prefix: {@code "<topicName>-value__k4k_dec_<stableHash>"} */
     public static final String PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX = "-value__k4k_dec_";
 
@@ -130,7 +130,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                         id, encryptedSchemaId,
                         encryptedFields,
                         encryptedFieldModes);
-                registerEncryptionMetadata(topicName, encryptionMetadata);
+                registerEncryptionMetadata(topicName, encryptedSchemaId, encryptionMetadata);
                 encryptionMetadataCache.put(encryptedSchemaId, encryptionMetadata);
 
                 LOG.info("Registered encrypted schema under subject='{}' with id={}", encryptedSubject, encryptedSchemaId);
@@ -230,11 +230,11 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
 
     // --- Encryption metadata helpers ---
 
-    private void registerEncryptionMetadata(String topicName, EncryptionMetadata encryptionMetadata) throws Exception {
+    private void registerEncryptionMetadata(String topicName, int encryptedSchemaId, EncryptionMetadata encryptionMetadata) throws Exception {
         ObjectNode envelope = MAPPER.createObjectNode();
         envelope.put("type", "object");
         envelope.set("x-kryptonite-metadata", MAPPER.valueToTree(encryptionMetadata));
-        String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX;
+        String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX + encryptedSchemaId;
         srClient.updateCompatibility(metadataSubject, "NONE");
         srClient.register(metadataSubject, new JsonSchema(MAPPER.writeValueAsString(envelope)));
         LOG.debug("Registered encryption metadata under subject='{}'", metadataSubject);
@@ -243,7 +243,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     private EncryptionMetadata getOrFetchEncryptionMetadata(int encryptedSchemaId, String topicName) {
         return encryptionMetadataCache.computeIfAbsent(encryptedSchemaId, id -> {
             try {
-                String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX;
+                String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX + id;
                 SchemaMetadata meta = srClient.getLatestSchemaMetadata(metadataSubject);
                 ObjectNode envelope = (ObjectNode) MAPPER.readTree(meta.getSchema());
                 EncryptionMetadata encryptionMetadata = MAPPER.treeToValue(

@@ -2,6 +2,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
+import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import org.junit.jupiter.api.DisplayName;
@@ -223,6 +224,67 @@ class ConfluentSchemaRegistryAdapterTest {
 
             assertThat(r1).isEqualTo(ORIGINAL_ID);
             assertThat(r2).isEqualTo(ORIGINAL_ID);
+        }
+    }
+
+    // ---- getOrRegisterDecryptedSchemaId — cold-start ----
+
+    @Nested
+    @DisplayName("getOrRegisterDecryptedSchemaId — cold-start decrypt")
+    class ColdStartDecrypt {
+
+        // Schema generation 1: what was encrypted before evolution
+        private static final int GEN1_ORIGINAL_ID = 1;   // == ORIGINAL_ID
+        private static final int GEN1_ENCRYPTED_ID = 42; // == ENCRYPTED_ID
+
+        private static final String GEN1_META_JSON = "{\"type\":\"object\",\"x-kryptonite-metadata\":"
+                + "{\"originalSchemaId\":1,\"encryptedSchemaId\":42,"
+                + "\"encryptedFields\":[\"age\"],\"encryptedFieldModes\":{}}}";
+        private static final String GEN2_META_JSON = "{\"type\":\"object\",\"x-kryptonite-metadata\":"
+                + "{\"originalSchemaId\":2,\"encryptedSchemaId\":43,"
+                + "\"encryptedFields\":[\"age\"],\"encryptedFieldModes\":{}}}";
+
+        @Test
+        @DisplayName("BUG: cold-start reads latest flat meta subject and returns wrong originalSchemaId for old encrypted records")
+        void coldStartBugReturnsWrongOriginalSchemaId() throws Exception {
+            // After schema evolution the flat meta subject holds gen2 metadata (latest wins)
+            SchemaMetadata gen2FlatMeta = new SchemaMetadata(100, 2, GEN2_META_JSON);
+            lenient().when(mockClient.getLatestSchemaMetadata(eq("payments-value__k4k_meta")))
+                    .thenReturn(gen2FlatMeta);
+            // Per-id subject for gen1 exists in SR (as the fix will write it) — ignored by buggy code
+            SchemaMetadata gen1PerIdMeta = new SchemaMetadata(99, 1, GEN1_META_JSON);
+            lenient().when(mockClient.getLatestSchemaMetadata(eq("payments-value__k4k_meta_42")))
+                    .thenReturn(gen1PerIdMeta);
+
+            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var fieldConfigs = Set.of(
+                    FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
+
+            // Old record (encryptedSchemaId=42, gen1) arrives on cold start
+            // Correct answer: GEN1_ORIGINAL_ID (1). Buggy code returns GEN2_ORIGINAL_ID (2).
+            int result = adapter.getOrRegisterDecryptedSchemaId(GEN1_ENCRYPTED_ID, TOPIC, fieldConfigs);
+
+            assertThat(result).isEqualTo(GEN1_ORIGINAL_ID);
+        }
+
+        @Test
+        @DisplayName("cold-start full decrypt: fetches metadata from per-encryptedSchemaId subject, not a flat latest subject")
+        void coldStartFullDecryptFetchesFromPerIdSubject() throws Exception {
+            // Metadata envelope as stored in SR under the per-id subject
+            SchemaMetadata storedMeta = new SchemaMetadata(99, 1, GEN1_META_JSON);
+
+            // Stub only the per-encryptedSchemaId subject — this is what the correct impl must call
+            lenient().when(mockClient.getLatestSchemaMetadata(eq("payments-value__k4k_meta_42")))
+                    .thenReturn(storedMeta);
+
+            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var fieldConfigs = Set.of(
+                    FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
+
+            // Cold-start: no encrypt-path cache warming — simulates filter restart with old records in topic
+            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+
+            assertThat(result).isEqualTo(ORIGINAL_ID);
         }
     }
 

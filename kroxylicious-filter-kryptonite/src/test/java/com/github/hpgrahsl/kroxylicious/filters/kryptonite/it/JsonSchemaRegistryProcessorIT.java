@@ -316,12 +316,13 @@ class JsonSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
                     {"age":42}"""));
 
             FieldConfig fc = FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build();
-            processor.encryptFields(input, topic, Set.of(fc));
+            byte[] encryptedWireBytes = processor.encryptFields(input, topic, Set.of(fc));
+            int encryptedSchemaId = ByteBuffer.wrap(encryptedWireBytes, 1, 4).getInt();
 
             Collection<String> subjects = srClient.getAllSubjects();
-            assertThat(subjects).contains(topic + "-value__k4k_meta");
+            assertThat(subjects).contains(topic + "-value__k4k_meta_" + encryptedSchemaId);
 
-            SchemaMetadata metaSchema = srClient.getLatestSchemaMetadata(topic + "-value__k4k_meta");
+            SchemaMetadata metaSchema = srClient.getLatestSchemaMetadata(topic + "-value__k4k_meta_" + encryptedSchemaId);
             ObjectNode envelope = (ObjectNode) MAPPER.readTree(metaSchema.getSchema());
             EncryptionMetadata encMeta = MAPPER.treeToValue(
                     envelope.get("x-kryptonite-metadata"), EncryptionMetadata.class);
