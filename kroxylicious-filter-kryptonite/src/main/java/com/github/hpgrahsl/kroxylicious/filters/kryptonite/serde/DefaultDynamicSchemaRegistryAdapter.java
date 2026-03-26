@@ -46,8 +46,12 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     private final JsonSchemaDeriver deriver;
     private final AvroSchemaDeriver avroDeriver;
 
-    // Encrypt path: originalSchemaId → encryptedSchemaId
-    private final ConcurrentHashMap<Integer, Integer> originalToEncryptedId = new ConcurrentHashMap<>();
+    // Encrypt path: (originalSchemaId, topicName) → encryptedSchemaId
+    // Key must include topicName: SR schema IDs are globally unique, so the same originalSchemaId can
+    // appear across multiple topics (identical schema content = same global ID). Without topicName in
+    // the key, a cache hit on the second topic would skip metadata registration for that topic, making
+    // decrypt-path lookups fail with "subject not found" for the new topic.
+    private final ConcurrentHashMap<EncryptCacheKey, Integer> originalToEncryptedId = new ConcurrentHashMap<>();
 
     // Decrypt path: (encryptedSchemaId, fieldNames) → outputSchemaId
     private final ConcurrentHashMap<DecryptCacheKey, Integer> decryptOutputIdCache = new ConcurrentHashMap<>();
@@ -96,10 +100,10 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     @Override
     public int getOrRegisterEncryptedSchemaId(int originalSchemaId, String topicName,
                                                Set<FieldConfig> fieldConfigs) {
-        return originalToEncryptedId.computeIfAbsent(originalSchemaId, id -> {
+        return originalToEncryptedId.computeIfAbsent(new EncryptCacheKey(originalSchemaId, topicName), __ -> {
             try {
-                LOG.debug("Cache miss for originalSchemaId={} topic='{}' — deriving encrypted schema", id, topicName);
-                ParsedSchema parsedSchema = srClient.getSchemaById(id);
+                LOG.debug("Cache miss for originalSchemaId={} topic='{}' — deriving encrypted schema", originalSchemaId, topicName);
+                ParsedSchema parsedSchema = srClient.getSchemaById(originalSchemaId);
                 String encryptedSubject = topicName + SubjectNaming.ENCRYPTED_SUFFIX;
                 srClient.updateCompatibility(encryptedSubject, "NONE");
 
@@ -128,20 +132,19 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
                         })
                         .collect(Collectors.toList());
 
-                // Register encryption metadata under both subjects (Option D)
                 EncryptionMetadata encryptionMetadata = new EncryptionMetadata(
-                        id, encryptedSchemaId, fieldEntries);
+                        originalSchemaId, encryptedSchemaId, fieldEntries);
                 registerEncryptionMetadata(topicName, encryptionMetadata);
                 encryptionMetadataCache.put(encryptedSchemaId, encryptionMetadata);
 
                 LOG.info("Registered encrypted schema under subject='{}' with id={}", encryptedSubject, encryptedSchemaId);
                 // Prime the decrypt cache for full decrypt direction
                 decryptOutputIdCache.putIfAbsent(
-                        new DecryptCacheKey(encryptedSchemaId, fieldNames(fieldConfigs)), id);
+                        new DecryptCacheKey(encryptedSchemaId, fieldNames(fieldConfigs)), originalSchemaId);
                 return encryptedSchemaId;
             } catch (Exception e) {
                 throw new SchemaRegistryAdapterException(
-                        "Failed to register encrypted schema for originalSchemaId=" + id + " topic=" + topicName, e);
+                        "Failed to register encrypted schema for originalSchemaId=" + originalSchemaId + " topic=" + topicName, e);
             }
         });
     }
@@ -267,6 +270,8 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     private static Set<String> fieldNames(Set<FieldConfig> fieldConfigs) {
         return fieldConfigs.stream().map(FieldConfig::getName).collect(Collectors.toSet());
     }
+
+    private record EncryptCacheKey(int originalSchemaId, String topicName) {}
 
     private record DecryptCacheKey(int encryptedSchemaId, Set<String> fieldNames) {}
 }

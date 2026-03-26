@@ -38,8 +38,11 @@ import java.util.concurrent.Executors;
  * Kroxylicious how to deserialize the YAML {@code config:} block.
  * Reference in proxy YAML: {@code type: KryptoniteDecryptionFilterFactory}.
  *
- * <p>The decrypt-side factory creates a separate {@link SchemaRegistryAdapter}
- * instance with its own cache (not shared with the encrypt-side adapter).
+ * <p>All shared state ({@link Kryptonite}, {@link SchemaRegistryAdapter},
+ * {@link RecordValueProcessor}, {@link TopicFieldConfigResolver}) is created once in
+ * {@link #initialize} and reused across all filter instances. {@link #createFilter} is called
+ * once per incoming connection and only supplies the connection-specific
+ * {@link FilterDispatchExecutor}.
  * DYNAMIC mode uses {@link DefaultDynamicSchemaRegistryAdapter};
  * STATIC mode uses {@link DefaultStaticSchemaRegistryAdapter}.
  */
@@ -52,25 +55,26 @@ public class KryptoniteDecryptionFilterFactory
     private static final int DEFAULT_BLOCKING_POOL_SIZE = Math.max(2, Runtime.getRuntime().availableProcessors());
 
     private ExecutorService filterBlockingExecutor;
+    private RecordValueProcessor processor;
+    private TopicFieldConfigResolver resolver;
 
     @Override
     public KryptoniteFilterConfig initialize(FilterFactoryContext context, KryptoniteFilterConfig config) {
         Plugins.requireConfig(this, config);
         int poolSize = config.getBlockingPoolSize() > 0 ? config.getBlockingPoolSize() : DEFAULT_BLOCKING_POOL_SIZE;
         filterBlockingExecutor = Executors.newFixedThreadPool(poolSize);
-        LOG.info("KryptoniteDecryptionFilterFactory initialized with blockingPoolSize={}", poolSize);
+        Kryptonite kryptonite = Kryptonite.createFromConfig(toConfigMap(config));
+        processor = createProcessor(kryptonite, config);
+        resolver = new TopicFieldConfigResolver(config.getTopicFieldConfigs());
+        LOG.info("KryptoniteDecryptionFilterFactory initialized with blockingPoolSize={} recordFormat={} schemaMode={}",
+                poolSize, config.getRecordFormat(), config.getSchemaMode());
         return config;
     }
 
     @Override
     public KryptoniteDecryptionFilter createFilter(FilterFactoryContext context, KryptoniteFilterConfig config) {
-        LOG.info("Creating KryptoniteDecryptionFilter with schemaRegistryUrl={} recordFormat={} schemaMode={}",
-                config.getSchemaRegistryUrl(), config.getRecordFormat(), config.getSchemaMode());
-
+        LOG.debug("Creating KryptoniteDecryptionFilter for new connection (shared processor and resolver)");
         FilterDispatchExecutor filterDispatchExecutor = context.filterDispatchExecutor();
-        Kryptonite kryptonite = Kryptonite.createFromConfig(toConfigMap(config));
-        RecordValueProcessor processor = createProcessor(kryptonite, config);
-        TopicFieldConfigResolver resolver = new TopicFieldConfigResolver(config.getTopicFieldConfigs());
         return new KryptoniteDecryptionFilter(processor, resolver, filterBlockingExecutor, filterDispatchExecutor);
     }
 
