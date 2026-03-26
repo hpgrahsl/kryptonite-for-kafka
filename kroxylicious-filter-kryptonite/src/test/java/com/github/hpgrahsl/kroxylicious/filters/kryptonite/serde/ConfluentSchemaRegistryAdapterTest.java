@@ -239,10 +239,10 @@ class ConfluentSchemaRegistryAdapterTest {
 
         private static final String GEN1_META_JSON = "{\"type\":\"object\",\"x-kryptonite-metadata\":"
                 + "{\"originalSchemaId\":1,\"encryptedSchemaId\":42,"
-                + "\"encryptedFields\":[\"age\"],\"encryptedFieldModes\":{}}}";
+                + "\"encryptedFields\":[{\"name\":\"age\"}]}}";
         private static final String GEN2_META_JSON = "{\"type\":\"object\",\"x-kryptonite-metadata\":"
                 + "{\"originalSchemaId\":2,\"encryptedSchemaId\":43,"
-                + "\"encryptedFields\":[\"age\"],\"encryptedFieldModes\":{}}}";
+                + "\"encryptedFields\":[{\"name\":\"age\"}]}}";
 
         @Test
         @DisplayName("BUG: cold-start reads latest flat meta subject and returns wrong originalSchemaId for old encrypted records")

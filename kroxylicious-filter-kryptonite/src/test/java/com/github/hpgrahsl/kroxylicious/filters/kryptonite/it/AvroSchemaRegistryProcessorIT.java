@@ -8,6 +8,7 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.AvroSchemaRegistryRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.ConfluentSchemaRegistryAdapter;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.EncryptionMetadata;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.FieldEntryMetadata;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
@@ -436,7 +437,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
                     envelope.get("x-kryptonite-metadata"), EncryptionMetadata.class);
 
             assertThat(encMeta.getOriginalSchemaId()).isEqualTo(originalSchemaId);
-            assertThat(encMeta.getEncryptedFields()).containsExactly("value");
+            assertThat(encMeta.getEncryptedFields()).extracting(FieldEntryMetadata::name).containsExactly("value");
         }
     }
 }

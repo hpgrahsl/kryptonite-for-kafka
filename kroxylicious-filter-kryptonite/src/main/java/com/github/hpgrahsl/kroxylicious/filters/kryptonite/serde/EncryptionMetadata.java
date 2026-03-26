@@ -1,16 +1,17 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Kryptonite encryption metadata stored in Schema Registry alongside the encrypted schema.
  *
- * <p>Registered under subject {@code "<topicName>-value__k4k_meta_<encryptedSchemaId>"} — one subject
- * per encrypted schema version, so cold-start decrypt always resolves to the exact original schema.
- * This is the sole source of truth for {@code originalSchemaId}, {@code encryptedFields},
- * and {@code encryptedFieldModes} — neither JSON Schema nor Avro schema documents are mutated
- * with custom keywords.
+ * <p>Registered under two subjects per encryption step:
+ * <ul>
+ *   <li>{@code "<topicName>-value__k4k_meta_<encryptedSchemaId>"} — decrypt path index</li>
+ *   <li>{@code "<topicName>-value__k4k_meta_<originalSchemaId>"} — encrypt path index</li>
+ * </ul>
+ * Both subjects carry identical content. Both are write-once (SR schema IDs are globally unique
+ * and immutable) so always have exactly 1 version — {@code getLatestSchemaMetadata} is always correct.
  *
  * <p>Serialized to/from JSON by {@link ConfluentSchemaRegistryAdapter}.
  */
@@ -18,19 +19,15 @@ public class EncryptionMetadata {
 
     private int originalSchemaId;
     private int encryptedSchemaId;
-    private List<String> encryptedFields;
-    /** Every encrypted field appears here with its explicit mode: {@code "OBJECT"} or {@code "ELEMENT"}. */
-    private Map<String, String> encryptedFieldModes;
+    private List<FieldEntryMetadata> encryptedFields;
 
     public EncryptionMetadata() {}
 
     public EncryptionMetadata(int originalSchemaId, int encryptedSchemaId,
-                              List<String> encryptedFields,
-                              Map<String, String> encryptedFieldModes) {
+                              List<FieldEntryMetadata> encryptedFields) {
         this.originalSchemaId = originalSchemaId;
         this.encryptedSchemaId = encryptedSchemaId;
         this.encryptedFields = encryptedFields;
-        this.encryptedFieldModes = encryptedFieldModes;
     }
 
     public int getOriginalSchemaId() { return originalSchemaId; }
@@ -39,9 +36,6 @@ public class EncryptionMetadata {
     public int getEncryptedSchemaId() { return encryptedSchemaId; }
     public void setEncryptedSchemaId(int encryptedSchemaId) { this.encryptedSchemaId = encryptedSchemaId; }
 
-    public List<String> getEncryptedFields() { return encryptedFields; }
-    public void setEncryptedFields(List<String> encryptedFields) { this.encryptedFields = encryptedFields; }
-
-    public Map<String, String> getEncryptedFieldModes() { return encryptedFieldModes; }
-    public void setEncryptedFieldModes(Map<String, String> encryptedFieldModes) { this.encryptedFieldModes = encryptedFieldModes; }
+    public List<FieldEntryMetadata> getEncryptedFields() { return encryptedFields; }
+    public void setEncryptedFields(List<FieldEntryMetadata> encryptedFields) { this.encryptedFields = encryptedFields; }
 }

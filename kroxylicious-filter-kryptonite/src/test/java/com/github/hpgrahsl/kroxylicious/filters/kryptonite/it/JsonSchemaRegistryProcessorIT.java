@@ -9,6 +9,7 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.JsonSchemaRegistryRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.ConfluentSchemaRegistryAdapter;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.EncryptionMetadata;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.FieldEntryMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
@@ -328,7 +329,7 @@ class JsonSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
                     envelope.get("x-kryptonite-metadata"), EncryptionMetadata.class);
 
             assertThat(encMeta.getOriginalSchemaId()).isEqualTo(originalSchemaId);
-            assertThat(encMeta.getEncryptedFields()).containsExactly("age");
+            assertThat(encMeta.getEncryptedFields()).extracting(FieldEntryMetadata::name).containsExactly("age");
         }
 
         @Test

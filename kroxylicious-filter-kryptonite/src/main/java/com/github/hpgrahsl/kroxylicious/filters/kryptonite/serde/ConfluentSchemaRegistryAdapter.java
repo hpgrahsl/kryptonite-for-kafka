@@ -25,11 +25,12 @@ import java.util.stream.Collectors;
  *
  * <p>Wire format: {@code [0x00][4-byte big-endian int schemaId][payload bytes]}.
  *
- * <p>Encryption metadata ({@code originalSchemaId}, {@code encryptedFields},
- * {@code encryptedFieldModes}) is stored in an encryption metadata subject
- * {@code "<topicName>-value__k4k_meta"} as a JSON Schema document with a
- * {@code x-kryptonite-metadata} custom keyword. Schema documents (encrypted schema,
- * partial-decrypt schema) are clean and contain no custom keywords.
+ * <p>Encryption metadata ({@code originalSchemaId}, {@code encryptedSchemaId},
+ * {@code encryptedFields}) is stored as a JSON Schema document with a
+ * {@code x-kryptonite-metadata} custom keyword, registered under two subjects per
+ * evolution step for O(1) lookup in both directions (see {@link EncryptionMetadata}).
+ * Schema documents (encrypted schema, partial-decrypt schema) are clean and contain
+ * no custom keywords.
  *
  * <p>Thread-safe after construction: all mutable state is in {@link ConcurrentHashMap} instances;
  * {@link SchemaRegistryClient} is documented as thread-safe.
@@ -109,27 +110,33 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                 srClient.updateCompatibility(encryptedSubject, "NONE");
 
                 final int encryptedSchemaId;
-                final List<String> encryptedFields;
-                final Map<String, String> encryptedFieldModes;
+                final List<String> encryptedFieldNames;
 
                 if ("AVRO".equals(parsedSchema.schemaType())) {
                     AvroSchemaDeriver.DeriveEncryptedResult avroResult =
                             avroDeriver.deriveEncrypted(((AvroSchema) parsedSchema).rawSchema(), fieldConfigs);
                     encryptedSchemaId = srClient.register(encryptedSubject, new AvroSchema(avroResult.schema()));
-                    encryptedFields = avroResult.encryptedFields();
-                    encryptedFieldModes = avroResult.encryptedFieldModes();
+                    encryptedFieldNames = avroResult.encryptedFields();
                 } else {
                     DeriveEncryptedResult result = deriver.deriveEncrypted(parsedSchema.canonicalString(), fieldConfigs);
                     encryptedSchemaId = srClient.register(encryptedSubject, new JsonSchema(result.schemaJson()));
-                    encryptedFields = result.encryptedFields();
-                    encryptedFieldModes = result.encryptedFieldModes();
+                    encryptedFieldNames = result.encryptedFields();
                 }
+
+                // Build FieldEntryMetadata list from deriver results + original per-field config
+                Map<String, FieldConfig> configByName = fieldConfigs.stream()
+                        .collect(Collectors.toMap(FieldConfig::getName, fc -> fc));
+                List<FieldEntryMetadata> fieldEntries = encryptedFieldNames.stream()
+                        .map(name -> {
+                            FieldConfig fc = configByName.get(name);
+                            return fc != null ? FieldEntryMetadata.from(fc)
+                                             : new FieldEntryMetadata(name, null, null, null, null, null, null);
+                        })
+                        .collect(Collectors.toList());
 
                 // Register encryption metadata
                 EncryptionMetadata encryptionMetadata = new EncryptionMetadata(
-                        id, encryptedSchemaId,
-                        encryptedFields,
-                        encryptedFieldModes);
+                        id, encryptedSchemaId, fieldEntries);
                 registerEncryptionMetadata(topicName, encryptedSchemaId, encryptionMetadata);
                 encryptionMetadataCache.put(encryptedSchemaId, encryptionMetadata);
 
@@ -159,9 +166,12 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
 
                 EncryptionMetadata encryptionMetadata = getOrFetchEncryptionMetadata(encryptedSchemaId, topicName);
                 int originalSchemaId = encryptionMetadata.getOriginalSchemaId();
-                List<String> allEncryptedFields = encryptionMetadata.getEncryptedFields();
-                Map<String, String> encryptedFieldModes = encryptionMetadata.getEncryptedFieldModes() != null
-                        ? encryptionMetadata.getEncryptedFieldModes() : Map.of();
+                List<FieldEntryMetadata> allEncryptedFieldEntries = encryptionMetadata.getEncryptedFields();
+                List<String> allEncryptedFields = allEncryptedFieldEntries.stream()
+                        .map(FieldEntryMetadata::name).collect(Collectors.toList());
+                Map<String, String> encryptedFieldModes = allEncryptedFieldEntries.stream()
+                        .filter(e -> e.fieldMode() != null)
+                        .collect(Collectors.toMap(FieldEntryMetadata::name, e -> e.fieldMode().name()));
 
                 // Full decrypt: decrypted field set == all encrypted fields → return original schema ID
                 if (fieldNamesSet.containsAll(allEncryptedFields) && allEncryptedFields.containsAll(fieldNamesSet)) {
