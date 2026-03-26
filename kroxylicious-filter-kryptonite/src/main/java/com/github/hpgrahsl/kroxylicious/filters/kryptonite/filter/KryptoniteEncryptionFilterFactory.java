@@ -9,7 +9,9 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.JsonSchemaR
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.PlainJsonRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldConfigResolver;
-import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.ConfluentSchemaRegistryAdapter;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.SchemaMode;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.DefaultDynamicSchemaRegistryAdapter;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.DefaultStaticSchemaRegistryAdapter;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -87,7 +89,9 @@ public class KryptoniteEncryptionFilterFactory
                 SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
                         List.of(config.getSchemaRegistryUrl()), 100,
                         List.of(new JsonSchemaProvider()), config.getSchemaRegistryConfig());
-                SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
+                SchemaRegistryAdapter adapter = config.getSchemaMode() == SchemaMode.STATIC
+                        ? new DefaultStaticSchemaRegistryAdapter(srClient)
+                        : new DefaultDynamicSchemaRegistryAdapter(srClient);
                 yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, config.getCipherDataKeyIdentifier());
             }
             case AVRO -> {
@@ -95,7 +99,9 @@ public class KryptoniteEncryptionFilterFactory
                         List.of(config.getSchemaRegistryUrl()), 100,
                         List.of(new JsonSchemaProvider(), new AvroSchemaProvider()),
                         config.getSchemaRegistryConfig());
-                SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
+                SchemaRegistryAdapter adapter = config.getSchemaMode() == SchemaMode.STATIC
+                        ? new DefaultStaticSchemaRegistryAdapter(srClient)
+                        : new DefaultDynamicSchemaRegistryAdapter(srClient);
                 yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, config.getCipherDataKeyIdentifier());
             }
             default -> throw new IllegalArgumentException("Unsupported recordFormat for encryption: " + format);

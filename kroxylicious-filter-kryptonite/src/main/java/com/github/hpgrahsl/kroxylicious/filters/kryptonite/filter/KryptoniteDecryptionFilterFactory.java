@@ -9,7 +9,9 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.JsonSchemaR
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.PlainJsonRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldConfigResolver;
-import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.ConfluentSchemaRegistryAdapter;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.SchemaMode;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.DefaultDynamicSchemaRegistryAdapter;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.DefaultStaticSchemaRegistryAdapter;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
 import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
@@ -36,9 +38,10 @@ import java.util.concurrent.Executors;
  * Kroxylicious how to deserialize the YAML {@code config:} block.
  * Reference in proxy YAML: {@code type: KryptoniteDecryptionFilterFactory}.
  *
- * <p>The decrypt-side factory creates a separate {@link ConfluentSchemaRegistryAdapter}
- * instance with its own cache (not shared with the encrypt-side adapter), as specified
- * in the design: encrypt and decrypt adapters are separate instances.
+ * <p>The decrypt-side factory creates a separate {@link SchemaRegistryAdapter}
+ * instance with its own cache (not shared with the encrypt-side adapter).
+ * DYNAMIC mode uses {@link DefaultDynamicSchemaRegistryAdapter};
+ * STATIC mode uses {@link DefaultStaticSchemaRegistryAdapter}.
  */
 @Plugin(configType = KryptoniteFilterConfig.class)
 public class KryptoniteDecryptionFilterFactory
@@ -87,7 +90,9 @@ public class KryptoniteDecryptionFilterFactory
                 SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
                         List.of(config.getSchemaRegistryUrl()), 100,
                         List.of(new JsonSchemaProvider()), config.getSchemaRegistryConfig());
-                SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
+                SchemaRegistryAdapter adapter = config.getSchemaMode() == SchemaMode.STATIC
+                        ? new DefaultStaticSchemaRegistryAdapter(srClient)
+                        : new DefaultDynamicSchemaRegistryAdapter(srClient);
                 yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, "");
             }
             case AVRO -> {
@@ -95,7 +100,9 @@ public class KryptoniteDecryptionFilterFactory
                         List.of(config.getSchemaRegistryUrl()), 100,
                         List.of(new JsonSchemaProvider(), new AvroSchemaProvider()),
                         config.getSchemaRegistryConfig());
-                SchemaRegistryAdapter adapter = new ConfluentSchemaRegistryAdapter(srClient);
+                SchemaRegistryAdapter adapter = config.getSchemaMode() == SchemaMode.STATIC
+                        ? new DefaultStaticSchemaRegistryAdapter(srClient)
+                        : new DefaultDynamicSchemaRegistryAdapter(srClient);
                 yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, "");
             }
             default -> throw new IllegalArgumentException("Unsupported recordFormat for decryption: " + format);

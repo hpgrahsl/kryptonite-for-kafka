@@ -11,7 +11,8 @@ import java.util.Set;
  * allowing a Protobuf adapter to be added in a future phase without touching processor or
  * filter code.
  *
- * <p>Current implementation: {@link ConfluentSchemaRegistryAdapter} — Confluent wire format
+ * <p>Implementations: {@link DefaultDynamicSchemaRegistryAdapter} (DYNAMIC mode) and
+ * {@link DefaultStaticSchemaRegistryAdapter} (STATIC mode) — both use the Confluent wire format
  * {@code [0x00][4-byte big-endian int schemaId][payload]}. Supports JSON Schema and Avro.
  *
  * <p>Future: {@code ApicurioSchemaRegistryAdapter} — Apicurio wire format

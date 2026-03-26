@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Derives modified Avro {@link Schema} objects for the Schema Registry produce and consume paths.
  *
- * <p>Used internally by {@link ConfluentSchemaRegistryAdapter} for the {@code AVRO} record format.
+ * <p>Used internally by {@link DefaultDynamicSchemaRegistryAdapter} for the {@code AVRO} record format.
  * No metadata is injected into derived schemas — metadata is stored in the encryption metadata subject.
  *
  * <p>Union handling: Avro nullable fields use the pattern {@code ["null", T]}. Type replacement

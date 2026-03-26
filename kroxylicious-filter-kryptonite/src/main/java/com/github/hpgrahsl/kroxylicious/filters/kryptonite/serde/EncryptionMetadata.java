@@ -13,7 +13,8 @@ import java.util.List;
  * Both subjects carry identical content. Both are write-once (SR schema IDs are globally unique
  * and immutable) so always have exactly 1 version — {@code getLatestSchemaMetadata} is always correct.
  *
- * <p>Serialized to/from JSON by {@link ConfluentSchemaRegistryAdapter}.
+ * <p>Serialized to/from JSON by {@link DefaultDynamicSchemaRegistryAdapter} and
+ * read by {@link DefaultStaticSchemaRegistryAdapter}.
  */
 public class EncryptionMetadata {
 

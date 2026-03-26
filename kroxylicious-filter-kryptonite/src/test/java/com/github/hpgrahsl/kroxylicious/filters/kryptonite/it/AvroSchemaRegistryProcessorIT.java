@@ -6,7 +6,7 @@ import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.AvroSchemaRegistryRecordProcessor;
-import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.ConfluentSchemaRegistryAdapter;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.DefaultDynamicSchemaRegistryAdapter;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.EncryptionMetadata;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.FieldEntryMetadata;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -48,7 +48,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
  * a live SR HTTP API.
  *
  * <p>Each test uses a unique topic name to prevent inter-test schema subject interference.
- * A fresh {@link ConfluentSchemaRegistryAdapter} is created per test so per-instance caches
+ * A fresh {@link DefaultDynamicSchemaRegistryAdapter} is created per test so per-instance caches
  * start empty (cache-miss path is always exercised on the first call).
  */
 @DisplayName("Integration tests for AvroSchemaRegistryRecordProcessor")
@@ -97,7 +97,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
     private static Kryptonite kryptonite;
 
     private String topic;
-    private ConfluentSchemaRegistryAdapter adapter;
+    private DefaultDynamicSchemaRegistryAdapter adapter;
     private AvroSchemaRegistryRecordProcessor processor;
 
     @BeforeAll
@@ -109,7 +109,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
     @BeforeEach
     void setUpPerTest() {
         topic = "topic-" + UUID.randomUUID();
-        adapter = new ConfluentSchemaRegistryAdapter(srClient);
+        adapter = new DefaultDynamicSchemaRegistryAdapter(srClient);
         processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
     }
 

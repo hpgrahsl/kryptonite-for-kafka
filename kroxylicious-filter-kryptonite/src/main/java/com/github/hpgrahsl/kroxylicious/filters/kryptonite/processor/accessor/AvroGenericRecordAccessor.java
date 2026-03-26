@@ -19,7 +19,7 @@ import java.io.IOException;
  * <p>Wraps a {@link GenericRecord} deserialized with a given writer schema.
  * {@link #getField} and {@link #setField} support dot-path navigation through nested records.
  * {@link #serialize} produces Avro binary bytes using the writer schema (compatible with the
- * SR wire format payload expected by {@link ConfluentSchemaRegistryAdapter}).
+ * SR wire format payload expected by {@link com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.DefaultDynamicSchemaRegistryAdapter}).
  *
  * <p>{@link GenericRecord} is mutable: {@code setField} calls {@code record.put()} directly.
  * Type coercion from decrypted Kryo bytes to Avro-compatible Java types is the caller's

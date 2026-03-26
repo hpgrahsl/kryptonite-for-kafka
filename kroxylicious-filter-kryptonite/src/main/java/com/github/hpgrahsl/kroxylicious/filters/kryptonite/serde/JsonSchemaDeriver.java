@@ -7,9 +7,6 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,7 +17,7 @@ import java.util.stream.Collectors;
 /**
  * Derives modified JSON Schema documents for the Schema Registry produce and consume paths.
  *
- * <p>Used internally by {@link ConfluentSchemaRegistryAdapter} — not exposed to processors.
+ * <p>Used internally by {@link DefaultDynamicSchemaRegistryAdapter} — not exposed to processors.
  *
  * <p>v1 coverage: object {@code properties} at any nesting depth; primitive leaf types;
  * array fields (ELEMENT mode: {@code items} replaced with {@code {"type":"string"}});
@@ -41,7 +38,7 @@ class JsonSchemaDeriver {
      *
      * <p>No metadata is injected into the schema document. Metadata ({@code originalSchemaId},
      * {@code encryptedFields}, {@code encryptedFieldModes}) is stored in the encryption metadata subject
-     * by {@link ConfluentSchemaRegistryAdapter}.
+     * by {@link DefaultDynamicSchemaRegistryAdapter}.
      *
      * @return {@link DeriveEncryptedResult} carrying the schema JSON plus field metadata for the encryption metadata subject
      */
@@ -118,30 +115,6 @@ class JsonSchemaDeriver {
             return MAPPER.writeValueAsString(encryptedRoot);
         } catch (Exception e) {
             throw new SchemaDerivationException("Failed to derive partial-decrypt schema", e);
-        }
-    }
-
-    /**
-     * Computes the stable hash used in partial-decrypt SR subject names.
-     * Input: encryptedSchemaId + sorted decrypted field names.
-     * Output: first 8 hex characters of SHA-256.
-     */
-    static String computeStableHash(int encryptedSchemaId, Set<FieldConfig> decryptedFieldConfigs) {
-        try {
-            String input = encryptedSchemaId + ":" +
-                    decryptedFieldConfigs.stream()
-                            .map(FieldConfig::getName)
-                            .sorted()
-                            .collect(Collectors.joining(","));
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder();
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.substring(0, 8);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 

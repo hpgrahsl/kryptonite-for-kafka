@@ -21,32 +21,26 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * v1 implementation of {@link SchemaRegistryAdapter} for the Confluent Schema Registry wire format.
+ * DYNAMIC mode implementation of {@link SchemaRegistryAdapter} for the Confluent Schema Registry
+ * wire format.
  *
  * <p>Wire format: {@code [0x00][4-byte big-endian int schemaId][payload bytes]}.
  *
- * <p>Encryption metadata ({@code originalSchemaId}, {@code encryptedSchemaId},
- * {@code encryptedFields}) is stored as a JSON Schema document with a
- * {@code x-kryptonite-metadata} custom keyword, registered under two subjects per
- * evolution step for O(1) lookup in both directions (see {@link EncryptionMetadata}).
- * Schema documents (encrypted schema, partial-decrypt schema) are clean and contain
- * no custom keywords.
+ * <p>On first encounter of a new {@code originalSchemaId}, derives the encrypted schema document,
+ * registers it under {@code "<topicName>-value__k4k_enc"}, and registers encryption metadata
+ * ({@code originalSchemaId}, {@code encryptedSchemaId}, {@code encryptedFields}) under
+ * {@code "<topicName>-value__k4k_meta_<encryptedSchemaId>"} for decrypt-path lookup.
+ * Schema documents (encrypted schema, partial-decrypt schema) are clean and contain no custom keywords.
  *
  * <p>Thread-safe after construction: all mutable state is in {@link ConcurrentHashMap} instances;
  * {@link SchemaRegistryClient} is documented as thread-safe.
  */
-public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
+public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ConfluentSchemaRegistryAdapter.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultDynamicSchemaRegistryAdapter.class);
     private static final byte MAGIC_BYTE = 0x00;
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    /** Encrypted schema subject: {@code "<topicName>-value__k4k_enc"} */
-    public static final String ENCRYPTED_SUBJECT_SUFFIX = "-value__k4k_enc";
-    /** Encryption metadata subject: {@code "<topicName>-value__k4k_meta_<encryptedSchemaId>"} */
-    public static final String ENCRYPTION_METADATA_SUBJECT_SUFFIX = "-value__k4k_meta_";
-    /** Partial-decrypt subject prefix: {@code "<topicName>-value__k4k_dec_<stableHash>"} */
-    public static final String PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX = "-value__k4k_dec_";
 
     private final SchemaRegistryClient srClient;
     private final JsonSchemaDeriver deriver;
@@ -61,7 +55,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     // Encryption metadata cache: encryptedSchemaId → EncryptionMetadata
     private final ConcurrentHashMap<Integer, EncryptionMetadata> encryptionMetadataCache = new ConcurrentHashMap<>();
 
-    public ConfluentSchemaRegistryAdapter(SchemaRegistryClient srClient) {
+    public DefaultDynamicSchemaRegistryAdapter(SchemaRegistryClient srClient) {
         this.srClient = srClient;
         this.deriver = new JsonSchemaDeriver();
         this.avroDeriver = new AvroSchemaDeriver();
@@ -106,7 +100,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
             try {
                 LOG.debug("Cache miss for originalSchemaId={} topic='{}' — deriving encrypted schema", id, topicName);
                 ParsedSchema parsedSchema = srClient.getSchemaById(id);
-                String encryptedSubject = topicName + ENCRYPTED_SUBJECT_SUFFIX;
+                String encryptedSubject = topicName + SubjectNaming.ENCRYPTED_SUFFIX;
                 srClient.updateCompatibility(encryptedSubject, "NONE");
 
                 final int encryptedSchemaId;
@@ -134,10 +128,10 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                         })
                         .collect(Collectors.toList());
 
-                // Register encryption metadata
+                // Register encryption metadata under both subjects (Option D)
                 EncryptionMetadata encryptionMetadata = new EncryptionMetadata(
                         id, encryptedSchemaId, fieldEntries);
-                registerEncryptionMetadata(topicName, encryptedSchemaId, encryptionMetadata);
+                registerEncryptionMetadata(topicName, encryptionMetadata);
                 encryptionMetadataCache.put(encryptedSchemaId, encryptionMetadata);
 
                 LOG.info("Registered encrypted schema under subject='{}' with id={}", encryptedSubject, encryptedSchemaId);
@@ -180,8 +174,8 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
                 }
 
                 // Partial decrypt: look up by deterministic subject name, or derive+register
-                String stableHash = JsonSchemaDeriver.computeStableHash(encryptedSchemaId, decryptedFieldConfigs);
-                String partialSubject = topicName + PARTIAL_DECRYPT_SUBJECT_SUFFIX_PREFIX + stableHash;
+                String partialSubject = topicName + SubjectNaming.PARTIAL_DECRYPT_SUFFIX
+                        + SubjectNaming.stableHash(encryptedSchemaId, decryptedFieldConfigs);
 
                 try {
                     SchemaMetadata existing = srClient.getLatestSchemaMetadata(partialSubject);
@@ -227,7 +221,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
         return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getOriginalSchemaId();
     }
 
-    // --- Schema fetch (Phase 3/4) ---
+    // --- Schema fetch ---
 
     @Override
     public Object fetchSchema(int schemaId) {
@@ -240,11 +234,12 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
 
     // --- Encryption metadata helpers ---
 
-    private void registerEncryptionMetadata(String topicName, int encryptedSchemaId, EncryptionMetadata encryptionMetadata) throws Exception {
+    private void registerEncryptionMetadata(String topicName, EncryptionMetadata encryptionMetadata) throws Exception {
         ObjectNode envelope = MAPPER.createObjectNode();
         envelope.put("type", "object");
         envelope.set("x-kryptonite-metadata", MAPPER.valueToTree(encryptionMetadata));
-        String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX + encryptedSchemaId;
+        // Register under encryptedSchemaId subject only — decrypt path lookup
+        String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + encryptionMetadata.getEncryptedSchemaId();
         srClient.updateCompatibility(metadataSubject, "NONE");
         srClient.register(metadataSubject, new JsonSchema(MAPPER.writeValueAsString(envelope)));
         LOG.debug("Registered encryption metadata under subject='{}'", metadataSubject);
@@ -253,7 +248,7 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     private EncryptionMetadata getOrFetchEncryptionMetadata(int encryptedSchemaId, String topicName) {
         return encryptionMetadataCache.computeIfAbsent(encryptedSchemaId, id -> {
             try {
-                String metadataSubject = topicName + ENCRYPTION_METADATA_SUBJECT_SUFFIX + id;
+                String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + id;
                 SchemaMetadata meta = srClient.getLatestSchemaMetadata(metadataSubject);
                 ObjectNode envelope = (ObjectNode) MAPPER.readTree(meta.getSchema());
                 EncryptionMetadata encryptionMetadata = MAPPER.treeToValue(
@@ -274,9 +269,4 @@ public class ConfluentSchemaRegistryAdapter implements SchemaRegistryAdapter {
     }
 
     private record DecryptCacheKey(int encryptedSchemaId, Set<String> fieldNames) {}
-
-    public static class SchemaRegistryAdapterException extends RuntimeException {
-        public SchemaRegistryAdapterException(String message) { super(message); }
-        public SchemaRegistryAdapterException(String message, Throwable cause) { super(message, cause); }
-    }
 }

@@ -21,21 +21,22 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link ConfluentSchemaRegistryAdapter}.
+ * Unit tests for {@link DefaultDynamicSchemaRegistryAdapter}.
  *
- * <p>Wire format methods ({@link ConfluentSchemaRegistryAdapter#stripPrefix} /
- * {@link ConfluentSchemaRegistryAdapter#attachPrefix}) are pure byte operations —
+ * <p>Wire format methods ({@link DefaultDynamicSchemaRegistryAdapter#stripPrefix} /
+ * {@link DefaultDynamicSchemaRegistryAdapter#attachPrefix}) are pure byte operations —
  * tested without mocks. SR-client-dependent methods use a mocked
  * {@link SchemaRegistryClient}.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ConfluentSchemaRegistryAdapter")
-class ConfluentSchemaRegistryAdapterTest {
+@DisplayName("DefaultDynamicSchemaRegistryAdapter")
+class DefaultDynamicSchemaRegistryAdapterTest {
 
     @Mock SchemaRegistryClient mockClient;
 
@@ -54,8 +55,8 @@ class ConfluentSchemaRegistryAdapterTest {
     @DisplayName("stripPrefix and attachPrefix — wire format")
     class WireFormat {
 
-        private ConfluentSchemaRegistryAdapter adapter() {
-            return new ConfluentSchemaRegistryAdapter(mockClient);
+        private DefaultDynamicSchemaRegistryAdapter adapter() {
+            return new DefaultDynamicSchemaRegistryAdapter(mockClient);
         }
 
         @Test
@@ -145,7 +146,7 @@ class ConfluentSchemaRegistryAdapterTest {
             when(mockClient.register(contains("_k4k_enc"), any(ParsedSchema.class))).thenReturn(ENCRYPTED_ID);
             lenient().when(mockClient.register(contains("_k4k_meta"), any(ParsedSchema.class))).thenReturn(99);
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
@@ -163,7 +164,7 @@ class ConfluentSchemaRegistryAdapterTest {
             when(mockClient.register(contains("_k4k_enc"), any(ParsedSchema.class))).thenReturn(ENCRYPTED_ID);
             lenient().when(mockClient.register(contains("_k4k_meta"), any(ParsedSchema.class))).thenReturn(99);
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
@@ -173,6 +174,27 @@ class ConfluentSchemaRegistryAdapterTest {
             // SR fetch must happen only once (second call is a cache hit)
             verify(mockClient, times(1)).getSchemaById(ORIGINAL_ID);
             verify(mockClient, times(1)).register(contains("_k4k_enc"), any(ParsedSchema.class));
+        }
+
+        @Test
+        @DisplayName("registers metadata only under encryptedSchemaId subject (decrypt-path lookup)")
+        void registersMetadataOnlyUnderEncryptedIdSubject() throws Exception {
+            lenient().when(mockClient.updateCompatibility(any(), any())).thenReturn("NONE");
+            when(mockClient.getSchemaById(ORIGINAL_ID)).thenReturn(new JsonSchema(FLAT_JSON_SCHEMA));
+            when(mockClient.register(contains("_k4k_enc"), any(ParsedSchema.class))).thenReturn(ENCRYPTED_ID);
+            lenient().when(mockClient.register(contains("_k4k_meta"), any(ParsedSchema.class))).thenReturn(99);
+
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
+            var fieldConfigs = Set.of(
+                    FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
+
+            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+
+            // Only the encryptedSchemaId subject is registered — originalSchemaId subject is STATIC mode's concern
+            verify(mockClient, times(1)).register(
+                    eq(TOPIC + "-value__k4k_meta_" + ENCRYPTED_ID), any(ParsedSchema.class));
+            verify(mockClient, never()).register(
+                    eq(TOPIC + "-value__k4k_meta_" + ORIGINAL_ID), any(ParsedSchema.class));
         }
     }
 
@@ -191,7 +213,7 @@ class ConfluentSchemaRegistryAdapterTest {
             when(mockClient.register(contains("_k4k_enc"), any(ParsedSchema.class))).thenReturn(ENCRYPTED_ID);
             lenient().when(mockClient.register(contains("_k4k_meta"), any(ParsedSchema.class))).thenReturn(99);
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
@@ -212,7 +234,7 @@ class ConfluentSchemaRegistryAdapterTest {
             when(mockClient.register(contains("_k4k_enc"), any(ParsedSchema.class))).thenReturn(ENCRYPTED_ID);
             lenient().when(mockClient.register(contains("_k4k_meta"), any(ParsedSchema.class))).thenReturn(99);
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
@@ -233,10 +255,6 @@ class ConfluentSchemaRegistryAdapterTest {
     @DisplayName("getOrRegisterDecryptedSchemaId — cold-start decrypt")
     class ColdStartDecrypt {
 
-        // Schema generation 1: what was encrypted before evolution
-        private static final int GEN1_ORIGINAL_ID = 1;   // == ORIGINAL_ID
-        private static final int GEN1_ENCRYPTED_ID = 42; // == ENCRYPTED_ID
-
         private static final String GEN1_META_JSON = "{\"type\":\"object\",\"x-kryptonite-metadata\":"
                 + "{\"originalSchemaId\":1,\"encryptedSchemaId\":42,"
                 + "\"encryptedFields\":[{\"name\":\"age\"}]}}";
@@ -245,43 +263,37 @@ class ConfluentSchemaRegistryAdapterTest {
                 + "\"encryptedFields\":[{\"name\":\"age\"}]}}";
 
         @Test
-        @DisplayName("BUG: cold-start reads latest flat meta subject and returns wrong originalSchemaId for old encrypted records")
-        void coldStartBugReturnsWrongOriginalSchemaId() throws Exception {
+        @DisplayName("BUG guard: cold-start reads per-encryptedSchemaId subject and returns correct originalSchemaId")
+        void coldStartReturnsCorrectOriginalSchemaIdForOldRecord() throws Exception {
             // After schema evolution the flat meta subject holds gen2 metadata (latest wins)
             SchemaMetadata gen2FlatMeta = new SchemaMetadata(100, 2, GEN2_META_JSON);
             lenient().when(mockClient.getLatestSchemaMetadata(eq("payments-value__k4k_meta")))
                     .thenReturn(gen2FlatMeta);
-            // Per-id subject for gen1 exists in SR (as the fix will write it) — ignored by buggy code
+            // Per-id subject for gen1 exists in SR — correct impl must read this
             SchemaMetadata gen1PerIdMeta = new SchemaMetadata(99, 1, GEN1_META_JSON);
             lenient().when(mockClient.getLatestSchemaMetadata(eq("payments-value__k4k_meta_42")))
                     .thenReturn(gen1PerIdMeta);
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            // Old record (encryptedSchemaId=42, gen1) arrives on cold start
-            // Correct answer: GEN1_ORIGINAL_ID (1). Buggy code returns GEN2_ORIGINAL_ID (2).
-            int result = adapter.getOrRegisterDecryptedSchemaId(GEN1_ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
-            assertThat(result).isEqualTo(GEN1_ORIGINAL_ID);
+            assertThat(result).isEqualTo(ORIGINAL_ID);
         }
 
         @Test
-        @DisplayName("cold-start full decrypt: fetches metadata from per-encryptedSchemaId subject, not a flat latest subject")
+        @DisplayName("cold-start full decrypt: fetches metadata from per-encryptedSchemaId subject")
         void coldStartFullDecryptFetchesFromPerIdSubject() throws Exception {
-            // Metadata envelope as stored in SR under the per-id subject
             SchemaMetadata storedMeta = new SchemaMetadata(99, 1, GEN1_META_JSON);
-
-            // Stub only the per-encryptedSchemaId subject — this is what the correct impl must call
             lenient().when(mockClient.getLatestSchemaMetadata(eq("payments-value__k4k_meta_42")))
                     .thenReturn(storedMeta);
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            // Cold-start: no encrypt-path cache warming — simulates filter restart with old records in topic
             int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ORIGINAL_ID);
@@ -300,7 +312,7 @@ class ConfluentSchemaRegistryAdapterTest {
             JsonSchema schema = new JsonSchema(FLAT_JSON_SCHEMA);
             when(mockClient.getSchemaById(eq(5))).thenReturn(schema);
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
             Object result = adapter.fetchSchema(5);
 
             assertThat(result).isEqualTo(schema);
@@ -311,10 +323,10 @@ class ConfluentSchemaRegistryAdapterTest {
         void wrapsException() throws Exception {
             when(mockClient.getSchemaById(any(int.class))).thenThrow(new RuntimeException("SR down"));
 
-            var adapter = new ConfluentSchemaRegistryAdapter(mockClient);
+            var adapter = new DefaultDynamicSchemaRegistryAdapter(mockClient);
 
             assertThatThrownBy(() -> adapter.fetchSchema(5))
-                    .isInstanceOf(ConfluentSchemaRegistryAdapter.SchemaRegistryAdapterException.class);
+                    .isInstanceOf(SchemaRegistryAdapterException.class);
         }
     }
 
