@@ -77,15 +77,24 @@ public class AvroGenericRecordAccessor implements StructuredRecordAccessor {
         String[] parts = dotPath.split("\\.");
         GenericRecord current = record;
         for (int i = 0; i < parts.length - 1; i++) {
+            if (current.getSchema().getField(parts[i]) == null) {
+                throw new IllegalStateException(
+                        "Field path '" + dotPath + "' references unknown segment '" + parts[i]
+                        + "' in Avro schema '" + current.getSchema().getFullName()
+                        + "' — check filter field configuration");
+            }
             Object next = current.get(parts[i]);
-            if (!(next instanceof GenericRecord)) return null;
-            current = (GenericRecord) next;
+            if (next == null) return null; // nullable intermediate record field is null → whole path is null
+            if (!(next instanceof GenericRecord nested)) return null;
+            current = nested;
         }
-        try {
-            return current.get(parts[parts.length - 1]);
-        } catch (org.apache.avro.AvroRuntimeException e) {
-            return null;
+        String leaf = parts[parts.length - 1];
+        if (current.getSchema().getField(leaf) == null) {
+            throw new IllegalStateException(
+                    "Field '" + dotPath + "' not found in Avro schema '" + current.getSchema().getFullName()
+                    + "' — check filter field configuration for schema mismatch");
         }
+        return current.get(leaf);
     }
 
     /**

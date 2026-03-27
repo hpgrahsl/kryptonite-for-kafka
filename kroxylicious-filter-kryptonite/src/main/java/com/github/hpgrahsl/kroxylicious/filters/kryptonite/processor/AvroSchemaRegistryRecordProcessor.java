@@ -65,8 +65,13 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
         for (FieldConfig fc : fieldConfigs) {
             Object fieldValue = accessor.getField(fc.getName());
-            if (fieldValue == null) continue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
+            if (fieldValue == null && mode == FieldConfig.FieldMode.ELEMENT) {
+                LOG.warn("ELEMENT mode field '{}' in topic '{}' has a null container value — skipping " +
+                        "(null container cannot be encrypted element-by-element; use OBJECT mode to encrypt null fields)",
+                        fc.getName(), topicName);
+                continue;
+            }
 
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof List<?> list) {
                 Schema elementSchema = resolveFieldSchema(schema, fc.getName()).getElementType();
@@ -157,17 +162,15 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
             for (Object element : source) {
-                if (element == null) { result.add(null); continue; }
                 if (!(element instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string elements in field '" + fc.getName()
-                        + "' but got type " + element.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
+                        + "' but got type " + (element == null ? "null" : element.getClass().getSimpleName()) + " — FPE cannot encrypt non-string types");
                 byte[] ciphertext = kryptonite.cipherFieldFPE(
                         cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
                 result.add(new String(ciphertext, StandardCharsets.UTF_8));
             }
         } else {
             for (Object element : source) {
-                if (element == null) { result.add(null); continue; }
                 result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, elementSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
             }
         }
@@ -179,17 +182,15 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
             source.forEach((k, v) -> {
-                if (v == null) { result.put(k, null); return; }
                 if (!(v instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string values in field '" + fc.getName()
-                        + "' but got type " + v.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
+                        + "' but got type " + (v == null ? "null" : v.getClass().getSimpleName()) + " — FPE cannot encrypt non-string types");
                 byte[] ciphertext = kryptonite.cipherFieldFPE(
                         cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
                 result.put(k, new String(ciphertext, StandardCharsets.UTF_8));
             });
         } else {
             source.forEach((k, v) -> {
-                if (v == null) { result.put(k, null); return; }
                 result.put(k, FieldHandler.encryptField(fieldConverter.toCanonical(v, valueSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
             });
         }
@@ -201,7 +202,11 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
             for (Object element : source) {
-                if (element == null) { result.add(null); continue; }
+                if (element == null) {
+                    LOG.warn("Decryption skipping null element in field '{}' — possibly pre-existing unencrypted data", fc.getName());
+                    result.add(null);
+                    continue;
+                }
                 if (element instanceof CharSequence cs) {
                     byte[] plaintext = kryptonite.decipherFieldFPE(
                             cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
@@ -214,7 +219,11 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (Object element : source) {
-                if (element == null) { result.add(null); continue; }
+                if (element == null) {
+                    LOG.warn("Decryption skipping null element in field '{}' — possibly pre-existing unencrypted data", fc.getName());
+                    result.add(null);
+                    continue;
+                }
                 if (element instanceof CharSequence cs) {
                     result.add(fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
                 } else {
@@ -238,7 +247,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                     result.put(k, new String(plaintext, StandardCharsets.UTF_8));
                 } else {
                     LOG.warn("FPE decryption skipping non-string value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",
-                            k, fc.getName(), v.getClass().getSimpleName());
+                            k, fc.getName(), v == null ? "null" : v.getClass().getSimpleName());
                     result.put(k, v);
                 }
             });
@@ -248,7 +257,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                     result.put(k, fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
                 } else {
                     LOG.warn("Decryption skipping non-string value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",
-                            k, fc.getName(), v.getClass().getSimpleName());
+                            k, fc.getName(), v == null ? "null" : v.getClass().getSimpleName());
                     result.put(k, v);
                 }
             });
@@ -260,7 +269,6 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         GenericData.Record result = new GenericData.Record(source.getSchema());
         for (Schema.Field f : source.getSchema().getFields()) {
             Object value = source.get(f.name());
-            if (value == null) { result.put(f.name(), null); continue; }
             result.put(f.name(), FieldHandler.encryptField(fieldConverter.toCanonical(value, f.schema(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
         }
         return result;
@@ -270,7 +278,12 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         GenericData.Record result = new GenericData.Record(source.getSchema());
         for (Schema.Field f : source.getSchema().getFields()) {
             Object value = source.get(f.name());
-            if (value == null) { result.put(f.name(), null); continue; }
+            if (value == null) {
+                LOG.warn("Decryption skipping null value for sub-field '{}' of ELEMENT-mode field '{}' — possibly pre-existing unencrypted data",
+                        f.name(), fc.getName());
+                result.put(f.name(), null);
+                continue;
+            }
             if (value instanceof CharSequence cs) {
                 result.put(f.name(), fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
             } else {
@@ -295,11 +308,6 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                         .findFirst().orElseThrow();
             }
             current = current.getField(part).schema();
-        }
-        if (current.getType() == Schema.Type.UNION) {
-            current = current.getTypes().stream()
-                    .filter(t -> t.getType() != Schema.Type.NULL)
-                    .findFirst().orElseThrow();
         }
         return current;
     }

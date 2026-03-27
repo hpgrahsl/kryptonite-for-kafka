@@ -19,6 +19,7 @@ import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestF
 import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures.avroSerialize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("AvroGenericRecordAccessor")
 class AvroGenericRecordAccessorTest {
@@ -128,10 +129,12 @@ class AvroGenericRecordAccessorTest {
         }
 
         @Test
-        @DisplayName("returns null for a field name that does not exist")
-        void missingFieldReturnsNull() {
+        @DisplayName("throws IllegalStateException for a field name that does not exist in the schema")
+        void missingFieldThrows() {
             var accessor = AvroGenericRecordAccessor.of(flatRecord(), FLAT_SCHEMA);
-            assertThat(accessor.getField("missing")).isNull();
+            assertThatThrownBy(() -> accessor.getField("missing"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("missing");
         }
 
         @Test

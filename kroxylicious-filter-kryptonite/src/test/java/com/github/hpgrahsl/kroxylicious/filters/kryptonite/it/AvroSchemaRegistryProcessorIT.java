@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +57,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String DEFAULT_KEY_ID = "keyA";
-    private static final String SERDE_TYPE = "KRYO";
+    protected String serdeType() { return "KRYO"; }
 
     // ---- Flat schema: id(string), value(double), label(string) ----
     private static final Schema FLAT_ORIG = SchemaBuilder
@@ -93,6 +94,43 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
             .name("metadata").type().map().values().stringType().noDefault()
             .endRecord();
 
+    // ---- Nullable int field: id(string), optVal(["null","int"]) ----
+    private static final Schema NULLABLE_INT_ORIG;
+
+    // ---- Array with nullable items: id(string), nums(array<["null","int"]>) ----
+    private static final Schema NULLABLE_ITEM_ARR_ORIG;
+
+    // ---- Map with nullable values: id(string), scores(map<["null","int"]>) ----
+    private static final Schema NULLABLE_VAL_MAP_ORIG;
+
+    // ---- Nullable array container: id(string), tags(["null", array<string>]) ----
+    private static final Schema NULL_ARR_CONTAINER_ORIG;
+
+    static {
+        Schema nullableInt = Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT));
+
+        NULLABLE_INT_ORIG = SchemaBuilder.record("NullableInt").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("optVal").type(nullableInt).noDefault()
+                .endRecord();
+
+        NULLABLE_ITEM_ARR_ORIG = SchemaBuilder.record("NullableItemArr").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("nums").type(Schema.createArray(nullableInt)).noDefault()
+                .endRecord();
+
+        NULLABLE_VAL_MAP_ORIG = SchemaBuilder.record("NullableValMap").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("scores").type(Schema.createMap(nullableInt)).noDefault()
+                .endRecord();
+
+        Schema strArray = Schema.createArray(Schema.create(Schema.Type.STRING));
+        NULL_ARR_CONTAINER_ORIG = SchemaBuilder.record("NullArrContainer").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("tags").type(Schema.createUnion(Schema.create(Schema.Type.NULL), strArray)).noDefault()
+                .endRecord();
+    }
+
     private static SchemaRegistryClient srClient;
     private static Kryptonite kryptonite;
 
@@ -110,7 +148,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
     void setUpPerTest() {
         topic = "topic-" + UUID.randomUUID();
         adapter = new DefaultDynamicSchemaRegistryAdapter(srClient);
-        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType(), DEFAULT_KEY_ID);
     }
 
     // ---- helpers ----
@@ -438,6 +476,155 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
 
             assertThat(encMeta.getOriginalSchemaId()).isEqualTo(originalSchemaId);
             assertThat(encMeta.getEncryptedFields()).extracting(FieldEntryMetadata::name).containsExactly("value");
+        }
+    }
+
+    // ---- Null element / null container round-trips against real SR ----
+
+    @Nested
+    @DisplayName("Null element and null container round-trips")
+    class NullHandlingRoundTrip {
+
+        @Test
+        @DisplayName("OBJECT mode: null value in nullable int field encrypted; SR schema gets [\"null\",\"string\"]; decrypt restores null")
+        void objectModeNullIntFieldEncryptedAndRestored() throws Exception {
+            int originalSchemaId = registerSchema(NULLABLE_INT_ORIG);
+            GenericRecord record = new GenericData.Record(NULLABLE_INT_ORIG);
+            record.put("id", new Utf8("r1"));
+            record.put("optVal", null);
+            byte[] wireBytes = buildWireBytes(originalSchemaId, record, NULLABLE_INT_ORIG);
+
+            FieldConfig fc = FieldConfig.builder().name("optVal").fieldMode(FieldConfig.FieldMode.OBJECT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, topic, fields);
+
+            // SR encrypted schema must have optVal: ["null","string"] (null branch preserved)
+            int encSchemaId = srClient.getLatestSchemaMetadata(topic + "-value__k4k_enc").getId();
+            Schema encAvroSchema = ((AvroSchema) srClient.getSchemaById(encSchemaId)).rawSchema();
+            Schema optValEncSchema = encAvroSchema.getField("optVal").schema();
+            assertThat(optValEncSchema.getType()).isEqualTo(Schema.Type.UNION);
+            assertThat(optValEncSchema.getTypes()).anyMatch(s -> s.getType() == Schema.Type.NULL);
+            assertThat(optValEncSchema.getTypes()).anyMatch(s -> s.getType() == Schema.Type.STRING);
+
+            // encrypted value: ciphertext string in the nullable string union
+            GenericRecord encRecord = deserializeResult(encrypted, encAvroSchema);
+            assertThat(encRecord.get("optVal")).isNotNull();
+            assertThat(encRecord.get("optVal")).isInstanceOf(CharSequence.class);
+            assertIsValidBase64(encRecord.get("optVal").toString());
+
+            // decrypt: ciphertext restored to null
+            byte[] decrypted = processor.decryptFields(encrypted, topic, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_INT_ORIG);
+            assertThat(outRecord.get("optVal")).isNull();
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null elements in array encrypted individually; all restored including null")
+        void elementModeNullItemsInArrayRoundTrip() throws Exception {
+            int originalSchemaId = registerSchema(NULLABLE_ITEM_ARR_ORIG);
+            GenericRecord record = new GenericData.Record(NULLABLE_ITEM_ARR_ORIG);
+            record.put("id", new Utf8("r1"));
+            Schema numsSchema = NULLABLE_ITEM_ARR_ORIG.getField("nums").schema();
+            GenericData.Array<Object> nums = new GenericData.Array<>(3, numsSchema);
+            nums.add(1);
+            nums.add(null);
+            nums.add(3);
+            record.put("nums", nums);
+            byte[] wireBytes = buildWireBytes(originalSchemaId, record, NULLABLE_ITEM_ARR_ORIG);
+
+            FieldConfig fc = FieldConfig.builder().name("nums").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, topic, fields);
+            int encSchemaId = srClient.getLatestSchemaMetadata(topic + "-value__k4k_enc").getId();
+            Schema encAvroSchema = ((AvroSchema) srClient.getSchemaById(encSchemaId)).rawSchema();
+
+            // all 3 elements encrypted (including the null one)
+            GenericRecord encRecord = deserializeResult(encrypted, encAvroSchema);
+            @SuppressWarnings("unchecked")
+            List<Object> encNums = (List<Object>) encRecord.get("nums");
+            assertThat(encNums).hasSize(3);
+            encNums.forEach(el -> {
+                assertThat(el).isInstanceOf(CharSequence.class);
+                assertIsValidBase64(el.toString());
+            });
+
+            // all 3 restored: 1, null, 3
+            byte[] decrypted = processor.decryptFields(encrypted, topic, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_ITEM_ARR_ORIG);
+            @SuppressWarnings("unchecked")
+            List<Object> outNums = (List<Object>) outRecord.get("nums");
+            assertThat(outNums).hasSize(3);
+            assertThat(outNums.get(0)).isEqualTo(1);
+            assertThat(outNums.get(1)).isNull();
+            assertThat(outNums.get(2)).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null values in map encrypted individually; all restored including null")
+        void elementModeNullValuesInMapRoundTrip() throws Exception {
+            int originalSchemaId = registerSchema(NULLABLE_VAL_MAP_ORIG);
+            GenericRecord record = new GenericData.Record(NULLABLE_VAL_MAP_ORIG);
+            record.put("id", new Utf8("r1"));
+            HashMap<String, Object> scores = new HashMap<>();
+            scores.put("a", 10);
+            scores.put("b", null);
+            record.put("scores", scores);
+            byte[] wireBytes = buildWireBytes(originalSchemaId, record, NULLABLE_VAL_MAP_ORIG);
+
+            FieldConfig fc = FieldConfig.builder().name("scores").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, topic, fields);
+            int encSchemaId = srClient.getLatestSchemaMetadata(topic + "-value__k4k_enc").getId();
+            Schema encAvroSchema = ((AvroSchema) srClient.getSchemaById(encSchemaId)).rawSchema();
+
+            // both values encrypted (including the null one)
+            GenericRecord encRecord = deserializeResult(encrypted, encAvroSchema);
+            @SuppressWarnings("unchecked")
+            Map<Object, Object> encScores = (Map<Object, Object>) encRecord.get("scores");
+            assertThat(encScores).hasSize(2);
+            encScores.values().forEach(v -> {
+                assertThat(v).isInstanceOf(CharSequence.class);
+                assertIsValidBase64(v.toString());
+            });
+
+            // both restored: a=10, b=null
+            byte[] decrypted = processor.decryptFields(encrypted, topic, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_VAL_MAP_ORIG);
+            @SuppressWarnings("unchecked")
+            Map<Object, Object> outScores = (Map<Object, Object>) outRecord.get("scores");
+            assertThat(outScores).hasSize(2);
+            Object keyA = outScores.keySet().stream().filter(k -> k.toString().equals("a")).findFirst().orElseThrow();
+            Object keyB = outScores.keySet().stream().filter(k -> k.toString().equals("b")).findFirst().orElseThrow();
+            assertThat(outScores.get(keyA)).isEqualTo(10);
+            assertThat(outScores.get(keyB)).isNull();
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null array container passes through unchanged on encrypt and decrypt")
+        void elementModeNullArrayContainerPassesThroughUnchanged() throws Exception {
+            int originalSchemaId = registerSchema(NULL_ARR_CONTAINER_ORIG);
+            GenericRecord record = new GenericData.Record(NULL_ARR_CONTAINER_ORIG);
+            record.put("id", new Utf8("r1"));
+            record.put("tags", null);
+            byte[] wireBytes = buildWireBytes(originalSchemaId, record, NULL_ARR_CONTAINER_ORIG);
+
+            FieldConfig fc = FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            // null container: WARN + skip — tags stays null
+            byte[] encrypted = processor.encryptFields(wireBytes, topic, fields);
+            int encSchemaId = srClient.getLatestSchemaMetadata(topic + "-value__k4k_enc").getId();
+            Schema encAvroSchema = ((AvroSchema) srClient.getSchemaById(encSchemaId)).rawSchema();
+            GenericRecord encRecord = deserializeResult(encrypted, encAvroSchema);
+            assertThat(encRecord.get("tags")).isNull();
+
+            // decrypt: null container skipped, still null
+            byte[] decrypted = processor.decryptFields(encrypted, topic, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULL_ARR_CONTAINER_ORIG);
+            assertThat(outRecord.get("tags")).isNull();
         }
     }
 }

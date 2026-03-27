@@ -26,6 +26,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
 
 import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures.avroDeserialize;
 import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures.avroSerialize;
@@ -54,7 +55,7 @@ class AvroSchemaRegistryRoundTripTest {
 
     private static final String TOPIC = "test-topic";
     private static final String DEFAULT_KEY_ID = "keyA";
-    private static final String SERDE_TYPE = "KRYO";
+    protected String serdeType() { return "KRYO"; }
     private static final int ORIGINAL_ID = 1;
     private static final int ENCRYPTED_ID = 2;
 
@@ -134,6 +135,85 @@ class AvroSchemaRegistryRoundTripTest {
             .name("optVal").type().optional().stringType()
             .endRecord();
 
+    // ---- Nullable int field: id(string), optVal(["null","int"]) ----
+    // deriver converts ["null","int"] → ["null","string"] for OBJECT mode
+    private static final Schema NULLABLE_INT_ORIG;
+    private static final Schema NULLABLE_INT_ENC;
+
+    // ---- Array with nullable items: id(string), nums(array<["null","int"]>) ----
+    // deriver converts array items → string (ELEMENT mode)
+    private static final Schema NULLABLE_ITEM_ARR_ORIG;
+    private static final Schema NULLABLE_ITEM_ARR_ENC;
+
+    // ---- Map with nullable values: id(string), scores(map<["null","int"]>) ----
+    // deriver converts map values → string (ELEMENT mode)
+    private static final Schema NULLABLE_VAL_MAP_ORIG;
+    private static final Schema NULLABLE_VAL_MAP_ENC;
+
+    // ---- Nested record with nullable age sub-field (for ELEMENT mode record null sub-field test) ----
+    private static final Schema PERSONAL_NULL_SUB;
+    private static final Schema PERSON_NULL_SUB_ORIG;
+    private static final Schema PERSONAL_NULL_SUB_ENC;
+    private static final Schema PERSON_NULL_SUB_ENC_OUTER;
+
+    // ---- Nullable array container: id(string), tags(["null", array<string>]) ----
+    private static final Schema NULL_ARR_CONTAINER_ORIG;
+
+    static {
+        Schema nullableInt = Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.INT));
+        Schema nullableStr = Schema.createUnion(Schema.create(Schema.Type.NULL), Schema.create(Schema.Type.STRING));
+
+        NULLABLE_INT_ORIG = SchemaBuilder.record("NullableInt").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("optVal").type(nullableInt).noDefault()
+                .endRecord();
+        NULLABLE_INT_ENC = SchemaBuilder.record("NullableInt").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("optVal").type(nullableStr).noDefault()
+                .endRecord();
+
+        NULLABLE_ITEM_ARR_ORIG = SchemaBuilder.record("NullableItemArr").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("nums").type(Schema.createArray(nullableInt)).noDefault()
+                .endRecord();
+        NULLABLE_ITEM_ARR_ENC = SchemaBuilder.record("NullableItemArr").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("nums").type(Schema.createArray(Schema.create(Schema.Type.STRING))).noDefault()
+                .endRecord();
+
+        NULLABLE_VAL_MAP_ORIG = SchemaBuilder.record("NullableValMap").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("scores").type(Schema.createMap(nullableInt)).noDefault()
+                .endRecord();
+        NULLABLE_VAL_MAP_ENC = SchemaBuilder.record("NullableValMap").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("scores").type(Schema.createMap(Schema.create(Schema.Type.STRING))).noDefault()
+                .endRecord();
+
+        PERSONAL_NULL_SUB = SchemaBuilder.record("PersonalNullSub").namespace("test").fields()
+                .name("age").type(nullableInt).noDefault()
+                .name("lastname").type().stringType().noDefault()
+                .endRecord();
+        PERSON_NULL_SUB_ORIG = SchemaBuilder.record("PersonNullSubOuter").namespace("test").fields()
+                .name("name").type().stringType().noDefault()
+                .name("personal").type(PERSONAL_NULL_SUB).noDefault()
+                .endRecord();
+        PERSONAL_NULL_SUB_ENC = SchemaBuilder.record("PersonalNullSubEnc").namespace("test").fields()
+                .name("age").type().stringType().noDefault()
+                .name("lastname").type().stringType().noDefault()
+                .endRecord();
+        PERSON_NULL_SUB_ENC_OUTER = SchemaBuilder.record("PersonNullSubOuter").namespace("test").fields()
+                .name("name").type().stringType().noDefault()
+                .name("personal").type(PERSONAL_NULL_SUB_ENC).noDefault()
+                .endRecord();
+
+        Schema strArray = Schema.createArray(Schema.create(Schema.Type.STRING));
+        NULL_ARR_CONTAINER_ORIG = SchemaBuilder.record("NullArrContainer").namespace("test").fields()
+                .name("id").type().stringType().noDefault()
+                .name("tags").type(Schema.createUnion(Schema.create(Schema.Type.NULL), strArray)).noDefault()
+                .endRecord();
+    }
+
     private static Kryptonite kryptonite;
     private AvroSchemaRegistryRecordProcessor processor;
 
@@ -144,7 +224,7 @@ class AvroSchemaRegistryRoundTripTest {
 
     @BeforeEach
     void setUpProcessor() {
-        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType(), DEFAULT_KEY_ID);
 
         // stripPrefix: extract schema ID + payload from any wire bytes
         lenient().when(adapter.stripPrefix(any())).thenAnswer(inv -> {
@@ -461,8 +541,8 @@ class AvroSchemaRegistryRoundTripTest {
         }
 
         @Test
-        @DisplayName("null value in nullable union field: null is preserved during encrypt and decrypt")
-        void nullValueInNullableFieldPreserved() throws Exception {
+        @DisplayName("null value in nullable union field: null is encrypted and restored to null on decrypt")
+        void nullValueInNullableFieldRoundTrip() throws Exception {
             GenericRecord record = new GenericData.Record(NULLABLE_ORIG);
             record.put("id", new Utf8("r1"));
             record.put("optVal", null);
@@ -475,19 +555,21 @@ class AvroSchemaRegistryRoundTripTest {
             FieldConfig fc = FieldConfig.builder().name("optVal").fieldMode(FieldConfig.FieldMode.OBJECT).build();
             Set<FieldConfig> fields = Set.of(fc);
 
-            // null is skipped on encrypt; the encrypted record still has optVal=null
+            // null is encrypted — the encrypted record has a ciphertext string, not null
             byte[] encrypted = processor.encryptFields(wireBytes, TOPIC, fields);
             GenericRecord encRecord = deserializeResult(encrypted, NULLABLE_ENC);
-            assertThat(encRecord.get("optVal")).isNull();
+            assertThat(encRecord.get("optVal")).isNotNull();
+            assertThat(encRecord.get("optVal")).isInstanceOf(CharSequence.class);
+            assertIsValidBase64(encRecord.get("optVal").toString());
 
-            // null is skipped on decrypt too
+            // decrypt restores null
             byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
             GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_ORIG);
             assertThat(outRecord.get("optVal")).isNull();
         }
 
         @Test
-        @DisplayName("non-null value in nullable union field: survives roundtrip")
+        @DisplayName("non-null value in nullable union field: survives round-trip")
         void nonNullValueInNullableFieldRoundTrip() throws Exception {
             GenericRecord record = new GenericData.Record(NULLABLE_ORIG);
             record.put("id", new Utf8("r1"));
@@ -510,6 +592,177 @@ class AvroSchemaRegistryRoundTripTest {
             byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
             GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_ORIG);
             assertThat(outRecord.get("optVal").toString()).isEqualTo("world");
+        }
+    }
+
+    // ---- Null element / null container round-trips ----
+
+    @Nested
+    @DisplayName("Null element and null container round-trips")
+    class NullHandlingRoundTrip {
+
+        @Test
+        @DisplayName("OBJECT mode: null value in nullable int field encrypted and restored to null")
+        void nullableIntFieldRoundTrip() throws Exception {
+            GenericRecord record = new GenericData.Record(NULLABLE_INT_ORIG);
+            record.put("id", new Utf8("r1"));
+            record.put("optVal", null);
+
+            byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroSerialize(record, NULLABLE_INT_ORIG));
+
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_INT_ORIG));
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_INT_ENC));
+
+            FieldConfig fc = FieldConfig.builder().name("optVal").fieldMode(FieldConfig.FieldMode.OBJECT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, TOPIC, fields);
+            GenericRecord encRecord = deserializeResult(encrypted, NULLABLE_INT_ENC);
+            assertThat(encRecord.get("optVal")).isNotNull();
+            assertThat(encRecord.get("optVal")).isInstanceOf(CharSequence.class);
+            assertIsValidBase64(encRecord.get("optVal").toString());
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_INT_ORIG);
+            assertThat(outRecord.get("optVal")).isNull();
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null elements in array encrypted individually; all restored including null")
+        void nullElementsInArrayRoundTrip() throws Exception {
+            GenericRecord record = new GenericData.Record(NULLABLE_ITEM_ARR_ORIG);
+            record.put("id", new Utf8("r1"));
+            Schema numsSchema = NULLABLE_ITEM_ARR_ORIG.getField("nums").schema();
+            GenericData.Array<Object> nums = new GenericData.Array<>(3, numsSchema);
+            nums.add(1);
+            nums.add(null);
+            nums.add(3);
+            record.put("nums", nums);
+
+            byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroSerialize(record, NULLABLE_ITEM_ARR_ORIG));
+
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_ITEM_ARR_ORIG));
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_ITEM_ARR_ENC));
+
+            FieldConfig fc = FieldConfig.builder().name("nums").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, TOPIC, fields);
+            GenericRecord encRecord = deserializeResult(encrypted, NULLABLE_ITEM_ARR_ENC);
+            @SuppressWarnings("unchecked")
+            List<Object> encNums = (List<Object>) encRecord.get("nums");
+            assertThat(encNums).hasSize(3);
+            encNums.forEach(el -> {
+                assertThat(el).isInstanceOf(CharSequence.class);
+                assertIsValidBase64(el.toString());
+            });
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_ITEM_ARR_ORIG);
+            @SuppressWarnings("unchecked")
+            List<Object> outNums = (List<Object>) outRecord.get("nums");
+            assertThat(outNums).hasSize(3);
+            assertThat(outNums.get(0)).isEqualTo(1);
+            assertThat(outNums.get(1)).isNull();
+            assertThat(outNums.get(2)).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null values in map encrypted individually; all restored including null")
+        void nullValuesInMapRoundTrip() throws Exception {
+            GenericRecord record = new GenericData.Record(NULLABLE_VAL_MAP_ORIG);
+            record.put("id", new Utf8("r1"));
+            HashMap<String, Object> scores = new HashMap<>();
+            scores.put("a", 10);
+            scores.put("b", null);
+            record.put("scores", scores);
+
+            byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroSerialize(record, NULLABLE_VAL_MAP_ORIG));
+
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_VAL_MAP_ORIG));
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_VAL_MAP_ENC));
+
+            FieldConfig fc = FieldConfig.builder().name("scores").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, TOPIC, fields);
+            GenericRecord encRecord = deserializeResult(encrypted, NULLABLE_VAL_MAP_ENC);
+            @SuppressWarnings("unchecked")
+            Map<Object, Object> encScores = (Map<Object, Object>) encRecord.get("scores");
+            assertThat(encScores).hasSize(2);
+            encScores.values().forEach(v -> {
+                assertThat(v).isInstanceOf(CharSequence.class);
+                assertIsValidBase64(v.toString());
+            });
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULLABLE_VAL_MAP_ORIG);
+            @SuppressWarnings("unchecked")
+            Map<Object, Object> outScores = (Map<Object, Object>) outRecord.get("scores");
+            assertThat(outScores).hasSize(2);
+            Object keyA = outScores.keySet().stream().filter(k -> k.toString().equals("a")).findFirst().orElseThrow();
+            Object keyB = outScores.keySet().stream().filter(k -> k.toString().equals("b")).findFirst().orElseThrow();
+            assertThat(outScores.get(keyA)).isEqualTo(10);
+            assertThat(outScores.get(keyB)).isNull();
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null sub-field in nested record encrypted and restored to null")
+        void nullSubFieldInRecordRoundTrip() throws Exception {
+            GenericRecord personal = new GenericData.Record(PERSONAL_NULL_SUB);
+            personal.put("age", null);
+            personal.put("lastname", new Utf8("Doe"));
+            GenericRecord person = new GenericData.Record(PERSON_NULL_SUB_ORIG);
+            person.put("name", new Utf8("John"));
+            person.put("personal", personal);
+
+            byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroSerialize(person, PERSON_NULL_SUB_ORIG));
+
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_NULL_SUB_ORIG));
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_NULL_SUB_ENC_OUTER));
+
+            FieldConfig fc = FieldConfig.builder().name("personal").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, TOPIC, fields);
+            GenericRecord encPerson = deserializeResult(encrypted, PERSON_NULL_SUB_ENC_OUTER);
+            GenericRecord encPersonal = (GenericRecord) encPerson.get("personal");
+            assertThat(encPersonal.get("age")).isInstanceOf(CharSequence.class);
+            assertIsValidBase64(encPersonal.get("age").toString());   // null was encrypted
+            assertThat(encPersonal.get("lastname")).isInstanceOf(CharSequence.class);
+            assertIsValidBase64(encPersonal.get("lastname").toString());
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            GenericRecord outPerson = deserializeResult(decrypted, PERSON_NULL_SUB_ORIG);
+            GenericRecord outPersonal = (GenericRecord) outPerson.get("personal");
+            assertThat(outPersonal.get("age")).isNull();              // restored to null
+            assertThat(outPersonal.get("lastname").toString()).isEqualTo("Doe");
+            assertThat(outPerson.get("name").toString()).isEqualTo("John");
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null array container passes through unchanged on encrypt and decrypt")
+        void nullArrayContainerInElementModePassesThroughUnchanged() throws Exception {
+            GenericRecord record = new GenericData.Record(NULL_ARR_CONTAINER_ORIG);
+            record.put("id", new Utf8("r1"));
+            record.put("tags", null);
+
+            byte[] wireBytes = toWireBytes(ORIGINAL_ID, avroSerialize(record, NULL_ARR_CONTAINER_ORIG));
+
+            // Encrypted schema is the same — deriver preserves nullable container, items unchanged
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULL_ARR_CONTAINER_ORIG));
+            when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULL_ARR_CONTAINER_ORIG));
+
+            FieldConfig fc = FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(wireBytes, TOPIC, fields);
+            GenericRecord encRecord = deserializeResult(encrypted, NULL_ARR_CONTAINER_ORIG);
+            assertThat(encRecord.get("tags")).isNull(); // null container: WARN + skip
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            GenericRecord outRecord = deserializeResult(decrypted, NULL_ARR_CONTAINER_ORIG);
+            assertThat(outRecord.get("tags")).isNull(); // still null after decrypt
         }
     }
 }
