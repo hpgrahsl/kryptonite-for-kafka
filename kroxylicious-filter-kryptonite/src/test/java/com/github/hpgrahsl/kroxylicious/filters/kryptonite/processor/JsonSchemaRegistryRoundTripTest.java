@@ -16,6 +16,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Base64;
@@ -46,9 +49,10 @@ class JsonSchemaRegistryRoundTripTest {
 
     private static final String TOPIC = "test-topic";
     private static final String DEFAULT_KEY_ID = "keyA";
-    private static final String SERDE_TYPE = "KRYO";
     private static final int ORIGINAL_ID = 1;
     private static final int ENCRYPTED_ID = 99;
+
+    protected String serdeType() { return "KRYO"; }
 
     private static Kryptonite kryptonite;
     private JsonSchemaRegistryRecordProcessor processor;
@@ -60,7 +64,7 @@ class JsonSchemaRegistryRoundTripTest {
 
     @BeforeEach
     void setUpProcessor() {
-        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType(), DEFAULT_KEY_ID);
 
         // stripPrefix: extract schema ID + payload from any wire bytes
         lenient().when(adapter.stripPrefix(any())).thenAnswer(inv -> {
@@ -286,6 +290,86 @@ class JsonSchemaRegistryRoundTripTest {
             assertThat(out.get("name").isTextual()).isTrue();       // still Base64 blob
             // Verify name is not "Alice" (it's still encrypted)
             assertThat(out.get("name").asText()).isNotEqualTo("Alice");
+        }
+    }
+
+    // ---- Null handling round-trips ----
+
+    @Nested
+    @DisplayName("Null handling round-trips")
+    class NullHandlingRoundTrip {
+
+        @Test
+        @DisplayName("nullable int field: null is encrypted on the way out and restored to null on decrypt")
+        void nullableIntFieldRoundTrip() throws Exception {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode payload = mapper.createObjectNode();
+            payload.put("id", "x");
+            payload.putNull("optVal");
+            byte[] input = wireBytes(payload.toString());
+            FieldConfig fc = FieldConfig.builder().name("optVal").fieldMode(FieldConfig.FieldMode.OBJECT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(input, TOPIC, fields);
+            JsonNode encNode = payloadOf(encrypted).get("optVal");
+            assertThat(encNode.isTextual()).isTrue(); // null was encrypted → ciphertext
+            assertIsValidBase64(encNode.asText());
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            assertThat(payloadOf(decrypted).get("optVal").isNull()).isTrue(); // restored to null
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null elements in array survive encrypt→decrypt round-trip")
+        void nullElementsInArrayRoundTrip() throws Exception {
+            ObjectMapper mapper = new ObjectMapper();
+            ArrayNode nums = mapper.createArrayNode().add(1).addNull().add(3);
+            byte[] input = wireBytes(mapper.createObjectNode().set("nums", nums).toString());
+            FieldConfig fc = FieldConfig.builder().name("nums").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(input, TOPIC, fields);
+            JsonNode encNums = payloadOf(encrypted).get("nums");
+            assertThat(encNums).hasSize(3);
+            encNums.forEach(el -> assertThat(el.isTextual()).isTrue()); // all slots are ciphertexts
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            JsonNode outNums = payloadOf(decrypted).get("nums");
+            assertThat(outNums.get(0).asInt()).isEqualTo(1);
+            assertThat(outNums.get(1).isNull()).isTrue();  // null restored
+            assertThat(outNums.get(2).asInt()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null values in object map survive encrypt→decrypt round-trip")
+        void nullValuesInMapRoundTrip() throws Exception {
+            ObjectMapper mapper = new ObjectMapper();
+            ObjectNode scores = mapper.createObjectNode().put("a", 10).putNull("b");
+            byte[] input = wireBytes(mapper.createObjectNode().set("scores", scores).toString());
+            FieldConfig fc = FieldConfig.builder().name("scores").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(input, TOPIC, fields);
+            JsonNode encScores = payloadOf(encrypted).get("scores");
+            assertThat(encScores.get("a").isTextual()).isTrue();
+            assertThat(encScores.get("b").isTextual()).isTrue(); // null also encrypted
+
+            byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
+            JsonNode outScores = payloadOf(decrypted).get("scores");
+            assertThat(outScores.get("a").asInt()).isEqualTo(10);
+            assertThat(outScores.get("b").isNull()).isTrue(); // null restored
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null array container field passes through unchanged")
+        void nullArrayContainerInElementModePassesThroughUnchanged() throws Exception {
+            byte[] input = wireBytes("""
+                    {"tags":null}""");
+            FieldConfig fc = FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] result = processor.encryptFields(input, TOPIC, fields);
+            assertThat(payloadOf(result).get("tags").isNull()).isTrue(); // unchanged
         }
     }
 }

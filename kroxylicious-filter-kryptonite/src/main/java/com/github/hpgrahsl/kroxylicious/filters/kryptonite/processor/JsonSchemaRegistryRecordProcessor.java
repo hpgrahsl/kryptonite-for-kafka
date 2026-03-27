@@ -107,6 +107,10 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
             JsonNode node = (JsonNode) fieldValue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
 
+            if (mode == FieldConfig.FieldMode.ELEMENT && node.isNull()) {
+                LOG.warn("ELEMENT mode: field '{}' is null — skipping (cannot iterate null container)", fc.getName());
+                continue;
+            }
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
                 // ELEMENT mode: fall back to value-derived schema with topic-scoped caching
                 String schemaCacheKey = topicName + "." + fc.getName();

@@ -122,10 +122,13 @@ class JsonObjectNodeAccessorTest {
         }
 
         @Test
-        @DisplayName("returns null for a JSON null field")
-        void nullFieldReturnsNull() {
+        @DisplayName("returns NullNode (not Java null) for a JSON null field — distinguishes null value from missing field")
+        void nullFieldReturnsNullNode() {
             var accessor = JsonObjectNodeAccessor.from(FIXTURE_JSON.getBytes());
-            assertThat(accessor.getField("nothing")).isNull();
+            Object result = accessor.getField("nothing");
+            assertThat(result).isNotNull();
+            assertThat(result).isInstanceOf(JsonNode.class);
+            assertThat(((JsonNode) result).isNull()).isTrue();
         }
     }
 
@@ -176,11 +179,13 @@ class JsonObjectNodeAccessorTest {
         }
 
         @Test
-        @DisplayName("sets null — field becomes null in output")
+        @DisplayName("sets null — field becomes JSON null; getField returns NullNode (not Java null)")
         void setsNullValue() {
             var accessor = JsonObjectNodeAccessor.from(FIXTURE_JSON.getBytes());
             accessor.setField("name", (Object) null);
-            assertThat(accessor.getField("name")).isNull();
+            Object result = accessor.getField("name");
+            assertThat(result).isNotNull();
+            assertThat(((JsonNode) result).isNull()).isTrue();
         }
 
         @Test

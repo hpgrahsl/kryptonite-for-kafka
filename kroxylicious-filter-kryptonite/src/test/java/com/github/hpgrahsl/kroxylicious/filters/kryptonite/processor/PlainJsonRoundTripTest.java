@@ -206,18 +206,19 @@ class PlainJsonRoundTripTest {
         }
 
         @Test
-        @DisplayName("null field is skipped on encrypt and preserved through roundtrip")
-        void nullFieldSkipped() throws Exception {
+        @DisplayName("null field is encrypted (not skipped); decrypt restores null")
+        void nullFieldRoundTrip() throws Exception {
             byte[] input = """
                     {"x":null}""".getBytes();
             FieldConfig fc = FieldConfig.builder().name("x").fieldMode(FieldConfig.FieldMode.OBJECT).build();
             Set<FieldConfig> fields = Set.of(fc);
 
             byte[] encrypted = processor.encryptFields(input, TOPIC, fields);
-            assertThat(MAPPER.readTree(encrypted).get("x").isNull()).isTrue(); // still null
+            assertThat(MAPPER.readTree(encrypted).get("x").isTextual()).isTrue(); // null was encrypted → ciphertext
+            assertIsValidBase64(MAPPER.readTree(encrypted).get("x").asText());
 
             byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
-            assertThat(MAPPER.readTree(decrypted).get("x").isNull()).isTrue();
+            assertThat(MAPPER.readTree(decrypted).get("x").isNull()).isTrue(); // null restored
         }
 
         @Test

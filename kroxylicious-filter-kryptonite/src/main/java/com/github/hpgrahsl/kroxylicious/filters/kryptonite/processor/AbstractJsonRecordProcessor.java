@@ -57,6 +57,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             if (fieldValue == null) continue;
             JsonNode node = (JsonNode) fieldValue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
+            if (mode == FieldConfig.FieldMode.ELEMENT && node.isNull()) {
+                LOG.warn("ELEMENT mode: field '{}' is null — skipping (cannot iterate null container)", fc.getName());
+                continue;
+            }
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
                 accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
@@ -94,6 +98,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             JsonNode node = (JsonNode) fieldValue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
             String schemaCacheKey = topicName + "." + fc.getName();
+            if (mode == FieldConfig.FieldMode.ELEMENT && node.isNull()) {
+                LOG.warn("ELEMENT mode: field '{}' is null — skipping (cannot iterate null container)", fc.getName());
+                continue;
+            }
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
                 accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, schemaCacheKey));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
@@ -124,6 +132,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         for (FieldConfig fc : fieldConfigs) {
             Object fieldValue = accessor.getField(fc.getName());
             if (fieldValue == null) continue;
+            if (fieldValue instanceof JsonNode fvNode && fvNode.isNull()) continue; // null value — not a ciphertext
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ArrayNode arr) {
                 accessor.setField(fc.getName(), decryptArrayElements(arr, fc));
@@ -204,6 +213,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
             for (JsonNode element : source) {
+                if (element.isNull()) {
+                    result.addNull();
+                    continue;
+                }
                 if (!element.isTextual()) {
                     LOG.warn("FPE decryption skipping non-textual element in field '{}' (type={}) — possibly pre-existing unencrypted data",
                             fc.getName(), element.getNodeType());
@@ -216,7 +229,9 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (JsonNode element : source) {
-                if (element.isTextual()) {
+                if (element.isNull()) {
+                    result.addNull();
+                } else if (element.isTextual()) {
                     result.add(fieldConverter.fromCanonicalAsJsonNode(FieldHandler.decryptField(element.asText(), kryptonite)));
                 } else {
                     LOG.warn("Decryption skipping non-textual element in field '{}' (type={}) — possibly pre-existing unencrypted data",
@@ -234,6 +249,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             FieldMetaData fmd = buildFieldMetaData(fc);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
+                if (value.isNull()) {
+                    result.putNull(entry.getKey());
+                    return;
+                }
                 if (!value.isTextual()) {
                     LOG.warn("FPE decryption skipping non-textual value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",
                             entry.getKey(), fc.getName(), value.getNodeType());
@@ -247,7 +266,9 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
-                if (value.isTextual()) {
+                if (value.isNull()) {
+                    result.putNull(entry.getKey());
+                } else if (value.isTextual()) {
                     result.set(entry.getKey(), fieldConverter.fromCanonicalAsJsonNode(FieldHandler.decryptField(value.asText(), kryptonite)));
                 } else {
                     LOG.warn("Decryption skipping non-textual value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",

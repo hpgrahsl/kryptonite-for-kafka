@@ -143,15 +143,17 @@ class PlainJsonRecordProcessorTest {
         }
 
         @Test
-        @DisplayName("null field is silently skipped — no crypto call")
-        void nullFieldSkipped() throws Exception {
+        @DisplayName("null field is encrypted — crypto call is made and field becomes ciphertext")
+        void nullFieldEncrypted() throws Exception {
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             byte[] input = """
                     {"name":null}""".getBytes();
 
-            processor.encryptFields(input, TOPIC,
+            byte[] result = processor.encryptFields(input, TOPIC,
                     Set.of(FieldConfig.builder().name("name").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
 
-            verify(kryptonite, times(0)).cipherFieldRaw(any(), any());
+            assertThat(MAPPER.readTree(result).get("name").isTextual()).isTrue();
+            verify(kryptonite, times(1)).cipherFieldRaw(any(), any());
         }
 
         static Stream<Arguments> multiFieldCases() {

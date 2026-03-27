@@ -57,7 +57,7 @@ public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
             if (current == null || !current.isObject()) return null;
             current = current.get(part);
         }
-        return (current == null || current.isMissingNode() || current.isNull()) ? null : current;
+        return (current == null || current.isMissingNode()) ? null : current;
     }
 
     @Override

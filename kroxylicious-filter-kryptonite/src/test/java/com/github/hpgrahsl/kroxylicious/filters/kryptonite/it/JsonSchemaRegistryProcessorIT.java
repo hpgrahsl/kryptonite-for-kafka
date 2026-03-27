@@ -2,6 +2,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.it;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
@@ -48,7 +49,8 @@ class JsonSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String DEFAULT_KEY_ID = "keyA";
-    private static final String SERDE_TYPE = "KRYO";
+
+    protected String serdeType() { return "KRYO"; }
 
     private static SchemaRegistryClient srClient;
     private static Kryptonite kryptonite;
@@ -67,7 +69,7 @@ class JsonSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
     void setUpPerTest() {
         topic = "topic-" + UUID.randomUUID();
         adapter = new DefaultDynamicSchemaRegistryAdapter(srClient);
-        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType(), DEFAULT_KEY_ID);
     }
 
     // ---- helpers ----
@@ -363,6 +365,111 @@ class JsonSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
 
             assertThat(partialSchema.at("/properties/age/type").asText()).isEqualTo("integer");
             assertThat(partialSchema.at("/properties/name/type").asText()).isEqualTo("string");
+        }
+    }
+
+    // ---- Null handling ----
+
+    @Nested
+    @DisplayName("Null handling round-trips")
+    class NullHandlingRoundTrip {
+
+        @Test
+        @DisplayName("OBJECT mode: null int field is encrypted; encrypted schema has [null,string] type; decrypt restores null")
+        void objectModeNullIntFieldEncryptedAndRestored() throws Exception {
+            String schemaJson = """
+                    {"$schema":"http://json-schema.org/draft-07/schema#","type":"object",
+                     "properties":{"id":{"type":"string"},"optVal":{"type":["null","integer"]}}}""";
+            int originalSchemaId = srClient.register(topic + "-value", new JsonSchema(schemaJson));
+            ObjectNode payload = MAPPER.createObjectNode().put("id", "x").putNull("optVal");
+            byte[] input = toWireBytes(originalSchemaId, jsonBytes(payload.toString()));
+
+            FieldConfig fc = FieldConfig.builder().name("optVal").fieldMode(FieldConfig.FieldMode.OBJECT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(input, topic, fields);
+            // field is a ciphertext string
+            assertThat(payloadOf(encrypted).get("optVal").isTextual()).isTrue();
+            assertIsValidBase64(payloadOf(encrypted).get("optVal").asText());
+
+            // encrypted schema in SR must preserve nullable union: ["null","string"]
+            String encSchemaJson = srClient.getLatestSchemaMetadata(topic + "-value__k4k_enc").getSchema();
+            JsonNode optValType = MAPPER.readTree(encSchemaJson).at("/properties/optVal/type");
+            assertThat(optValType.isArray()).isTrue();
+            assertThat(optValType).anyMatch(t -> "null".equals(t.asText()));
+            assertThat(optValType).anyMatch(t -> "string".equals(t.asText()));
+
+            // decrypt restores null
+            byte[] decrypted = processor.decryptFields(encrypted, topic, fields);
+            assertThat(schemaIdOf(decrypted)).isEqualTo(originalSchemaId);
+            assertThat(payloadOf(decrypted).get("optVal").isNull()).isTrue();
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null items in array survive encrypt→decrypt round-trip")
+        void elementModeNullItemsInArrayRoundTrip() throws Exception {
+            String schemaJson = """
+                    {"$schema":"http://json-schema.org/draft-07/schema#","type":"object",
+                     "properties":{"nums":{"type":"array","items":{"type":["null","integer"]}}}}""";
+            int originalSchemaId = srClient.register(topic + "-value", new JsonSchema(schemaJson));
+            ArrayNode nums = MAPPER.createArrayNode().add(1).addNull().add(3);
+            byte[] input = toWireBytes(originalSchemaId, jsonBytes(MAPPER.createObjectNode().set("nums", nums).toString()));
+
+            FieldConfig fc = FieldConfig.builder().name("nums").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(input, topic, fields);
+            JsonNode encNums = payloadOf(encrypted).get("nums");
+            assertThat(encNums).hasSize(3);
+            encNums.forEach(el -> assertThat(el.isTextual()).isTrue()); // all slots encrypted
+
+            byte[] decrypted = processor.decryptFields(encrypted, topic, fields);
+            JsonNode outNums = payloadOf(decrypted).get("nums");
+            assertThat(outNums.get(0).asInt()).isEqualTo(1);
+            assertThat(outNums.get(1).isNull()).isTrue();
+            assertThat(outNums.get(2).asInt()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null values in object map survive encrypt→decrypt round-trip")
+        void elementModeNullValuesInObjectRoundTrip() throws Exception {
+            String schemaJson = """
+                    {"$schema":"http://json-schema.org/draft-07/schema#","type":"object",
+                     "properties":{"scores":{"type":"object","properties":{
+                       "a":{"type":"integer"},"b":{"type":["null","integer"]}}}}}""";
+            int originalSchemaId = srClient.register(topic + "-value", new JsonSchema(schemaJson));
+            ObjectNode scores = MAPPER.createObjectNode().put("a", 10).putNull("b");
+            byte[] input = toWireBytes(originalSchemaId, jsonBytes(MAPPER.createObjectNode().set("scores", scores).toString()));
+
+            FieldConfig fc = FieldConfig.builder().name("scores").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = processor.encryptFields(input, topic, fields);
+            JsonNode encScores = payloadOf(encrypted).get("scores");
+            assertThat(encScores.get("a").isTextual()).isTrue();
+            assertThat(encScores.get("b").isTextual()).isTrue(); // null also encrypted
+
+            byte[] decrypted = processor.decryptFields(encrypted, topic, fields);
+            JsonNode outScores = payloadOf(decrypted).get("scores");
+            assertThat(outScores.get("a").asInt()).isEqualTo(10);
+            assertThat(outScores.get("b").isNull()).isTrue();
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null array container field passes through unchanged — no schema registration")
+        void elementModeNullArrayContainerPassesThroughUnchanged() throws Exception {
+            String schemaJson = """
+                    {"$schema":"http://json-schema.org/draft-07/schema#","type":"object",
+                     "properties":{"tags":{"type":"array","items":{"type":"string"}}}}""";
+            int originalSchemaId = srClient.register(topic + "-value", new JsonSchema(schemaJson));
+            byte[] input = toWireBytes(originalSchemaId, jsonBytes("""
+                    {"tags":null}"""));
+
+            FieldConfig fc = FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] result = processor.encryptFields(input, topic, fields);
+            assertThat(payloadOf(result).get("tags").isNull()).isTrue(); // field unchanged
         }
     }
 }

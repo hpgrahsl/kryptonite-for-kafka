@@ -7,6 +7,8 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -145,13 +147,28 @@ class JsonSchemaDeriver {
 
     // ---- Encrypt-side schema transformations ----
 
-    /** OBJECT mode (default): replaces the entire field schema with {@code {"type": newType}},
-     *  discarding any leftover {@code properties}, {@code required}, {@code items}, etc. */
+    /**
+     * OBJECT mode (default): replaces the entire field schema with {@code {"type": newType}},
+     * discarding any leftover {@code properties}, {@code required}, {@code items}, etc.
+     *
+     * <p>Nullable union types (e.g. {@code {"type": ["null", "integer"]}}) are preserved as
+     * {@code {"type": ["null", newType]}} so the encrypted schema still allows null values.
+     */
     private boolean replaceLeafType(ObjectNode schemaRoot, String dotPath, String newType) {
         ObjectNode leaf = navigateToFieldNode(schemaRoot, dotPath);
         if (leaf == null) return false;
+        JsonNode typeNode = leaf.get("type");
         leaf.removeAll();
-        leaf.put("type", newType);
+        if (typeNode != null && typeNode.isArray()) {
+            // e.g. ["null","integer"] → ["null","string"]
+            ArrayNode newTypeArray = MAPPER.createArrayNode();
+            for (JsonNode t : typeNode) {
+                newTypeArray.add("null".equals(t.asText()) ? "null" : newType);
+            }
+            leaf.set("type", newTypeArray);
+        } else {
+            leaf.put("type", newType);
+        }
         return true;
     }
 

@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -429,6 +430,177 @@ class JsonSchemaRegistryRecordProcessorTest {
                     Set.of(FieldConfig.builder().name("age").build()));
 
             verify(adapter, times(0)).fetchSchema(anyInt());
+        }
+    }
+
+    // ---- Null handling ----
+
+    @Nested
+    @DisplayName("Null handling")
+    class NullHandling {
+
+        @Test
+        @DisplayName("OBJECT mode: null JSON field value is encrypted (not skipped)")
+        void nullObjectModeFieldIsEncrypted() throws Exception {
+            byte[] jsonPayload = """
+                    {"name":"Alice","optVal":null}""".getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            byte[] result = processor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("optVal").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
+
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            assertThat(out.get("optVal").isTextual()).isTrue(); // null was encrypted → ciphertext string
+            verify(kryptonite, times(1)).cipherFieldRaw(any(), any());
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null container field is skipped — no encrypt call")
+        void nullElementModeContainerIsSkipped() throws Exception {
+            byte[] jsonPayload = """
+                    {"tags":null}""".getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            byte[] result = processor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
+
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            assertThat(out.get("tags").isNull()).isTrue(); // field unchanged
+            verify(kryptonite, never()).cipherFieldRaw(any(), any());
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null elements in array are encrypted individually")
+        void nullElementsInArrayAreEncrypted() throws Exception {
+            byte[] jsonPayload = MAPPER.createObjectNode()
+                    .set("nums", MAPPER.createArrayNode().add(1).addNull().add(3))
+                    .toString().getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            byte[] result = processor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("nums").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
+
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            JsonNode nums = out.get("nums");
+            assertThat(nums.isArray()).isTrue();
+            assertThat(nums).hasSize(3);
+            nums.forEach(el -> assertThat(el.isTextual()).isTrue()); // all elements encrypted
+            verify(kryptonite, times(3)).cipherFieldRaw(any(), any()); // null element also encrypted
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null values in object map are encrypted individually")
+        void nullValuesInObjectAreEncrypted() throws Exception {
+            byte[] jsonPayload = MAPPER.createObjectNode()
+                    .set("scores", MAPPER.createObjectNode().put("a", 10).putNull("b"))
+                    .toString().getBytes();
+            byte[] inputWire = toWireBytes(ORIGINAL_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, jsonPayload));
+            when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
+
+            byte[] result = processor.encryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("scores").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
+
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            JsonNode scores = out.get("scores");
+            assertThat(scores.get("a").isTextual()).isTrue();
+            assertThat(scores.get("b").isTextual()).isTrue(); // null value also encrypted
+            verify(kryptonite, times(2)).cipherFieldRaw(any(), any());
+        }
+
+        @Test
+        @DisplayName("decrypt OBJECT mode: null field (not a ciphertext) passes through silently")
+        void nullFieldOnDecryptPassesThrough() throws Exception {
+            byte[] jsonPayload = """
+                    {"name":"Alice","optVal":null}""".getBytes();
+            byte[] inputWire = toWireBytes(ENCRYPTED_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, jsonPayload));
+            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
+
+            byte[] result = processor.decryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("optVal").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
+
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            assertThat(out.get("optVal").isNull()).isTrue(); // null passed through unchanged
+            verify(kryptonite, never()).decipherFieldRaw(any(), any());
+        }
+
+        @Test
+        @DisplayName("decrypt ELEMENT mode: null element in array passes through silently")
+        void nullElementInDecryptArrayPassesThrough() throws Exception {
+            String encBase64 = encodeEf(FAKE_EF);
+            byte[] jsonPayload = MAPPER.createObjectNode()
+                    .set("tags", MAPPER.createArrayNode().add(encBase64).addNull().add(encBase64))
+                    .toString().getBytes();
+            byte[] inputWire = toWireBytes(ENCRYPTED_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, jsonPayload));
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
+                    .thenReturn(JsonObjectNodeAccessor.nodeToBytes(TextNode.valueOf("a"), SERDE))
+                    .thenReturn(JsonObjectNodeAccessor.nodeToBytes(TextNode.valueOf("c"), SERDE));
+            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
+
+            byte[] result = processor.decryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
+
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            JsonNode tags = out.get("tags");
+            assertThat(tags.get(0).asText()).isEqualTo("a");
+            assertThat(tags.get(1).isNull()).isTrue(); // null element passed through
+            assertThat(tags.get(2).asText()).isEqualTo("c");
+            verify(kryptonite, times(2)).decipherFieldRaw(any(), any()); // only non-null elements
+        }
+
+        @Test
+        @DisplayName("decrypt ELEMENT mode: null value in object map passes through silently")
+        void nullValueInDecryptObjectPassesThrough() throws Exception {
+            String encBase64 = encodeEf(FAKE_EF);
+            byte[] jsonPayload = MAPPER.createObjectNode()
+                    .set("scores", MAPPER.createObjectNode().put("a", encBase64).putNull("b"))
+                    .toString().getBytes();
+            byte[] inputWire = toWireBytes(ENCRYPTED_ID, jsonPayload);
+
+            when(adapter.stripPrefix(inputWire)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, jsonPayload));
+            when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class)))
+                    .thenReturn(JsonObjectNodeAccessor.nodeToBytes(IntNode.valueOf(42), SERDE));
+            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
+                    .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
+
+            byte[] result = processor.decryptFields(inputWire, TOPIC,
+                    Set.of(FieldConfig.builder().name("scores").fieldMode(FieldConfig.FieldMode.ELEMENT).build()));
+
+            JsonNode out = MAPPER.readTree(stripPrefix(result));
+            JsonNode scores = out.get("scores");
+            assertThat(scores.get("a").asInt()).isEqualTo(42);
+            assertThat(scores.get("b").isNull()).isTrue(); // null value passed through
+            verify(kryptonite, times(1)).decipherFieldRaw(any(), any()); // only non-null value
         }
     }
 }
