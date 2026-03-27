@@ -117,7 +117,9 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
             } else {
                 // OBJECT mode
                 if (isFpe(fc)) {
-                    if (!node.isTextual()) continue;
+                    if (!node.isTextual()) throw new IllegalStateException(
+                            "FPE encryption requires a string value for field '" + fc.getName()
+                            + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
                     byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));

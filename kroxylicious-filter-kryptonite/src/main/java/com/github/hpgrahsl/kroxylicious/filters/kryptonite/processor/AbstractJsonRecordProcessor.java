@@ -13,6 +13,8 @@ import com.github.hpgrahsl.kryptonite.converters.MapFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
@@ -29,6 +31,7 @@ import java.util.Set;
  */
 abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractJsonRecordProcessor.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     protected final MapFieldConverter fieldConverter = new MapFieldConverter();
@@ -60,7 +63,9 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc));
             } else {
                 if (isFpe(fc)) {
-                    if (!node.isTextual()) continue;
+                    if (!node.isTextual()) throw new IllegalStateException(
+                            "FPE encryption requires a string value for field '" + fc.getName()
+                            + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
                     byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
@@ -95,7 +100,9 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
             } else {
                 if (isFpe(fc)) {
-                    if (!node.isTextual()) continue;
+                    if (!node.isTextual()) throw new IllegalStateException(
+                            "FPE encryption requires a string value for field '" + fc.getName()
+                            + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
                     byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
@@ -123,7 +130,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ObjectNode obj) {
                 accessor.setField(fc.getName(), decryptObjectValues(obj, fc));
             } else {
-                if (!(fieldValue instanceof JsonNode leafNode) || !leafNode.isTextual()) continue;
+                if (!(fieldValue instanceof JsonNode leafNode) || !leafNode.isTextual()) {
+                    LOG.warn("Decryption skipping field '{}': value is not a textual node — possibly pre-existing unencrypted data", fc.getName());
+                    continue;
+                }
                 if (isFpe(fc)) {
                     byte[] ciphertext = leafNode.asText().getBytes(StandardCharsets.UTF_8);
                     byte[] plaintext = kryptonite.decipherFieldFPE(ciphertext, buildFieldMetaData(fc));
@@ -148,7 +158,9 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
             for (JsonNode element : source) {
-                if (!element.isTextual()) { result.add(element); continue; }
+                if (!element.isTextual()) throw new IllegalStateException(
+                        "FPE encryption requires string elements in field '" + fc.getName()
+                        + "' but got JSON type " + element.getNodeType() + " — FPE cannot encrypt non-string types");
                 byte[] ciphertext = kryptonite.cipherFieldFPE(
                         element.asText().getBytes(StandardCharsets.UTF_8), fmd);
                 result.add(new String(ciphertext, StandardCharsets.UTF_8));
@@ -171,7 +183,9 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             FieldMetaData fmd = buildFieldMetaData(fc);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
-                if (!value.isTextual()) { result.set(entry.getKey(), value); return; }
+                if (!value.isTextual()) throw new IllegalStateException(
+                        "FPE encryption requires string values in field '" + fc.getName()
+                        + "' but got JSON type " + value.getNodeType() + " — FPE cannot encrypt non-string types");
                 byte[] ciphertext = kryptonite.cipherFieldFPE(
                         value.asText().getBytes(StandardCharsets.UTF_8), fmd);
                 result.put(entry.getKey(), new String(ciphertext, StandardCharsets.UTF_8));
@@ -190,7 +204,12 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         if (isFpe(fc)) {
             FieldMetaData fmd = buildFieldMetaData(fc);
             for (JsonNode element : source) {
-                if (!element.isTextual()) { result.add(element); continue; }
+                if (!element.isTextual()) {
+                    LOG.warn("FPE decryption skipping non-textual element in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            fc.getName(), element.getNodeType());
+                    result.add(element);
+                    continue;
+                }
                 byte[] plaintext = kryptonite.decipherFieldFPE(
                         element.asText().getBytes(StandardCharsets.UTF_8), fmd);
                 result.add(new String(plaintext, StandardCharsets.UTF_8));
@@ -200,6 +219,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 if (element.isTextual()) {
                     result.add(fieldConverter.fromCanonicalAsJsonNode(FieldHandler.decryptField(element.asText(), kryptonite)));
                 } else {
+                    LOG.warn("Decryption skipping non-textual element in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            fc.getName(), element.getNodeType());
                     result.add(element);
                 }
             }
@@ -213,7 +234,12 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             FieldMetaData fmd = buildFieldMetaData(fc);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
-                if (!value.isTextual()) { result.set(entry.getKey(), value); return; }
+                if (!value.isTextual()) {
+                    LOG.warn("FPE decryption skipping non-textual value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            entry.getKey(), fc.getName(), value.getNodeType());
+                    result.set(entry.getKey(), value);
+                    return;
+                }
                 byte[] plaintext = kryptonite.decipherFieldFPE(
                         value.asText().getBytes(StandardCharsets.UTF_8), fmd);
                 result.put(entry.getKey(), new String(plaintext, StandardCharsets.UTF_8));
@@ -224,6 +250,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 if (value.isTextual()) {
                     result.set(entry.getKey(), fieldConverter.fromCanonicalAsJsonNode(FieldHandler.decryptField(value.asText(), kryptonite)));
                 } else {
+                    LOG.warn("Decryption skipping non-textual value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            entry.getKey(), fc.getName(), value.getNodeType());
                     result.set(entry.getKey(), value);
                 }
             });

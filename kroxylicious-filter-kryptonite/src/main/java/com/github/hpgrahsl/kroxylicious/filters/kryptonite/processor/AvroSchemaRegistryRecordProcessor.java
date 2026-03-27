@@ -78,7 +78,9 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptRecordFieldValues(record, fc));
             } else {
                 if (isFpe(fc)) {
-                    if (!(fieldValue instanceof CharSequence cs)) continue;
+                    if (!(fieldValue instanceof CharSequence cs)) throw new IllegalStateException(
+                            "FPE encryption requires a string value for field '" + fc.getName()
+                            + "' but got type " + fieldValue.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
                     byte[] ciphertext = kryptonite.cipherFieldFPE(
                             cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
@@ -121,7 +123,11 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof GenericRecord record) {
                 accessor.setField(fc.getName(), decryptRecordFieldValues(record, fc));
             } else {
-                if (!(fieldValue instanceof CharSequence cs)) continue;
+                if (!(fieldValue instanceof CharSequence cs)) {
+                    LOG.warn("Decryption skipping field '{}': value is not a string (type={}) — possibly pre-existing unencrypted data",
+                            fc.getName(), fieldValue.getClass().getSimpleName());
+                    continue;
+                }
                 if (isFpe(fc)) {
                     byte[] plaintext = kryptonite.decipherFieldFPE(
                             cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
@@ -152,7 +158,9 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             FieldMetaData fmd = buildFieldMetaData(fc);
             for (Object element : source) {
                 if (element == null) { result.add(null); continue; }
-                if (!(element instanceof CharSequence cs)) { result.add(element); continue; }
+                if (!(element instanceof CharSequence cs)) throw new IllegalStateException(
+                        "FPE encryption requires string elements in field '" + fc.getName()
+                        + "' but got type " + element.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
                 byte[] ciphertext = kryptonite.cipherFieldFPE(
                         cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
                 result.add(new String(ciphertext, StandardCharsets.UTF_8));
@@ -172,7 +180,9 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             FieldMetaData fmd = buildFieldMetaData(fc);
             source.forEach((k, v) -> {
                 if (v == null) { result.put(k, null); return; }
-                if (!(v instanceof CharSequence cs)) { result.put(k, v); return; }
+                if (!(v instanceof CharSequence cs)) throw new IllegalStateException(
+                        "FPE encryption requires string values in field '" + fc.getName()
+                        + "' but got type " + v.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
                 byte[] ciphertext = kryptonite.cipherFieldFPE(
                         cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
                 result.put(k, new String(ciphertext, StandardCharsets.UTF_8));
@@ -197,6 +207,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                             cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
                     result.add(new String(plaintext, StandardCharsets.UTF_8));
                 } else {
+                    LOG.warn("FPE decryption skipping non-string element in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            fc.getName(), element.getClass().getSimpleName());
                     result.add(element);
                 }
             }
@@ -206,6 +218,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 if (element instanceof CharSequence cs) {
                     result.add(fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
                 } else {
+                    LOG.warn("Decryption skipping non-string element in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            fc.getName(), element.getClass().getSimpleName());
                     result.add(element);
                 }
             }
@@ -223,6 +237,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                             cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
                     result.put(k, new String(plaintext, StandardCharsets.UTF_8));
                 } else {
+                    LOG.warn("FPE decryption skipping non-string value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            k, fc.getName(), v.getClass().getSimpleName());
                     result.put(k, v);
                 }
             });
@@ -231,6 +247,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 if (v instanceof CharSequence cs) {
                     result.put(k, fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
                 } else {
+                    LOG.warn("Decryption skipping non-string value for key '{}' in field '{}' (type={}) — possibly pre-existing unencrypted data",
+                            k, fc.getName(), v.getClass().getSimpleName());
                     result.put(k, v);
                 }
             });
@@ -256,6 +274,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             if (value instanceof CharSequence cs) {
                 result.put(f.name(), fieldConverter.fromCanonical(FieldHandler.decryptField(cs.toString(), kryptonite)));
             } else {
+                LOG.warn("Decryption skipping non-string value for sub-field '{}' of ELEMENT-mode field '{}' (type={}) — possibly pre-existing unencrypted data",
+                        f.name(), fc.getName(), value.getClass().getSimpleName());
                 result.put(f.name(), value);
             }
         }
