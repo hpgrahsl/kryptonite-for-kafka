@@ -196,6 +196,11 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
         return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getOriginalSchemaId();
     }
 
+    @Override
+    public List<FieldEntryMetadata> getEncryptedFieldMetadata(int encryptedSchemaId, String topicName) {
+        return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getEncryptedFields();
+    }
+
     // --- Schema fetch ---
 
     @Override

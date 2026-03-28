@@ -9,6 +9,7 @@ import com.github.hpgrahsl.kryptonite.converters.KroxyliciousFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.AvroGenericRecordAccessor;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.FieldEntryMetadata;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * {@link RecordValueProcessor} for Avro records via Confluent Schema Registry.
@@ -112,11 +114,16 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
     public byte[] decryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
         if (fieldConfigs.isEmpty()) return wireBytes;
         SchemaIdAndPayload stripped = adapter.stripPrefix(wireBytes);
+        Map<String, FieldEntryMetadata> storedMeta = adapter.getEncryptedFieldMetadata(stripped.schemaId(), topicName)
+                .stream().collect(Collectors.toMap(FieldEntryMetadata::name, e -> e));
+        Set<FieldConfig> effectiveConfigs = fieldConfigs.stream()
+                .map(fc -> resolveEffective(fc, storedMeta.get(fc.getName())))
+                .collect(Collectors.toSet());
         Schema encryptedSchema = avroSchema(stripped.schemaId());
         AvroGenericRecordAccessor accessor =
                 AvroGenericRecordAccessor.from(stripped.payload(), encryptedSchema);
 
-        for (FieldConfig fc : fieldConfigs) {
+        for (FieldConfig fc : effectiveConfigs) {
             Object fieldValue = accessor.getField(fc.getName());
             if (fieldValue == null) continue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
@@ -145,7 +152,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         }
 
         int outputSchemaId = adapter.getOrRegisterDecryptedSchemaId(
-                stripped.schemaId(), topicName, fieldConfigs);
+                stripped.schemaId(), topicName, fieldConfigs); // original fieldConfigs: cache key is field-name based
         LOG.trace("decrypt: topic='{}' encryptedSchemaId={} outputSchemaId={}",
                 topicName, stripped.schemaId(), outputSchemaId);
 
@@ -367,5 +374,18 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         String algorithmId = Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(algorithm));
         String keyId = fc.getKeyId().orElse(defaultKeyId);
         return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
+    }
+
+    private static FieldConfig resolveEffective(FieldConfig fc, FieldEntryMetadata stored) {
+        if (stored == null) return fc;
+        return FieldConfig.builder()
+                .name(fc.getName())
+                .algorithm(stored.algorithm() != null ? stored.algorithm() : fc.getAlgorithm().orElse(null))
+                .keyId(stored.keyId() != null ? stored.keyId() : fc.getKeyId().orElse(null))
+                .fieldMode(stored.fieldMode() != null ? stored.fieldMode() : fc.getFieldMode().orElse(null))
+                .fpeTweak(stored.fpeTweak() != null ? stored.fpeTweak() : fc.getFpeTweak().orElse(null))
+                .fpeAlphabetType(stored.fpeAlphabetType() != null ? stored.fpeAlphabetType() : fc.getFpeAlphabetType().orElse(null))
+                .fpeAlphabetCustom(stored.fpeAlphabetCustom() != null ? stored.fpeAlphabetCustom() : fc.getFpeAlphabetCustom().orElse(null))
+                .build();
     }
 }

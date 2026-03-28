@@ -2,6 +2,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -94,6 +95,20 @@ public interface SchemaRegistryAdapter {
      * @return the original schema ID
      */
     int getOriginalSchemaId(int encryptedSchemaId, String topicName);
+
+    /**
+     * Returns the list of {@link FieldEntryMetadata} stored at encryption time for the given
+     * encrypted schema ID.
+     *
+     * <p>Used by the decrypt path to recover the algorithm, fieldMode, and FPE parameters that
+     * were used during encryption — so decryption uses matching parameters regardless of what
+     * the decrypt-side filter configuration specifies.
+     *
+     * @param encryptedSchemaId the schema ID from the encrypted record's wire prefix
+     * @param topicName         the Kafka topic name
+     * @return list of per-field encryption metadata (never null, may be empty on cold start)
+     */
+    List<FieldEntryMetadata> getEncryptedFieldMetadata(int encryptedSchemaId, String topicName);
 
     /**
      * Fetches the parsed schema by schema ID.

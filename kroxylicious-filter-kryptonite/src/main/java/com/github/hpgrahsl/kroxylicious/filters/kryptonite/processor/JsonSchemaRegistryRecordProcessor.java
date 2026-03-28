@@ -10,6 +10,7 @@ import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.JsonSchemaToAvroSchemaTranslator;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.FieldEntryMetadata;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
@@ -18,8 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * {@link RecordValueProcessor} for JSON Schema records via Confluent Schema Registry.
@@ -78,12 +81,36 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
     public byte[] decryptFields(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs) {
         if (fieldConfigs.isEmpty()) return wireBytes;
         SchemaIdAndPayload stripped = adapter.stripPrefix(wireBytes);
-        byte[] decryptedPayload = decryptJsonPayload(stripped.payload(), fieldConfigs);
+        Set<FieldConfig> effectiveConfigs = resolveEffectiveDecryptConfigs(fieldConfigs, stripped.schemaId(), topicName);
+        byte[] decryptedPayload = decryptJsonPayload(stripped.payload(), effectiveConfigs);
         int outputSchemaId = adapter.getOrRegisterDecryptedSchemaId(
                 stripped.schemaId(), topicName, fieldConfigs);
         LOG.trace("decrypt: topic='{}' encryptedSchemaId={} outputSchemaId={}",
                 topicName, stripped.schemaId(), outputSchemaId);
         return adapter.attachPrefix(outputSchemaId, decryptedPayload);
+    }
+
+    private Set<FieldConfig> resolveEffectiveDecryptConfigs(Set<FieldConfig> fieldConfigs,
+                                                             int encryptedSchemaId, String topicName) {
+        Map<String, FieldEntryMetadata> storedMeta = adapter.getEncryptedFieldMetadata(encryptedSchemaId, topicName)
+                .stream().collect(Collectors.toMap(FieldEntryMetadata::name, e -> e));
+        if (storedMeta.isEmpty()) return fieldConfigs;
+        return fieldConfigs.stream()
+                .map(fc -> resolveEffective(fc, storedMeta.get(fc.getName())))
+                .collect(Collectors.toSet());
+    }
+
+    private static FieldConfig resolveEffective(FieldConfig fc, FieldEntryMetadata stored) {
+        if (stored == null) return fc;
+        return FieldConfig.builder()
+                .name(fc.getName())
+                .algorithm(stored.algorithm() != null ? stored.algorithm() : fc.getAlgorithm().orElse(null))
+                .keyId(stored.keyId() != null ? stored.keyId() : fc.getKeyId().orElse(null))
+                .fieldMode(stored.fieldMode() != null ? stored.fieldMode() : fc.getFieldMode().orElse(null))
+                .fpeTweak(stored.fpeTweak() != null ? stored.fpeTweak() : fc.getFpeTweak().orElse(null))
+                .fpeAlphabetType(stored.fpeAlphabetType() != null ? stored.fpeAlphabetType() : fc.getFpeAlphabetType().orElse(null))
+                .fpeAlphabetCustom(stored.fpeAlphabetCustom() != null ? stored.fpeAlphabetCustom() : fc.getFpeAlphabetCustom().orElse(null))
+                .build();
     }
 
     // ---- SR-schema-based encrypt path (AVRO serde only) ----
