@@ -48,8 +48,8 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
 
     private final SchemaRegistryClient srClient;
 
-    // Encrypt path: originalSchemaId → encryptedSchemaId
-    private final ConcurrentHashMap<Integer, Integer> originalToEncryptedId = new ConcurrentHashMap<>();
+    // Encrypt path: (originalSchemaId, topicName) → encryptedSchemaId
+    private final ConcurrentHashMap<EncryptCacheKey, Integer> originalToEncryptedId = new ConcurrentHashMap<>();
 
     // Decrypt path: (encryptedSchemaId, fieldNames) → outputSchemaId
     private final ConcurrentHashMap<DecryptCacheKey, Integer> decryptOutputIdCache = new ConcurrentHashMap<>();
@@ -103,11 +103,11 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
     @Override
     public int getOrRegisterEncryptedSchemaId(int originalSchemaId, String topicName,
                                                Set<FieldConfig> fieldConfigs) {
-        return originalToEncryptedId.computeIfAbsent(originalSchemaId, id -> {
-            String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + id;
+        return originalToEncryptedId.computeIfAbsent(new EncryptCacheKey(originalSchemaId, topicName), __ -> {
+            String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + originalSchemaId;
             try {
                 LOG.debug("STATIC cache miss for originalSchemaId={} topic='{}' — reading from SR subject='{}'",
-                        id, topicName, metadataSubject);
+                        originalSchemaId, topicName, metadataSubject);
                 EncryptionMetadata encryptionMetadata = fetchEncryptionMetadataFromSubject(metadataSubject);
                 int encryptedSchemaId = encryptionMetadata.getEncryptedSchemaId();
 
@@ -118,16 +118,16 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
                 Set<String> allEncryptedFieldNames = encryptionMetadata.getEncryptedFields().stream()
                         .map(FieldEntryMetadata::name).collect(Collectors.toSet());
                 decryptOutputIdCache.putIfAbsent(
-                        new DecryptCacheKey(encryptedSchemaId, allEncryptedFieldNames), id);
+                        new DecryptCacheKey(encryptedSchemaId, allEncryptedFieldNames), originalSchemaId);
 
                 LOG.debug("STATIC: resolved encryptedSchemaId={} for originalSchemaId={} topic='{}'",
-                        encryptedSchemaId, id, topicName);
+                        encryptedSchemaId, originalSchemaId, topicName);
                 return encryptedSchemaId;
             } catch (SchemaRegistryAdapterException e) {
                 throw e;
             } catch (Exception e) {
                 throw new SchemaRegistryAdapterException(
-                        "STATIC mode: encryption metadata not found for originalSchemaId=" + id
+                        "STATIC mode: encryption metadata not found for originalSchemaId=" + originalSchemaId
                                 + " topic=" + topicName
                                 + " — pre-register subject='" + metadataSubject + "' before starting the proxy",
                         e);
@@ -245,6 +245,8 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
     private static Set<String> fieldNames(Set<FieldConfig> fieldConfigs) {
         return fieldConfigs.stream().map(FieldConfig::getName).collect(Collectors.toSet());
     }
+
+    private record EncryptCacheKey(int originalSchemaId, String topicName) {}
 
     private record DecryptCacheKey(int encryptedSchemaId, Set<String> fieldNames) {}
 }
