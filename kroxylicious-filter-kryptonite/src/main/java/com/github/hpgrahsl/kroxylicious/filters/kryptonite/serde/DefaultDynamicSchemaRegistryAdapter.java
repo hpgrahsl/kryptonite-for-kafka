@@ -56,8 +56,8 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     // Decrypt path: (encryptedSchemaId, fieldNames) → outputSchemaId
     private final ConcurrentHashMap<DecryptCacheKey, Integer> decryptOutputIdCache = new ConcurrentHashMap<>();
 
-    // Encryption metadata cache: encryptedSchemaId → EncryptionMetadata
-    private final ConcurrentHashMap<Integer, EncryptionMetadata> encryptionMetadataCache = new ConcurrentHashMap<>();
+    // Encryption metadata cache: (encryptedSchemaId, topicName) → EncryptionMetadata
+    private final ConcurrentHashMap<MetadataCacheKey, EncryptionMetadata> encryptionMetadataCache = new ConcurrentHashMap<>();
 
     public DefaultDynamicSchemaRegistryAdapter(SchemaRegistryClient srClient) {
         this.srClient = srClient;
@@ -135,7 +135,7 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
                 EncryptionMetadata encryptionMetadata = new EncryptionMetadata(
                         originalSchemaId, encryptedSchemaId, fieldEntries);
                 registerEncryptionMetadata(topicName, encryptionMetadata);
-                encryptionMetadataCache.put(encryptedSchemaId, encryptionMetadata);
+                encryptionMetadataCache.put(new MetadataCacheKey(encryptedSchemaId, topicName), encryptionMetadata);
 
                 LOG.info("Registered encrypted schema under subject='{}' with id={}", encryptedSubject, encryptedSchemaId);
                 // Prime the decrypt cache for full decrypt direction
@@ -254,18 +254,18 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     }
 
     private EncryptionMetadata getOrFetchEncryptionMetadata(int encryptedSchemaId, String topicName) {
-        return encryptionMetadataCache.computeIfAbsent(encryptedSchemaId, id -> {
+        return encryptionMetadataCache.computeIfAbsent(new MetadataCacheKey(encryptedSchemaId, topicName), __ -> {
             try {
-                String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + id;
+                String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + encryptedSchemaId;
                 SchemaMetadata meta = srClient.getLatestSchemaMetadata(metadataSubject);
                 ObjectNode envelope = (ObjectNode) MAPPER.readTree(meta.getSchema());
                 EncryptionMetadata encryptionMetadata = MAPPER.treeToValue(
                         envelope.get("x-kryptonite-metadata"), EncryptionMetadata.class);
-                LOG.debug("Fetched encryption metadata for encryptedSchemaId={} from subject='{}'", id, metadataSubject);
+                LOG.debug("Fetched encryption metadata for encryptedSchemaId={} from subject='{}'", encryptedSchemaId, metadataSubject);
                 return encryptionMetadata;
             } catch (Exception e) {
                 throw new SchemaRegistryAdapterException(
-                        "Failed to fetch encryption metadata for encryptedSchemaId=" + id + " topic=" + topicName, e);
+                        "Failed to fetch encryption metadata for encryptedSchemaId=" + encryptedSchemaId + " topic=" + topicName, e);
             }
         });
     }
@@ -277,6 +277,8 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     }
 
     private record EncryptCacheKey(int originalSchemaId, String topicName) {}
+
+    private record MetadataCacheKey(int encryptedSchemaId, String topicName) {}
 
     private record DecryptCacheKey(int encryptedSchemaId, Set<String> fieldNames) {}
 }
