@@ -1,8 +1,10 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +22,7 @@ public class KryptoniteFilterConfig {
     private final List<Map<String, Object>> cipherDataKeys;
     private final String kmsType;                   // AZ_KV_SECRETS | AWS_SM_SECRETS | GCP_SM_SECRETS | NONE
     private final String kmsConfig;
+    private final int kmsRefreshIntervalMinutes;    // 0 = disabled (default)
     private final String kekType;                   // GCP | AWS | AZURE | NONE
     private final String kekUri;
     private final String kekConfig;
@@ -49,6 +52,7 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "cipher_data_keys") List<Map<String, Object>> cipherDataKeys,
             @JsonProperty(value = "kms_type") String kmsType,
             @JsonProperty(value = "kms_config") String kmsConfig,
+            @JsonProperty(value = "kms_refresh_interval_minutes") int kmsRefreshIntervalMinutes,
             @JsonProperty(value = "kek_type") String kekType,
             @JsonProperty(value = "kek_uri") String kekUri,
             @JsonProperty(value = "kek_config") String kekConfig,
@@ -65,6 +69,7 @@ public class KryptoniteFilterConfig {
         this.cipherDataKeys = cipherDataKeys;
         this.kmsType = kmsType != null ? kmsType : KryptoniteSettings.KMS_TYPE_DEFAULT;
         this.kmsConfig = kmsConfig != null ? kmsConfig : KryptoniteSettings.KMS_CONFIG_DEFAULT;
+        this.kmsRefreshIntervalMinutes = kmsRefreshIntervalMinutes;
         this.kekType = kekType != null ? kekType : KryptoniteSettings.KEK_TYPE_DEFAULT;
         this.kekUri = kekUri != null ? kekUri : KryptoniteSettings.KEK_URI_DEFAULT;
         this.kekConfig = kekConfig != null ? kekConfig : KryptoniteSettings.KEK_CONFIG_DEFAULT;
@@ -83,6 +88,7 @@ public class KryptoniteFilterConfig {
     public List<Map<String, Object>> getCipherDataKeys() { return cipherDataKeys; }
     public String getKmsType() { return kmsType; }
     public String getKmsConfig() { return kmsConfig; }
+    public int getKmsRefreshIntervalMinutes() { return kmsRefreshIntervalMinutes; }
     public String getKekType() { return kekType; }
     public String getKekUri() { return kekUri; }
     public String getKekConfig() { return kekConfig; }
@@ -93,4 +99,26 @@ public class KryptoniteFilterConfig {
     public String getSerdeType() { return serdeType; }
     public List<TopicFieldConfig> getTopicFieldConfigs() { return topicFieldConfigs; }
     public int getBlockingPoolSize() { return blockingPoolSize; }
+
+    public Map<String, String> toKryptoniteConfigMap() {
+        Map<String, String> config = new HashMap<>();
+        config.put(KryptoniteSettings.KEY_SOURCE, keySource);
+        config.put(KryptoniteSettings.CIPHER_ALGORITHM, cipherAlgorithm);
+        config.put(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER, cipherDataKeyIdentifier);
+        config.put(KryptoniteSettings.KMS_TYPE, kmsType);
+        config.put(KryptoniteSettings.KMS_CONFIG, kmsConfig);
+        config.put(KryptoniteSettings.KMS_REFRESH_INTERVAL_MINUTES, String.valueOf(kmsRefreshIntervalMinutes));
+        config.put(KryptoniteSettings.KEK_TYPE, kekType);
+        config.put(KryptoniteSettings.KEK_URI, kekUri);
+        config.put(KryptoniteSettings.KEK_CONFIG, kekConfig);
+        try {
+            config.put(KryptoniteSettings.CIPHER_DATA_KEYS,
+                    cipherDataKeys != null ? MAPPER.writeValueAsString(cipherDataKeys) : "[]");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize cipher_data_keys to JSON", e);
+        }
+        return config;
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 }
