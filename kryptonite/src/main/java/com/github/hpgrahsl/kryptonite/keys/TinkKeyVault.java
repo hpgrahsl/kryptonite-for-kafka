@@ -16,6 +16,7 @@
 
 package com.github.hpgrahsl.kryptonite.keys;
 
+import static java.lang.System.Logger.Level.DEBUG;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.google.crypto.tink.KeysetHandle;
 import java.util.Map;
@@ -24,6 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class TinkKeyVault extends AbstractKeyVault {
+
+  private static final System.Logger LOG = System.getLogger(TinkKeyVault.class.getName());
 
   public TinkKeyVault(Map<String, TinkKeyConfig> keyConfigs) {
     super(createKeysetHandles(keyConfigs));
@@ -40,6 +43,11 @@ public class TinkKeyVault extends AbstractKeyVault {
     throw new UnsupportedOperationException(
         "TinkKeyVault does not support on-demand key fetching; all keys must be provided at construction time"
     );
+  }
+
+  @Override
+  protected void refreshKeyCache() {
+    LOG.log(DEBUG, "KeyVault refresh skipped — keys sourced from local config, no remote store to sync");
   }
 
 }
