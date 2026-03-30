@@ -26,7 +26,7 @@ import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.RegistryConfiguration;
-
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AzureKeyVaultEncrypted extends AbstractKeyVault {
@@ -76,6 +76,11 @@ public class AzureKeyVaultEncrypted extends AbstractKeyVault {
       keysetHandle = keysetHandles.get(identifier);
     }
     return keysetHandle;
+  }
+
+  @Override
+  protected Collection<String> listKeysetIdentifiers() {
+    return keyMaterialResolver.resolveIdentifiers();
   }
 
   private void warmUpKeyCache() {

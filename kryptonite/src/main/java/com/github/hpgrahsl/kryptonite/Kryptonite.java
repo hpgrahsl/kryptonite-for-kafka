@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
 
-public class Kryptonite {
+public class Kryptonite implements AutoCloseable {
 
   public static final class CipherSpec {
 
@@ -142,6 +142,11 @@ public class Kryptonite {
 
   public AbstractKeyVault getKeyVault() {
     return keyVault;
+  }
+
+  @Override
+  public void close() {
+    keyVault.close();
   }
 
   public Kryptonite(AbstractKeyVault keyVault) {
@@ -273,7 +278,9 @@ public class Kryptonite {
         .orElseThrow(() -> new ConfigurationException(
             "no KMS key vault provider found for type '" + kmsType
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
-    return new Kryptonite(provider.createKeyVault(kmsConfig));
+    var vault = provider.createKeyVault(kmsConfig);
+    vault.startBackgroundRefresh(kmsCacheRefreshIntervalMinutes(config));
+    return new Kryptonite(vault);
   }
 
   private static Kryptonite withKmsKeyVaultEncrypted(Map<String,String> config) {
@@ -287,7 +294,19 @@ public class Kryptonite {
         .orElseThrow(() -> new ConfigurationException(
             "no KMS key vault provider found for type '" + kmsType
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
-    return new Kryptonite(provider.createKeyVaultEncrypted(configureKmsKeyEncryption(config), kmsConfig));
+    var vault = provider.createKeyVaultEncrypted(configureKmsKeyEncryption(config), kmsConfig);
+    vault.startBackgroundRefresh(kmsCacheRefreshIntervalMinutes(config));
+    return new Kryptonite(vault);
+  }
+
+  private static long kmsCacheRefreshIntervalMinutes(Map<String,String> config) {
+    try {
+      return Long.parseLong(config.getOrDefault(
+          KMS_REFRESH_INTERVAL_MINUTES,
+          String.valueOf(KMS_REFRESH_INTERVAL_MINUTES_DEFAULT)));
+    } catch (NumberFormatException e) {
+      return KMS_REFRESH_INTERVAL_MINUTES_DEFAULT;
+    }
   }
 
   private static KmsKeyEncryption configureKmsKeyEncryption(Map<String,String> config) {

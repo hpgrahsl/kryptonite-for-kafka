@@ -22,6 +22,7 @@ import com.github.hpgrahsl.kryptonite.keys.KeyException;
 import com.github.hpgrahsl.kryptonite.keys.KeyMaterialResolver;
 import com.github.hpgrahsl.kryptonite.keys.KeyNotFoundException;
 import com.google.crypto.tink.KeysetHandle;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GcpKeyVault extends AbstractKeyVault {
@@ -67,6 +68,11 @@ public class GcpKeyVault extends AbstractKeyVault {
       keysetHandle = keysetHandles.get(identifier);
     }
     return keysetHandle;
+  }
+
+  @Override
+  protected Collection<String> listKeysetIdentifiers() {
+    return keyMaterialResolver.resolveIdentifiers();
   }
 
   private void warmUpKeyCache() {

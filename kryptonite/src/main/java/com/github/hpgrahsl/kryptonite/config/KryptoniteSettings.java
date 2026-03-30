@@ -64,6 +64,8 @@ public class KryptoniteSettings {
   public static final String KEY_SOURCE = "key_source";
   public static final String KMS_TYPE = "kms_type";
   public static final String KMS_CONFIG = "kms_config";
+  public static final String KMS_REFRESH_INTERVAL_MINUTES = "kms_refresh_interval_minutes";
+
   public static final String KEK_TYPE = "kek_type";
   public static final String KEK_CONFIG = "kek_config";
   public static final String KEK_URI = "kek_uri";
@@ -81,6 +83,7 @@ public class KryptoniteSettings {
   public static final String KEY_SOURCE_DEFAULT = "CONFIG";
   public static final String KMS_TYPE_DEFAULT = "NONE";
   public static final String KMS_CONFIG_DEFAULT = "{}";
+  public static final int KMS_REFRESH_INTERVAL_MINUTES_DEFAULT = 0;
   public static final String KEK_TYPE_DEFAULT = "NONE";
   public static final String KEK_CONFIG_DEFAULT = "{}";
   public static final String KEK_URI_DEFAULT = "xyz-kms://";

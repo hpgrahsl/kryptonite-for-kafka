@@ -16,6 +16,7 @@
 
 package com.github.hpgrahsl.kryptonite.keys;
 
+import static java.lang.System.Logger.Level.DEBUG;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.google.crypto.tink.Aead;
@@ -29,6 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class TinkKeyVaultEncrypted extends AbstractKeyVault {
+
+  private static final System.Logger LOG = System.getLogger(TinkKeyVaultEncrypted.class.getName());
 
   public TinkKeyVaultEncrypted(Map<String, TinkKeyConfigEncrypted> encryptedKeyConfigs, KmsKeyEncryption kmsKeyEncryption) {
     super(createKeysetHandles(encryptedKeyConfigs, kmsKeyEncryption));
@@ -50,6 +53,11 @@ public class TinkKeyVaultEncrypted extends AbstractKeyVault {
     throw new UnsupportedOperationException(
         "TinkKeyVaultEncrypted does not support on-demand key fetching; all keys must be provided at construction time"
     );
+  }
+
+  @Override
+  protected void refreshKeyCache() {
+    LOG.log(DEBUG, "KeyVault refresh skipped — keys sourced from local config, no remote store to sync");
   }
 
 }
