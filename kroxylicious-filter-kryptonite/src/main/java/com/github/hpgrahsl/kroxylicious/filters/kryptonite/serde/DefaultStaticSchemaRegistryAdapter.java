@@ -156,7 +156,7 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
                 LOG.debug("STATIC decrypt cache miss for encryptedSchemaId={} topic='{}' — resolving output schema",
                         encryptedSchemaId, topicName);
 
-                EncryptionMetadata encryptionMetadata = getOrFetchEncryptionMetadata(encryptedSchemaId, topicName);
+                EncryptionMetadata encryptionMetadata = resolveEncryptionMetadata(encryptedSchemaId, topicName);
                 int originalSchemaId = encryptionMetadata.getOriginalSchemaId();
                 List<String> allEncryptedFields = encryptionMetadata.getEncryptedFields().stream()
                         .map(FieldEntryMetadata::name).collect(Collectors.toList());
@@ -193,12 +193,12 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
 
     @Override
     public int getOriginalSchemaId(int encryptedSchemaId, String topicName) {
-        return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getOriginalSchemaId();
+        return resolveEncryptionMetadata(encryptedSchemaId, topicName).getOriginalSchemaId();
     }
 
     @Override
     public List<FieldEntryMetadata> getEncryptedFieldMetadata(int encryptedSchemaId, String topicName) {
-        return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getEncryptedFields();
+        return resolveEncryptionMetadata(encryptedSchemaId, topicName).getEncryptedFields();
     }
 
     // --- Schema fetch ---
@@ -214,7 +214,7 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
 
     // --- Encryption metadata helpers ---
 
-    private EncryptionMetadata getOrFetchEncryptionMetadata(int encryptedSchemaId, String topicName) {
+    private EncryptionMetadata resolveEncryptionMetadata(int encryptedSchemaId, String topicName) {
         return encryptionMetadataCache.computeIfAbsent(new MetadataCacheKey(encryptedSchemaId, topicName), __ -> {
             String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + encryptedSchemaId;
             try {

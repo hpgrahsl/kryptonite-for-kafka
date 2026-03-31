@@ -161,7 +161,7 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
                 LOG.debug("Decrypt cache miss for encryptedSchemaId={} topic='{}' — resolving output schema",
                         encryptedSchemaId, topicName);
 
-                EncryptionMetadata encryptionMetadata = getOrFetchEncryptionMetadata(encryptedSchemaId, topicName);
+                EncryptionMetadata encryptionMetadata = resolveEncryptionMetadata(encryptedSchemaId, topicName);
                 int originalSchemaId = encryptionMetadata.getOriginalSchemaId();
                 List<FieldEntryMetadata> allEncryptedFieldEntries = encryptionMetadata.getEncryptedFields();
                 List<String> allEncryptedFields = allEncryptedFieldEntries.stream()
@@ -221,12 +221,12 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
 
     @Override
     public int getOriginalSchemaId(int encryptedSchemaId, String topicName) {
-        return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getOriginalSchemaId();
+        return resolveEncryptionMetadata(encryptedSchemaId, topicName).getOriginalSchemaId();
     }
 
     @Override
     public List<FieldEntryMetadata> getEncryptedFieldMetadata(int encryptedSchemaId, String topicName) {
-        return getOrFetchEncryptionMetadata(encryptedSchemaId, topicName).getEncryptedFields();
+        return resolveEncryptionMetadata(encryptedSchemaId, topicName).getEncryptedFields();
     }
 
     // --- Schema fetch ---
@@ -259,7 +259,7 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
         LOG.debug("Registered encryption metadata under subject='{}'", metadataSubjectByOriginal);
     }
 
-    private EncryptionMetadata getOrFetchEncryptionMetadata(int encryptedSchemaId, String topicName) {
+    private EncryptionMetadata resolveEncryptionMetadata(int encryptedSchemaId, String topicName) {
         return encryptionMetadataCache.computeIfAbsent(new MetadataCacheKey(encryptedSchemaId, topicName), __ -> {
             try {
                 String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + encryptedSchemaId;
