@@ -42,6 +42,7 @@ abstract class AbstractKryptoniteFilterFactory
     private static final int DEFAULT_BLOCKING_POOL_SIZE = Math.max(2, Runtime.getRuntime().availableProcessors());
 
     protected ExecutorService filterBlockingExecutor;
+    protected Kryptonite kryptonite;
     protected RecordValueProcessor processor;
     protected TopicFieldConfigResolver resolver;
 
@@ -60,7 +61,7 @@ abstract class AbstractKryptoniteFilterFactory
         Plugins.requireConfig(this, config);
         int poolSize = config.getBlockingPoolSize() > 0 ? config.getBlockingPoolSize() : DEFAULT_BLOCKING_POOL_SIZE;
         filterBlockingExecutor = Executors.newFixedThreadPool(poolSize);
-        Kryptonite kryptonite = Kryptonite.createFromConfig(config.toKryptoniteConfigMap());
+        kryptonite = Kryptonite.createFromConfig(config.toKryptoniteConfigMap());
         processor = createProcessor(kryptonite, config, defaultKeyId(config));
         resolver = new TopicFieldConfigResolver(config.getTopicFieldConfigs());
         LOG.info("{} initialized with blockingPoolSize={} recordFormat={} schemaMode={}",
@@ -72,6 +73,9 @@ abstract class AbstractKryptoniteFilterFactory
     public void close(KryptoniteFilterConfig initializationData) {
         if (filterBlockingExecutor != null) {
             filterBlockingExecutor.shutdown();
+        }
+        if (kryptonite != null) {
+            kryptonite.close();
         }
     }
 
