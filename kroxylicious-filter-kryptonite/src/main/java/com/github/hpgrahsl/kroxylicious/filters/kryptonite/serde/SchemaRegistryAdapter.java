@@ -35,52 +35,42 @@ public interface SchemaRegistryAdapter {
     byte[] attachPrefix(int schemaId, byte[] payload);
 
     /**
-     * Produce path: returns the {@code encryptedSchemaId} for the given
+     * Produce path: resolves the {@code encryptedSchemaId} for the given
      * {@code originalSchemaId} and topic name.
      *
-     * <p>On first encounter: fetches the original schema, derives the encrypted schema document
-     * (targeted field types replaced with {@code string}), registers it under
-     * {@code "<topicName>-value__k4k_enc"} with NONE compatibility, registers the encryption
-     * metadata (original schema ID, encrypted field list, per-field modes) under
-     * {@code "<topicName>-value__k4k_meta"}, caches the result, and returns the
-     * {@code encryptedSchemaId}.
+     * <p>DYNAMIC: on first encounter derives and registers the encrypted schema and metadata
+     * in SR; subsequent calls are pure cache hits.
      *
-     * <p>On subsequent calls: returns from in-memory cache — zero SR network calls.
+     * <p>STATIC: reads the pre-registered
+     * {@code "<topicName>-value__k4k_meta_<originalSchemaId>"} subject — no SR writes ever;
+     * subsequent calls are pure cache hits.
      *
      * @param originalSchemaId the schema ID read from the producer's wire bytes
      * @param topicName        the Kafka topic name (used for SR subject naming)
      * @param fieldConfigs     the set of fields to encrypt for this topic
      * @return the schema ID to embed in the encrypted record's wire prefix
      */
-    int getOrRegisterEncryptedSchemaId(int originalSchemaId, String topicName, Set<FieldConfig> fieldConfigs);
+    int resolveEncryptedSchemaId(int originalSchemaId, String topicName, Set<FieldConfig> fieldConfigs);
 
     /**
-     * Consume path: returns the schema ID to attach to the decrypted payload.
+     * Consume path: resolves the schema ID to attach to the decrypted payload.
      *
-     * <p>Reads {@code encryptedFields} from the encryption metadata subject to determine
-     * whether the operation is a full or partial decrypt:
-     * <ul>
-     *   <li>Full decrypt ({@code decryptedFieldConfigs} covers all encrypted fields): returns
-     *       {@code originalSchemaId} from the encryption metadata. No new schema registration
-     *       needed.</li>
-     *   <li>Partial decrypt: derives a partial-decrypt schema, registers it under
-     *       {@code "<topicName>-value__k4k_dec_<stableHash>"} with NONE compatibility,
-     *       and returns the new {@code partialDecryptSchemaId}.</li>
-     * </ul>
+     * <p>Full decrypt ({@code decryptedFieldConfigs} covers all encrypted fields): returns
+     * {@code originalSchemaId} from the encryption metadata.
      *
-     * <p>The {@code stableHash} is a truncated SHA-256 over
-     * {@code (encryptedSchemaId + sorted decrypted field names)} — deterministic across proxy
-     * restarts, enabling cold-start SR recovery without external state.
+     * <p>Partial decrypt: returns the schema ID of the partial-decrypt schema keyed by
+     * {@code "<topicName>-value__k4k_dec_<stableHash>"}. DYNAMIC registers it on first
+     * encounter; STATIC requires it to be pre-registered by the operator.
      *
      * <p>Results are cached by {@code (encryptedSchemaId, Set<fieldName>)} — zero SR calls on
      * the warm path.
      *
-     * @param encryptedSchemaId    the schema ID read from the encrypted record's wire prefix
-     * @param topicName            the Kafka topic name
+     * @param encryptedSchemaId     the schema ID read from the encrypted record's wire prefix
+     * @param topicName             the Kafka topic name
      * @param decryptedFieldConfigs the set of fields being decrypted by this filter instance
      * @return the schema ID to embed in the decrypted record's wire prefix
      */
-    int getOrRegisterDecryptedSchemaId(int encryptedSchemaId, String topicName,
+    int resolveDecryptedSchemaId(int encryptedSchemaId, String topicName,
                                        Set<FieldConfig> decryptedFieldConfigs);
 
     /**

@@ -77,9 +77,9 @@ class JsonSchemaRegistryRoundTripTest {
         lenient().when(adapter.attachPrefix(anyInt(), any())).thenAnswer(inv ->
                 toWireBytes(inv.getArgument(0), inv.getArgument(1)));
         // schema ID routing
-        lenient().when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), any(), any()))
+        lenient().when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), any(), any()))
                 .thenReturn(ENCRYPTED_ID);
-        lenient().when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), any(), any()))
+        lenient().when(adapter.resolveDecryptedSchemaId(eq(ENCRYPTED_ID), any(), any()))
                 .thenReturn(ORIGINAL_ID);
     }
 

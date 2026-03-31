@@ -70,7 +70,7 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
         byte[] encryptedPayload = KryptoniteSettings.SerdeType.AVRO.name().equals(serdeType)
                 ? encryptWithSrSchema(stripped.payload(), fieldConfigs, topicName, stripped.schemaId())
                 : encryptJsonPayload(stripped.payload(), fieldConfigs, topicName);
-        int encryptedSchemaId = adapter.getOrRegisterEncryptedSchemaId(
+        int encryptedSchemaId = adapter.resolveEncryptedSchemaId(
                 stripped.schemaId(), topicName, fieldConfigs);
         LOG.trace("encrypt: topic='{}' originalSchemaId={} encryptedSchemaId={}",
                 topicName, stripped.schemaId(), encryptedSchemaId);
@@ -83,7 +83,7 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
         SchemaIdAndPayload stripped = adapter.stripPrefix(wireBytes);
         Set<FieldConfig> effectiveConfigs = resolveEffectiveDecryptConfigs(fieldConfigs, stripped.schemaId(), topicName);
         byte[] decryptedPayload = decryptJsonPayload(stripped.payload(), effectiveConfigs);
-        int outputSchemaId = adapter.getOrRegisterDecryptedSchemaId(
+        int outputSchemaId = adapter.resolveDecryptedSchemaId(
                 stripped.schemaId(), topicName, fieldConfigs);
         LOG.trace("decrypt: topic='{}' encryptedSchemaId={} outputSchemaId={}",
                 topicName, stripped.schemaId(), outputSchemaId);

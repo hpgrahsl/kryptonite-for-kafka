@@ -255,7 +255,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -285,7 +285,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(FLAT_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(FLAT_ENC));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -332,7 +332,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(ARRAY_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(ARRAY_ENC));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -366,7 +366,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -397,7 +397,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(MAP_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(MAP_ORIG)); // map of string stays same
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -442,7 +442,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class))).thenReturn(plaintextBytes);
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, avroPayload));
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
-            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.resolveDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
             when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
@@ -495,7 +495,7 @@ class AvroSchemaRegistryRecordProcessorTest {
                     .thenReturn(lastnamePlaintext);
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, avroPayload));
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_ENC));
-            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.resolveDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_ORIG));
             when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
@@ -573,7 +573,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_ENC));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -607,7 +607,7 @@ class AvroSchemaRegistryRecordProcessorTest {
 
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULL_ARR_CONTAINER_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULL_ARR_CONTAINER_ORIG)); // unchanged
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -639,7 +639,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_ITEM_ARR_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_ITEM_ARR_ENC));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -672,7 +672,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_VAL_MAP_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_VAL_MAP_ENC));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -705,7 +705,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ORIGINAL_ID, avroPayload));
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(PERSON_NULL_SUB_ORIG));
-            when(adapter.getOrRegisterEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
+            when(adapter.resolveEncryptedSchemaId(eq(ORIGINAL_ID), eq(TOPIC), any())).thenReturn(ENCRYPTED_ID);
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(PERSON_NULL_SUB_ENC_OUTER));
             when(adapter.attachPrefix(eq(ENCRYPTED_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ENCRYPTED_ID, inv.getArgument(1)));
@@ -748,7 +748,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class))).thenReturn(plaintextBytes);
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, avroPayload));
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_STRING_ARR_ENC));
-            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.resolveDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_ITEM_ARR_ORIG));
             when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));
@@ -784,7 +784,7 @@ class AvroSchemaRegistryRecordProcessorTest {
             when(kryptonite.decipherFieldRaw(any(byte[].class), any(PayloadMetaData.class))).thenReturn(plaintextBytes);
             when(adapter.stripPrefix(wireBytes)).thenReturn(new SchemaIdAndPayload(ENCRYPTED_ID, avroPayload));
             when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(NULLABLE_STRING_MAP_ENC));
-            when(adapter.getOrRegisterDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
+            when(adapter.resolveDecryptedSchemaId(eq(ENCRYPTED_ID), eq(TOPIC), any())).thenReturn(ORIGINAL_ID);
             when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(NULLABLE_VAL_MAP_ORIG));
             when(adapter.attachPrefix(eq(ORIGINAL_ID), any(byte[].class)))
                     .thenAnswer(inv -> toWireBytes(ORIGINAL_ID, inv.getArgument(1)));

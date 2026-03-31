@@ -99,7 +99,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             }
         }
 
-        int encryptedSchemaId = adapter.getOrRegisterEncryptedSchemaId(
+        int encryptedSchemaId = adapter.resolveEncryptedSchemaId(
                 stripped.schemaId(), topicName, fieldConfigs);
         LOG.trace("encrypt: topic='{}' originalSchemaId={} encryptedSchemaId={}",
                 topicName, stripped.schemaId(), encryptedSchemaId);
@@ -151,7 +151,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             }
         }
 
-        int outputSchemaId = adapter.getOrRegisterDecryptedSchemaId(
+        int outputSchemaId = adapter.resolveDecryptedSchemaId(
                 stripped.schemaId(), topicName, fieldConfigs); // original fieldConfigs: cache key is field-name based
         LOG.trace("decrypt: topic='{}' encryptedSchemaId={} outputSchemaId={}",
                 topicName, stripped.schemaId(), outputSchemaId);

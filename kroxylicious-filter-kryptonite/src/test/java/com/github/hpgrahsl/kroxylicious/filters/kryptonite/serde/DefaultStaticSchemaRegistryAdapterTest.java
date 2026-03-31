@@ -47,10 +47,10 @@ class DefaultStaticSchemaRegistryAdapterTest {
             + "{\"originalSchemaId\":1,\"encryptedSchemaId\":42,"
             + "\"encryptedFields\":[{\"name\":\"age\"}]}}";
 
-    // ---- getOrRegisterEncryptedSchemaId ----
+    // ---- resolveEncryptedSchemaId ----
 
     @Nested
-    @DisplayName("getOrRegisterEncryptedSchemaId")
+    @DisplayName("resolveEncryptedSchemaId")
     class GetOrRegisterEncryptedSchemaId {
 
         @Test
@@ -64,7 +64,7 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            int result = adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ENCRYPTED_ID);
         }
@@ -80,8 +80,8 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
-            int result = adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ENCRYPTED_ID);
             verify(mockClient, times(1)).getLatestSchemaMetadata("payments-value__k4k_meta_1");
@@ -97,7 +97,7 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            assertThatThrownBy(() -> adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs))
+            assertThatThrownBy(() -> adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs))
                     .isInstanceOf(SchemaRegistryAdapterException.class)
                     .hasMessageContaining("STATIC mode")
                     .hasMessageContaining("originalSchemaId=1")
@@ -115,17 +115,17 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             verify(mockClient, never()).register(anyString(), any(ParsedSchema.class));
             verify(mockClient, never()).updateCompatibility(anyString(), anyString());
         }
     }
 
-    // ---- getOrRegisterDecryptedSchemaId — full decrypt ----
+    // ---- resolveDecryptedSchemaId — full decrypt ----
 
     @Nested
-    @DisplayName("getOrRegisterDecryptedSchemaId — full decrypt")
+    @DisplayName("resolveDecryptedSchemaId — full decrypt")
     class FullDecrypt {
 
         @Test
@@ -139,13 +139,13 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ORIGINAL_ID);
         }
 
         @Test
-        @DisplayName("full decrypt cache hit: primed via getOrRegisterEncryptedSchemaId, no extra SR calls on decrypt")
+        @DisplayName("full decrypt cache hit: primed via resolveEncryptedSchemaId, no extra SR calls on decrypt")
         void fullDecryptCacheHitWhenEncryptPathPrimed() throws Exception {
             SchemaMetadata meta = new SchemaMetadata(99, 1, META_JSON);
             when(mockClient.getLatestSchemaMetadata(eq("payments-value__k4k_meta_1")))
@@ -156,20 +156,20 @@ class DefaultStaticSchemaRegistryAdapterTest {
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
             // Prime caches via encrypt path
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             // Decrypt path must be served from cache — no additional SR call for __k4k_meta_42
-            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ORIGINAL_ID);
             verify(mockClient, never()).getLatestSchemaMetadata("payments-value__k4k_meta_42");
         }
     }
 
-    // ---- getOrRegisterDecryptedSchemaId — partial decrypt ----
+    // ---- resolveDecryptedSchemaId — partial decrypt ----
 
     @Nested
-    @DisplayName("getOrRegisterDecryptedSchemaId — partial decrypt")
+    @DisplayName("resolveDecryptedSchemaId — partial decrypt")
     class PartialDecrypt {
 
         // Two-field schema so partial decrypt leaves one field encrypted
@@ -193,7 +193,7 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(PARTIAL_DECRYPT_ID);
         }
@@ -211,7 +211,7 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            assertThatThrownBy(() -> adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs))
+            assertThatThrownBy(() -> adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs))
                     .isInstanceOf(SchemaRegistryAdapterException.class)
                     .hasMessageContaining("STATIC mode")
                     .hasMessageContaining("partial-decrypt")
@@ -232,7 +232,7 @@ class DefaultStaticSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             verify(mockClient, never()).register(anyString(), any(ParsedSchema.class));
             verify(mockClient, never()).updateCompatibility(anyString(), anyString());

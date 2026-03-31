@@ -101,7 +101,7 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
      * the metadata subject is not found — this indicates a missing pre-registration.
      */
     @Override
-    public int getOrRegisterEncryptedSchemaId(int originalSchemaId, String topicName,
+    public int resolveEncryptedSchemaId(int originalSchemaId, String topicName,
                                                Set<FieldConfig> fieldConfigs) {
         return originalToEncryptedId.computeIfAbsent(new EncryptCacheKey(originalSchemaId, topicName), __ -> {
             String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + originalSchemaId;
@@ -147,7 +147,7 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
      * {@link SchemaRegistryAdapterException} if the subject is absent.
      */
     @Override
-    public int getOrRegisterDecryptedSchemaId(int encryptedSchemaId, String topicName,
+    public int resolveDecryptedSchemaId(int encryptedSchemaId, String topicName,
                                                Set<FieldConfig> decryptedFieldConfigs) {
         Set<String> fieldNamesSet = fieldNames(decryptedFieldConfigs);
         DecryptCacheKey cacheKey = new DecryptCacheKey(encryptedSchemaId, fieldNamesSet);

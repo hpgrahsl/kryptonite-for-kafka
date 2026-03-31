@@ -98,7 +98,7 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     // --- Produce path ---
 
     @Override
-    public int getOrRegisterEncryptedSchemaId(int originalSchemaId, String topicName,
+    public int resolveEncryptedSchemaId(int originalSchemaId, String topicName,
                                                Set<FieldConfig> fieldConfigs) {
         return originalToEncryptedId.computeIfAbsent(new EncryptCacheKey(originalSchemaId, topicName), __ -> {
             try {
@@ -152,7 +152,7 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     // --- Consume path ---
 
     @Override
-    public int getOrRegisterDecryptedSchemaId(int encryptedSchemaId, String topicName,
+    public int resolveDecryptedSchemaId(int encryptedSchemaId, String topicName,
                                                Set<FieldConfig> decryptedFieldConfigs) {
         Set<String> fieldNamesSet = fieldNames(decryptedFieldConfigs);
         DecryptCacheKey cacheKey = new DecryptCacheKey(encryptedSchemaId, fieldNamesSet);
@@ -246,11 +246,17 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
         ObjectNode envelope = MAPPER.createObjectNode();
         envelope.put("type", "object");
         envelope.set("x-kryptonite-metadata", MAPPER.valueToTree(encryptionMetadata));
-        // Register under encryptedSchemaId subject only — decrypt path lookup
-        String metadataSubject = topicName + SubjectNaming.METADATA_SUFFIX + encryptionMetadata.getEncryptedSchemaId();
-        srClient.updateCompatibility(metadataSubject, "NONE");
-        srClient.register(metadataSubject, new JsonSchema(MAPPER.writeValueAsString(envelope)));
-        LOG.debug("Registered encryption metadata under subject='{}'", metadataSubject);
+        String metadataJson = MAPPER.writeValueAsString(envelope);
+        // Register under encryptedSchemaId — decrypt path lookup
+        String metadataSubjectByEncrypted = topicName + SubjectNaming.METADATA_SUFFIX + encryptionMetadata.getEncryptedSchemaId();
+        srClient.updateCompatibility(metadataSubjectByEncrypted, "NONE");
+        srClient.register(metadataSubjectByEncrypted, new JsonSchema(metadataJson));
+        LOG.debug("Registered encryption metadata under subject='{}'", metadataSubjectByEncrypted);
+        // Also register under originalSchemaId — STATIC mode encrypt path lookup (operator mirrors this out-of-band)
+        String metadataSubjectByOriginal = topicName + SubjectNaming.METADATA_SUFFIX + encryptionMetadata.getOriginalSchemaId();
+        srClient.updateCompatibility(metadataSubjectByOriginal, "NONE");
+        srClient.register(metadataSubjectByOriginal, new JsonSchema(metadataJson));
+        LOG.debug("Registered encryption metadata under subject='{}'", metadataSubjectByOriginal);
     }
 
     private EncryptionMetadata getOrFetchEncryptionMetadata(int encryptedSchemaId, String topicName) {

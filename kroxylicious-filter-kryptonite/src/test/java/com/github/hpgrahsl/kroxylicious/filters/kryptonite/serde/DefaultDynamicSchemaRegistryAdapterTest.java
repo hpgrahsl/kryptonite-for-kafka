@@ -132,10 +132,10 @@ class DefaultDynamicSchemaRegistryAdapterTest {
         }
     }
 
-    // ---- getOrRegisterEncryptedSchemaId ----
+    // ---- resolveEncryptedSchemaId ----
 
     @Nested
-    @DisplayName("getOrRegisterEncryptedSchemaId")
+    @DisplayName("resolveEncryptedSchemaId")
     class GetOrRegisterEncryptedSchemaId {
 
         @Test
@@ -150,7 +150,7 @@ class DefaultDynamicSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            int result = adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ENCRYPTED_ID);
             verify(mockClient, times(1)).getSchemaById(ORIGINAL_ID);
@@ -168,8 +168,8 @@ class DefaultDynamicSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             // SR fetch must happen only once (second call is a cache hit)
             verify(mockClient, times(1)).getSchemaById(ORIGINAL_ID);
@@ -177,8 +177,8 @@ class DefaultDynamicSchemaRegistryAdapterTest {
         }
 
         @Test
-        @DisplayName("registers metadata only under encryptedSchemaId subject (decrypt-path lookup)")
-        void registersMetadataOnlyUnderEncryptedIdSubject() throws Exception {
+        @DisplayName("registers metadata under both encryptedSchemaId (decrypt path) and originalSchemaId (STATIC encrypt path) subjects")
+        void registersMetadataUnderBothEncryptedAndOriginalIdSubjects() throws Exception {
             lenient().when(mockClient.updateCompatibility(any(), any())).thenReturn("NONE");
             when(mockClient.getSchemaById(ORIGINAL_ID)).thenReturn(new JsonSchema(FLAT_JSON_SCHEMA));
             when(mockClient.register(contains("_k4k_enc"), any(ParsedSchema.class))).thenReturn(ENCRYPTED_ID);
@@ -188,20 +188,20 @@ class DefaultDynamicSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
-            // Only the encryptedSchemaId subject is registered — originalSchemaId subject is STATIC mode's concern
+            // Both subjects registered: encryptedSchemaId for decrypt path, originalSchemaId for STATIC mode encrypt path
             verify(mockClient, times(1)).register(
                     eq(TOPIC + "-value__k4k_meta_" + ENCRYPTED_ID), any(ParsedSchema.class));
-            verify(mockClient, never()).register(
+            verify(mockClient, times(1)).register(
                     eq(TOPIC + "-value__k4k_meta_" + ORIGINAL_ID), any(ParsedSchema.class));
         }
     }
 
-    // ---- getOrRegisterDecryptedSchemaId — full decrypt ----
+    // ---- resolveDecryptedSchemaId — full decrypt ----
 
     @Nested
-    @DisplayName("getOrRegisterDecryptedSchemaId — full decrypt")
+    @DisplayName("resolveDecryptedSchemaId — full decrypt")
     class GetOrRegisterDecryptedSchemaId {
 
         @Test
@@ -218,10 +218,10 @@ class DefaultDynamicSchemaRegistryAdapterTest {
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
             // Encrypt path populates decrypt cache for the full-decrypt case
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             // Full decrypt with same field set → must return ORIGINAL_ID from cache
-            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ORIGINAL_ID);
         }
@@ -238,21 +238,21 @@ class DefaultDynamicSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            adapter.getOrRegisterEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
+            adapter.resolveEncryptedSchemaId(ORIGINAL_ID, TOPIC, fieldConfigs);
 
             // Call decrypt twice — should return same result both times
-            int r1 = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
-            int r2 = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int r1 = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int r2 = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(r1).isEqualTo(ORIGINAL_ID);
             assertThat(r2).isEqualTo(ORIGINAL_ID);
         }
     }
 
-    // ---- getOrRegisterDecryptedSchemaId — cold-start ----
+    // ---- resolveDecryptedSchemaId — cold-start ----
 
     @Nested
-    @DisplayName("getOrRegisterDecryptedSchemaId — cold-start decrypt")
+    @DisplayName("resolveDecryptedSchemaId — cold-start decrypt")
     class ColdStartDecrypt {
 
         private static final String GEN1_META_JSON = "{\"type\":\"object\",\"x-kryptonite-metadata\":"
@@ -278,7 +278,7 @@ class DefaultDynamicSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ORIGINAL_ID);
         }
@@ -294,7 +294,7 @@ class DefaultDynamicSchemaRegistryAdapterTest {
             var fieldConfigs = Set.of(
                     FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build());
 
-            int result = adapter.getOrRegisterDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
+            int result = adapter.resolveDecryptedSchemaId(ENCRYPTED_ID, TOPIC, fieldConfigs);
 
             assertThat(result).isEqualTo(ORIGINAL_ID);
         }
