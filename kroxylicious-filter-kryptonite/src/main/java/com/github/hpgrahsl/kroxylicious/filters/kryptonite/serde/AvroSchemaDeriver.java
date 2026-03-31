@@ -42,11 +42,10 @@ class AvroSchemaDeriver {
      * ELEMENT mode on map fields: replaces {@code values} with {@code string}.
      * ELEMENT mode on record fields: replaces each direct field schema with {@code string}.
      *
-     * @return pair of (encrypted Schema, encryptedFieldModes map for encryption metadata)
+     * @return derived Schema plus the names of fields that were successfully replaced
      */
     DeriveEncryptedResult deriveEncrypted(Schema originalSchema, Set<FieldConfig> fieldConfigs) {
         List<String> encryptedFields = new ArrayList<>();
-        Map<String, String> encryptedFieldModes = new java.util.LinkedHashMap<>();
 
         Schema result = originalSchema;
         for (FieldConfig fc : fieldConfigs) {
@@ -55,17 +54,15 @@ class AvroSchemaDeriver {
             try {
                 result = replaceFieldType(result, pathParts, 0, mode);
                 encryptedFields.add(fc.getName());
-                encryptedFieldModes.put(fc.getName(), mode.name());
             } catch (FieldNotFoundException e) {
                 LOG.debug("deriveEncrypted: field path '{}' not found in Avro schema — leaving unchanged", fc.getName());
             }
         }
-        return new DeriveEncryptedResult(result, encryptedFields, encryptedFieldModes);
+        return new DeriveEncryptedResult(result, encryptedFields);
     }
 
-    /** Result of {@link #deriveEncrypted}: derived Schema plus field metadata for the encryption metadata subject. */
-    record DeriveEncryptedResult(Schema schema, List<String> encryptedFields,
-                                 Map<String, String> encryptedFieldModes) {}
+    /** Result of {@link #deriveEncrypted}: derived Schema plus the names of fields that were successfully replaced. */
+    record DeriveEncryptedResult(Schema schema, List<String> encryptedFields) {}
 
     /**
      * Consume path: derives the partial-decrypt Avro schema.
@@ -73,15 +70,17 @@ class AvroSchemaDeriver {
      * <p>Starts from the encrypted schema and restores field types for {@code decryptedFields}
      * using the original schema. Still-encrypted fields remain as {@code string}.
      *
-     * @param encryptedFieldModes explicit mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"})
+     * @param allEncryptedFieldsMeta map of {@code fieldName → FieldEntryMetadata} for all encrypted fields,
+     *                               derived from {@link EncryptionMetadata} by the caller — used for O(1) mode lookup per field
      */
     Schema derivePartialDecrypt(Schema encryptedSchema, Schema originalSchema,
                                 List<String> decryptedFields,
-                                Map<String, String> encryptedFieldModes) {
+                                Map<String, FieldEntryMetadata> allEncryptedFieldsMeta) {
         Schema result = encryptedSchema;
         for (String fieldName : decryptedFields) {
             String[] pathParts = fieldName.split("\\.");
-            String mode = encryptedFieldModes.get(fieldName);
+            FieldEntryMetadata meta = allEncryptedFieldsMeta.get(fieldName);
+            String mode = meta != null && meta.fieldMode() != null ? meta.fieldMode().name() : null;
             try {
                 Schema originalFieldSchema = resolveFieldSchema(originalSchema, pathParts, 0);
                 result = restoreFieldType(result, pathParts, 0, originalFieldSchema, mode);

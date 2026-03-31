@@ -23,6 +23,18 @@ public record FieldEntryMetadata(
         AlphabetTypeFPE fpeAlphabetType,
         String fpeAlphabetCustom
 ) {
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof FieldEntryMetadata other)) return false;
+        return java.util.Objects.equals(name, other.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hashCode(name);
+    }
+
     public static FieldEntryMetadata from(FieldConfig fc) {
         return new FieldEntryMetadata(
                 fc.getName(),

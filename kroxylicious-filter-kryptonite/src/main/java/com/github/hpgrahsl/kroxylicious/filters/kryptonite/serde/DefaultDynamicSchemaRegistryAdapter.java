@@ -163,15 +163,11 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
 
                 EncryptionMetadata encryptionMetadata = resolveEncryptionMetadata(encryptedSchemaId, topicName);
                 int originalSchemaId = encryptionMetadata.getOriginalSchemaId();
-                List<FieldEntryMetadata> allEncryptedFieldEntries = encryptionMetadata.getEncryptedFields();
-                List<String> allEncryptedFields = allEncryptedFieldEntries.stream()
-                        .map(FieldEntryMetadata::name).collect(Collectors.toList());
-                Map<String, String> encryptedFieldModes = allEncryptedFieldEntries.stream()
-                        .filter(e -> e.fieldMode() != null)
-                        .collect(Collectors.toMap(FieldEntryMetadata::name, e -> e.fieldMode().name()));
+                Map<String, FieldEntryMetadata> allEncryptedFieldsMeta = encryptionMetadata.getEncryptedFields().stream()
+                        .collect(Collectors.toMap(FieldEntryMetadata::name, e -> e));
 
                 // Full decrypt: decrypted field set == all encrypted fields → return original schema ID
-                if (fieldNamesSet.containsAll(allEncryptedFields) && allEncryptedFields.containsAll(fieldNamesSet)) {
+                if (fieldNamesSet.equals(allEncryptedFieldsMeta.keySet())) {
                     LOG.debug("Full decrypt: returning originalSchemaId={}", originalSchemaId);
                     return originalSchemaId;
                 }
@@ -196,14 +192,14 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
                         List<String> decryptedFieldNames = decryptedFieldConfigs.stream()
                                 .map(FieldConfig::getName).collect(Collectors.toList());
                         Schema partialDecryptSchema = avroDeriver.derivePartialDecrypt(
-                                encryptedAvroSchema, originalAvroSchema, decryptedFieldNames, encryptedFieldModes);
+                                encryptedAvroSchema, originalAvroSchema, decryptedFieldNames, allEncryptedFieldsMeta);
                         partialId = srClient.register(partialSubject, new AvroSchema(partialDecryptSchema));
                     } else {
                         String encryptedSchemaJson = encryptedParsedSchema.canonicalString();
                         String originalSchemaJson = srClient.getSchemaById(originalSchemaId).canonicalString();
                         String partialDecryptJson = deriver.derivePartialDecrypt(
                                 originalSchemaJson, encryptedSchemaJson,
-                                decryptedFieldConfigs, allEncryptedFields, encryptedFieldModes);
+                                decryptedFieldConfigs, allEncryptedFieldsMeta);
                         partialId = srClient.register(partialSubject, new JsonSchema(partialDecryptJson));
                     }
                     LOG.info("Registered partial-decrypt schema under subject='{}' with id={}", partialSubject, partialId);

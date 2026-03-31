@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -131,13 +132,12 @@ class AvroSchemaDeriverTest {
         }
 
         @Test
-        @DisplayName("encryptedFields and encryptedFieldModes are populated correctly")
+        @DisplayName("encryptedFields is populated correctly")
         void metadataPopulatedCorrectly() {
             var fc = FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build();
             var result = deriver.deriveEncrypted(FLAT, Set.of(fc));
 
             assertThat(result.encryptedFields()).containsExactly("age");
-            assertThat(result.encryptedFieldModes()).containsEntry("age", "OBJECT");
         }
     }
 
@@ -192,23 +192,6 @@ class AvroSchemaDeriverTest {
                     .isInstanceOf(AvroSchemaDeriver.SchemaDerivationException.class);
         }
 
-        @Test
-        @DisplayName("encryptedFieldModes lists ELEMENT for array fields")
-        void elementFieldListedInModes() {
-            var fc = FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
-            var result = deriver.deriveEncrypted(WITH_ARRAY, Set.of(fc));
-
-            assertThat(result.encryptedFieldModes()).containsEntry("tags", "ELEMENT");
-        }
-
-        @Test
-        @DisplayName("encryptedFieldModes lists ELEMENT for record fields")
-        void elementFieldListedInModesForRecord() {
-            var fc = FieldConfig.builder().name("inner").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
-            var result = deriver.deriveEncrypted(WITH_NESTED, Set.of(fc));
-
-            assertThat(result.encryptedFieldModes()).containsEntry("inner", "ELEMENT");
-        }
     }
 
     // ---- deriveEncrypted — edge cases ----
@@ -253,7 +236,7 @@ class AvroSchemaDeriverTest {
             Schema restored = deriver.derivePartialDecrypt(
                     encResult.schema(), FLAT,
                     List.of("age"),
-                    encResult.encryptedFieldModes()
+                    Map.of(fc.getName(), FieldEntryMetadata.from(fc))
             );
 
             assertThat(restored.getField("age").schema().getType()).isEqualTo(Schema.Type.INT);
@@ -270,7 +253,7 @@ class AvroSchemaDeriverTest {
             Schema restored = deriver.derivePartialDecrypt(
                     encResult.schema(), FLAT,
                     List.of("age"), // only age
-                    encResult.encryptedFieldModes()
+                    Map.of(fcAge.getName(), FieldEntryMetadata.from(fcAge), fcScore.getName(), FieldEntryMetadata.from(fcScore))
             );
 
             assertThat(restored.getField("age").schema().getType()).isEqualTo(Schema.Type.INT);    // restored
@@ -286,7 +269,7 @@ class AvroSchemaDeriverTest {
             Schema restored = deriver.derivePartialDecrypt(
                     encResult.schema(), NULLABLE_FIELDS,
                     List.of("count"),
-                    encResult.encryptedFieldModes()
+                    Map.of(fc.getName(), FieldEntryMetadata.from(fc))
             );
 
             Schema countSchema = restored.getField("count").schema();
@@ -305,7 +288,7 @@ class AvroSchemaDeriverTest {
             Schema restored = deriver.derivePartialDecrypt(
                     encResult.schema(), WITH_NESTED,
                     List.of("inner"),
-                    encResult.encryptedFieldModes()
+                    Map.of(fc.getName(), FieldEntryMetadata.from(fc))
             );
 
             Schema innerSchema = restored.getField("inner").schema();
@@ -329,7 +312,7 @@ class AvroSchemaDeriverTest {
             Schema restored = deriver.derivePartialDecrypt(
                     encResult.schema(), withIntArray,
                     List.of("nums"),
-                    encResult.encryptedFieldModes()
+                    Map.of(fc.getName(), FieldEntryMetadata.from(fc))
             );
 
             Schema numsSchema = restored.getField("nums").schema();

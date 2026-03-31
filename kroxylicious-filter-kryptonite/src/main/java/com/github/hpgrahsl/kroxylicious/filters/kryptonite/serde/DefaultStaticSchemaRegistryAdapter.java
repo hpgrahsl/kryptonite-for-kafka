@@ -158,11 +158,11 @@ public class DefaultStaticSchemaRegistryAdapter implements SchemaRegistryAdapter
 
                 EncryptionMetadata encryptionMetadata = resolveEncryptionMetadata(encryptedSchemaId, topicName);
                 int originalSchemaId = encryptionMetadata.getOriginalSchemaId();
-                List<String> allEncryptedFields = encryptionMetadata.getEncryptedFields().stream()
-                        .map(FieldEntryMetadata::name).collect(Collectors.toList());
+                Set<String> allEncryptedFields = encryptionMetadata.getEncryptedFields().stream()
+                        .map(FieldEntryMetadata::name).collect(Collectors.toSet());
 
                 // Full decrypt: decrypted field set == all encrypted fields → return original schema ID
-                if (fieldNamesSet.containsAll(allEncryptedFields) && allEncryptedFields.containsAll(fieldNamesSet)) {
+                if (fieldNamesSet.equals(allEncryptedFields)) {
                     LOG.debug("STATIC full decrypt: returning originalSchemaId={}", originalSchemaId);
                     return originalSchemaId;
                 }

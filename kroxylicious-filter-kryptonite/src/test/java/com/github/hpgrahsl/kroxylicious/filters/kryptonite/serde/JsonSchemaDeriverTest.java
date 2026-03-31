@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -150,14 +151,6 @@ class JsonSchemaDeriverTest {
             assertThat(result.encryptedFields()).containsExactly("age");
         }
 
-        @Test
-        @DisplayName("encryptedFieldModes map includes OBJECT mode for replaced fields")
-        void encryptedFieldModesCorrect() {
-            var fc = FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build();
-            var result = deriver.deriveEncrypted(FLAT_SCHEMA, Set.of(fc));
-
-            assertThat(result.encryptedFieldModes()).containsEntry("age", "OBJECT");
-        }
     }
 
     // ---- deriveEncrypted — ELEMENT mode ----
@@ -188,14 +181,6 @@ class JsonSchemaDeriverTest {
             assertThat(schema.at("/properties/labels/properties/k2/type").asText()).isEqualTo("string");
         }
 
-        @Test
-        @DisplayName("encryptedFieldModes map lists ELEMENT fields")
-        void elementFieldListedInModes() {
-            var fc = FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
-            var result = deriver.deriveEncrypted(ARRAY_FIELD_SCHEMA, Set.of(fc));
-
-            assertThat(result.encryptedFieldModes()).containsEntry("tags", "ELEMENT");
-        }
     }
 
     // ---- deriveEncrypted — edge cases ----
@@ -257,8 +242,7 @@ class JsonSchemaDeriverTest {
                     FLAT_SCHEMA,
                     encResult.schemaJson(),
                     Set.of(fc),
-                    encResult.encryptedFields(),
-                    encResult.encryptedFieldModes()
+                    Map.of(fc.getName(), FieldEntryMetadata.from(fc))
             );
 
             JsonNode schema = MAPPER.readTree(partialDecryptJson);
@@ -278,8 +262,7 @@ class JsonSchemaDeriverTest {
                     FLAT_SCHEMA,
                     encResult.schemaJson(),
                     Set.of(fcAge), // only age
-                    encResult.encryptedFields(),
-                    encResult.encryptedFieldModes()
+                    Map.of(fcAge.getName(), FieldEntryMetadata.from(fcAge), fcActive.getName(), FieldEntryMetadata.from(fcActive))
             );
 
             JsonNode schema = MAPPER.readTree(partialDecryptJson);
@@ -297,8 +280,7 @@ class JsonSchemaDeriverTest {
                     NESTED_SCHEMA,
                     encResult.schemaJson(),
                     Set.of(fc),
-                    encResult.encryptedFields(),
-                    encResult.encryptedFieldModes()
+                    Map.of(fc.getName(), FieldEntryMetadata.from(fc))
             );
 
             JsonNode schema = MAPPER.readTree(partialDecryptJson);
@@ -324,8 +306,7 @@ class JsonSchemaDeriverTest {
                     ARRAY_FIELD_SCHEMA,
                     encResult.schemaJson(),
                     Set.of(fc),
-                    encResult.encryptedFields(),
-                    encResult.encryptedFieldModes()
+                    Map.of(fc.getName(), FieldEntryMetadata.from(fc))
             );
 
             JsonNode schema = MAPPER.readTree(partialDecryptJson);

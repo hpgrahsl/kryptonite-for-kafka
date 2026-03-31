@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +48,6 @@ class JsonSchemaDeriver {
         try {
             ObjectNode root = (ObjectNode) MAPPER.readTree(originalSchemaJson);
             List<String> encryptedFieldNames = new ArrayList<>();
-            Map<String, String> encryptedFieldModes = new LinkedHashMap<>();
 
             for (FieldConfig fc : encryptedFieldConfigs) {
                 FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
@@ -59,14 +57,8 @@ class JsonSchemaDeriver {
                     if (!replaced) {
                         replaced = replaceObjectPropertyTypes(root, fc.getName(), "string");
                     }
-                    if (replaced) {
-                        encryptedFieldModes.put(fc.getName(), mode.name());
-                    }
                 } else {
                     replaced = replaceLeafType(root, fc.getName(), "string");
-                    if (replaced) {
-                        encryptedFieldModes.put(fc.getName(), mode.name());
-                    }
                 }
                 if (replaced) {
                     encryptedFieldNames.add(fc.getName());
@@ -75,15 +67,14 @@ class JsonSchemaDeriver {
                 }
             }
 
-            return new DeriveEncryptedResult(MAPPER.writeValueAsString(root), encryptedFieldNames, encryptedFieldModes);
+            return new DeriveEncryptedResult(MAPPER.writeValueAsString(root), encryptedFieldNames);
         } catch (Exception e) {
             throw new SchemaDerivationException("Failed to derive encrypted schema", e);
         }
     }
 
-    /** Result of {@link #deriveEncrypted}: schema JSON plus field metadata for the encryption metadata subject. */
-    record DeriveEncryptedResult(String schemaJson, List<String> encryptedFields,
-                                 Map<String, String> encryptedFieldModes) {}
+    /** Result of {@link #deriveEncrypted}: schema JSON plus the names of fields that were successfully replaced. */
+    record DeriveEncryptedResult(String schemaJson, List<String> encryptedFields) {}
 
     /**
      * Consume path: derives the partial-decrypt schema.
@@ -92,12 +83,12 @@ class JsonSchemaDeriver {
      * the schema document). Still-encrypted fields retain their encrypted type representation.
      * The output schema is a clean document with no metadata injected.
      *
-     * @param encryptedFieldModes mode map from encryption metadata ({@code fieldName → "ELEMENT"|"OBJECT"})
+     * @param allEncryptedFieldsMeta map of {@code fieldName → FieldEntryMetadata} for all encrypted fields,
+     *                               derived from {@link EncryptionMetadata} by the caller — used for O(1) mode lookup per field
      */
     String derivePartialDecrypt(String originalSchemaJson, String encryptedSchemaJson,
                                 Set<FieldConfig> decryptedFieldConfigs,
-                                List<String> allEncryptedFields,
-                                Map<String, String> encryptedFieldModes) {
+                                Map<String, FieldEntryMetadata> allEncryptedFieldsMeta) {
         try {
             ObjectNode originalRoot = (ObjectNode) MAPPER.readTree(originalSchemaJson);
             ObjectNode encryptedRoot = (ObjectNode) MAPPER.readTree(encryptedSchemaJson);
@@ -107,7 +98,8 @@ class JsonSchemaDeriver {
                     .collect(Collectors.toSet());
 
             for (String fieldName : decryptedNames) {
-                if (FieldConfig.FieldMode.ELEMENT.name().equals(encryptedFieldModes.get(fieldName))) {
+                FieldEntryMetadata meta = allEncryptedFieldsMeta.get(fieldName);
+                if (meta != null && meta.fieldMode() == FieldConfig.FieldMode.ELEMENT) {
                     restoreElementModeTypes(encryptedRoot, originalRoot, fieldName);
                 } else {
                     restoreLeafType(encryptedRoot, originalRoot, fieldName);
