@@ -7,7 +7,7 @@ import java.util.Set;
 
 /**
  * Maps a topic name pattern to the set of fields that should be encrypted/decrypted.
- * The {@code topicPattern} supports exact names and simple wildcards (e.g. {@code "payments.*"}).
+ * The {@code topicPattern} supports exact names and simple wildcards (e.g. {@code "somePrefix.*"}).
  */
 public class TopicFieldConfig {
 

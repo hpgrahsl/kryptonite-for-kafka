@@ -13,7 +13,6 @@ public class FieldConfig {
         OBJECT
     }
 
-    //public static final FieldMode DEFAULT_MODE = FieldMode.valueOf(KryptoniteSettings.FIELD_MODE_DEFAULT);
     public static final FieldMode DEFAULT_MODE = FieldMode.OBJECT;
 
     private String name;

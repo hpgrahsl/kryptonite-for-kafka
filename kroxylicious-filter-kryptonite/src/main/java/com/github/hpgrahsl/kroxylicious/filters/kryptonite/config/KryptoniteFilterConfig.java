@@ -34,7 +34,7 @@ public class KryptoniteFilterConfig {
     // --- Record format ---
     private final RecordFormat recordFormat;
 
-    // --- Schema deployment mode (v1: DYNAMIC only) ---
+    // --- Schema deployment mode ---
     private final SchemaMode schemaMode;
 
     private final String serdeType;
