@@ -3,12 +3,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 /**
  * Abstracts per-format field traversal and re-serialization for a single deserialized record.
  *
- * <p>v1 implementation: {@link JsonObjectNodeAccessor} — wraps a Jackson {@code ObjectNode}.
- * Future implementations: {@code AvroGenericRecordAccessor} (Phase 3),
- * {@code ProtobufDynamicMessageAccessor} (Phase 4).
- *
- * <p>Field paths use dot-notation consistent with the Kryptonite Connect SMT default
- * ({@code path_delimiter = "."}). Example: {@code "user.email"} navigates the {@code user}
+ * <p>Field paths use dot-notation. Example: {@code "user.email"} navigates the {@code user}
  * nested object and accesses the {@code email} field.
  */
 public interface StructuredRecordAccessor {

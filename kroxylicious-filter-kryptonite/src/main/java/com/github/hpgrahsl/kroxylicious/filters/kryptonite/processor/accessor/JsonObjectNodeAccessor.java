@@ -6,19 +6,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
 /**
- * v1 {@link StructuredRecordAccessor} for JSON Schema records.
+ * {@link StructuredRecordAccessor} for JSON Schema records.
  *
  * <p>Wraps a Jackson {@code ObjectNode} parsed from the SR payload bytes.
- * No schema fetch from SR is needed — JSON is self-describing; field names and types
- * are in the payload itself.
+ * No schema fetch from SR is needed as plain JSON is self-describing. 
+ * Field names and types are as observed in the payload itself.
  *
  * <p>Field access uses dot-path splitting on {@code "."}, walking intermediate
  * {@code ObjectNode} levels. The {@code null}/missing-path cases return {@code null}
  * from {@link #getField} so callers skip silently.
  *
- * <p>Type restoration on decrypt uses Kryo ({@code writeClassAndObject}/{@code readClassAndObject})
- * for the inner plaintext bytes, which is wire-format-compatible with Connect SMT, ksqlDB UDFs,
- * Flink UDFs, and the Funqy HTTP module.
  */
 public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
 
@@ -65,7 +62,7 @@ public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
         String[] parts = dotPath.split("\\.");
         ObjectNode current = rootNode;
 
-        // Walk to the parent of the target field
+        // walk to the parent of the target field
         for (int i = 0; i < parts.length - 1; i++) {
             JsonNode next = current.get(parts[i]);
             if (next == null || !next.isObject()) return; // intermediate missing — skip
@@ -88,7 +85,7 @@ public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
         } else if (value == null) {
             current.putNull(leafName);
         } else {
-            // Fallback — store as string representation
+            // fallback — store as string representation
             current.put(leafName, value.toString());
         }
     }

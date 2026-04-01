@@ -1,7 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 
 /**
- * NOT v1 — Phase 4 stub.
  *
  * <p>Future implementation of {@link StructuredRecordAccessor} for Protobuf records via Schema Registry.
  * Will wrap a Protobuf {@code DynamicMessage} obtained using a {@code FileDescriptor} fetched via
@@ -18,21 +17,21 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 public class ProtobufDynamicMessageAccessor implements StructuredRecordAccessor {
 
     public ProtobufDynamicMessageAccessor() {
-        // NOT v1 — Phase 4
+        // NOT YET IMPLEMENTED — placeholder
     }
 
     @Override
     public Object getField(String dotPath) {
-        throw new UnsupportedOperationException("ProtobufDynamicMessageAccessor is not implemented in v1 — Phase 4");
+        throw new UnsupportedOperationException("ProtobufDynamicMessageAccessor is not yet implemented.");
     }
 
     @Override
     public void setField(String dotPath, Object value) {
-        throw new UnsupportedOperationException("ProtobufDynamicMessageAccessor is not implemented in v1 — Phase 4");
+        throw new UnsupportedOperationException("ProtobufDynamicMessageAccessor is not yet implemented.");
     }
 
     @Override
     public byte[] serialize() {
-        throw new UnsupportedOperationException("ProtobufDynamicMessageAccessor is not implemented in v1 — Phase 4");
+        throw new UnsupportedOperationException("ProtobufDynamicMessageAccessor is not yet implemented.");
     }
 }
