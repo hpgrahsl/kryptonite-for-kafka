@@ -84,7 +84,7 @@ filterDefinitions:
                 outputPrefixType: TINK
       record_format: JSON
       topic_field_configs:
-        - topic_pattern: 'e2e-json-*'
+        - topic_pattern: 'e2e-json-.*'
           field_configs:
             - name: firstname
             - name: lastname
@@ -147,7 +147,7 @@ filterDefinitions:
                 outputPrefixType: TINK
       record_format: JSON
       topic_field_configs:
-        - topic_pattern: 'e2e-json-*'
+        - topic_pattern: 'e2e-json-.*'
           field_configs:
             - name: firstname
             - name: lastname

@@ -86,7 +86,7 @@ filterDefinitions:
       record_format: JSON_SR
       schema_mode: DYNAMIC
       topic_field_configs:
-        - topic_pattern: 'e2e-jsonsr-*'
+        - topic_pattern: 'e2e-jsonsr-.*'
           field_configs:
             - name: firstname
             - name: lastname
@@ -151,7 +151,7 @@ filterDefinitions:
       record_format: JSON_SR
       schema_mode: DYNAMIC
       topic_field_configs:
-        - topic_pattern: 'e2e-jsonsr-*'
+        - topic_pattern: 'e2e-jsonsr-.*'
           field_configs:
             - name: firstname
             - name: lastname
