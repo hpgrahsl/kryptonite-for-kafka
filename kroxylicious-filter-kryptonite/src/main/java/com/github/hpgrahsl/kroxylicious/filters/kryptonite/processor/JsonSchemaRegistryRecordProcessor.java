@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
  * ELEMENT mode fields and FPE fields fall back to the value-derived schema path inherited
  * from {@link AbstractJsonRecordProcessor}.
  *
- * <p><b>Encrypt path — non-AVRO serde (KRYO):</b> delegates directly to the base class
- * {@code encryptJsonPayload} with topic-scoped schema caching (Part 1).
+ * <p><b>Encrypt path — KRYO serde:</b> delegates directly to the base class
+ * {@code encryptJsonPayload} with topic-scoped schema caching.
  *
  * <p><b>Decrypt path:</b> the Avro schema is embedded in the encrypted envelope wire bytes;
  * no SR fetch or translation is needed.
@@ -96,21 +96,8 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
                 .stream().collect(Collectors.toMap(FieldEntryMetadata::name, e -> e));
         if (storedMeta.isEmpty()) return fieldConfigs;
         return fieldConfigs.stream()
-                .map(fc -> resolveEffective(fc, storedMeta.get(fc.getName())))
+                .map(fc -> FieldConfigUtils.resolveEffective(fc, storedMeta.get(fc.getName())))
                 .collect(Collectors.toSet());
-    }
-
-    private static FieldConfig resolveEffective(FieldConfig fc, FieldEntryMetadata stored) {
-        if (stored == null) return fc;
-        return FieldConfig.builder()
-                .name(fc.getName())
-                .algorithm(stored.algorithm() != null ? stored.algorithm() : fc.getAlgorithm().orElse(null))
-                .keyId(stored.keyId() != null ? stored.keyId() : fc.getKeyId().orElse(null))
-                .fieldMode(stored.fieldMode() != null ? stored.fieldMode() : fc.getFieldMode().orElse(null))
-                .fpeTweak(stored.fpeTweak() != null ? stored.fpeTweak() : fc.getFpeTweak().orElse(null))
-                .fpeAlphabetType(stored.fpeAlphabetType() != null ? stored.fpeAlphabetType() : fc.getFpeAlphabetType().orElse(null))
-                .fpeAlphabetCustom(stored.fpeAlphabetCustom() != null ? stored.fpeAlphabetCustom() : fc.getFpeAlphabetCustom().orElse(null))
-                .build();
     }
 
     // ---- SR-schema-based encrypt path (AVRO serde only) ----
@@ -147,19 +134,19 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
             } else {
                 // OBJECT mode
-                if (isFpe(fc)) {
+                if (FieldConfigUtils.isFpe(fc)) {
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     Schema avroSchema = resolveFieldAvroSchema(schemaId, fc.getName());
                     accessor.setField(fc.getName(),
                             FieldHandler.encryptField(
                                     fieldConverter.toCanonical(node, fc.getName(), serdeType, avroSchema),
-                                    buildPayloadMetaData(fc), kryptonite, serdeType));
+                                    FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
                 }
             }
         }

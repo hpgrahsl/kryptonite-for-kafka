@@ -2,9 +2,6 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.converters.KroxyliciousFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
@@ -84,17 +81,17 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof GenericRecord record) {
                 accessor.setField(fc.getName(), encryptRecordFieldValues(record, fc));
             } else {
-                if (isFpe(fc)) {
+                if (FieldConfigUtils.isFpe(fc)) {
                     if (!(fieldValue instanceof CharSequence cs)) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got type " + fieldValue.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
                     byte[] ciphertext = kryptonite.cipherFieldFPE(
-                            cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
+                            cs.toString().getBytes(StandardCharsets.UTF_8), FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     Schema fieldSchema = resolveFieldSchema(schema, fc.getName());
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(fieldConverter.toCanonical(fieldValue, fieldSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(fieldValue, fieldSchema, serdeType), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
                 }
             }
         }
@@ -117,7 +114,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         Map<String, FieldEntryMetadata> storedMeta = adapter.getEncryptedFieldMetadata(stripped.schemaId(), topicName)
                 .stream().collect(Collectors.toMap(FieldEntryMetadata::name, e -> e));
         Set<FieldConfig> effectiveConfigs = fieldConfigs.stream()
-                .map(fc -> resolveEffective(fc, storedMeta.get(fc.getName())))
+                .map(fc -> FieldConfigUtils.resolveEffective(fc, storedMeta.get(fc.getName())))
                 .collect(Collectors.toSet());
         Schema encryptedSchema = avroSchema(stripped.schemaId());
         AvroGenericRecordAccessor accessor =
@@ -140,9 +137,9 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                             fc.getName(), fieldValue.getClass().getSimpleName());
                     continue;
                 }
-                if (isFpe(fc)) {
+                if (FieldConfigUtils.isFpe(fc)) {
                     byte[] plaintext = kryptonite.decipherFieldFPE(
-                            cs.toString().getBytes(StandardCharsets.UTF_8), buildFieldMetaData(fc));
+                            cs.toString().getBytes(StandardCharsets.UTF_8), FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId));
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
@@ -166,8 +163,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private List<Object> encryptListElements(List<?> source, FieldConfig fc, Schema elementSchema) {
         List<Object> result = new ArrayList<>();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             for (Object element : source) {
                 if (!(element instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string elements in field '" + fc.getName()
@@ -178,7 +175,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (Object element : source) {
-                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, elementSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, elementSchema, serdeType), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
             }
         }
         return result;
@@ -186,8 +183,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private Map<Object, Object> encryptMapValues(Map<?, ?> source, FieldConfig fc, Schema valueSchema) {
         Map<Object, Object> result = new java.util.LinkedHashMap<>();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             source.forEach((k, v) -> {
                 if (!(v instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string values in field '" + fc.getName()
@@ -198,7 +195,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
             });
         } else {
             source.forEach((k, v) -> {
-                result.put(k, FieldHandler.encryptField(fieldConverter.toCanonical(v, valueSchema, serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+                result.put(k, FieldHandler.encryptField(fieldConverter.toCanonical(v, valueSchema, serdeType), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
             });
         }
         return result;
@@ -206,8 +203,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private List<Object> decryptListElements(List<?> source, FieldConfig fc) {
         List<Object> result = new ArrayList<>();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             for (Object element : source) {
                 if (element == null) {
                     LOG.warn("Decryption skipping null element in field '{}' — possibly pre-existing unencrypted data", fc.getName());
@@ -245,8 +242,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private Map<Object, Object> decryptMapValues(Map<?, ?> source, FieldConfig fc) {
         Map<Object, Object> result = new java.util.LinkedHashMap<>();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             source.forEach((k, v) -> {
                 if (v instanceof CharSequence cs) {
                     byte[] plaintext = kryptonite.decipherFieldFPE(
@@ -276,7 +273,7 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         GenericData.Record result = new GenericData.Record(source.getSchema());
         for (Schema.Field f : source.getSchema().getFields()) {
             Object value = source.get(f.name());
-            result.put(f.name(), FieldHandler.encryptField(fieldConverter.toCanonical(value, f.schema(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+            result.put(f.name(), FieldHandler.encryptField(fieldConverter.toCanonical(value, f.schema(), serdeType), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
         }
         return result;
     }
@@ -331,61 +328,11 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                         "Cannot resolve Avro schema for schema ID " + schemaId + ": it references a named"
                                 + " type that is not defined inline in the schema document. All Avro types on"
                                 + " encrypted field paths must be defined inline in the schema. Cross-schema"
-                                + " SR schema references are not supported — see 'Known Limitations' in the filter README.",
+                                + " SR schema references are not supported.",
                         e);
             }
             throw e;
         }
     }
 
-    // ---- Crypto helpers ----
-
-    private boolean isFpe(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
-        return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
-    }
-
-    private FieldMetaData buildFieldMetaData(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
-        String keyId = fc.getKeyId().orElse(defaultKeyId);
-        String fpeTweak = fc.getFpeTweak().orElse(KryptoniteSettings.CIPHER_FPE_TWEAK_DEFAULT);
-        String fpeAlphabet = determineAlphabet(fc);
-        String encoding = fc.getEncoding().orElse(KryptoniteSettings.CIPHER_TEXT_ENCODING_DEFAULT);
-        return FieldMetaData.builder()
-                .algorithm(algorithm)
-                .dataType(String.class.getName())
-                .keyId(keyId)
-                .fpeTweak(fpeTweak)
-                .fpeAlphabet(fpeAlphabet)
-                .encoding(encoding)
-                .build();
-    }
-
-    private String determineAlphabet(FieldConfig fc) {
-        AlphabetTypeFPE alphabetType = fc.getFpeAlphabetType()
-                .orElse(AlphabetTypeFPE.valueOf(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE_DEFAULT));
-        return AlphabetTypeFPE.CUSTOM == alphabetType
-                ? fc.getFpeAlphabetCustom().orElse(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT)
-                : alphabetType.getAlphabet();
-    }
-
-    private PayloadMetaData buildPayloadMetaData(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
-        String algorithmId = Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(algorithm));
-        String keyId = fc.getKeyId().orElse(defaultKeyId);
-        return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
-    }
-
-    private static FieldConfig resolveEffective(FieldConfig fc, FieldEntryMetadata stored) {
-        if (stored == null) return fc;
-        return FieldConfig.builder()
-                .name(fc.getName())
-                .algorithm(stored.algorithm() != null ? stored.algorithm() : fc.getAlgorithm().orElse(null))
-                .keyId(stored.keyId() != null ? stored.keyId() : fc.getKeyId().orElse(null))
-                .fieldMode(stored.fieldMode() != null ? stored.fieldMode() : fc.getFieldMode().orElse(null))
-                .fpeTweak(stored.fpeTweak() != null ? stored.fpeTweak() : fc.getFpeTweak().orElse(null))
-                .fpeAlphabetType(stored.fpeAlphabetType() != null ? stored.fpeAlphabetType() : fc.getFpeAlphabetType().orElse(null))
-                .fpeAlphabetCustom(stored.fpeAlphabetCustom() != null ? stored.fpeAlphabetCustom() : fc.getFpeAlphabetCustom().orElse(null))
-                .build();
-    }
 }

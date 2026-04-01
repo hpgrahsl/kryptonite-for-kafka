@@ -10,10 +10,9 @@ import java.util.Set;
  * <p>Both methods receive the full SR wire bytes (including the schema ID prefix) and return
  * full SR wire bytes with the transformed payload and the appropriate output schema ID prefix.
  *
- * <p>The {@code topicName} parameter is required for Mode A encrypted-schema registration and
+ * <p>The {@code topicName} parameter is required for encrypted-schema registration and
  * for SR subject name computation (partial/full decrypt schema lookup).
  *
- * <p>v1 implementation: {@link JsonSchemaRegistryRecordProcessor}.
  */
 public interface RecordValueProcessor {
 

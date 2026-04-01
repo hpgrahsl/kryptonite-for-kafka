@@ -6,9 +6,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
-import com.github.hpgrahsl.kryptonite.PayloadMetaData;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
-import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.converters.MapFieldConverter;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
@@ -66,16 +63,16 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc));
             } else {
-                if (isFpe(fc)) {
+                if (FieldConfigUtils.isFpe(fc)) {
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType), buildPayloadMetaData(fc), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
                 }
             }
         }
@@ -107,16 +104,16 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
             } else {
-                if (isFpe(fc)) {
+                if (FieldConfigUtils.isFpe(fc)) {
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, buildFieldMetaData(fc));
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType, schemaCacheKey), buildPayloadMetaData(fc), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
                 }
             }
         }
@@ -143,9 +140,9 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                     LOG.warn("Decryption skipping field '{}': value is not a textual node — possibly pre-existing unencrypted data", fc.getName());
                     continue;
                 }
-                if (isFpe(fc)) {
+                if (FieldConfigUtils.isFpe(fc)) {
                     byte[] ciphertext = leafNode.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] plaintext = kryptonite.decipherFieldFPE(ciphertext, buildFieldMetaData(fc));
+                    byte[] plaintext = kryptonite.decipherFieldFPE(ciphertext, FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId));
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
@@ -156,16 +153,14 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         return accessor.serialize();
     }
 
-    // --- ELEMENT mode helpers ---
-
     private ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc) {
         return encryptArrayElements(source, fc, null);
     }
 
     protected ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc, String schemaCacheKey) {
         ArrayNode result = MAPPER.createArrayNode();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             for (JsonNode element : source) {
                 if (!element.isTextual()) throw new IllegalStateException(
                         "FPE encryption requires string elements in field '" + fc.getName()
@@ -176,7 +171,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (JsonNode element : source) {
-                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, fc.getName(), serdeType, schemaCacheKey), buildPayloadMetaData(fc), kryptonite, serdeType));
+                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
             }
         }
         return result;
@@ -188,8 +183,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
     protected ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc, String schemaCacheKey) {
         ObjectNode result = MAPPER.createObjectNode();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
                 if (!value.isTextual()) throw new IllegalStateException(
@@ -202,7 +197,7 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             source.properties().forEach(entry ->
                 result.put(entry.getKey(),
-                        FieldHandler.encryptField(fieldConverter.toCanonical(entry.getValue(), fc.getName(), serdeType, schemaCacheKey), buildPayloadMetaData(fc), kryptonite, serdeType))
+                        FieldHandler.encryptField(fieldConverter.toCanonical(entry.getValue(), fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType))
             );
         }
         return result;
@@ -210,8 +205,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
     private ArrayNode decryptArrayElements(ArrayNode source, FieldConfig fc) {
         ArrayNode result = MAPPER.createArrayNode();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             for (JsonNode element : source) {
                 if (element.isNull()) {
                     result.addNull();
@@ -245,8 +240,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
 
     private ObjectNode decryptObjectValues(ObjectNode source, FieldConfig fc) {
         ObjectNode result = MAPPER.createObjectNode();
-        if (isFpe(fc)) {
-            FieldMetaData fmd = buildFieldMetaData(fc);
+        if (FieldConfigUtils.isFpe(fc)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
                 if (value.isNull()) {
@@ -278,44 +273,6 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             });
         }
         return result;
-    }
-
-    // --- Crypto helpers ---
-
-    protected boolean isFpe(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
-        return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
-    }
-
-    protected FieldMetaData buildFieldMetaData(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
-        String keyId = fc.getKeyId().orElse(defaultKeyId);
-        String fpeTweak = fc.getFpeTweak().orElse(KryptoniteSettings.CIPHER_FPE_TWEAK_DEFAULT);
-        String fpeAlphabet = determineAlphabet(fc);
-        String encoding = fc.getEncoding().orElse(KryptoniteSettings.CIPHER_TEXT_ENCODING_DEFAULT);
-        return FieldMetaData.builder()
-                .algorithm(algorithm)
-                .dataType(String.class.getName())
-                .keyId(keyId)
-                .fpeTweak(fpeTweak)
-                .fpeAlphabet(fpeAlphabet)
-                .encoding(encoding)
-                .build();
-    }
-
-    private String determineAlphabet(FieldConfig fc) {
-        AlphabetTypeFPE alphabetType = fc.getFpeAlphabetType()
-                .orElse(AlphabetTypeFPE.valueOf(KryptoniteSettings.CIPHER_FPE_ALPHABET_TYPE_DEFAULT));
-        return AlphabetTypeFPE.CUSTOM == alphabetType
-                ? fc.getFpeAlphabetCustom().orElse(KryptoniteSettings.CIPHER_FPE_ALPHABET_CUSTOM_DEFAULT)
-                : alphabetType.getAlphabet();
-    }
-
-    protected PayloadMetaData buildPayloadMetaData(FieldConfig fc) {
-        String algorithm = fc.getAlgorithm().orElse(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
-        String algorithmId = Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(algorithm));
-        String keyId = fc.getKeyId().orElse(defaultKeyId);
-        return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
     }
 
 }
