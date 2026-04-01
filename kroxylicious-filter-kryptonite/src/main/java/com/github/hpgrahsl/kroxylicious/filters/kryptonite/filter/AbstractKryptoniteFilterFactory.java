@@ -84,26 +84,24 @@ abstract class AbstractKryptoniteFilterFactory
         String serdeType = config.getSerdeType();
         return switch (format) {
             case JSON -> new PlainJsonRecordProcessor(kryptonite, serdeType, defaultKeyId);
-            case JSON_SR -> {
-                SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
-                        List.of(config.getSchemaRegistryUrl()), 100,
-                        List.of(new JsonSchemaProvider()), config.getSchemaRegistryConfig());
-                SchemaRegistryAdapter adapter = config.getSchemaMode() == SchemaMode.STATIC
-                        ? new DefaultStaticSchemaRegistryAdapter(srClient)
-                        : new DefaultDynamicSchemaRegistryAdapter(srClient);
-                yield new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, defaultKeyId);
-            }
-            case AVRO -> {
-                SchemaRegistryClient srClient = new CachedSchemaRegistryClient(
-                        List.of(config.getSchemaRegistryUrl()), 100,
-                        List.of(new JsonSchemaProvider(), new AvroSchemaProvider()),
-                        config.getSchemaRegistryConfig());
-                SchemaRegistryAdapter adapter = config.getSchemaMode() == SchemaMode.STATIC
-                        ? new DefaultStaticSchemaRegistryAdapter(srClient)
-                        : new DefaultDynamicSchemaRegistryAdapter(srClient);
-                yield new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType, defaultKeyId);
-            }
-            default -> throw new IllegalArgumentException("Unsupported recordFormat: " + format);
+            case JSON_SR -> new JsonSchemaRegistryRecordProcessor(kryptonite,
+                    createAdapter(createSrClient(config), config.getSchemaMode()), serdeType, defaultKeyId);
+            case AVRO -> new AvroSchemaRegistryRecordProcessor(kryptonite,
+                    createAdapter(createSrClient(config), config.getSchemaMode()), serdeType, defaultKeyId);
+            case PROTOBUF -> throw new IllegalArgumentException("PROTOBUF record format is not yet supported");
         };
+    }
+
+    private static SchemaRegistryClient createSrClient(KryptoniteFilterConfig config) {
+        return new CachedSchemaRegistryClient(
+                List.of(config.getSchemaRegistryUrl()), 100,
+                List.of(new JsonSchemaProvider(), new AvroSchemaProvider()),
+                config.getSchemaRegistryConfig());
+    }
+
+    private static SchemaRegistryAdapter createAdapter(SchemaRegistryClient srClient, SchemaMode schemaMode) {
+        return schemaMode == SchemaMode.STATIC
+                ? new DefaultStaticSchemaRegistryAdapter(srClient)
+                : new DefaultDynamicSchemaRegistryAdapter(srClient);
     }
 }
