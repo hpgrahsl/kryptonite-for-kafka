@@ -59,6 +59,7 @@ abstract class AbstractKryptoniteFilterFactory
     @Override
     public KryptoniteFilterConfig initialize(FilterFactoryContext context, KryptoniteFilterConfig config) {
         Plugins.requireConfig(this, config);
+        config.validate();
         int poolSize = config.getBlockingPoolSize() > 0 ? config.getBlockingPoolSize() : DEFAULT_BLOCKING_POOL_SIZE;
         filterBlockingExecutor = Executors.newFixedThreadPool(poolSize);
         kryptonite = Kryptonite.createFromConfig(config.toKryptoniteConfigMap());
@@ -80,7 +81,7 @@ abstract class AbstractKryptoniteFilterFactory
     }
 
     private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig config, String defaultKeyId) {
-        RecordFormat format = config.getRecordFormat() != null ? config.getRecordFormat() : RecordFormat.JSON_SR;
+        RecordFormat format = config.getRecordFormat();
         String serdeType = config.getSerdeType();
         return switch (format) {
             case JSON -> new PlainJsonRecordProcessor(kryptonite, serdeType, defaultKeyId);

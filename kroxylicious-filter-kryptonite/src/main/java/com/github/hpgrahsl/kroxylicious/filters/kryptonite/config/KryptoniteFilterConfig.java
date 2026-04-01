@@ -3,7 +3,11 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.config;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KmsType;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +65,7 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "record_format") RecordFormat recordFormat,
             @JsonProperty(value = "schema_mode") SchemaMode schemaMode,
             @JsonProperty(value = "serde_type") String serdeType,
-            @JsonProperty(value = "topic_field_configs", required = true) List<TopicFieldConfig> topicFieldConfigs,
+            @JsonProperty(value = "topic_field_configs") List<TopicFieldConfig> topicFieldConfigs,
             @JsonProperty(value = "blocking_pool_size") int blockingPoolSize) {
         this.keySource = keySource != null ? keySource : KryptoniteSettings.KEY_SOURCE_DEFAULT;
         this.cipherAlgorithm = cipherAlgorithm != null ? cipherAlgorithm : KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT;
@@ -75,10 +79,10 @@ public class KryptoniteFilterConfig {
         this.kekConfig = kekConfig != null ? kekConfig : KryptoniteSettings.KEK_CONFIG_DEFAULT;
         this.schemaRegistryUrl = schemaRegistryUrl;
         this.schemaRegistryConfig = schemaRegistryConfig != null ? schemaRegistryConfig : Map.of();
-        this.recordFormat = recordFormat != null ? recordFormat : RecordFormat.JSON_SR;
+        this.recordFormat = recordFormat;
         this.schemaMode = schemaMode != null ? schemaMode : SchemaMode.DYNAMIC;
         this.serdeType = serdeType != null ? serdeType : KryptoniteSettings.SERDE_TYPE_DEFAULT;
-        this.topicFieldConfigs = topicFieldConfigs;
+        this.topicFieldConfigs = topicFieldConfigs != null ? topicFieldConfigs : List.of();
         this.blockingPoolSize = blockingPoolSize;
     }
 
@@ -99,6 +103,79 @@ public class KryptoniteFilterConfig {
     public String getSerdeType() { return serdeType; }
     public List<TopicFieldConfig> getTopicFieldConfigs() { return topicFieldConfigs; }
     public int getBlockingPoolSize() { return blockingPoolSize; }
+
+    /**
+     * Validates the configuration, collecting all violations before throwing.
+     *
+     * @throws IllegalArgumentException listing every detected problem if the configuration is invalid
+     */
+    public void validate() {
+        var errors = new ArrayList<String>();
+
+        // record_format is required — no sensible default exists
+        if (recordFormat == null) {
+            errors.add("record_format is required (JSON, JSON_SR, AVRO)");
+        }
+
+        // schema_registry_url is required for schema-aware formats
+        if (recordFormat == RecordFormat.JSON_SR || recordFormat == RecordFormat.AVRO) {
+            if (schemaRegistryUrl == null || schemaRegistryUrl.isBlank()) {
+                errors.add("schema_registry_url is required when record_format is " + recordFormat);
+            }
+        }
+
+        // parse key_source for cross-field checks (invalid value is itself an error)
+        KeySource parsedKeySource = null;
+        try {
+            parsedKeySource = KeySource.valueOf(keySource);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            errors.add("key_source is invalid: '" + keySource + "' — must be one of CONFIG, CONFIG_ENCRYPTED, KMS, KMS_ENCRYPTED");
+        }
+
+        if (parsedKeySource != null) {
+            if (parsedKeySource == KeySource.CONFIG || parsedKeySource == KeySource.CONFIG_ENCRYPTED) {
+                if (cipherDataKeys == null || cipherDataKeys.isEmpty()) {
+                    errors.add("cipher_data_keys is required when key_source is " + parsedKeySource);
+                }
+            }
+
+            if (parsedKeySource == KeySource.KMS || parsedKeySource == KeySource.KMS_ENCRYPTED) {
+                KmsType parsedKmsType = null;
+                try {
+                    parsedKmsType = KmsType.valueOf(kmsType);
+                } catch (IllegalArgumentException | NullPointerException e) {
+                    errors.add("kms_type is invalid: '" + kmsType + "' — must be one of AZ_KV_SECRETS, AWS_SM_SECRETS, GCP_SM_SECRETS");
+                }
+                if (parsedKmsType == KmsType.NONE) {
+                    errors.add("kms_type must not be NONE when key_source is " + parsedKeySource);
+                }
+                if (kmsConfig == null || kmsConfig.isBlank()) {
+                    errors.add("kms_config is required when key_source is " + parsedKeySource);
+                }
+            }
+
+            if (parsedKeySource == KeySource.CONFIG_ENCRYPTED || parsedKeySource == KeySource.KMS_ENCRYPTED) {
+                KekType parsedKekType = null;
+                try {
+                    parsedKekType = KekType.valueOf(kekType);
+                } catch (IllegalArgumentException | NullPointerException e) {
+                    errors.add("kek_type is invalid: '" + kekType + "' — must be one of GCP, AWS, AZURE");
+                }
+                if (parsedKekType == KekType.NONE) {
+                    errors.add("kek_type must not be NONE when key_source is " + parsedKeySource);
+                }
+                if (kekUri == null || kekUri.isBlank()) {
+                    errors.add("kek_uri is required when key_source is " + parsedKeySource);
+                }
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Invalid Kryptonite filter configuration (" + errors.size() + " error(s)):\n  - "
+                    + String.join("\n  - ", errors));
+        }
+    }
 
     public Map<String, String> toKryptoniteConfigMap() {
         Map<String, String> config = new HashMap<>();

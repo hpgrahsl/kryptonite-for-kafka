@@ -2,6 +2,8 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing;
 
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.TopicFieldConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,12 +29,17 @@ import java.util.regex.Pattern;
  */
 public class TopicFieldConfigResolver {
 
+    private static final Logger LOG = LoggerFactory.getLogger(TopicFieldConfigResolver.class);
+
     private final List<Entry> entries;
 
     public TopicFieldConfigResolver(List<TopicFieldConfig> topicFieldConfigs) {
         this.entries = new ArrayList<>(topicFieldConfigs.size());
         for (TopicFieldConfig tfc : topicFieldConfigs) {
             entries.add(new Entry(compilePattern(tfc.getTopicPattern()), tfc.getFieldConfigs()));
+        }
+        if (this.entries.isEmpty()) {
+            LOG.warn("TopicFieldConfigResolver initialized with no topic_field_configs — all records will pass through unmodified (no-op filter)");
         }
     }
 
