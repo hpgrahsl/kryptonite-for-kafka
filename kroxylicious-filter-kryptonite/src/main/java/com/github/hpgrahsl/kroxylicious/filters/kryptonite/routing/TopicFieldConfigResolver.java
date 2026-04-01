@@ -13,14 +13,17 @@ import java.util.regex.Pattern;
  * Resolves a Kafka topic name to its {@link FieldConfig} set using the ordered list of
  * {@link TopicFieldConfig} entries from the filter config. First match wins.
  *
- * <p>v1 supports two pattern types, compiled once at construction (not per-record):
- * <ol>
- *   <li>Exact string match — e.g. {@code "payments"}</li>
- *   <li>Wildcard — e.g. {@code "payments.*"} → converted to {@code ^payments\..*$}</li>
- * </ol>
- * Regex patterns ({@code /^(payments|transfers)\..+$/} syntax) are reserved for a future phase.
+ * <p>Each {@code topic_pattern} is treated as a full Java regex, anchored to the full topic name.
+ * Examples:
+ * <ul>
+ *   <li>Exact match: {@code "mytopic"}</li>
+ *   <li>Suffix wildcard: {@code "demo-.*"}</li>
+ *   <li>Prefix wildcard: {@code ".*-prod"}</li>
+ *   <li>Alternation: {@code "topicA|topicB"}</li>
+ * </ul>
+ * Patterns are compiled once at construction, not per-record.
  *
- * <p>Returns {@link Optional#empty()} for no match → record passes through unmodified.
+ * <p>Returns {@link Optional#empty()} for no match, causing records to pass through unmodified.
  */
 public class TopicFieldConfigResolver {
 
@@ -49,42 +52,8 @@ public class TopicFieldConfigResolver {
         return Optional.empty();
     }
 
-    /**
-     * Compiles a topic pattern string to a {@link Pattern}.
-     * <ul>
-     *   <li>Wildcard patterns (containing {@code *} or {@code ?}) are converted to regex:
-     *       {@code .} → {@code \.}, {@code *} → {@code .*}, {@code ?} → {@code .}</li>
-     *   <li>Exact patterns produce a regex that matches the literal string.</li>
-     * </ul>
-     */
     private static Pattern compilePattern(String topicPattern) {
-        if (topicPattern.contains("*") || topicPattern.contains("?")) {
-            // Wildcard pattern: escape regex metacharacters, then convert * and ? wildcards
-            StringBuilder regex = new StringBuilder("^");
-            for (char c : topicPattern.toCharArray()) {
-                switch (c) {
-                    case '*' -> regex.append(".*");
-                    case '?' -> regex.append(".");
-                    case '.' -> regex.append("\\.");
-                    case '(' -> regex.append("\\(");
-                    case ')' -> regex.append("\\)");
-                    case '[' -> regex.append("\\[");
-                    case ']' -> regex.append("\\]");
-                    case '{' -> regex.append("\\{");
-                    case '}' -> regex.append("\\}");
-                    case '^' -> regex.append("\\^");
-                    case '$' -> regex.append("\\$");
-                    case '+' -> regex.append("\\+");
-                    case '|' -> regex.append("\\|");
-                    case '\\' -> regex.append("\\\\");
-                    default -> regex.append(c);
-                }
-            }
-            regex.append("$");
-            return Pattern.compile(regex.toString());
-        }
-        // Exact match
-        return Pattern.compile("^" + Pattern.quote(topicPattern) + "$");
+        return Pattern.compile("^" + topicPattern + "$");
     }
 
     private record Entry(Pattern pattern, Set<FieldConfig> fieldConfigs) {}

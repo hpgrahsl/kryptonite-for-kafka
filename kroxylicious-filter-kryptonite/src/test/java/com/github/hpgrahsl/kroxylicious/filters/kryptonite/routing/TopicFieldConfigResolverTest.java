@@ -55,27 +55,40 @@ class TopicFieldConfigResolverTest {
     }
 
     @Nested
-    @DisplayName("Wildcard match")
-    class WildcardMatch {
+    @DisplayName("Regex match")
+    class RegexMatch {
 
         @ParameterizedTest(name = "topic=''{0}'' pattern=''{1}'' shouldMatch={2}")
         @CsvSource({
-            // * wildcard
-            "payments.eu, payments.*, true",
-            "payments.us.west, payments.*, true",
-            "orders.eu, payments.*, false",
-            "xpayments, payments.*, false",
-            // ? wildcard: matches exactly one character
-            "payX, pay?, true",
-            "payXY, pay?, false",
-            "pay, pay?, false",
-            // multi-segment wildcard
-            "pay.eu.west, pay.*.*, true",
-            "pay.eu, pay.*.*, false"
+            // suffix wildcard
+            "payments.eu, payments\\..*,   true",
+            "payments.us.west, payments\\..*,  true",
+            "orders.eu, payments\\..*,  false",
+            "payments, payments\\..*,  false",
+            // prefix wildcard
+            "eu.payments, .*\\.payments, true",
+            "us.payments, .*\\.payments, true",
+            "eu.orders,   .*\\.payments, false",
+            // both ends
+            "demo-kroxy-k4k-jsonsr, demo-kroxy-k4k-.*, true",
+            "demo-kroxy-k4k-avro,   demo-kroxy-k4k-.*, true",
+            "prod-kroxy-k4k-jsonsr, demo-kroxy-k4k-.*, false",
+            // character class
+            "topicA, topic[AB], true",
+            "topicB, topic[AB], true",
+            "topicC, topic[AB], false",
+            // alternation
+            "payments, payments|orders, true",
+            "orders,   payments|orders, true",
+            "transfers, payments|orders, false",
+            // quantifier
+            "colour, colou?r, true",
+            "color,  colou?r, true",
+            "colouur, colou?r, false"
         })
-        @DisplayName("wildcard patterns convert * and ? correctly")
-        void wildcardPatternMatch(String topic, String pattern, boolean shouldMatch) {
-            var r = resolver(pattern, Set.of(FC_AGE));
+        @DisplayName("regex patterns are matched correctly")
+        void regexPatternMatch(String topic, String pattern, boolean shouldMatch) {
+            var r = resolver(pattern.strip(), Set.of(FC_AGE));
             if (shouldMatch) {
                 assertThat(r.resolve(topic)).isPresent();
             } else {
@@ -84,25 +97,28 @@ class TopicFieldConfigResolverTest {
         }
 
         @Test
-        @DisplayName("dot in wildcard pattern is escaped — does not act as regex any-char")
-        void dotInPatternIsEscaped() {
-            // "pay.eu" with wildcard escaping: dot → \. so matches literal "pay.eu" only
-            var r = resolver("pay.*", Set.of(FC_AGE));
+        @DisplayName("dot in pattern acts as regex any-char")
+        void dotMatchesAnyChar() {
+            var r = resolver("pay.eu", Set.of(FC_AGE));
             assertThat(r.resolve("pay.eu")).isPresent();
-            // "payXeu" contains no dot, should NOT match "pay.*"
+            assertThat(r.resolve("payXeu")).isPresent(); // dot matches any char
+            assertThat(r.resolve("pay.eu.west")).isEmpty(); // anchored — no suffix allowed
+        }
+
+        @Test
+        @DisplayName("escaped dot matches literal dot only")
+        void escapedDotMatchesLiteralDot() {
+            var r = resolver("pay\\.eu", Set.of(FC_AGE));
+            assertThat(r.resolve("pay.eu")).isPresent();
             assertThat(r.resolve("payXeu")).isEmpty();
         }
 
         @Test
-        @DisplayName("regex metacharacters (+, (, [, $) in pattern are treated as literals")
-        void regexMetacharactersEscaped() {
-            var rPlus = resolver("pay+ments*", Set.of(FC_AGE));
-            assertThat(rPlus.resolve("pay+ments")).isPresent();
-            assertThat(rPlus.resolve("payments")).isEmpty(); // + is literal, not regex quantifier
-
-            var rParen = resolver("(pay)*", Set.of(FC_AGE));
-            assertThat(rParen.resolve("(pay)")).isPresent();
-            assertThat(rParen.resolve("pay")).isEmpty();
+        @DisplayName("invalid regex throws at construction time")
+        void invalidRegexThrowsAtConstruction() {
+            org.junit.jupiter.api.Assertions.assertThrows(
+                    java.util.regex.PatternSyntaxException.class,
+                    () -> resolver("[invalid", Set.of(FC_AGE)));
         }
     }
 
@@ -111,25 +127,24 @@ class TopicFieldConfigResolverTest {
     class FirstMatchWins {
 
         @Test
-        @DisplayName("wildcard before exact: wildcard pattern wins")
-        void wildcardBeforeExactWins() {
+        @DisplayName("broader pattern before exact: broader pattern wins")
+        void broaderPatternBeforeExactWins() {
             var resolver = new TopicFieldConfigResolver(List.of(
-                    new TopicFieldConfig("payments.*", Set.of(FC_AGE)),
-                    new TopicFieldConfig("payments.eu", Set.of(FC_NAME))
+                    new TopicFieldConfig("payments\\..*", Set.of(FC_AGE)),
+                    new TopicFieldConfig("payments\\.eu", Set.of(FC_NAME))
             ));
 
             var result = resolver.resolve("payments.eu");
             assertThat(result).isPresent();
-            // First registered pattern (wildcard) wins
             assertThat(result.get()).containsExactly(FC_AGE);
         }
 
         @Test
-        @DisplayName("exact before wildcard: exact pattern wins")
-        void exactBeforeWildcardWins() {
+        @DisplayName("exact before broader: exact pattern wins")
+        void exactBeforeBroaderWins() {
             var resolver = new TopicFieldConfigResolver(List.of(
-                    new TopicFieldConfig("payments.eu", Set.of(FC_NAME)),
-                    new TopicFieldConfig("payments.*", Set.of(FC_AGE))
+                    new TopicFieldConfig("payments\\.eu", Set.of(FC_NAME)),
+                    new TopicFieldConfig("payments\\..*", Set.of(FC_AGE))
             ));
 
             var result = resolver.resolve("payments.eu");
@@ -141,8 +156,8 @@ class TopicFieldConfigResolverTest {
         @DisplayName("non-matching patterns are skipped until a match is found")
         void nonMatchingPatternSkipped() {
             var resolver = new TopicFieldConfigResolver(List.of(
-                    new TopicFieldConfig("orders.*", Set.of(FC_NAME)),
-                    new TopicFieldConfig("payments.*", Set.of(FC_AGE))
+                    new TopicFieldConfig("orders\\..*", Set.of(FC_NAME)),
+                    new TopicFieldConfig("payments\\..*", Set.of(FC_AGE))
             ));
 
             var result = resolver.resolve("payments.eu");
@@ -173,7 +188,7 @@ class TopicFieldConfigResolverTest {
         @Test
         @DisplayName("topic name with no matching pattern returns empty")
         void noMatchReturnsEmpty() {
-            var r = resolver("payments.*", Set.of(FC_AGE));
+            var r = resolver("payments\\..*", Set.of(FC_AGE));
             assertThat(r.resolve("transfers.eu")).isEmpty();
         }
     }
