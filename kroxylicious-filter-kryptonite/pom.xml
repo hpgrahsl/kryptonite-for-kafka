@@ -15,7 +15,7 @@
 
     <properties>
         <kroxylicious.extension.version>0.15.0</kroxylicious.extension.version>
-        <kroxylicious.version>0.19.0</kroxylicious.version>
+        <kroxylicious.version>0.20.0</kroxylicious.version>
         <kryptonite.serdes.converters.version>0.2.0-SNAPSHOT</kryptonite.serdes.converters.version>
         <jackson.version>2.20.0</jackson.version>
         <kafka.version>4.1.1</kafka.version>
