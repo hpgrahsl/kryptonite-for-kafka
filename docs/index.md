@@ -38,15 +38,6 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 [GitHub :fontawesome-brands-github:](https://github.com/hpgrahsl/kryptonite-for-kafka){ .md-button }
 </div>
 
-
----
-
-## End-to-End Scenario featuring Module Integrations for Apache Kafka Connect and Apache Flink
-
-<div class="k4k-module-img">
-<a href="assets/images/07_full_end2end_example.png" class="glightbox"><img src="assets/images/07_full_end2end_example.png" alt="Kafka Connect SMT"></a>
-</div>
-
 ---
 
 ## Why Kryptonite for Apache Kafka?
@@ -99,7 +90,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 
 ---
 
-## Four Integration Modules
+## Five Integration Modules
 
 <div class="k4k-modules" markdown>
 
@@ -207,6 +198,40 @@ A lightweight HTTP service that exposes a web API with multiple encryption and d
 
 </div>
 
+<div class="k4k-module-card" markdown>
+
+### :material-shield-lock: &nbsp; **Kroxylicious Proxy Filter**
+
+**Field-Level Encryption with Proxy Filter**
+
+<div class="k4k-module-img">
+<a href="assets/images/8a_kroxylicious_filter_encryption.png" class="glightbox"><img src="assets/images/8a_kroxylicious_filter_encryption.png" alt="Kafka Connect SMT"></a>
+</div>
+
+**Field-Level Decryption with Proxy Filter**
+
+<div class="k4k-module-img">
+<a href="assets/images/8b_kroxylicious_filter_decryption.png" class="glightbox"><img src="assets/images/8b_kroxylicious_filter_decryption.png" alt="Kafka Connect SMT"></a>
+</div>
+
+<div class="k4k-module-body" markdown>
+
+The Kryptonite proxy filter provides **transparent, client-agnostic field-level encryption and decryption** for Apache Kafka. It runs as a pair of filters inside a [Kroxylicious](https://kroxylicious.io) proxy — no changes to producers, consumers, or Kafka brokers are required.
+
+:octicons-book-24: [Learn more](modules/kroxylicious-filter.md)
+
+</div>
+
+</div>
+
+</div>
+
+---
+
+## End-to-End Scenario featuring Module Integrations for Apache Kafka Connect and Apache Flink
+
+<div class="k4k-module-img">
+<a href="assets/images/07_full_end2end_example.png" class="glightbox"><img src="assets/images/07_full_end2end_example.png" alt="Kafka Connect SMT"></a>
 </div>
 
 ---

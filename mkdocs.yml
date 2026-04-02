@@ -86,5 +86,6 @@ nav:
     - Apache Flink UDFs: modules/flink-udfs.md
     - ksqlDB UDFs: modules/ksqldb-udfs.md
     - Quarkus HTTP Service: modules/funqy-http.md
+    - Kroxylicious Proxy Filter: modules/kroxylicious-filter.md
   - Security: security.md
   - Configuration: configuration.md
