@@ -1,6 +1,5 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.JsonSchemaDeriver.DeriveEncryptedResult;
@@ -13,7 +12,6 @@ import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +22,6 @@ import java.util.stream.Collectors;
  * DYNAMIC mode implementation of {@link SchemaRegistryAdapter} for the Confluent Schema Registry
  * wire format.
  *
- * <p>Wire format: {@code [0x00][4-byte big-endian int schemaId][payload bytes]}.
- *
  * <p>On first encounter of a new {@code originalSchemaId}, derives the encrypted schema document,
  * registers it under {@code "<topicName>-value__k4k_enc"}, and registers encryption metadata
  * ({@code originalSchemaId}, {@code encryptedSchemaId}, {@code encryptedFields}) under
@@ -35,12 +31,9 @@ import java.util.stream.Collectors;
  * <p>Thread-safe after construction: all mutable state is in {@link ConcurrentHashMap} instances;
  * {@link SchemaRegistryClient} is documented as thread-safe.
  */
-public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapter {
+public class DefaultDynamicSchemaRegistryAdapter extends AbstractSchemaRegistryAdapter {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultDynamicSchemaRegistryAdapter.class);
-    private static final byte MAGIC_BYTE = 0x00;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
 
     private final SchemaRegistryClient srClient;
     private final JsonSchemaDeriver deriver;
@@ -63,36 +56,6 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
         this.srClient = srClient;
         this.deriver = new JsonSchemaDeriver();
         this.avroDeriver = new AvroSchemaDeriver();
-    }
-
-    // --- Wire format ---
-
-    @Override
-    public SchemaIdAndPayload stripPrefix(byte[] wireBytes) {
-        if (wireBytes == null || wireBytes.length < 5) {
-            throw new IllegalArgumentException(
-                    "Invalid SR wire bytes: expected at least 5 bytes (magic + 4-byte schemaId), got "
-                            + (wireBytes == null ? "null" : wireBytes.length));
-        }
-        ByteBuffer buf = ByteBuffer.wrap(wireBytes);
-        byte magic = buf.get();
-        if (magic != MAGIC_BYTE) {
-            throw new IllegalArgumentException(
-                    "Missing SR magic byte 0x00 — got 0x" + String.format("%02X", magic));
-        }
-        int schemaId = buf.getInt();
-        byte[] payload = new byte[buf.remaining()];
-        buf.get(payload);
-        return new SchemaIdAndPayload(schemaId, payload);
-    }
-
-    @Override
-    public byte[] attachPrefix(int schemaId, byte[] payload) {
-        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + payload.length);
-        buf.put(MAGIC_BYTE);
-        buf.putInt(schemaId);
-        buf.put(payload);
-        return buf.array();
     }
 
     // --- Produce path ---
@@ -130,7 +93,7 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
                             return fc != null ? FieldEntryMetadata.from(fc)
                                              : new FieldEntryMetadata(name, null, null, null, null, null, null);
                         })
-                        .collect(Collectors.toList());
+                        .toList();
 
                 EncryptionMetadata encryptionMetadata = new EncryptionMetadata(
                         originalSchemaId, encryptedSchemaId, fieldEntries);
@@ -190,7 +153,7 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
                         Schema encryptedAvroSchema = ((AvroSchema) encryptedParsedSchema).rawSchema();
                         Schema originalAvroSchema = ((AvroSchema) srClient.getSchemaById(originalSchemaId)).rawSchema();
                         List<String> decryptedFieldNames = decryptedFieldConfigs.stream()
-                                .map(FieldConfig::getName).collect(Collectors.toList());
+                                .map(FieldConfig::getName).toList();
                         Schema partialDecryptSchema = avroDeriver.derivePartialDecrypt(
                                 encryptedAvroSchema, originalAvroSchema, decryptedFieldNames, allEncryptedFieldsMeta);
                         partialId = srClient.register(partialSubject, new AvroSchema(partialDecryptSchema));
@@ -277,10 +240,4 @@ public class DefaultDynamicSchemaRegistryAdapter implements SchemaRegistryAdapte
     private static Set<String> fieldNames(Set<FieldConfig> fieldConfigs) {
         return fieldConfigs.stream().map(FieldConfig::getName).collect(Collectors.toSet());
     }
-
-    private record EncryptCacheKey(int originalSchemaId, String topicName) {}
-
-    private record MetadataCacheKey(int encryptedSchemaId, String topicName) {}
-
-    private record DecryptCacheKey(int encryptedSchemaId, Set<String> fieldNames) {}
 }

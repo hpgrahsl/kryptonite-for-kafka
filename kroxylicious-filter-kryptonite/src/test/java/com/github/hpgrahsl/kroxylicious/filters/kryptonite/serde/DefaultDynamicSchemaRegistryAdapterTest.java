@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,10 +28,9 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link DefaultDynamicSchemaRegistryAdapter}.
  *
- * <p>Wire format methods ({@link DefaultDynamicSchemaRegistryAdapter#stripPrefix} /
- * {@link DefaultDynamicSchemaRegistryAdapter#attachPrefix}) are pure byte operations —
- * tested without mocks. SR-client-dependent methods use a mocked
- * {@link SchemaRegistryClient}.
+ * <p>Wire format methods ({@code stripPrefix} / {@code attachPrefix}) are defined in
+ * {@link AbstractSchemaRegistryAdapter} — tested here without mocks.
+ * SR-client-dependent methods use a mocked {@link SchemaRegistryClient}.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DefaultDynamicSchemaRegistryAdapter")

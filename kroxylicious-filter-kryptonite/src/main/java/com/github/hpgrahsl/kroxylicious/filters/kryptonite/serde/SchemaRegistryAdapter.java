@@ -108,9 +108,6 @@ public interface SchemaRegistryAdapter {
      * <p>Used by the Avro processor: returns {@code AvroSchema}; caller does
      * {@code .rawSchema()} → {@code org.apache.avro.Schema}.
      *
-     * <p>Future Protobuf (Phase 4): will return {@code ProtobufSchema}; caller does
-     * {@code .toDescriptor()} → {@code FileDescriptor}.
-     *
      * <p>Return type is {@code Object} to avoid coupling this interface to a specific SR client
      * library. Each processor implementation casts to the known concrete type.
      * Implementations must cache: fetching the schema per-record would be catastrophically slow.

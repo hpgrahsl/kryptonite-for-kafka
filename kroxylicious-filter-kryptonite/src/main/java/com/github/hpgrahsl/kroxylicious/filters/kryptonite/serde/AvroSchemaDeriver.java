@@ -79,11 +79,9 @@ class AvroSchemaDeriver {
         Schema result = encryptedSchema;
         for (String fieldName : decryptedFields) {
             String[] pathParts = fieldName.split("\\.");
-            FieldEntryMetadata meta = allEncryptedFieldsMeta.get(fieldName);
-            String mode = meta != null && meta.fieldMode() != null ? meta.fieldMode().name() : null;
             try {
                 Schema originalFieldSchema = resolveFieldSchema(originalSchema, pathParts, 0);
-                result = restoreFieldType(result, pathParts, 0, originalFieldSchema, mode);
+                result = restoreFieldType(result, pathParts, 0, originalFieldSchema);
             } catch (FieldNotFoundException e) {
                 LOG.debug("derivePartialDecrypt: field path '{}' not found — leaving unchanged", fieldName);
             }
@@ -187,7 +185,7 @@ class AvroSchemaDeriver {
      * Restores a field's schema to its original type (used on decrypt path).
      */
     private Schema restoreFieldType(Schema encryptedSchema, String[] pathParts, int index,
-                                    Schema originalFieldSchema, String mode) {
+                                    Schema originalFieldSchema) {
         Schema unwrapped = unwrapNullableUnion(encryptedSchema);
         boolean wasNullable = unwrapped != encryptedSchema;
 
@@ -211,7 +209,7 @@ class AvroSchemaDeriver {
             newFieldSchema = originalFieldSchema;
         } else {
             newFieldSchema = restoreFieldType(targetField.schema(), pathParts, index + 1,
-                    originalFieldSchema, mode);
+                    originalFieldSchema);
         }
 
         Schema rebuilt = rebuildRecord(unwrapped, targetField.name(), newFieldSchema);
@@ -292,6 +290,7 @@ class AvroSchemaDeriver {
 
     static class SchemaDerivationException extends RuntimeException {
         SchemaDerivationException(String message) { super(message); }
+        SchemaDerivationException(String message, Throwable cause) { super(message, cause); }
     }
 
     private static class FieldNotFoundException extends RuntimeException {

@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
  *
  * <p>Used internally by {@link DefaultDynamicSchemaRegistryAdapter} — not exposed to processors.
  *
- * <p>v1 coverage: object {@code properties} at any nesting depth; primitive leaf types;
+ * <p>Coverage: object {@code properties} at any nesting depth; primitive leaf types;
  * array fields (ELEMENT mode: {@code items} replaced with {@code {"type":"string"}});
  * object fields (ELEMENT mode: each direct property type replaced with {@code "string"}).
- * NOT supported in v1: {@code $ref}, {@code oneOf}/{@code anyOf}/{@code allOf}.
+ * Not supported: {@code $ref}.
  */
 class JsonSchemaDeriver {
 
