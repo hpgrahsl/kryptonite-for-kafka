@@ -216,7 +216,7 @@ A lightweight HTTP service that exposes a web API with multiple encryption and d
 
 <div class="k4k-module-body" markdown>
 
-The Kryptonite proxy filter provides **transparent, client-agnostic field-level encryption and decryption** for Apache Kafka. It runs as a pair of filters inside a [Kroxylicious](https://kroxylicious.io) proxy — no changes to producers, consumers, or Kafka brokers are required.
+The Kryptonite proxy filter provides **transparent, client-agnostic field-level encryption and decryption** for Apache Kafka. It runs as a pair of filters inside the [Kroxylicious](https://kroxylicious.io) proxy — no changes to producers, consumers, or Kafka brokers are required.
 
 :octicons-book-24: [Learn more](modules/kroxylicious-filter.md)
 

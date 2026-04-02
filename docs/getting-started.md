@@ -44,6 +44,17 @@ Kryptonite for Kafka ships four independent integration modules. Pick the ones t
 
     :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
 
+-   :material-shield-lock: &nbsp; **Kroxylicious Proxy Filter**
+
+    ---
+
+    The Kryptonite proxy filter provides transparent, client-agnostic field-level encryption and decryption for Apache Kafka. It runs as a pair of filters inside the Kroxylicious proxy.
+
+    :octicons-book-24: [Learn more](modules/kroxylicious-filter.md)
+
+    :octicons-rocket-24: [Getting Started Guide (_coming soon_)](./getting-started.md)
+
+
 </div>
 
 ---
