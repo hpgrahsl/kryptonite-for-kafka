@@ -1,6 +1,18 @@
-# Kryptonite Filter for Kroxylicious
+# Kryptonite for Kafka: Kroxylicious Filter
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE)
+
+**Disclaimer: This is an UNOFFICIAL community project!**
 
 A custom [Kroxylicious](https://kroxylicious.io) filter that brings **field-level encryption** to the Kafka proxy layer using the same Kryptonite for Kafka core building blocks as any of the other modules.
+
+## 📚 Documentation
+
+### 👉 For the latest module documentation please go to the official docs page for the [Kroxylicious Filter](https://hpgrahsl.github.io/kryptonite-for-kafka/dev/modules/kroxylicious-filter/) 👈
+
+_The contents in this README are most likely outdated by now and won't be regularly maintained going forward. You should regard them as deprecated and  expect removal any time without prior notice._
+
+---
 
 ## Why this module?
 

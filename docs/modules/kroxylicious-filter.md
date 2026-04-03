@@ -553,6 +553,8 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages addi
 
 **Configuration Settings common to both the encrypt and decrypt filter definitions:**
 
+<div class="k4k-param-table" markdown="1">
+
 | Parameter | Required | Default | Description |
 |---|---|---|---|
 | `topic_field_configs` | No | `[]` | List of topic pattern → field config mappings. An empty list is valid but results in a no-op filter where all records pass through unmodified. |
@@ -572,6 +574,8 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages addi
 | `serde_type` | No | `KRYO` | Internal serde format for encrypted field envelopes: `KRYO` or `AVRO` |
 | `blocking_pool_size` | No | JVM default | Size of the blocking executor thread pool used to dispatch blocking calls to |
 
+</div>
+
 **`topic_field_configs` entry:**
 
 | Parameter | Required | Description |
@@ -580,6 +584,8 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages addi
 | `field_configs` | Yes | List of field config entries |
 
 **`field_configs` entry:**
+
+<div class="k4k-param-table" markdown="1">
 
 | Parameter | Required | Default | Description |
 |---|---|---|---|
@@ -590,3 +596,5 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages addi
 | `fpeTweak` | No | — | FPE tweak value (FPE algorithms only) |
 | `fpeAlphabetType` | No | — | FPE alphabet type: `DIGITS`, `ALPHANUMERIC`, `LETTERS`, `CUSTOM` (FPE algorithms only) |
 | `fpeAlphabetCustom` | No | — | Custom alphabet string (only when `fpeAlphabetType: CUSTOM`) |
+
+</div>

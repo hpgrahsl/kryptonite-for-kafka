@@ -4,19 +4,19 @@ All Kryptonite for Kafka modules share the same set of core configuration parame
 
 <div class="k4k-param-table" markdown="1">
 
-| Parameter | Required | Default | [Kafka Connect SMT](./modules/connect-smt.md) | [Flink UDFs](./modules/flink-udfs.md) | [ksqlDB UDFs](./modules/ksqldb-udfs.md) | [Quarkus HTTP Service](./modules/funqy-http.md) |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| `key_source` | — | `CONFIG` | ✓ | ✓ | ✓ | ✓ |
-| `cipher_data_keys` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ |
-| `cipher_data_key_identifier` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ |
-| `kms_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ |
-| `kms_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ |
-| `kek_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ |
-| `kek_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ |
-| `kek_uri` | — | &nbsp; | ✓ | ✓ | ✓ | ✓ |
-| `cipher_algorithm` | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ |
-| `field_mode` | - | `ELEMENT` | ✓ | — | — | ✓ |
-| `cipher_mode` | ✓ | &nbsp; | ✓ | — | — | — |
+| Parameter | Required | Default | [Kafka Connect SMT](./modules/connect-smt.md) | [Flink UDFs](./modules/flink-udfs.md) | [ksqlDB UDFs](./modules/ksqldb-udfs.md) | [Quarkus HTTP Service](./modules/funqy-http.md) | [Kroxylicious Filter](./modules/kroxylicious-filter.md) |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `key_source` | — | `CONFIG` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `cipher_data_keys` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `cipher_data_key_identifier` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `kms_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `kms_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `kek_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `kek_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `kek_uri` | — | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `cipher_algorithm` | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `field_mode` | - | `ELEMENT` | ✓ | — | — | ✓ | ✓ |
+| `cipher_mode` | ✓ | &nbsp; | ✓ | — | — | — | — |
 
 </div>
 

@@ -1,8 +1,16 @@
-# Kryptonite for Kafka: Client-Side 🔒 Field-Level 🔓 Cryptography for Apache Kafka®
+# Kryptonite for Kafka: Quarkus HTTP Service
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE)
 
 **Disclaimer: This is an UNOFFICIAL community project!**
+
+## 📚 Documentation
+
+### 👉 For the latest module documentation please go to the official docs page for the [Quarkus HTTP Service](https://hpgrahsl.github.io/kryptonite-for-kafka/dev/modules/funqy-http/) 👈
+
+_The contents in this README are most likely outdated by now and won't be regularly maintained going forward. You should regard them as deprecated and  expect removal any time without prior notice._
+
+---
 
 ## HTTP API based on Quarkus Funqy
 
