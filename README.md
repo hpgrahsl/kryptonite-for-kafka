@@ -1,8 +1,16 @@
-# Kryptonite for Kafka: Client-Side 🔒 Field-Level 🔓 Cryptography for Apache Kafka®
+# Kryptonite for Kafka: Client-Side 🔒 Field-Level 🔓 Cryptography Suite for Apache Kafka®
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=NUCLPDTLNJ8KE)
 
 **Disclaimer: This is an UNOFFICIAL community project!**
+
+## 📚 Documentation
+
+### 👉 For the latest project documentation please go to the [official docs page](https://hpgrahsl.github.io/kryptonite-for-kafka/dev/) 👈
+
+_The contents in each module's README are most likely outdated by now and won't be regularly maintained going forward. You should regard them as deprecated and  expect removal any time without prior notice._
+
+---
 
 ## Overview
 
@@ -12,6 +20,7 @@ Kryptonite for Kafka is a library to do field-level cryptography for records on 
 2. [stream processing scenarios](ksqldb-udfs-kryptonite/README.md) based on [ksqlDB](https://ksqlDB.io) by providing custom [user-defined functions](https://docs.ksqldb.io/en/latest/reference/user-defined-functions/) (UDFs) to encrypt / decrypt selected data columns in STREAMs and TABLEs respectively
 3. [stream processing scenarios](flink-udfs-kryptonite/README.md) based on [Flink](https://flink.apache.org/) Table API / Flink SQL by providing custom [user-defined functions](https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/dev/table/functions/udfs/) (UDFs) to encrypt / decrypt selected data columns in Flink TABLEs 
 4. [cross language/runtime scenarios](funqy-http-kryptonite/README.md) by running a co-located [Quarkus](http://quarkus.io) [Funqy](https://quarkus.io/guides/funqy) service exposing a lightweight web API to encrypt / decrypt payloads, or fields thereof, from any client application talking HTTP.
+5. [proxy-based cryptography](kroxylicious-filter-kryptonite/README.md) for client-agnostic field-level encryption and decryption based on a pair of custom filters for the [Kroxylicious](https://kroxylicious.io/) proxy.
 
 ### Build, Installation and Deployment
 
