@@ -1,0 +1,168 @@
+---
+# Kroxylicious proxy configuration for e2e integration tests (AVRO format)
+#
+# All six fields in the topic_field_configs cover different type/mode combinations:
+#   firstname, lastname  — string,  OBJECT mode
+#   age                  — integer, OBJECT mode (non-string primitive)
+#   address              — object,  OBJECT mode (entire subdocument as single blob)
+#   tags                 — array,   ELEMENT mode (each string element individually)
+#   scores               — object,  ELEMENT mode (each integer value individually)
+#
+# Network assumptions (Testcontainers e2e):
+#   - Kafka reachable at kafka:9092 (container network alias)
+#   - Schema Registry reachable at schema-registry:8081 (container network alias)
+#   - Proxy gateway binds to localhost:9192 (bootstrap); broker node 1 → localhost:9193
+#     Both ports are mapped to fixed host ports in AbstractKroxyliciousBaseIT.
+
+management:
+  endpoints:
+    prometheus: {}
+
+virtualClusters:
+  - name: e2ecluster
+    targetCluster:
+      bootstrapServers: kafka:9092
+    gateways:
+      - name: e2egateway
+        portIdentifiesNode:
+          bootstrapAddress: 0.0.0.0:9192
+          advertisedBrokerAddressPattern: localhost
+    logNetwork: true
+    logFrames: false
+
+filterDefinitions:
+  - name: kryptonite-encrypt
+    type: com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter.KryptoniteEncryptionFilterFactory
+    config:
+      key_source: CONFIG
+      cipher_algorithm: TINK/AES_GCM
+      cipher_data_key_identifier: keyA
+      cipher_data_keys:
+        - identifier: keyA
+          material:
+            primaryKeyId: 1000000001
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+                  value: GhDRulECKAC8/19NMXDjeCjK
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000001
+                outputPrefixType: TINK
+        - identifier: keyB
+          material:
+            primaryKeyId: 1000000002
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+                  value: GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000002
+                outputPrefixType: TINK
+        - identifier: key9
+          material:
+            primaryKeyId: 1000000003
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesSivKey
+                  value: EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000003
+                outputPrefixType: TINK
+        - identifier: key8
+          material:
+            primaryKeyId: 1000000004
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesSivKey
+                  value: EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000004
+                outputPrefixType: TINK
+      schema_registry_url: http://schema-registry:8081
+      record_format: AVRO
+      schema_mode: DYNAMIC
+      topic_field_configs:
+        - topic_pattern: 'e2e-avro-.*'
+          field_configs:
+            - name: firstname
+            - name: lastname
+            - name: age
+            - name: address
+              fieldMode: OBJECT
+            - name: tags
+              fieldMode: ELEMENT
+            - name: scores
+              fieldMode: ELEMENT
+
+  - name: kryptonite-decrypt
+    type: com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter.KryptoniteDecryptionFilterFactory
+    config:
+      key_source: CONFIG
+      cipher_data_keys:
+        - identifier: keyA
+          material:
+            primaryKeyId: 1000000001
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+                  value: GhDRulECKAC8/19NMXDjeCjK
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000001
+                outputPrefixType: TINK
+        - identifier: keyB
+          material:
+            primaryKeyId: 1000000002
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesGcmKey
+                  value: GiBIZWxsbyFXb3JsZEZVQ0sxYWJjZGprbCQxMjM0NTY3OA==
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000002
+                outputPrefixType: TINK
+        - identifier: key9
+          material:
+            primaryKeyId: 1000000003
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesSivKey
+                  value: EkByiHi3H9shy2FO5UWgStNMmgqF629esenhnm0wZZArUkEU1/9l9J3ajJQI0GxDwzM1WFZK587W0xVB8KK4dqnz
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000003
+                outputPrefixType: TINK
+        - identifier: key8
+          material:
+            primaryKeyId: 1000000004
+            key:
+              - keyData:
+                  typeUrl: type.googleapis.com/google.crypto.tink.AesSivKey
+                  value: EkBWT3ZL7DmAN91erW3xAzMFDWMaQx34Su3VlaMiTWzjVDbKsH3IRr2HQFnaMvvVz2RH/+eYXn3zvAzWJbReCto/
+                  keyMaterialType: SYMMETRIC
+                status: ENABLED
+                keyId: 1000000004
+                outputPrefixType: TINK
+      schema_registry_url: http://schema-registry:8081
+      record_format: AVRO
+      schema_mode: DYNAMIC
+      topic_field_configs:
+        - topic_pattern: 'e2e-avro-.*'
+          field_configs:
+            - name: firstname
+            - name: lastname
+            - name: age
+            - name: address
+              fieldMode: OBJECT
+            - name: tags
+              fieldMode: ELEMENT
+            - name: scores
+              fieldMode: ELEMENT
+
+defaultFilters:
+  - kryptonite-encrypt
+  - kryptonite-decrypt

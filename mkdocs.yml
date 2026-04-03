@@ -74,6 +74,7 @@ nav:
     # - Apache Flink UDFs: getting-started/flink-udfs.md
     # - ksqlDB UDFs: getting-started/ksqldb-udfs.md
     # - Quarkus HTTP Service: getting-started/funqy-http.md
+    # - Kroxylicious Proxy Filter: getting-started/kroxylicious-filter.md
   - Key Management: key-management.md
   - Cloud KMS:
     - Overview: kms/overview.md
@@ -86,5 +87,6 @@ nav:
     - Apache Flink UDFs: modules/flink-udfs.md
     - ksqlDB UDFs: modules/ksqldb-udfs.md
     - Quarkus HTTP Service: modules/funqy-http.md
+    - Kroxylicious Proxy Filter: modules/kroxylicious-filter.md
   - Security: security.md
   - Configuration: configuration.md

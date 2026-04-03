@@ -22,6 +22,7 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import com.github.hpgrahsl.kryptonite.converters.avro.JsonAvroConverter;
 import com.github.hpgrahsl.kryptonite.converters.legacy.UnifiedTypeConverter;
 import com.github.hpgrahsl.kryptonite.serdes.avro.AvroPayload;
+import org.apache.avro.Schema;
 
 /**
  * Converter between {@code Map<String, Object>} field values and the serde canonical format.
@@ -78,6 +79,104 @@ public class MapFieldConverter {
     }
 
     /**
+     * Prepares a field value for encryption with opt-in schema caching.
+     *
+     * <p>Behaves identically to {@link #toCanonical(Object, String, String)} except that
+     * when {@code schemaCacheKey} is non-null it is forwarded to
+     * {@link JsonAvroConverter#toAvroGeneric(com.fasterxml.jackson.databind.JsonNode, String, String)}
+     * to enable schema caching. When {@code schemaCacheKey} is {@code null} this is
+     * equivalent to calling {@link #toCanonical(Object, String, String)}.
+     *
+     * <p>Callers in topic-scoped contexts (Kroxylicious proxy, Connect schemaless) should
+     * pass a stable key such as {@code "topicName.fieldPath"} to avoid redundant schema
+     * derivation for structurally identical records on the same topic. Callers without a
+     * stable key (e.g. Funqy HTTP) should use {@link #toCanonical(Object, String, String)}.
+     *
+     * @param value          the plaintext field value
+     * @param fieldPath      field path used as Avro record name
+     * @param serdeName      the configured serde name (e.g. {@code "AVRO"})
+     * @param schemaCacheKey stable cache key, or {@code null} to skip caching
+     * @return value ready to pass to {@link com.github.hpgrahsl.kryptonite.serdes.FieldHandler#encryptField}
+     */
+    public Object toCanonical(Object value, String fieldPath, String serdeName, String schemaCacheKey) {
+        if (KryptoniteSettings.SerdeType.AVRO.name().equals(serdeName)) {
+            var node = MAPPER.<JsonNode>valueToTree(value);
+            var recordName = fieldPath != null ? fieldPath : node.getNodeType().name();
+            return avroConverter.toAvroGeneric(node, recordName, schemaCacheKey);
+        }
+        return value;
+    }
+
+    /**
+     * Prepares a {@link JsonNode} field value for encryption, bypassing the
+     * {@code Object → JsonNode} roundtrip that {@link #toCanonical(Object, String, String)}
+     * requires for non-AVRO callers.
+     *
+     * <p>Use this overload in processors that already hold a {@link JsonNode} (e.g. the
+     * Kroxylicious proxy JSON path). For AVRO serde the node is passed directly to
+     * {@link JsonAvroConverter} — no intermediate Java Object conversion occurs. For KRYO
+     * serde {@code treeToValue} is still performed internally since Kryo requires a plain
+     * Java Object.
+     */
+    public Object toCanonical(JsonNode node, String fieldPath, String serdeName) {
+        if (KryptoniteSettings.SerdeType.AVRO.name().equals(serdeName)) {
+            var recordName = fieldPath != null ? fieldPath : node.getNodeType().name();
+            return avroConverter.toAvroGeneric(node, recordName);
+        }
+        try {
+            return MAPPER.treeToValue(node, Object.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert JsonNode to Java value", e);
+        }
+    }
+
+    /**
+     * Prepares a {@link JsonNode} field value for encryption with opt-in schema caching,
+     * bypassing the {@code Object → JsonNode} roundtrip.
+     *
+     * <p>Combines the {@link JsonNode}-direct path of
+     * {@link #toCanonical(JsonNode, String, String)} with the caching behaviour of
+     * {@link #toCanonical(Object, String, String, String)}.
+     */
+    public Object toCanonical(JsonNode node, String fieldPath, String serdeName, String schemaCacheKey) {
+        if (KryptoniteSettings.SerdeType.AVRO.name().equals(serdeName)) {
+            var recordName = fieldPath != null ? fieldPath : node.getNodeType().name();
+            return avroConverter.toAvroGeneric(node, recordName, schemaCacheKey);
+        }
+        try {
+            return MAPPER.treeToValue(node, Object.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert JsonNode to Java value", e);
+        }
+    }
+
+    /**
+     * Prepares a {@link JsonNode} field value for encryption using a caller-supplied Avro schema,
+     * bypassing both the {@code Object → JsonNode} roundtrip and schema derivation entirely.
+     *
+     * <p>Use this overload when the Avro schema is already known (e.g. translated from a Schema
+     * Registry JSON Schema document). For AVRO serde the provided schema is forwarded directly to
+     * {@link JsonAvroConverter#toAvroGeneric(JsonNode, Schema)} — no {@link
+     * com.github.hpgrahsl.kryptonite.converters.avro.JsonSchemaDeriver} involvement. For KRYO
+     * serde the {@code schema} parameter is ignored and {@code treeToValue} is used as usual.
+     *
+     * @param node      the plaintext field value as a {@link JsonNode}
+     * @param fieldPath field path (unused for schema resolution here, kept for API symmetry)
+     * @param serdeName the configured serde name (e.g. {@code "AVRO"})
+     * @param schema    the Avro schema to use directly; ignored for non-AVRO serdes
+     */
+    public Object toCanonical(JsonNode node, String fieldPath, String serdeName, Schema schema) {
+        if (KryptoniteSettings.SerdeType.AVRO.name().equals(serdeName)) {
+            return avroConverter.toAvroGeneric(node, schema);
+        }
+        try {
+            return MAPPER.treeToValue(node, Object.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert JsonNode to Java value", e);
+        }
+    }
+
+    /**
      * Converts serde output back to plain Java types after decryption.
      *
      * <ul>
@@ -98,6 +197,23 @@ public class MapFieldConverter {
             return MAPPER.convertValue(node, Object.class);
         }
         return legacyConverter.convertForMap(serdeOutput);
+    }
+
+    /**
+     * Converts serde output back to a {@link JsonNode} after decryption, bypassing the
+     * intermediate Java Object conversion that {@link #fromCanonical} performs.
+     *
+     * <p>Use this overload in processors that need a {@link JsonNode} result directly (e.g.
+     * the Kroxylicious proxy JSON path). For AVRO serde the {@link JsonNode} produced by
+     * {@link JsonAvroConverter} is returned as-is — no {@code convertValue} roundtrip occurs.
+     * For KRYO serde the legacy Java Object is converted to {@link JsonNode} via
+     * {@code valueToTree}.
+     */
+    public JsonNode fromCanonicalAsJsonNode(Object serdeOutput) {
+        if (serdeOutput instanceof AvroPayload p) {
+            return avroConverter.fromAvroGeneric(p.value(), p.schema());
+        }
+        return MAPPER.valueToTree(legacyConverter.convertForMap(serdeOutput));
     }
 
 }

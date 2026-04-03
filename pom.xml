@@ -1,5 +1,4 @@
-<?xml version="1.0"?>
-<!--
+<?xml version="1.0" encoding="UTF-8"?><!--
   ~ Copyright (c) 2021. Hans-Peter Grahsl (grahslhp@gmail.com)
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,16 +12,12 @@
   ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
-  -->
-
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  --><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.github.hpgrahsl</groupId>
   <artifactId>kryptonite-for-kafka</artifactId>
   <version>0.7.0-SNAPSHOT</version>
   <packaging>pom</packaging>
-
   <modules>
     <module>kryptonite</module>
     <module>kryptonite-kms-azure</module>
@@ -35,8 +30,8 @@
     <module>funqy-http-kryptonite</module>
     <module>flink-udfs-kryptonite</module>
     <module>kryptonite-keyset-tool</module>
+    <module>kroxylicious-filter-kryptonite</module>
   </modules>
-
   <description>Client-Side Field Level Cryptography for Kafka (unofficial community project)</description>
   <url>https://github.com/hpgrahsl/kryptonite-for-kafka</url>
   <licenses>
@@ -66,7 +61,6 @@
     <system>github</system>
     <url>https://github.com/hpgrahsl/kryptonite-for-kafka/issues</url>
   </issueManagement>
-
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
@@ -76,5 +70,4 @@
     <surefire.plugin.version>3.5.2</surefire.plugin.version>
     <jdk.17.plus.jvm.options>--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.nio=ALL-UNNAMED</jdk.17.plus.jvm.options>
   </properties>
-
 </project>
