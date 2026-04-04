@@ -24,9 +24,13 @@ import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfigEncrypted;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
-import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.AeadAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.EncryptDekSessionCache;
+import com.github.hpgrahsl.kryptonite.crypto.FpeAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.WrappedDekCache;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
+import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmEnvelopeKeyset;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
@@ -34,6 +38,7 @@ import com.github.hpgrahsl.kryptonite.keys.TinkKeyVaultEncrypted;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyVaultProvider;
+import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.daead.DeterministicAeadConfig;
 import java.security.GeneralSecurityException;
@@ -47,34 +52,32 @@ import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
 
 public class Kryptonite implements AutoCloseable {
 
-  public static final class CipherSpec {
+  public static abstract sealed class CipherSpec permits AeadCipherSpec, FpeCipherSpec {
 
     public static final String TYPE_TINK = "TINK";
     public static final String TYPE_CUSTOM = "CUSTOM";
 
     private final String type;
     private final String name;
-    private final CryptoAlgorithm algorithm;
-    private final boolean isCipherFPE;
 
-    public CipherSpec(String type, String name, CryptoAlgorithm algorithm, boolean isCipherFPE) {
-      this.type = Objects.requireNonNull(type,"cipher spec type must not be null");
+    protected CipherSpec(String type, String name) {
+      this.type = Objects.requireNonNull(type, "cipher spec type must not be null");
       this.name = Objects.requireNonNull(name, "cipher spec name must not be null");
-      this.algorithm = Objects.requireNonNull(algorithm, "cipher spec algorithm must not be null");
-      this.isCipherFPE = isCipherFPE;
     }
 
     public static CipherSpec fromName(String name) {
-      Objects.requireNonNull(name,"name must not be null");
-      switch(name) {
+      Objects.requireNonNull(name, "name must not be null");
+      switch (name) {
         case TinkAesGcm.CIPHER_ALGORITHM:
-          return new CipherSpec(CipherSpec.TYPE_TINK, TinkAesGcm.CIPHER_ALGORITHM, new TinkAesGcm(), false);
+          return new AeadCipherSpec(TYPE_TINK, TinkAesGcm.CIPHER_ALGORITHM, new TinkAesGcm());
         case TinkAesGcmSiv.CIPHER_ALGORITHM:
-          return new CipherSpec(CipherSpec.TYPE_TINK, TinkAesGcmSiv.CIPHER_ALGORITHM, new TinkAesGcmSiv(), false);
+          return new AeadCipherSpec(TYPE_TINK, TinkAesGcmSiv.CIPHER_ALGORITHM, new TinkAesGcmSiv());
         case MystoFpeFF31.CIPHER_ALGORITHM:
-          return new CipherSpec(CipherSpec.TYPE_CUSTOM, MystoFpeFF31.CIPHER_ALGORITHM, new MystoFpeFF31(), true);
+          return new FpeCipherSpec(TYPE_CUSTOM, MystoFpeFF31.CIPHER_ALGORITHM, new MystoFpeFF31());
+        case TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM:
+          return new AeadCipherSpec(TYPE_TINK, TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM, new TinkAesGcmEnvelopeKeyset());
         default:
-          throw new IllegalArgumentException("invalid name '"+name+"' to create CipherSpec for");
+          throw new IllegalArgumentException("invalid name '" + name + "' to create CipherSpec for");
       }
     }
 
@@ -86,22 +89,14 @@ public class Kryptonite implements AutoCloseable {
       return name;
     }
 
-    public CryptoAlgorithm getAlgorithm() {
-      return algorithm;
-    }
-
     public boolean isCipherFPE() {
-      return isCipherFPE;
+      return this instanceof FpeCipherSpec;
     }
 
     @Override
     public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof CipherSpec)) {
-        return false;
-      }
+      if (this == o) return true;
+      if (!(o instanceof CipherSpec)) return false;
       CipherSpec that = (CipherSpec) o;
       return type.equals(that.type) && name.equals(that.name);
     }
@@ -116,8 +111,38 @@ public class Kryptonite implements AutoCloseable {
       return "CipherSpec{" +
           "type='" + type + '\'' +
           ", name='" + name + '\'' +
-          ", isCipherFPE=" + isCipherFPE +
+          ", isCipherFPE=" + isCipherFPE() +
           '}';
+    }
+
+  }
+
+  public static final class AeadCipherSpec extends CipherSpec {
+
+    private final AeadAlgorithm algorithm;
+
+    public AeadCipherSpec(String type, String name, AeadAlgorithm algorithm) {
+      super(type, name);
+      this.algorithm = Objects.requireNonNull(algorithm, "algorithm must not be null");
+    }
+
+    public AeadAlgorithm getAlgorithm() {
+      return algorithm;
+    }
+
+  }
+
+  public static final class FpeCipherSpec extends CipherSpec {
+
+    private final FpeAlgorithm algorithm;
+
+    public FpeCipherSpec(String type, String name, FpeAlgorithm algorithm) {
+      super(type, name);
+      this.algorithm = Objects.requireNonNull(algorithm, "algorithm must not be null");
+    }
+
+    public FpeAlgorithm getAlgorithm() {
+      return algorithm;
     }
 
   }
@@ -127,18 +152,22 @@ public class Kryptonite implements AutoCloseable {
   public static final Map<CipherSpec,String> CIPHERSPEC_ID_LUT = Map.of(
       CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"02",
       CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"03",
-      CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),"04"
+      CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),"04",
+      CipherSpec.fromName(TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM),"05"
   );
 
   public static final Map<String,CipherSpec> ID_CIPHERSPEC_LUT = Map.of(
       "02", CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
       "03", CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
-      "04", CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM)
+      "04", CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),
+      "05", CipherSpec.fromName(TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM)
   );
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final AbstractKeyVault keyVault;
+  private final WrappedDekCache wrappedDekCache;
+  private final EncryptDekSessionCache encryptDekSessionCache;
 
   public AbstractKeyVault getKeyVault() {
     return keyVault;
@@ -150,7 +179,17 @@ public class Kryptonite implements AutoCloseable {
   }
 
   public Kryptonite(AbstractKeyVault keyVault) {
+    this(keyVault, null, null);
+  }
+
+  public Kryptonite(AbstractKeyVault keyVault, int wrappedDekCacheSize) {
+    this(keyVault, new WrappedDekCache(wrappedDekCacheSize), null);
+  }
+
+  public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache) {
     this.keyVault = keyVault;
+    this.wrappedDekCache = wrappedDekCache;
+    this.encryptDekSessionCache = encryptDekSessionCache;
     try {
       AeadConfig.register();
       DeterministicAeadConfig.register();
@@ -172,21 +211,42 @@ public class Kryptonite implements AutoCloseable {
   public byte[] cipherFieldRaw(byte[] plaintext, PayloadMetaData metadata) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(metadata.getAlgorithmId());
-      return cipherSpec.getAlgorithm().cipher(plaintext, keyVault.readKeysetHandle(metadata.getKeyId()), metadata.asBytes());
+      if (!(cipherSpec instanceof AeadCipherSpec aead)) {
+        throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
+      }
+      var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
+      var wrapAad = metadata.getKeyId().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+      if (aead.getAlgorithm() instanceof TinkAesGcmEnvelopeKeyset envelopeAlgorithm && encryptDekSessionCache != null) {
+        var session = encryptDekSessionCache.getOrCreate(metadata.getKeyId(), () -> {
+          try {
+            return envelopeAlgorithm.createSession(keysetHandle, wrapAad);
+          } catch (Exception e) {
+            throw new KryptoniteException("failed to create DEK session", e);
+          }
+        });
+        return envelopeAlgorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), metadata.asBytes());
+      }
+      return aead.getAlgorithm().cipher(plaintext, keysetHandle, metadata.asBytes(), wrapAad);
+    } catch (KryptoniteException e) {
+      throw e;
     } catch (Exception e) {
-      throw new KryptoniteException(e.getMessage(),e);
+      throw new KryptoniteException(e.getMessage(), e);
     }
   }
 
   public byte[] cipherFieldFPE(byte[] plaintext, FieldMetaData fieldMetaData) {
     try {
       var cipherSpec = CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase());
+      if (!(cipherSpec instanceof FpeCipherSpec fpe)) {
+        throw new KryptoniteException("algorithm '" + fieldMetaData.getAlgorithm() + "' is not an FPE algorithm");
+      }
       var keysetHandle = keyVault.readKeysetHandle(fieldMetaData.getKeyId());
       var tweakBytes = fieldMetaData.getFpeTweak() != null ? fieldMetaData.getFpeTweak().getBytes() : null;
-      var alphabet = fieldMetaData.getFpeAlphabet();
-      return cipherSpec.getAlgorithm().cipherFPE(plaintext, keysetHandle, alphabet, tweakBytes);
+      return fpe.getAlgorithm().cipherFPE(plaintext, keysetHandle, fieldMetaData.getFpeAlphabet(), tweakBytes);
+    } catch (KryptoniteException e) {
+      throw e;
     } catch (Exception e) {
-      throw new KryptoniteException(e.getMessage(),e);
+      throw new KryptoniteException(e.getMessage(), e);
     }
   }
 
@@ -202,24 +262,47 @@ public class Kryptonite implements AutoCloseable {
   public byte[] decipherFieldRaw(byte[] ciphertext, PayloadMetaData metadata) {
     try {
       var cipherSpec = ID_CIPHERSPEC_LUT.get(metadata.getAlgorithmId());
-      return cipherSpec.getAlgorithm().decipher(
-          ciphertext,
-          keyVault.readKeysetHandle(metadata.getKeyId()),
-          metadata.asBytes()
-      );
+      if (!(cipherSpec instanceof AeadCipherSpec aead)) {
+        throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
+      }
+      var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
+      var wrapAad = metadata.getKeyId().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+      if (aead.getAlgorithm() instanceof TinkAesGcmEnvelopeKeyset envelopeAlgorithm) {
+        byte[] wrappedDek = envelopeAlgorithm.extractWrappedDek(ciphertext);
+        Aead dekAead;
+        if (wrappedDekCache != null) {
+          dekAead = wrappedDekCache.get(wrappedDek, wdk -> {
+            try {
+              return envelopeAlgorithm.unwrapDek(wdk, keysetHandle, wrapAad);
+            } catch (Exception e) {
+              throw new KryptoniteException("failed to unwrap DEK", e);
+            }
+          });
+        } else {
+          dekAead = envelopeAlgorithm.unwrapDek(wrappedDek, keysetHandle, wrapAad);
+        }
+        return envelopeAlgorithm.decipherWithDek(ciphertext, dekAead, metadata.asBytes());
+      }
+      return aead.getAlgorithm().decipher(ciphertext, keysetHandle, metadata.asBytes(), wrapAad);
+    } catch (KryptoniteException e) {
+      throw e;
     } catch (Exception e) {
-      throw new KryptoniteException(e.getMessage(),e);
+      throw new KryptoniteException(e.getMessage(), e);
     }
   }
 
   public byte[] decipherFieldFPE(byte[] ciphertext, FieldMetaData fieldMetaData) {
     try {
       var cipherSpec = CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase());
+      if (!(cipherSpec instanceof FpeCipherSpec fpe)) {
+        throw new KryptoniteException("algorithm '" + fieldMetaData.getAlgorithm() + "' is not an FPE algorithm");
+      }
       var tweakBytes = fieldMetaData.getFpeTweak() != null ? fieldMetaData.getFpeTweak().getBytes() : null;
-      var alphabet = fieldMetaData.getFpeAlphabet();
-      return cipherSpec.getAlgorithm().decipherFPE(ciphertext, keyVault.readKeysetHandle(fieldMetaData.getKeyId()), alphabet, tweakBytes);
+      return fpe.getAlgorithm().decipherFPE(ciphertext, keyVault.readKeysetHandle(fieldMetaData.getKeyId()), fieldMetaData.getFpeAlphabet(), tweakBytes);
+    } catch (KryptoniteException e) {
+      throw e;
     } catch (Exception e) {
-      throw new KryptoniteException(e.getMessage(),e);
+      throw new KryptoniteException(e.getMessage(), e);
     }
   }
 
@@ -253,7 +336,7 @@ public class Kryptonite implements AutoCloseable {
     );
     var keyConfigs = dataKeyConfig.stream().collect(
         Collectors.toMap(DataKeyConfig::getIdentifier, DataKeyConfig::getMaterial));
-    return new Kryptonite(new TinkKeyVault(keyConfigs));
+    return new Kryptonite(new TinkKeyVault(keyConfigs), wrappedDekCache(config), encryptDekSessionCache(config));
   }
 
   private static Kryptonite withTinkKeyVaultEncrypted(Map<String,String> config)
@@ -264,7 +347,7 @@ public class Kryptonite implements AutoCloseable {
     );
     var keyConfigs = dataKeyConfig.stream().collect(
         Collectors.toMap(DataKeyConfigEncrypted::getIdentifier, DataKeyConfigEncrypted::getMaterial));
-    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)));
+    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)), wrappedDekCache(config), encryptDekSessionCache(config));
   }
 
   private static Kryptonite withKmsKeyVault(Map<String,String> config) {
@@ -280,7 +363,7 @@ public class Kryptonite implements AutoCloseable {
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
     var vault = provider.createKeyVault(kmsConfig);
     vault.startBackgroundRefresh(kmsCacheRefreshIntervalMinutes(config));
-    return new Kryptonite(vault);
+    return new Kryptonite(vault, wrappedDekCache(config), encryptDekSessionCache(config));
   }
 
   private static Kryptonite withKmsKeyVaultEncrypted(Map<String,String> config) {
@@ -296,7 +379,7 @@ public class Kryptonite implements AutoCloseable {
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
     var vault = provider.createKeyVaultEncrypted(configureKmsKeyEncryption(config), kmsConfig);
     vault.startBackgroundRefresh(kmsCacheRefreshIntervalMinutes(config));
-    return new Kryptonite(vault);
+    return new Kryptonite(vault, wrappedDekCache(config), encryptDekSessionCache(config));
   }
 
   private static long kmsCacheRefreshIntervalMinutes(Map<String,String> config) {
@@ -306,6 +389,28 @@ public class Kryptonite implements AutoCloseable {
           String.valueOf(KMS_REFRESH_INTERVAL_MINUTES_DEFAULT)));
     } catch (NumberFormatException e) {
       return KMS_REFRESH_INTERVAL_MINUTES_DEFAULT;
+    }
+  }
+
+  private static WrappedDekCache wrappedDekCache(Map<String,String> config) {
+    try {
+      int size = Integer.parseInt(config.getOrDefault(
+          DEK_CACHE_SIZE, String.valueOf(DEK_CACHE_SIZE_DEFAULT)));
+      return new WrappedDekCache(size);
+    } catch (NumberFormatException e) {
+      return new WrappedDekCache(DEK_CACHE_SIZE_DEFAULT);
+    }
+  }
+
+  private static EncryptDekSessionCache encryptDekSessionCache(Map<String,String> config) {
+    try {
+      long maxRecords = Long.parseLong(config.getOrDefault(
+          DEK_MAX_RECORDS, String.valueOf(DEK_MAX_RECORDS_DEFAULT)));
+      long ttlMinutes = Long.parseLong(config.getOrDefault(
+          DEK_TTL_MINUTES, String.valueOf(DEK_TTL_MINUTES_DEFAULT)));
+      return new EncryptDekSessionCache(maxRecords, ttlMinutes);
+    } catch (NumberFormatException e) {
+      return new EncryptDekSessionCache(DEK_MAX_RECORDS_DEFAULT, DEK_TTL_MINUTES_DEFAULT);
     }
   }
 

@@ -16,12 +16,12 @@
 
 package com.github.hpgrahsl.kryptonite.crypto.tink;
 
-import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.AeadAlgorithm;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.RegistryConfiguration;
 
-public class TinkAesGcm implements CryptoAlgorithm {
+public class TinkAesGcm implements AeadAlgorithm {
 
   public static final String CIPHER_ALGORITHM = "TINK/AES_GCM";
 
@@ -35,16 +35,6 @@ public class TinkAesGcm implements CryptoAlgorithm {
   public byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
     Aead aead = keysetHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
     return aead.decrypt(ciphertext, associatedData);
-  }
-
-  @Override
-  public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception {
-    throw new UnsupportedOperationException("unsupported method 'cipherFPE' for " + CIPHER_ALGORITHM);
-  }
-
-  @Override
-  public byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception {
-    throw new UnsupportedOperationException("unsupported method 'decipherFPE' for " + CIPHER_ALGORITHM);
   }
 
 }
