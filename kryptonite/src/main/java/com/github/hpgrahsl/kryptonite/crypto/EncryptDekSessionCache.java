@@ -16,7 +16,10 @@
 
 package com.github.hpgrahsl.kryptonite.crypto;
 
-import java.util.concurrent.ConcurrentHashMap;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import java.time.Clock;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -26,19 +29,39 @@ import java.util.function.Supplier;
  * {@code maxRecords} uses OR its age exceeds {@code ttlMinutes}, whichever happens first.
  * At that point a new session is created transparently.
  *
- * <p>Thread-safe: uses {@link ConcurrentHashMap#compute} for atomic session rotation.
- * Use-count increments are soft limits. This means a session may be used slightly beyond either
- * threshold under concurrent access, which is acceptable.
+ * <p>Backed by Caffeine for correct concurrent access and bounded size. The number of entries
+ * is bounded by the number of distinct keyIds in use, which is typically very small.
+ * Rotation logic (maxRecords / TTL) is handled in user code via {@link EncryptDekSession}.
+ *
+ * <p>Use-count increments are soft limits — a session may be used slightly beyond either
+ * threshold under concurrent access, which is acceptable for a performance optimization.
  */
 public class EncryptDekSessionCache {
 
+  private static final int MAX_KEY_IDS = 256;
+
   private final long maxRecords;
   private final long ttlMs;
-  private final ConcurrentHashMap<String, EncryptDekSession> sessions = new ConcurrentHashMap<>();
+  private final Clock clock;
+  private final Cache<String, EncryptDekSession> sessions;
 
   public EncryptDekSessionCache(long maxRecords, long ttlMinutes) {
+    this(maxRecords, ttlMinutes, Clock.systemUTC());
+  }
+
+  public EncryptDekSessionCache(long maxRecords, long ttlMinutes, Clock clock) {
+    if (maxRecords <= 0) throw new IllegalArgumentException("maxRecords must be > 0");
+    if (ttlMinutes <= 0) throw new IllegalArgumentException("ttlMinutes must be > 0");
     this.maxRecords = maxRecords;
     this.ttlMs = ttlMinutes * 60_000L;
+    this.clock = clock;
+    this.sessions = Caffeine.newBuilder()
+        .maximumSize(MAX_KEY_IDS)
+        .build();
+  }
+
+  public Clock getClock() {
+    return clock;
   }
 
   /**
@@ -46,18 +69,18 @@ public class EncryptDekSessionCache {
    * rotating it via {@code factory} if the current session is expired or absent.
    */
   public EncryptDekSession getOrCreate(String keyId, Supplier<EncryptDekSession> factory) {
-    EncryptDekSession current = sessions.get(keyId);
-    if (current != null && current.isValid(maxRecords, ttlMs)) {
-      current.incrementUseCount();
+    EncryptDekSession current = sessions.getIfPresent(keyId);
+    if (current != null && current.tryAcquire(maxRecords, ttlMs)) {
       return current;
     }
-    EncryptDekSession result = sessions.compute(keyId, (k, existing) -> {
-      if (existing != null && existing.isValid(maxRecords, ttlMs)) {
+    // session absent or invalid — compute atomically to avoid duplicate session creation
+    EncryptDekSession result = sessions.asMap().compute(keyId, (k, existing) -> {
+      if (existing != null && existing.tryAcquire(maxRecords, ttlMs)) {
         return existing;
       }
-      return factory.get();
+      return Objects.requireNonNull(factory.get(), "factory must not return null");
     });
-    result.incrementUseCount();
+    result.tryAcquire(maxRecords, ttlMs);
     return result;
   }
 

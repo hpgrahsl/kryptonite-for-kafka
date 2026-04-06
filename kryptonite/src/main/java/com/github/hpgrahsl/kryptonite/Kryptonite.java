@@ -41,6 +41,8 @@ import com.github.hpgrahsl.kryptonite.kms.KmsKeyVaultProvider;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.daead.DeterministicAeadConfig;
+
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 import java.util.Objects;
@@ -215,11 +217,11 @@ public class Kryptonite implements AutoCloseable {
         throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
       }
       var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
-      var wrapAad = metadata.getKeyId().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+      var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
       if (aead.getAlgorithm() instanceof TinkAesGcmEnvelopeKeyset envelopeAlgorithm && encryptDekSessionCache != null) {
         var session = encryptDekSessionCache.getOrCreate(metadata.getKeyId(), () -> {
           try {
-            return envelopeAlgorithm.createSession(keysetHandle, wrapAad);
+            return envelopeAlgorithm.createSession(keysetHandle, wrapAad, encryptDekSessionCache.getClock());
           } catch (Exception e) {
             throw new KryptoniteException("failed to create DEK session", e);
           }
@@ -266,7 +268,7 @@ public class Kryptonite implements AutoCloseable {
         throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
       }
       var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
-      var wrapAad = metadata.getKeyId().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+      var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
       if (aead.getAlgorithm() instanceof TinkAesGcmEnvelopeKeyset envelopeAlgorithm) {
         byte[] wrappedDek = envelopeAlgorithm.extractWrappedDek(ciphertext);
         Aead dekAead;

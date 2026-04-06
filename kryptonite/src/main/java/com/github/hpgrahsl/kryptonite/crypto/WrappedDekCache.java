@@ -16,26 +16,27 @@
 
 package com.github.hpgrahsl.kryptonite.crypto;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.crypto.tink.Aead;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
 /**
  * Bounded LRU cache mapping wrapped DEK bytes to their unwrapped {@link Aead} primitive.
  *
  * <p>Avoids redundant unwrap operations when the same wrapped DEK appears across multiple
- * records — common during replay or when encrypt-side sessions are enabled. For Mode A with
- * default settings (fresh DEK per record) the cache will rarely hit on the encrypt path, but
- * is still valuable for decrypt-side reprocessing scenarios.
+ * records — common during replay or when encrypt-side DEK sessions are enabled.
  *
- * <p>Thread-safe via a {@link ReentrantReadWriteLock}: reads are concurrent; writes are exclusive.
+ * <p>Backed by Caffeine for correct, concurrent, bounded LRU eviction.
  */
 public class WrappedDekCache {
 
   private record WrappedDekKey(byte[] bytes) {
+    WrappedDekKey(byte[] bytes) {
+      this.bytes = bytes.clone();
+    }
+
     @Override
     public boolean equals(Object o) {
       if (!(o instanceof WrappedDekKey other)) return false;
@@ -48,16 +49,13 @@ public class WrappedDekCache {
     }
   }
 
-  private final LinkedHashMap<WrappedDekKey, Aead> cache;
-  private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private final Cache<WrappedDekKey, Aead> cache;
 
   public WrappedDekCache(int maxSize) {
-    this.cache = new LinkedHashMap<>(maxSize, 0.75f, true) {
-      @Override
-      protected boolean removeEldestEntry(Map.Entry<WrappedDekKey, Aead> eldest) {
-        return size() > maxSize;
-      }
-    };
+    if (maxSize <= 0) throw new IllegalArgumentException("maxSize must be > 0");
+    this.cache = Caffeine.newBuilder()
+        .maximumSize(maxSize)
+        .build();
   }
 
   /**
@@ -65,25 +63,16 @@ public class WrappedDekCache {
    * it using the provided loader function on a cache miss.
    */
   public Aead get(byte[] wrappedDek, Function<byte[], Aead> loader) {
-    var key = new WrappedDekKey(wrappedDek);
-    lock.readLock().lock();
-    try {
-      Aead cached = cache.get(key);
-      if (cached != null) return cached;
-    } finally {
-      lock.readLock().unlock();
-    }
-    lock.writeLock().lock();
-    try {
-      // re-check after acquiring write lock
-      Aead cached = cache.get(key);
-      if (cached != null) return cached;
-      Aead aead = loader.apply(wrappedDek);
-      cache.put(key, aead);
-      return aead;
-    } finally {
-      lock.writeLock().unlock();
-    }
+    return cache.get(new WrappedDekKey(wrappedDek), k -> loader.apply(k.bytes()));
+  }
+
+  /**
+   * Performs any pending maintenance operations, including eviction of entries that exceed
+   * {@code maxSize}. Caffeine eviction is normally asynchronous; this method forces it to run
+   * synchronously. Intended for testing only.
+   */
+  public void cleanUp() {
+    cache.cleanUp();
   }
 
 }

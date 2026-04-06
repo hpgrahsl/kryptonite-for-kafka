@@ -17,27 +17,34 @@
 package com.github.hpgrahsl.kryptonite.crypto;
 
 import com.google.crypto.tink.Aead;
+import java.time.Clock;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Holds an active encrypt-side DEK session: the wrapped DEK bytes (to bundle into ciphertext)
  * and the unwrapped {@link Aead} (to encrypt plaintext), plus rotation bookkeeping.
  *
- * <p>A session is valid as long as its use count is below {@code maxRecords} AND its age is
- * below {@code ttlMs}. Both are soft limits which means a session may be used slightly beyond either
- * threshold under concurrent access, which is acceptable.
+ * <p>A session slot is claimed atomically via {@link #tryAcquire}: TTL is checked first,
+ * then the use-count is incremented with {@code getAndIncrement} — giving each caller a unique
+ * slot number so exactly {@code maxRecords} calls succeed before rotation, never more.
  */
 public class EncryptDekSession {
 
   private final byte[] wrappedDek;
   private final Aead dekAead;
   private final long createdAtMs;
+  private final Clock clock;
   private final AtomicLong useCount = new AtomicLong(0);
 
   public EncryptDekSession(byte[] wrappedDek, Aead dekAead) {
+    this(wrappedDek, dekAead, Clock.systemUTC());
+  }
+
+  public EncryptDekSession(byte[] wrappedDek, Aead dekAead, Clock clock) {
     this.wrappedDek = wrappedDek;
     this.dekAead = dekAead;
-    this.createdAtMs = System.currentTimeMillis();
+    this.clock = clock;
+    this.createdAtMs = clock.millis();
   }
 
   public byte[] wrappedDek() {
@@ -48,13 +55,24 @@ public class EncryptDekSession {
     return dekAead;
   }
 
-  boolean isValid(long maxRecords, long ttlMs) {
-    return useCount.get() < maxRecords
-        && (System.currentTimeMillis() - createdAtMs) < ttlMs;
-  }
-
-  void incrementUseCount() {
-    useCount.incrementAndGet();
+  /**
+   * Tries to claim a use-count slot for this session.
+   *
+   * <p>The use-count slot claim is atomic: {@code getAndIncrement} assigns each concurrent caller
+   * a unique slot number, so exactly {@code maxRecords} callers succeed — no over-counting,
+   * no skipped slots.
+   *
+   * <p>The TTL check is NOT atomic with respect to the slot claim. A caller may pass the TTL
+   * check and then acquire a slot on a session that has just crossed its TTL boundary. This means
+   * a session may be used for at most one extra record beyond the TTL under a race, which is an
+   * accepted soft-limit trade-off for a performance optimization.
+   *
+   * @return {@code true} if the TTL has not expired and a slot was successfully claimed;
+   *         {@code false} if the session has expired by TTL or exhausted its use-count.
+   */
+  public boolean tryAcquire(long maxRecords, long ttlMs) {
+    if ((clock.millis() - createdAtMs) >= ttlMs) return false;
+    return useCount.getAndIncrement() < maxRecords;
   }
 
 }

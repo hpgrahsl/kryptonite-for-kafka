@@ -27,6 +27,7 @@ import com.google.crypto.tink.aead.AesGcmParameters;
 import com.google.crypto.tink.util.SecretBytes;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 
 /**
  * Envelope encryption using a Tink keyset as the KEK (Key Encryption Key).
@@ -118,11 +119,15 @@ public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
    * Used by the encrypt path when session-based DEK reuse is enabled.
    */
   public EncryptDekSession createSession(KeysetHandle kekHandle, byte[] wrapAad) throws Exception {
+    return createSession(kekHandle, wrapAad, Clock.systemUTC());
+  }
+
+  public EncryptDekSession createSession(KeysetHandle kekHandle, byte[] wrapAad, Clock clock) throws Exception {
     SecretBytes rawDek = SecretBytes.randomBytes(DEK_SIZE_BYTES);
     Aead kekAead = kekHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
     byte[] wrappedDek = kekAead.encrypt(rawDek.toByteArray(InsecureSecretKeyAccess.get()), wrapAad);
     Aead dekAead = dekAeadFromRawBytes(rawDek);
-    return new EncryptDekSession(wrappedDek, dekAead);
+    return new EncryptDekSession(wrappedDek, dekAead, clock);
   }
 
   /**
