@@ -28,14 +28,15 @@ import com.google.crypto.tink.util.SecretBytes;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.time.Clock;
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.TRACE;
 
 /**
  * Envelope encryption using a Tink keyset as the KEK (Key Encryption Key).
  *
- * <p>The DEK is a raw 16-byte AES-128-GCM key. Only the raw key bytes are wrapped by the KEK,
- * keeping the wrapped DEK small (~49 bytes: 16 key + 5 Tink prefix + 12 IV + 16 tag).
+ * <p>The DEK is a raw 16-byte AES-128-GCM key. Only the raw key bytes are wrapped by the KEK.
  *
- * <p>Encrypt path (per call — fresh DEK):
+ * <p>Encrypt path:
  * <ol>
  *   <li>Generate 16 fresh random DEK bytes</li>
  *   <li>Wrap the raw DEK bytes with the KEK using {@code wrapAad} as AAD</li>
@@ -56,6 +57,8 @@ import java.time.Clock;
  * {@code encryptAad} is the full payload metadata bytes (version + algorithmId + keyId).
  */
 public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
+
+  private static final System.Logger LOG = System.getLogger(TinkAesGcmEnvelopeKeyset.class.getName());
 
   public static final String CIPHER_ALGORITHM = "TINK/AES_GCM_ENVELOPE_KEYSET";
 
@@ -85,16 +88,17 @@ public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
 
   @Override
   public byte[] cipher(byte[] plaintext, KeysetHandle kekHandle, byte[] encryptAad, byte[] wrapAad) throws Exception {
-    // 1. Generate fresh 16-byte ephemeral DEK
+    LOG.log(TRACE, "cipher: plaintext={0}B wrapAad={1}B", plaintext.length, wrapAad.length);
     SecretBytes rawDek = SecretBytes.randomBytes(DEK_SIZE_BYTES);
-    // 2. Wrap raw DEK bytes with KEK; wrapAad binds the wrapped DEK to the key identifier
+    LOG.log(TRACE, "cipher: generated fresh DEK ({0}B)", DEK_SIZE_BYTES);
     Aead kekAead = kekHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
     byte[] wrappedDek = kekAead.encrypt(rawDek.toByteArray(InsecureSecretKeyAccess.get()), wrapAad);
-    // 3. Encrypt plaintext with DEK; encryptAad is the full payload metadata
+    LOG.log(TRACE, "cipher: DEK wrapped by KEK, wrappedDek={0}B", wrappedDek.length);
     Aead dekAead = dekAeadFromRawBytes(rawDek);
     byte[] dekCiphertext = dekAead.encrypt(plaintext, encryptAad);
-    // 4. Bundle: [4-byte wrappedDekLen | wrappedDek | dekCiphertext]
-    return bundle(wrappedDek, dekCiphertext);
+    byte[] bundle = bundle(wrappedDek, dekCiphertext);
+    LOG.log(TRACE, "cipher: bundle={0}B (wrappedDek={1}B + dekCiphertext={2}B)", bundle.length, wrappedDek.length, dekCiphertext.length);
+    return bundle;
   }
 
   @Override
@@ -105,13 +109,18 @@ public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
 
   @Override
   public byte[] decipher(byte[] ciphertext, KeysetHandle kekHandle, byte[] encryptAad, byte[] wrapAad) throws Exception {
+    LOG.log(TRACE, "decipher: ciphertext={0}B wrapAad={1}B", ciphertext.length, wrapAad.length);
     byte[][] parts = unbundle(ciphertext);
     byte[] wrappedDek = parts[0];
     byte[] dekCiphertext = parts[1];
+    LOG.log(TRACE, "decipher: unbundled wrappedDek={0}B dekCiphertext={1}B", wrappedDek.length, dekCiphertext.length);
     Aead kekAead = kekHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
     byte[] rawDekBytes = kekAead.decrypt(wrappedDek, wrapAad);
+    LOG.log(TRACE, "decipher: DEK unwrapped ({0}B)", rawDekBytes.length);
     Aead dekAead = dekAeadFromRawBytes(SecretBytes.copyFrom(rawDekBytes, InsecureSecretKeyAccess.get()));
-    return dekAead.decrypt(dekCiphertext, encryptAad);
+    byte[] plaintext = dekAead.decrypt(dekCiphertext, encryptAad);
+    LOG.log(TRACE, "decipher: plaintext={0}B", plaintext.length);
+    return plaintext;
   }
 
   /**
@@ -123,9 +132,11 @@ public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
   }
 
   public EncryptDekSession createSession(KeysetHandle kekHandle, byte[] wrapAad, Clock clock) throws Exception {
+    LOG.log(DEBUG, "createSession: generating new DEK session (wrapAad={0}B)", wrapAad.length);
     SecretBytes rawDek = SecretBytes.randomBytes(DEK_SIZE_BYTES);
     Aead kekAead = kekHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
     byte[] wrappedDek = kekAead.encrypt(rawDek.toByteArray(InsecureSecretKeyAccess.get()), wrapAad);
+    LOG.log(DEBUG, "createSession: DEK session created, wrappedDek={0}B", wrappedDek.length);
     Aead dekAead = dekAeadFromRawBytes(rawDek);
     return new EncryptDekSession(wrappedDek, dekAead, clock);
   }
@@ -135,8 +146,11 @@ public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
    * Used by the encrypt path after a session cache hit to avoid generating a fresh DEK.
    */
   public byte[] cipherWithDek(byte[] plaintext, Aead dekAead, byte[] wrappedDek, byte[] encryptAad) throws Exception {
+    LOG.log(TRACE, "cipherWithDek: reusing DEK session, plaintext={0}B wrappedDek={1}B", plaintext.length, wrappedDek.length);
     byte[] dekCiphertext = dekAead.encrypt(plaintext, encryptAad);
-    return bundle(wrappedDek, dekCiphertext);
+    byte[] bundle = bundle(wrappedDek, dekCiphertext);
+    LOG.log(TRACE, "cipherWithDek: bundle={0}B", bundle.length);
+    return bundle;
   }
 
   /**
@@ -144,8 +158,10 @@ public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
    * Used by the decrypt path to enable DEK caching in {@code WrappedDekCache}.
    */
   public Aead unwrapDek(byte[] wrappedDek, KeysetHandle kekHandle, byte[] wrapAad) throws Exception {
+    LOG.log(TRACE, "unwrapDek: wrappedDek={0}B wrapAad={1}B", wrappedDek.length, wrapAad.length);
     Aead kekAead = kekHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
     byte[] rawDekBytes = kekAead.decrypt(wrappedDek, wrapAad);
+    LOG.log(TRACE, "unwrapDek: DEK unwrapped ({0}B)", rawDekBytes.length);
     return dekAeadFromRawBytes(SecretBytes.copyFrom(rawDekBytes, InsecureSecretKeyAccess.get()));
   }
 
@@ -166,8 +182,11 @@ public class TinkAesGcmEnvelopeKeyset implements AeadAlgorithm {
    * Used by the decrypt path after a cache hit to avoid re-unwrapping the DEK.
    */
   public byte[] decipherWithDek(byte[] ciphertext, Aead dekAead, byte[] encryptAad) throws Exception {
+    LOG.log(TRACE, "decipherWithDek: ciphertext={0}B (reusing cached DEK Aead)", ciphertext.length);
     byte[][] parts = unbundle(ciphertext);
-    return dekAead.decrypt(parts[1], encryptAad);
+    byte[] plaintext = dekAead.decrypt(parts[1], encryptAad);
+    LOG.log(TRACE, "decipherWithDek: plaintext={0}B", plaintext.length);
+    return plaintext;
   }
 
   public byte[] extractWrappedDek(byte[] bundle) {

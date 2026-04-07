@@ -19,6 +19,7 @@ package com.github.hpgrahsl.kryptonite.crypto;
 import com.google.crypto.tink.Aead;
 import java.time.Clock;
 import java.util.concurrent.atomic.AtomicLong;
+import static java.lang.System.Logger.Level.TRACE;
 
 /**
  * Holds an active encrypt-side DEK session: the wrapped DEK bytes (to bundle into ciphertext)
@@ -26,9 +27,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>A session slot is claimed atomically via {@link #tryAcquire}: TTL is checked first,
  * then the use-count is incremented with {@code getAndIncrement} — giving each caller a unique
- * slot number so exactly {@code maxRecords} calls succeed before rotation, never more.
+ * slot number so exactly {@code maxEncryptions} calls succeed before rotation, never more.
  */
 public class EncryptDekSession {
+
+  private static final System.Logger LOG = System.getLogger(EncryptDekSession.class.getName());
 
   private final byte[] wrappedDek;
   private final Aead dekAead;
@@ -59,7 +62,7 @@ public class EncryptDekSession {
    * Tries to claim a use-count slot for this session.
    *
    * <p>The use-count slot claim is atomic: {@code getAndIncrement} assigns each concurrent caller
-   * a unique slot number, so exactly {@code maxRecords} callers succeed — no over-counting,
+   * a unique slot number, so exactly {@code maxEncryptions} callers succeed — no over-counting,
    * no skipped slots.
    *
    * <p>The TTL check is NOT atomic with respect to the slot claim. A caller may pass the TTL
@@ -70,9 +73,19 @@ public class EncryptDekSession {
    * @return {@code true} if the TTL has not expired and a slot was successfully claimed;
    *         {@code false} if the session has expired by TTL or exhausted its use-count.
    */
-  public boolean tryAcquire(long maxRecords, long ttlMs) {
-    if ((clock.millis() - createdAtMs) >= ttlMs) return false;
-    return useCount.getAndIncrement() < maxRecords;
+  public boolean tryAcquire(long maxEncryptions, long ttlMs) {
+    long ageMs = clock.millis() - createdAtMs;
+    if (ageMs >= ttlMs) {
+      LOG.log(TRACE, "tryAcquire: session expired by TTL (age={0}ms >= ttl={1}ms)", ageMs, ttlMs);
+      return false;
+    }
+    long slot = useCount.getAndIncrement();
+    if (slot < maxEncryptions) {
+      LOG.log(TRACE, "tryAcquire: slot acquired (slot={0} maxEncryptions={1})", slot, maxEncryptions);
+      return true;
+    }
+    LOG.log(TRACE, "tryAcquire: session exhausted (slot={0} >= maxEncryptions={1})", slot, maxEncryptions);
+    return false;
   }
 
 }

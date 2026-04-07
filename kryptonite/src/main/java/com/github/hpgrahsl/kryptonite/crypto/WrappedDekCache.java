@@ -21,6 +21,8 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.crypto.tink.Aead;
 import java.util.Arrays;
 import java.util.function.Function;
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.TRACE;
 
 /**
  * Bounded LRU cache mapping wrapped DEK bytes to their unwrapped {@link Aead} primitive.
@@ -31,6 +33,8 @@ import java.util.function.Function;
  * <p>Backed by Caffeine for correct, concurrent, bounded LRU eviction.
  */
 public class WrappedDekCache {
+
+  private static final System.Logger LOG = System.getLogger(WrappedDekCache.class.getName());
 
   private record WrappedDekKey(byte[] bytes) {
     WrappedDekKey(byte[] bytes) {
@@ -63,7 +67,14 @@ public class WrappedDekCache {
    * it using the provided loader function on a cache miss.
    */
   public Aead get(byte[] wrappedDek, Function<byte[], Aead> loader) {
-    return cache.get(new WrappedDekKey(wrappedDek), k -> loader.apply(k.bytes()));
+    var key = new WrappedDekKey(wrappedDek);
+    Aead cached = cache.getIfPresent(key);
+    if (cached != null) {
+      LOG.log(TRACE, "get: wrapped DEK cache hit (wrappedDek={0}B)", wrappedDek.length);
+      return cached;
+    }
+    LOG.log(DEBUG, "get: wrapped DEK cache miss, unwrapping DEK (wrappedDek={0}B)", wrappedDek.length);
+    return cache.get(key, k -> loader.apply(k.bytes()));
   }
 
   /**

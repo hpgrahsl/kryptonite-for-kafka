@@ -123,19 +123,19 @@ public class KryptoniteEnvelopeKeysetTest {
     // -------------------------------------------------------------------------
 
     @Test
-    @DisplayName("EncryptDekSession: exactly maxRecords calls succeed, next returns false")
+    @DisplayName("EncryptDekSession: exactly maxEncryptions calls succeed, next returns false")
     void testTryAcquireExactMaxRecords() throws Exception {
         try (var keyVault = new TinkKeyVault(ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG))) {
             var algorithm = new TinkAesGcmEnvelopeKeyset();
             var kekHandle = keyVault.readKeysetHandle("keyA");
             var wrapAad = "keyA".getBytes(StandardCharsets.UTF_8);
             var session = algorithm.createSession(kekHandle, wrapAad);
-            long maxRecords = 3;
+            long maxEncryptions = 3;
             long ttlMs = 60_000L;
-            assertTrue(session.tryAcquire(maxRecords, ttlMs));
-            assertTrue(session.tryAcquire(maxRecords, ttlMs));
-            assertTrue(session.tryAcquire(maxRecords, ttlMs));
-            assertFalse(session.tryAcquire(maxRecords, ttlMs), "4th call must fail after maxRecords=3 exhausted");
+            assertTrue(session.tryAcquire(maxEncryptions, ttlMs));
+            assertTrue(session.tryAcquire(maxEncryptions, ttlMs));
+            assertTrue(session.tryAcquire(maxEncryptions, ttlMs));
+            assertFalse(session.tryAcquire(maxEncryptions, ttlMs), "4th call must fail after maxEncryptions=3 exhausted");
         }
     }
 
@@ -147,10 +147,10 @@ public class KryptoniteEnvelopeKeysetTest {
             var kekHandle = keyVault.readKeysetHandle("keyA");
             var wrapAad = "keyA".getBytes(StandardCharsets.UTF_8);
             var session = algorithm.createSession(kekHandle, wrapAad);
-            long maxRecords = 1_000_000L;
+            long maxEncryptions = 1_000_000L;
             long ttlMs = 1L; // 1ms TTL
             Thread.sleep(10);  // ensure TTL is exceeded
-            assertFalse(session.tryAcquire(maxRecords, ttlMs), "tryAcquire must return false after TTL expiry");
+            assertFalse(session.tryAcquire(maxEncryptions, ttlMs), "tryAcquire must return false after TTL expiry");
         }
     }
 
@@ -194,7 +194,7 @@ public class KryptoniteEnvelopeKeysetTest {
     }
 
     @Test
-    @DisplayName("encrypt session cache: new wrapped DEK after maxRecords exhausted")
+    @DisplayName("encrypt session cache: new wrapped DEK after maxEncryptions exhausted")
     void testSessionCacheRotatesAfterMaxRecords() {
         var algorithm = new TinkAesGcmEnvelopeKeyset();
         try (var keyVault = new TinkKeyVault(ConfigReader.tinkKeyConfigFromJsonString(TestFixtures.CIPHER_DATA_KEYS_CONFIG))) {
