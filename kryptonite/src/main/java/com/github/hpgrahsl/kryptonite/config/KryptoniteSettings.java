@@ -100,4 +100,7 @@ public class KryptoniteSettings {
   public static final String ENVELOPE_KEK_CONFIGS_DEFAULT = "[]";
   public static final String ENVELOPE_KEK_IDENTIFIER_DEFAULT = "";
 
+  public static final String DEK_KEY_BITS = "dek_key_bits";
+  public static final int    DEK_KEY_BITS_DEFAULT = 128;
+
 }

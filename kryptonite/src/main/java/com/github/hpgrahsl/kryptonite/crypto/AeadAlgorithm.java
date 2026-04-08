@@ -26,18 +26,10 @@ public interface AeadAlgorithm {
 
   byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] encryptAad) throws Exception;
 
-  default byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] encryptAad, byte[] wrapAad) throws Exception {
-    return cipher(plaintext, keysetHandle, encryptAad);
-  }
-
   default byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle) throws Exception {
     return decipher(ciphertext, keysetHandle, null);
   }
 
   byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] encryptAad) throws Exception;
-
-  default byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] encryptAad, byte[] wrapAad) throws Exception {
-    return decipher(ciphertext, keysetHandle, encryptAad);
-  }
 
 }

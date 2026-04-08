@@ -64,9 +64,11 @@ public class KryptoniteEnvelopeKeysetTest {
             byte[] plaintext = "test".getBytes(StandardCharsets.UTF_8);
             byte[] encryptAad = "aad".getBytes(StandardCharsets.UTF_8);
             byte[] wrapAad = "keyA".getBytes(StandardCharsets.UTF_8);
-            byte[] ciphertext = algorithm.cipher(plaintext, kekHandle, encryptAad, wrapAad);
+            var session = algorithm.createSession(kekHandle, wrapAad);
+            byte[] ciphertext = algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), encryptAad);
             byte[] wrongWrapAad = "wrong".getBytes(StandardCharsets.UTF_8);
-            assertThrows(GeneralSecurityException.class, () -> algorithm.decipher(ciphertext, kekHandle, encryptAad, wrongWrapAad));
+            byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
+            assertThrows(GeneralSecurityException.class, () -> algorithm.unwrapDek(wrappedDek, kekHandle, wrongWrapAad));
         }
     }
 
@@ -79,9 +81,12 @@ public class KryptoniteEnvelopeKeysetTest {
             byte[] plaintext = "test".getBytes(StandardCharsets.UTF_8);
             byte[] encryptAad = "aad".getBytes(StandardCharsets.UTF_8);
             byte[] wrapAad = "keyA".getBytes(StandardCharsets.UTF_8);
-            byte[] ciphertext = algorithm.cipher(plaintext, kekHandle, encryptAad, wrapAad);
+            var session = algorithm.createSession(kekHandle, wrapAad);
+            byte[] ciphertext = algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), encryptAad);
             byte[] wrongEncryptAad = "wrong".getBytes(StandardCharsets.UTF_8);
-            assertThrows(GeneralSecurityException.class, () -> algorithm.decipher(ciphertext, kekHandle, wrongEncryptAad, wrapAad));
+            byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
+            var dekAead = algorithm.unwrapDek(wrappedDek, kekHandle, wrapAad);
+            assertThrows(GeneralSecurityException.class, () -> algorithm.decipherWithDek(ciphertext, dekAead, wrongEncryptAad));
         }
     }
 
@@ -227,7 +232,8 @@ public class KryptoniteEnvelopeKeysetTest {
             var kekHandle = keyVault.readKeysetHandle("keyA");
             var wrapAad = "keyA".getBytes(StandardCharsets.UTF_8);
             var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, ALGORITHM_ID, "keyA");
-            byte[] ciphertext = algorithm.cipher("hello cache".getBytes(StandardCharsets.UTF_8), kekHandle, metadata.asBytes(), wrapAad);
+            var session = algorithm.createSession(kekHandle, wrapAad);
+            byte[] ciphertext = algorithm.cipherWithDek("hello cache".getBytes(StandardCharsets.UTF_8), session.dekAead(), session.wrappedDek(), metadata.asBytes());
             byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
             var loadCount = new AtomicInteger(0);
             var dekCache = new WrappedDekCache(1024);
@@ -312,8 +318,10 @@ public class KryptoniteEnvelopeKeysetTest {
             var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, ALGORITHM_ID, "keyA");
             // cache of size 1 — second entry evicts first
             var dekCache = new WrappedDekCache(1);
-            byte[] ct1 = algorithm.cipher("p1".getBytes(StandardCharsets.UTF_8), kekHandleA, metadata.asBytes(), wrapAadA);
-            byte[] ct2 = algorithm.cipher("p2".getBytes(StandardCharsets.UTF_8), kekHandleB, metadata.asBytes(), wrapAadB);
+            var sessionA = algorithm.createSession(kekHandleA, wrapAadA);
+            byte[] ct1 = algorithm.cipherWithDek("p1".getBytes(StandardCharsets.UTF_8), sessionA.dekAead(), sessionA.wrappedDek(), metadata.asBytes());
+            var sessionB = algorithm.createSession(kekHandleB, wrapAadB);
+            byte[] ct2 = algorithm.cipherWithDek("p2".getBytes(StandardCharsets.UTF_8), sessionB.dekAead(), sessionB.wrappedDek(), metadata.asBytes());
             byte[] wrappedDek1 = algorithm.extractWrappedDek(ct1);
             byte[] wrappedDek2 = algorithm.extractWrappedDek(ct2);
             var loadCount = new AtomicInteger(0);

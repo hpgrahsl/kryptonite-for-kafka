@@ -16,7 +16,7 @@
 
 package com.github.hpgrahsl.kryptonite.crypto.tink;
 
-import com.github.hpgrahsl.kryptonite.crypto.AeadAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.AeadEnvelopeAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.EncryptDekSession;
 import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryption;
 import com.google.crypto.tink.Aead;
@@ -35,87 +35,54 @@ import static java.lang.System.Logger.Level.TRACE;
 /**
  * Envelope encryption using a cloud KMS key as the KEK.
  *
- * <p>The DEK is a raw 16-byte AES-128-GCM key. Wrapping is performed via
- * {@link EnvelopeKekEncryption#wrapDek} — a real KMS network call. The key never
- * leaves the KMS.
+ * <p>The DEK is a raw AES-GCM key whose size is passed at call time (16 or 32 bytes).
+ * Wrapping is performed via {@link EnvelopeKekEncryption#wrapDek} — a real KMS network call.
+ * The KEK never leaves the KMS.
  *
- * <p>Wire format is identical to {@link TinkAesGcmEnvelopeKeyset}:
- * {@code [4-byte wrappedDekLen | wrappedDek | dekCiphertext]}
+ * <p>Wire format: {@code [4-byte wrappedDekLen | wrappedDek | dekCiphertext]}
  *
  * <p>The DEK session cache ({@code EncryptDekSessionCache}) and wrapped DEK cache
  * ({@code WrappedDekCache}) are <strong>load-bearing</strong> for this mode — each
- * KMS wrap/unwrap costs ~tens-hundreds of ms. Without caching, every field encryption/decryption
- * triggers a KMS round-trip.
- *
- * <p>Encrypt path (session-based, called by {@code Kryptonite.cipherFieldRaw}):
- * <ol>
- *   <li>Session hit: {@code cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), encryptAad)}</li>
- *   <li>Session miss: {@link #createSession} → one KMS wrap call → store in cache → encrypt</li>
- * </ol>
- *
- * <p>Decrypt path (per record, called by {@code Kryptonite.decipherFieldRaw}):
- * <ol>
- *   <li>Cache hit: {@code decipherWithDek(ciphertext, cachedDekAead, encryptAad)} — no KMS call</li>
- *   <li>Cache miss: {@link #unwrapDek} → one KMS unwrap call → cache → decrypt</li>
- * </ol>
+ * KMS wrap/unwrap costs tens-to-hundreds of ms. Without caching, every field
+ * encryption/decryption triggers a KMS round-trip.
  */
-public class TinkAesGcmEnvelopeKms implements AeadAlgorithm {
+public class TinkAesGcmEnvelopeKms implements AeadEnvelopeAlgorithm<EnvelopeKekEncryption> {
 
   private static final System.Logger LOG = System.getLogger(TinkAesGcmEnvelopeKms.class.getName());
 
   public static final String CIPHER_ALGORITHM = "TINK/AES_GCM_ENVELOPE_KMS";
 
-  private static final int DEK_SIZE_BYTES = 16;
+  private static final int DEK_SIZE_BYTES_DEFAULT = 16;
   private static final int AES_GCM_IV_SIZE_BYTES = 12;
   private static final int AES_GCM_TAG_SIZE_BYTES = 16;
-  private static final AesGcmParameters DEK_PARAMETERS;
-
-  static {
-    try {
-      DEK_PARAMETERS = AesGcmParameters.builder()
-          .setKeySizeBytes(DEK_SIZE_BYTES)
-          .setIvSizeBytes(AES_GCM_IV_SIZE_BYTES)
-          .setTagSizeBytes(AES_GCM_TAG_SIZE_BYTES)
-          .setVariant(AesGcmParameters.Variant.NO_PREFIX)
-          .build();
-    } catch (Exception e) {
-      throw new ExceptionInInitializerError(e);
-    }
-  }
 
   @Override
-  public byte[] cipher(byte[] plaintext, KeysetHandle kekHandle, byte[] encryptAad) throws Exception {
-    throw new UnsupportedOperationException(
-        CIPHER_ALGORITHM + " uses a cloud KMS KEK — use createSession()/cipherWithDek() via Kryptonite");
-  }
-
-  @Override
-  public byte[] decipher(byte[] ciphertext, KeysetHandle kekHandle, byte[] encryptAad) throws Exception {
-    throw new UnsupportedOperationException(
-        CIPHER_ALGORITHM + " uses a cloud KMS KEK — use unwrapDek()/decipherWithDek() via Kryptonite");
-  }
-
-  /**
-   * Creates a new {@link EncryptDekSession} by generating a fresh DEK and wrapping it via KMS.
-   * One KMS network call is made. Used by the encrypt path on session cache miss.
-   */
-  public EncryptDekSession createSession(EnvelopeKekEncryption kekEncryption, byte[] wrapAad) throws Exception {
-    return createSession(kekEncryption, wrapAad, Clock.systemUTC());
-  }
-
-  public EncryptDekSession createSession(EnvelopeKekEncryption kekEncryption, byte[] wrapAad, Clock clock) throws Exception {
-    LOG.log(DEBUG, "createSession: generating new DEK session via KMS wrap (wrapAad={0}B)", wrapAad.length);
-    SecretBytes rawDek = SecretBytes.randomBytes(DEK_SIZE_BYTES);
-    byte[] wrappedDek = kekEncryption.wrapDek(rawDek.toByteArray(InsecureSecretKeyAccess.get()), wrapAad);
+  public EncryptDekSession createSession(EnvelopeKekEncryption keyMaterial, byte[] wrapAad, int dekSizeBytes, Clock clock) throws Exception {
+    LOG.log(DEBUG, "createSession: generating new DEK session via KMS wrap (wrapAad={0}B dekSizeBytes={1})", wrapAad.length, dekSizeBytes);
+    SecretBytes rawDek = SecretBytes.randomBytes(dekSizeBytes);
+    byte[] wrappedDek = keyMaterial.wrapDek(rawDek.toByteArray(InsecureSecretKeyAccess.get()), wrapAad);
     LOG.log(DEBUG, "createSession: DEK session created via KMS, wrappedDek={0}B", wrappedDek.length);
     Aead dekAead = dekAeadFromRawBytes(rawDek);
     return new EncryptDekSession(wrappedDek, dekAead, clock);
   }
 
-  /**
-   * Encrypts plaintext using an already-created DEK {@link Aead} and its wrapped bytes.
-   * Used after a session cache hit — no KMS call.
-   */
+  public EncryptDekSession createSession(EnvelopeKekEncryption keyMaterial, byte[] wrapAad) throws Exception {
+    return createSession(keyMaterial, wrapAad, DEK_SIZE_BYTES_DEFAULT, Clock.systemUTC());
+  }
+
+  public EncryptDekSession createSession(EnvelopeKekEncryption keyMaterial, byte[] wrapAad, int dekSizeBytes) throws Exception {
+    return createSession(keyMaterial, wrapAad, dekSizeBytes, Clock.systemUTC());
+  }
+
+  @Override
+  public Aead unwrapDek(byte[] wrappedDek, EnvelopeKekEncryption keyMaterial, byte[] wrapAad) throws Exception {
+    LOG.log(TRACE, "unwrapDek: wrappedDek={0}B wrapAad={1}B (KMS call)", wrappedDek.length, wrapAad.length);
+    byte[] rawDekBytes = keyMaterial.unwrapDek(wrappedDek, wrapAad);
+    LOG.log(TRACE, "unwrapDek: DEK unwrapped via KMS ({0}B)", rawDekBytes.length);
+    return dekAeadFromRawBytes(SecretBytes.copyFrom(rawDekBytes, InsecureSecretKeyAccess.get()));
+  }
+
+  @Override
   public byte[] cipherWithDek(byte[] plaintext, Aead dekAead, byte[] wrappedDek, byte[] encryptAad) throws Exception {
     LOG.log(TRACE, "cipherWithDek: reusing DEK session, plaintext={0}B wrappedDek={1}B", plaintext.length, wrappedDek.length);
     byte[] dekCiphertext = dekAead.encrypt(plaintext, encryptAad);
@@ -124,21 +91,7 @@ public class TinkAesGcmEnvelopeKms implements AeadAlgorithm {
     return bundle;
   }
 
-  /**
-   * Unwraps a previously wrapped DEK via KMS, returning the DEK as a Tink {@link Aead}.
-   * One KMS network call is made. Used by the decrypt path on wrapped DEK cache miss.
-   */
-  public Aead unwrapDek(byte[] wrappedDek, EnvelopeKekEncryption kekEncryption, byte[] wrapAad) throws Exception {
-    LOG.log(TRACE, "unwrapDek: wrappedDek={0}B wrapAad={1}B (KMS call)", wrappedDek.length, wrapAad.length);
-    byte[] rawDekBytes = kekEncryption.unwrapDek(wrappedDek, wrapAad);
-    LOG.log(TRACE, "unwrapDek: DEK unwrapped via KMS ({0}B)", rawDekBytes.length);
-    return dekAeadFromRawBytes(SecretBytes.copyFrom(rawDekBytes, InsecureSecretKeyAccess.get()));
-  }
-
-  /**
-   * Decrypts ciphertext using an already-unwrapped DEK {@link Aead}.
-   * Used after a wrapped DEK cache hit — no KMS call.
-   */
+  @Override
   public byte[] decipherWithDek(byte[] ciphertext, Aead dekAead, byte[] encryptAad) throws Exception {
     LOG.log(TRACE, "decipherWithDek: ciphertext={0}B (reusing cached DEK Aead)", ciphertext.length);
     byte[][] parts = unbundle(ciphertext);
@@ -147,13 +100,20 @@ public class TinkAesGcmEnvelopeKms implements AeadAlgorithm {
     return plaintext;
   }
 
+  @Override
   public byte[] extractWrappedDek(byte[] bundle) {
     return unbundle(bundle)[0];
   }
 
   private static Aead dekAeadFromRawBytes(SecretBytes rawDek) throws Exception {
+    AesGcmParameters params = AesGcmParameters.builder()
+        .setKeySizeBytes(rawDek.size())
+        .setIvSizeBytes(AES_GCM_IV_SIZE_BYTES)
+        .setTagSizeBytes(AES_GCM_TAG_SIZE_BYTES)
+        .setVariant(AesGcmParameters.Variant.NO_PREFIX)
+        .build();
     AesGcmKey dekKey = AesGcmKey.builder()
-        .setParameters(DEK_PARAMETERS)
+        .setParameters(params)
         .setKeyBytes(rawDek)
         .setIdRequirement(null)
         .build();
