@@ -74,6 +74,9 @@ public class KryptoniteSettings {
   public static final String KEK_URI = "kek_uri";
   public static final String SERDE_TYPE = "serde_type";
 
+  public static final String ENVELOPE_KEK_CONFIGS = "envelope_kek_configs";
+  public static final String ENVELOPE_KEK_IDENTIFIER = "envelope_kek_identifier";
+
   public static final String PATH_DELIMITER_DEFAULT = ".";
   public static final String FIELD_MODE_DEFAULT = "ELEMENT";
   public static final String CIPHER_ALGORITHM_DEFAULT = "TINK/AES_GCM";
@@ -94,5 +97,7 @@ public class KryptoniteSettings {
   public static final String KEK_CONFIG_DEFAULT = "{}";
   public static final String KEK_URI_DEFAULT = "xyz-kms://";
   public static final String SERDE_TYPE_DEFAULT = "KRYO";
+  public static final String ENVELOPE_KEK_CONFIGS_DEFAULT = "[]";
+  public static final String ENVELOPE_KEK_IDENTIFIER_DEFAULT = "";
 
 }

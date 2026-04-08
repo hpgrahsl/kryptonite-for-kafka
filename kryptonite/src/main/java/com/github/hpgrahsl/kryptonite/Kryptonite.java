@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfig;
 import com.github.hpgrahsl.kryptonite.config.DataKeyConfigEncrypted;
+import com.github.hpgrahsl.kryptonite.config.EnvelopeKekConfig;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KeySource;
 import com.github.hpgrahsl.kryptonite.crypto.AeadAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.EncryptDekSessionCache;
@@ -31,19 +32,23 @@ import com.github.hpgrahsl.kryptonite.crypto.WrappedDekCache;
 import com.github.hpgrahsl.kryptonite.crypto.custom.MystoFpeFF31;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcm;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmEnvelopeKeyset;
+import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmEnvelopeKms;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
+import com.github.hpgrahsl.kryptonite.keys.EnvelopeKekRegistry;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVaultEncrypted;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyVaultProvider;
 import com.google.crypto.tink.Aead;
+import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.daead.DeterministicAeadConfig;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
@@ -80,6 +85,8 @@ public class Kryptonite implements AutoCloseable {
           return new FpeCipherSpec(TYPE_CUSTOM, MystoFpeFF31.CIPHER_ALGORITHM, new MystoFpeFF31());
         case TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM:
           return new AeadCipherSpec(TYPE_TINK, TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM, new TinkAesGcmEnvelopeKeyset());
+        case TinkAesGcmEnvelopeKms.CIPHER_ALGORITHM:
+          return new AeadCipherSpec(TYPE_TINK, TinkAesGcmEnvelopeKms.CIPHER_ALGORITHM, new TinkAesGcmEnvelopeKms());
         default:
           throw new IllegalArgumentException("invalid name '" + name + "' to create CipherSpec for");
       }
@@ -157,14 +164,16 @@ public class Kryptonite implements AutoCloseable {
       CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),"02",
       CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),"03",
       CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),"04",
-      CipherSpec.fromName(TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM),"05"
+      CipherSpec.fromName(TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM),"05",
+      CipherSpec.fromName(TinkAesGcmEnvelopeKms.CIPHER_ALGORITHM),"06"
   );
 
   public static final Map<String,CipherSpec> ID_CIPHERSPEC_LUT = Map.of(
       "02", CipherSpec.fromName(TinkAesGcm.CIPHER_ALGORITHM),
       "03", CipherSpec.fromName(TinkAesGcmSiv.CIPHER_ALGORITHM),
       "04", CipherSpec.fromName(MystoFpeFF31.CIPHER_ALGORITHM),
-      "05", CipherSpec.fromName(TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM)
+      "05", CipherSpec.fromName(TinkAesGcmEnvelopeKeyset.CIPHER_ALGORITHM),
+      "06", CipherSpec.fromName(TinkAesGcmEnvelopeKms.CIPHER_ALGORITHM)
   );
 
   private static final System.Logger LOG = System.getLogger(Kryptonite.class.getName());
@@ -174,6 +183,7 @@ public class Kryptonite implements AutoCloseable {
   private final AbstractKeyVault keyVault;
   private final WrappedDekCache wrappedDekCache;
   private final EncryptDekSessionCache encryptDekSessionCache;
+  private final EnvelopeKekRegistry envelopeKekRegistry;
 
   public AbstractKeyVault getKeyVault() {
     return keyVault;
@@ -185,17 +195,22 @@ public class Kryptonite implements AutoCloseable {
   }
 
   public Kryptonite(AbstractKeyVault keyVault) {
-    this(keyVault, null, null);
+    this(keyVault, null, null, null);
   }
 
   public Kryptonite(AbstractKeyVault keyVault, int wrappedDekCacheSize) {
-    this(keyVault, new WrappedDekCache(wrappedDekCacheSize), null);
+    this(keyVault, new WrappedDekCache(wrappedDekCacheSize), null, null);
   }
 
   public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache) {
+    this(keyVault, wrappedDekCache, encryptDekSessionCache, null);
+  }
+
+  public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache, EnvelopeKekRegistry envelopeKekRegistry) {
     this.keyVault = keyVault;
     this.wrappedDekCache = wrappedDekCache;
     this.encryptDekSessionCache = encryptDekSessionCache;
+    this.envelopeKekRegistry = envelopeKekRegistry;
     try {
       AeadConfig.register();
       DeterministicAeadConfig.register();
@@ -222,26 +237,60 @@ public class Kryptonite implements AutoCloseable {
       if (!(cipherSpec instanceof AeadCipherSpec aead)) {
         throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
       }
+      var aeadAlgorithm = aead.getAlgorithm();
+      if (aeadAlgorithm instanceof TinkAesGcmEnvelopeKms envelopeKms) {
+        return cipherEnvelopeKms(plaintext, metadata, envelopeKms);
+      }
       var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
       var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
-      if (aead.getAlgorithm() instanceof TinkAesGcmEnvelopeKeyset envelopeAlgorithm && encryptDekSessionCache != null) {
-        LOG.log(DEBUG, "cipherFieldRaw: envelope encryption path (DEK session cache enabled)");
-        var session = encryptDekSessionCache.getOrCreate(metadata.getKeyId(), () -> {
-          try {
-            return envelopeAlgorithm.createSession(keysetHandle, wrapAad, encryptDekSessionCache.getClock());
-          } catch (Exception e) {
-            throw new KryptoniteException("failed to create DEK session", e);
-          }
-        });
-        return envelopeAlgorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), metadata.asBytes());
+      if (aeadAlgorithm instanceof TinkAesGcmEnvelopeKeyset envelopeKeyset) {
+        return cipherEnvelopeKeyset(plaintext, metadata, envelopeKeyset, keysetHandle, wrapAad);
       }
-      LOG.log(DEBUG, "cipherFieldRaw: direct cipher path (no DEK session cache)");
-      return aead.getAlgorithm().cipher(plaintext, keysetHandle, metadata.asBytes(), wrapAad);
+      LOG.log(DEBUG, "cipherFieldRaw: direct cipher path");
+      return aeadAlgorithm.cipher(plaintext, keysetHandle, metadata.asBytes(), wrapAad);
     } catch (KryptoniteException e) {
       throw e;
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(), e);
     }
+  }
+
+  private byte[] cipherEnvelopeKms(byte[] plaintext, PayloadMetaData metadata,
+      TinkAesGcmEnvelopeKms algorithm) throws Exception {
+    LOG.log(DEBUG, "cipherFieldRaw: envelope encryption path (KMS KEK)");
+    if (envelopeKekRegistry == null) {
+      throw new KryptoniteException(
+          "envelope encryption (KMS KEK) requested but envelope_kek_configs is not configured");
+    }
+    var envelopeKekEncryption = envelopeKekRegistry.get(metadata.getKeyId());
+    var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
+    var sessionCache = Objects.requireNonNull(encryptDekSessionCache,
+        "DEK session cache is required for envelope encryption with KMS");
+    var session = sessionCache.getOrCreate(metadata.getKeyId(), () -> {
+      try {
+        return algorithm.createSession(envelopeKekEncryption, wrapAad, sessionCache.getClock());
+      } catch (Exception e) {
+        throw new KryptoniteException("failed to create DEK session for envelope encryption with KMS and keyId='" + metadata.getKeyId() + "'", e);
+      }
+    });
+    return algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), metadata.asBytes());
+  }
+
+  private byte[] cipherEnvelopeKeyset(byte[] plaintext, PayloadMetaData metadata,
+      TinkAesGcmEnvelopeKeyset algorithm, KeysetHandle keysetHandle, byte[] wrapAad) throws Exception {
+    if (encryptDekSessionCache != null) {
+      LOG.log(DEBUG, "cipherFieldRaw: envelope encryption path (Keyset KEK) - DEK session cache enabled");
+      var session = encryptDekSessionCache.getOrCreate(metadata.getKeyId(), () -> {
+        try {
+          return algorithm.createSession(keysetHandle, wrapAad, encryptDekSessionCache.getClock());
+        } catch (Exception e) {
+          throw new KryptoniteException("failed to create DEK session for envelope encryption with Keyset and keyId='" + metadata.getKeyId() + "'", e);
+        }
+      });
+      return algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), metadata.asBytes());
+    }
+    LOG.log(DEBUG, "cipherFieldRaw: envelope encryption path (Keyset KEK) - no session cache, fresh DEK per call");
+    return algorithm.cipher(plaintext, keysetHandle, metadata.asBytes(), wrapAad);
   }
 
   public byte[] cipherFieldFPE(byte[] plaintext, FieldMetaData fieldMetaData) {
@@ -277,33 +326,69 @@ public class Kryptonite implements AutoCloseable {
       if (!(cipherSpec instanceof AeadCipherSpec aead)) {
         throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
       }
+      var aeadAlgorithm = aead.getAlgorithm();
+      if (aeadAlgorithm instanceof TinkAesGcmEnvelopeKms envelopeKms) {
+        return decipherEnvelopeKms(ciphertext, metadata, envelopeKms);
+      }
       var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
-      var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
-      if (aead.getAlgorithm() instanceof TinkAesGcmEnvelopeKeyset envelopeAlgorithm) {
-        byte[] wrappedDek = envelopeAlgorithm.extractWrappedDek(ciphertext);
-        Aead dekAead;
-        if (wrappedDekCache != null) {
-          LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (wrapped DEK cache enabled, wrappedDek={0}B)", wrappedDek.length);
-          dekAead = wrappedDekCache.get(wrappedDek, wdk -> {
-            try {
-              return envelopeAlgorithm.unwrapDek(wdk, keysetHandle, wrapAad);
-            } catch (Exception e) {
-              throw new KryptoniteException("failed to unwrap DEK", e);
-            }
-          });
-        } else {
-          LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (no wrapped DEK cache, wrappedDek={0}B)", wrappedDek.length);
-          dekAead = envelopeAlgorithm.unwrapDek(wrappedDek, keysetHandle, wrapAad);
-        }
-        return envelopeAlgorithm.decipherWithDek(ciphertext, dekAead, metadata.asBytes());
+      if (aeadAlgorithm instanceof TinkAesGcmEnvelopeKeyset envelopeKeyset) {
+        var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
+        return decipherEnvelopeKeyset(ciphertext, metadata, envelopeKeyset, keysetHandle, wrapAad);
       }
       LOG.log(DEBUG, "decipherFieldRaw: direct decipher path");
-      return aead.getAlgorithm().decipher(ciphertext, keysetHandle, metadata.asBytes(), wrapAad);
+      return aeadAlgorithm.decipher(ciphertext, keysetHandle, metadata.asBytes());
     } catch (KryptoniteException e) {
       throw e;
     } catch (Exception e) {
       throw new KryptoniteException(e.getMessage(), e);
     }
+  }
+
+  private byte[] decipherEnvelopeKms(byte[] ciphertext, PayloadMetaData metadata,
+      TinkAesGcmEnvelopeKms algorithm) throws Exception {
+    LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (KMS KEK)");
+    if (envelopeKekRegistry == null) {
+      throw new KryptoniteException(
+          "envelope decryption requested but envelope_kek_configs is not configured");
+    }
+    byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
+    var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
+    var envelopeKekEncryption = envelopeKekRegistry.get(metadata.getKeyId());
+    Aead dekAead;
+    if (wrappedDekCache != null) {
+      LOG.log(DEBUG, "decipherFieldRaw: wrapped DEK cache enabled (wrappedDek={0}B)", wrappedDek.length);
+      dekAead = wrappedDekCache.get(wrappedDek, wdk -> {
+        try {
+          return algorithm.unwrapDek(wdk, envelopeKekEncryption, wrapAad);
+        } catch (Exception e) {
+          throw new KryptoniteException("failed to unwrap DEK; keyId='" + metadata.getKeyId() + "'", e);
+        }
+      });
+    } else {
+      LOG.log(DEBUG, "decipherFieldRaw: no wrapped DEK cache (wrappedDek={0}B)", wrappedDek.length);
+      dekAead = algorithm.unwrapDek(wrappedDek, envelopeKekEncryption, wrapAad);
+    }
+    return algorithm.decipherWithDek(ciphertext, dekAead, metadata.asBytes());
+  }
+
+  private byte[] decipherEnvelopeKeyset(byte[] ciphertext, PayloadMetaData metadata,
+      TinkAesGcmEnvelopeKeyset algorithm, KeysetHandle keysetHandle, byte[] wrapAad) throws Exception {
+    byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
+    Aead dekAead;
+    if (wrappedDekCache != null) {
+      LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (Keyset KEK) - wrapped DEK cache enabled, wrappedDek={0}B)", wrappedDek.length);
+      dekAead = wrappedDekCache.get(wrappedDek, wdk -> {
+        try {
+          return algorithm.unwrapDek(wdk, keysetHandle, wrapAad);
+        } catch (Exception e) {
+          throw new KryptoniteException("failed to unwrap DEK; keyId='" + metadata.getKeyId() + "'", e);
+        }
+      });
+    } else {
+      LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (Keyset KEK - no wrapped DEK cache, wrappedDek={0}B)", wrappedDek.length);
+      dekAead = algorithm.unwrapDek(wrappedDek, keysetHandle, wrapAad);
+    }
+    return algorithm.decipherWithDek(ciphertext, dekAead, metadata.asBytes());
   }
 
   public byte[] decipherFieldFPE(byte[] ciphertext, FieldMetaData fieldMetaData) {
@@ -355,7 +440,9 @@ public class Kryptonite implements AutoCloseable {
     var defaultKeyId = config.getOrDefault(CIPHER_DATA_KEY_IDENTIFIER, CIPHER_DATA_KEY_IDENTIFIER_DEFAULT);
     LOG.log(INFO, "key vault: TinkKeyVault (plain keysets), {0} keyset(s) loaded, default keyId=''{1}''",
         keyConfigs.size(), defaultKeyId);
-    return new Kryptonite(new TinkKeyVault(keyConfigs), wrappedDekCache(config), encryptDekSessionCache(config));
+    var sessionCache = encryptDekSessionCache(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache);
+    return new Kryptonite(new TinkKeyVault(keyConfigs), wrappedDekCache(config), sessionCache, registry);
   }
 
   private static Kryptonite withTinkKeyVaultEncrypted(Map<String,String> config)
@@ -370,12 +457,13 @@ public class Kryptonite implements AutoCloseable {
     var defaultKeyId = config.getOrDefault(CIPHER_DATA_KEY_IDENTIFIER, CIPHER_DATA_KEY_IDENTIFIER_DEFAULT);
     LOG.log(INFO, "key vault: TinkKeyVaultEncrypted (KEK-wrapped keysets), kekType={0} {1} keyset(s) loaded, default keyId=''{2}''",
         kekType, keyConfigs.size(), defaultKeyId);
-    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)), wrappedDekCache(config), encryptDekSessionCache(config));
+    var sessionCache = encryptDekSessionCache(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache);
+    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)), wrappedDekCache(config), sessionCache, registry);
   }
 
   private static Kryptonite withKmsKeyVault(Map<String,String> config) {
     var kmsType = config.get(KMS_TYPE);
-    var kmsConfig = config.get(KMS_CONFIG);
     var refreshIntervalMinutes = kmsCacheRefreshIntervalMinutes(config);
     LOG.log(INFO, "key vault: KMS vault (plain keysets), kmsType={0} refreshInterval={1}min", kmsType, refreshIntervalMinutes);
     var provider = ServiceLoader.load(KmsKeyVaultProvider.class, KmsKeyVaultProvider.class.getClassLoader())
@@ -386,14 +474,16 @@ public class Kryptonite implements AutoCloseable {
         .orElseThrow(() -> new ConfigurationException(
             "no KMS key vault provider found for type '" + kmsType
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
+    var kmsConfig = config.get(KMS_CONFIG);
     var vault = provider.createKeyVault(kmsConfig);
     vault.startBackgroundRefresh(refreshIntervalMinutes);
-    return new Kryptonite(vault, wrappedDekCache(config), encryptDekSessionCache(config));
+    var sessionCache = encryptDekSessionCache(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache);
+    return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry);
   }
 
   private static Kryptonite withKmsKeyVaultEncrypted(Map<String,String> config) {
     var kmsType = config.get(KMS_TYPE);
-    var kmsConfig = config.get(KMS_CONFIG);
     var kekType = config.get(KEK_TYPE);
     var refreshIntervalMinutes = kmsCacheRefreshIntervalMinutes(config);
     LOG.log(INFO, "key vault: KMS vault (KEK-encrypted keysets), kmsType={0} kekType={1} refreshInterval={2}min",
@@ -406,9 +496,12 @@ public class Kryptonite implements AutoCloseable {
         .orElseThrow(() -> new ConfigurationException(
             "no KMS key vault provider found for type '" + kmsType
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
+    var kmsConfig = config.get(KMS_CONFIG);
     var vault = provider.createKeyVaultEncrypted(configureKmsKeyEncryption(config), kmsConfig);
     vault.startBackgroundRefresh(refreshIntervalMinutes);
-    return new Kryptonite(vault, wrappedDekCache(config), encryptDekSessionCache(config));
+    var sessionCache = encryptDekSessionCache(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache);
+    return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry);
   }
 
   private static long kmsCacheRefreshIntervalMinutes(Map<String,String> config) {
@@ -445,6 +538,44 @@ public class Kryptonite implements AutoCloseable {
       LOG.log(DEBUG, "DEK session cache: invalid config, using defaults maxEncryptions={0} ttlMinutes={1}",
           DEK_MAX_ENCRYPTIONS_DEFAULT, DEK_TTL_MINUTES_DEFAULT);
       return new EncryptDekSessionCache(DEK_MAX_ENCRYPTIONS_DEFAULT, DEK_TTL_MINUTES_DEFAULT);
+    }
+  }
+
+  private static EnvelopeKekRegistry buildEnvelopeKekRegistry(Map<String,String> config, EncryptDekSessionCache sessionCache) {
+    var raw = config.getOrDefault(ENVELOPE_KEK_CONFIGS, ENVELOPE_KEK_CONFIGS_DEFAULT);
+    if (raw == null || raw.isBlank() || raw.equals(ENVELOPE_KEK_CONFIGS_DEFAULT)) {
+      LOG.log(DEBUG, "envelope_kek_configs: not configured — KMS envelope encryption not available");
+      return null;
+    }
+    try {
+      List<EnvelopeKekConfig> kekConfigs = OBJECT_MAPPER.readValue(
+          raw, new TypeReference<List<EnvelopeKekConfig>>() {});
+      if (kekConfigs.isEmpty()) {
+        LOG.log(DEBUG, "envelope_kek_configs: empty list — KMS envelope encryption not available");
+        return null;
+      }
+      var registry = new EnvelopeKekRegistry(kekConfigs);
+      LOG.log(INFO, "envelope KEK registry: {0} KEK(s) configured for KMSenvelope encryption", registry.size());
+      // Eagerly pre-init one DEK session per KEK — one KMS wrap call each.
+      // Surfaces auth/connectivity issues at startup rather than on first record.
+      var kmsAlgorithm = new TinkAesGcmEnvelopeKms();
+      for (String id : registry.identifiers()) {
+        var kek = registry.get(id);
+        var wrapAad = id.getBytes(StandardCharsets.UTF_8);
+        sessionCache.getOrCreate(id, () -> {
+          try {
+            return kmsAlgorithm.createSession(kek, wrapAad, sessionCache.getClock());
+          } catch (Exception e) {
+            throw new KryptoniteException("failed to pre-init DEK session for envelope KEK '" + id + "'", e);
+          }
+        });
+        LOG.log(DEBUG, "envelope KEK registry: pre-initialised DEK session for KEK id=''{0}''", id);
+      }
+      return registry;
+    } catch (KryptoniteException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new ConfigurationException("failed to parse envelope_kek_configs: " + e.getMessage(), e);
     }
   }
 

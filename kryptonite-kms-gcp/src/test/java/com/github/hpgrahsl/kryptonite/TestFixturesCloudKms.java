@@ -18,6 +18,8 @@ package com.github.hpgrahsl.kryptonite;
 
 import com.github.hpgrahsl.kryptonite.config.ConfigurationException;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KekType;
+import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryption;
+import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryptionProvider;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryption;
 import com.github.hpgrahsl.kryptonite.kms.KmsKeyEncryptionProvider;
 import com.github.hpgrahsl.kryptonite.kms.gcp.GcpSecretManagerConfig;
@@ -62,6 +64,24 @@ public class TestFixturesCloudKms {
                         .orElseThrow(() -> new ConfigurationException(
                             "no KMS key encryption provider found for type '" + kekType + "'"));
             return provider.createKeyEncryption(kekUri, kekConfig);
+        } catch (Exception exc) {
+            throw new ConfigurationException(exc);
+        }
+    }
+
+    public static EnvelopeKekEncryption configureEnvelopeKekEncryption() {
+        try {
+            Properties credentials = readCredentials();
+            var kekType = KekType.valueOf(credentials.getProperty("test.kek.type"));
+            var kekConfig = credentials.getProperty("test.kek.config");
+            var kekUri = credentials.getProperty("test.kek.uri");
+            var provider = ServiceLoader.load(EnvelopeKekEncryptionProvider.class).stream()
+                        .map(ServiceLoader.Provider::get)
+                        .filter(p -> p.kekType().equals(kekType.name()))
+                        .findFirst()
+                        .orElseThrow(() -> new ConfigurationException(
+                            "no EnvelopeKekEncryptionProvider found for type '" + kekType + "'"));
+            return provider.createEnvelopeKekEncryption(kekUri, kekConfig);
         } catch (Exception exc) {
             throw new ConfigurationException(exc);
         }
