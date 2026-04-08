@@ -29,6 +29,7 @@
     <module>ksqldb-udfs-kryptonite</module>
     <module>funqy-http-kryptonite</module>
     <module>flink-udfs-kryptonite</module>
+    <module>kryptonite-edek-store-kafka</module>
     <module>kryptonite-keyset-tool</module>
     <module>kroxylicious-filter-kryptonite</module>
   </modules>
