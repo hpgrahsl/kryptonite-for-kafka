@@ -37,6 +37,7 @@ import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmEnvelopeKms;
 import com.github.hpgrahsl.kryptonite.crypto.tink.TinkAesGcmSiv;
 import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryption;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
+import com.github.hpgrahsl.kryptonite.keys.EdekStore;
 import com.github.hpgrahsl.kryptonite.keys.EnvelopeKekRegistry;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVaultEncrypted;
@@ -612,6 +613,12 @@ public class Kryptonite implements AutoCloseable {
         LOG.log(DEBUG, "envelope_kek_configs: empty list — KMS envelope encryption not available");
         return null;
       }
+      ServiceLoader.load(EdekStore.class, EdekStore.class.getClassLoader())
+          .stream()
+          .findFirst()
+          .orElseThrow(() -> new ConfigurationException(
+              "no EdekStore implementation found on classpath — KMS envelope encryption requires an EdekStore; "
+                  + "add kryptonite-edek-store-kafka (or another EdekStore impl) to the classpath"));
       var registry = new EnvelopeKekRegistry(kekConfigs);
       LOG.log(INFO, "envelope KEK registry: {0} KEK(s) configured for KMS envelope encryption, dekSizeBytes={1}", registry.size(), dekSizeBytes);
       // Eagerly pre-init one DEK session per KEK — one KMS wrap call each.
