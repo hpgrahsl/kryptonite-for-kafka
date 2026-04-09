@@ -111,6 +111,41 @@ public class UdfConfiguration {
             KryptoniteSettings.SERDE_TYPE_DEFAULT);
         configuration.putIfAbsent(KryptoniteSettings.SERDE_TYPE, serdeType);
 
+        var envelopeKekConfigs = context.getJobParameter(
+            KryptoniteSettings.ENVELOPE_KEK_CONFIGS,
+            KryptoniteSettings.ENVELOPE_KEK_CONFIGS_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.ENVELOPE_KEK_CONFIGS, envelopeKekConfigs);
+
+        var envelopeKekIdentifier = context.getJobParameter(
+            KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER,
+            KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER, envelopeKekIdentifier);
+
+        var dekKeyBits = context.getJobParameter(
+            KryptoniteSettings.DEK_KEY_BITS,
+            String.valueOf(KryptoniteSettings.DEK_KEY_BITS_DEFAULT));
+        configuration.putIfAbsent(KryptoniteSettings.DEK_KEY_BITS, dekKeyBits);
+
+        var dekMaxEncryptions = context.getJobParameter(
+            KryptoniteSettings.DEK_MAX_ENCRYPTIONS,
+            String.valueOf(KryptoniteSettings.DEK_MAX_ENCRYPTIONS_DEFAULT));
+        configuration.putIfAbsent(KryptoniteSettings.DEK_MAX_ENCRYPTIONS, dekMaxEncryptions);
+
+        var dekTtlMinutes = context.getJobParameter(
+            KryptoniteSettings.DEK_TTL_MINUTES,
+            String.valueOf(KryptoniteSettings.DEK_TTL_MINUTES_DEFAULT));
+        configuration.putIfAbsent(KryptoniteSettings.DEK_TTL_MINUTES, dekTtlMinutes);
+
+        var dekCacheSize = context.getJobParameter(
+            KryptoniteSettings.DEK_CACHE_SIZE,
+            String.valueOf(KryptoniteSettings.DEK_CACHE_SIZE_DEFAULT));
+        configuration.putIfAbsent(KryptoniteSettings.DEK_CACHE_SIZE, dekCacheSize);
+
+        var edekStoreConfig = context.getJobParameter(
+            KryptoniteSettings.EDEK_STORE_CONFIG,
+            KryptoniteSettings.EDEK_STORE_CONFIG_DEFAULT);
+        configuration.putIfAbsent(KryptoniteSettings.EDEK_STORE_CONFIG, edekStoreConfig);
+
         return configuration;
     }
 
@@ -192,6 +227,41 @@ public class UdfConfiguration {
         var serdeType = System.getenv(KryptoniteSettings.SERDE_TYPE);
         if (serdeType != null) {
             configuration.put(KryptoniteSettings.SERDE_TYPE, serdeType);
+        }
+
+        var envelopeKekConfigs = System.getenv(KryptoniteSettings.ENVELOPE_KEK_CONFIGS);
+        if (envelopeKekConfigs != null) {
+            configuration.put(KryptoniteSettings.ENVELOPE_KEK_CONFIGS, envelopeKekConfigs);
+        }
+
+        var envelopeKekIdentifier = System.getenv(KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER);
+        if (envelopeKekIdentifier != null) {
+            configuration.put(KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER, envelopeKekIdentifier);
+        }
+
+        var dekKeyBits = System.getenv(KryptoniteSettings.DEK_KEY_BITS);
+        if (dekKeyBits != null) {
+            configuration.put(KryptoniteSettings.DEK_KEY_BITS, dekKeyBits);
+        }
+
+        var dekMaxEncryptions = System.getenv(KryptoniteSettings.DEK_MAX_ENCRYPTIONS);
+        if (dekMaxEncryptions != null) {
+            configuration.put(KryptoniteSettings.DEK_MAX_ENCRYPTIONS, dekMaxEncryptions);
+        }
+
+        var dekTtlMinutes = System.getenv(KryptoniteSettings.DEK_TTL_MINUTES);
+        if (dekTtlMinutes != null) {
+            configuration.put(KryptoniteSettings.DEK_TTL_MINUTES, dekTtlMinutes);
+        }
+
+        var dekCacheSize = System.getenv(KryptoniteSettings.DEK_CACHE_SIZE);
+        if (dekCacheSize != null) {
+            configuration.put(KryptoniteSettings.DEK_CACHE_SIZE, dekCacheSize);
+        }
+
+        var edekStoreConfig = System.getenv(KryptoniteSettings.EDEK_STORE_CONFIG);
+        if (edekStoreConfig != null) {
+            configuration.put(KryptoniteSettings.EDEK_STORE_CONFIG, edekStoreConfig);
         }
 
         return configuration;
