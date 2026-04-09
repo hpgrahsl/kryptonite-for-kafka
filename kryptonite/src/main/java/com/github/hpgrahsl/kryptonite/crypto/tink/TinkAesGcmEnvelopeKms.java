@@ -27,8 +27,8 @@ import com.google.crypto.tink.aead.AesGcmKey;
 import com.google.crypto.tink.aead.AesGcmParameters;
 import com.google.crypto.tink.util.SecretBytes;
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.time.Clock;
+import java.util.Arrays;
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -39,12 +39,26 @@ import static java.lang.System.Logger.Level.TRACE;
  * Wrapping is performed via {@link EnvelopeKekEncryption#wrapDek} — a real KMS network call.
  * The KEK never leaves the KMS.
  *
- * <p>Wire format: {@code [4-byte wrappedDekLen | wrappedDek | dekCiphertext]}
+ * <p>Wire format: {@code [16-byte fingerprint | dekCiphertext]}
  *
- * <p>The DEK session cache ({@code EncryptDekSessionCache}) and wrapped DEK cache
- * ({@code WrappedDekCache}) are <strong>load-bearing</strong> for this mode — each
- * KMS wrap/unwrap costs tens-to-hundreds of ms. Without caching, every field
- * encryption/decryption triggers a KMS round-trip.
+ * <p>The fingerprint is the first 16 bytes of the SHA-256 hash of the wrapped DEK, computed
+ * via {@link com.github.hpgrahsl.kryptonite.keys.EdekStore#fingerprint(byte[])}. The actual
+ * wrapped DEK is stored externally in an {@code EdekStore} (e.g. a KCache-backed compacted
+ * Kafka topic) and looked up by fingerprint on the decrypt path. This keeps the field payload
+ * compact — the wrapped DEK (~60 bytes for AES-128-GCM) is not repeated in every record.
+ *
+ * <p>Contrast with {@link TinkAesGcmEnvelopeKeyset}, which inlines the wrapped DEK
+ * in the bundle as {@code [4-byte wrappedDekLen | wrappedDek | dekCiphertext]}.
+ *
+ * <p><strong>Note on {@link #cipherWithDek}</strong>: the {@code wrappedDek} parameter
+ * in the {@link AeadEnvelopeAlgorithm} interface is repurposed here to carry the pre-computed
+ * 16-byte fingerprint. The caller ({@code Kryptonite.cipherEnvelopeKms}) computes
+ * {@code EdekStore.fingerprint(session.wrappedDek())} and publishes to the EdekStore before
+ * invoking this method.
+ *
+ * <p>The DEK session cache ({@code EncryptDekSessionCache}) and EdekStore are
+ * <strong>load-bearing</strong> for this mode — each KMS wrap/unwrap costs
+ * tens-to-hundreds of ms.
  */
 public class TinkAesGcmEnvelopeKms implements AeadEnvelopeAlgorithm<EnvelopeKekEncryption> {
 
@@ -55,6 +69,7 @@ public class TinkAesGcmEnvelopeKms implements AeadEnvelopeAlgorithm<EnvelopeKekE
   private static final int DEK_SIZE_BYTES_DEFAULT = 16;
   private static final int AES_GCM_IV_SIZE_BYTES = 12;
   private static final int AES_GCM_TAG_SIZE_BYTES = 16;
+  public static final int FINGERPRINT_SIZE_BYTES = 16;
 
   @Override
   public EncryptDekSession createSession(EnvelopeKekEncryption keyMaterial, byte[] wrapAad, int dekSizeBytes, Clock clock) throws Exception {
@@ -82,9 +97,18 @@ public class TinkAesGcmEnvelopeKms implements AeadEnvelopeAlgorithm<EnvelopeKekE
     return dekAeadFromRawBytes(SecretBytes.copyFrom(rawDekBytes, InsecureSecretKeyAccess.get()));
   }
 
+  /**
+   * Encrypts {@code plaintext} with the DEK and bundles the result with the fingerprint.
+   *
+   * <p>The {@code wrappedDek} parameter carries the 16-byte fingerprint (not the full wrapped
+   * DEK bytes). The caller must have already published {@code fingerprint → wrappedDek} to
+   * the {@code EdekStore} before invoking this method.
+   *
+   * <p>Wire format: {@code [16-byte fingerprint | dekCiphertext]}
+   */
   @Override
   public byte[] cipherWithDek(byte[] plaintext, Aead dekAead, byte[] wrappedDek, byte[] encryptAad) throws Exception {
-    LOG.log(TRACE, "cipherWithDek: reusing DEK session, plaintext={0}B wrappedDek={1}B", plaintext.length, wrappedDek.length);
+    LOG.log(TRACE, "cipherWithDek: reusing DEK session, plaintext={0}B fingerprint={1}B", plaintext.length, wrappedDek.length);
     byte[] dekCiphertext = dekAead.encrypt(plaintext, encryptAad);
     byte[] bundle = bundle(wrappedDek, dekCiphertext);
     LOG.log(TRACE, "cipherWithDek: bundle={0}B", bundle.length);
@@ -100,6 +124,12 @@ public class TinkAesGcmEnvelopeKms implements AeadEnvelopeAlgorithm<EnvelopeKekE
     return plaintext;
   }
 
+  /**
+   * Extracts the 16-byte fingerprint from the bundle.
+   *
+   * <p>For this implementation the returned bytes are a fingerprint, not the full wrapped DEK.
+   * The caller must look up the actual wrapped DEK from the {@code EdekStore} using this value.
+   */
   @Override
   public byte[] extractWrappedDek(byte[] bundle) {
     return unbundle(bundle)[0];
@@ -123,22 +153,23 @@ public class TinkAesGcmEnvelopeKms implements AeadEnvelopeAlgorithm<EnvelopeKekE
     return dekHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
   }
 
-  private static byte[] bundle(byte[] wrappedDek, byte[] dekCiphertext) throws Exception {
+  /**
+   * Bundles fingerprint and DEK ciphertext.
+   *
+   * <p>Wire format: {@code [FINGERPRINT_SIZE_BYTES bytes | dekCiphertext]}
+   * No length prefix is needed since the fingerprint size is fixed.
+   */
+  private static byte[] bundle(byte[] fingerprint, byte[] dekCiphertext) throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    out.write(ByteBuffer.allocate(4).putInt(wrappedDek.length).array());
-    out.write(wrappedDek);
+    out.write(fingerprint);
     out.write(dekCiphertext);
     return out.toByteArray();
   }
 
   private static byte[][] unbundle(byte[] bundle) {
-    ByteBuffer buf = ByteBuffer.wrap(bundle);
-    int wrappedDekLen = buf.getInt();
-    byte[] wrappedDek = new byte[wrappedDekLen];
-    buf.get(wrappedDek);
-    byte[] dekCiphertext = new byte[buf.remaining()];
-    buf.get(dekCiphertext);
-    return new byte[][]{wrappedDek, dekCiphertext};
+    byte[] fingerprint = Arrays.copyOf(bundle, FINGERPRINT_SIZE_BYTES);
+    byte[] dekCiphertext = Arrays.copyOfRange(bundle, FINGERPRINT_SIZE_BYTES, bundle.length);
+    return new byte[][]{fingerprint, dekCiphertext};
   }
 
 }

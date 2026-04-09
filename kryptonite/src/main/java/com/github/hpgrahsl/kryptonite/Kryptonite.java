@@ -218,6 +218,7 @@ public class Kryptonite implements AutoCloseable {
   private final WrappedDekCache wrappedDekCache;
   private final EncryptDekSessionCache encryptDekSessionCache;
   private final EnvelopeKekRegistry envelopeKekRegistry;
+  private final EdekStore edekStore;
   private final int dekSizeBytes;
 
   public AbstractKeyVault getKeyVault() {
@@ -227,29 +228,37 @@ public class Kryptonite implements AutoCloseable {
   @Override
   public void close() {
     keyVault.close();
+    if (edekStore != null) {
+      edekStore.close();
+    }
   }
 
   public Kryptonite(AbstractKeyVault keyVault) {
-    this(keyVault, null, null, null, DEK_KEY_BITS_DEFAULT / 8);
+    this(keyVault, null, null, null, null, DEK_KEY_BITS_DEFAULT / 8);
   }
 
   public Kryptonite(AbstractKeyVault keyVault, int wrappedDekCacheSize) {
-    this(keyVault, new WrappedDekCache(wrappedDekCacheSize), null, null, DEK_KEY_BITS_DEFAULT / 8);
+    this(keyVault, new WrappedDekCache(wrappedDekCacheSize), null, null, null, DEK_KEY_BITS_DEFAULT / 8);
   }
 
   public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache) {
-    this(keyVault, wrappedDekCache, encryptDekSessionCache, null, DEK_KEY_BITS_DEFAULT / 8);
+    this(keyVault, wrappedDekCache, encryptDekSessionCache, null, null, DEK_KEY_BITS_DEFAULT / 8);
   }
 
   public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache, EnvelopeKekRegistry envelopeKekRegistry) {
-    this(keyVault, wrappedDekCache, encryptDekSessionCache, envelopeKekRegistry, DEK_KEY_BITS_DEFAULT / 8);
+    this(keyVault, wrappedDekCache, encryptDekSessionCache, envelopeKekRegistry, null, DEK_KEY_BITS_DEFAULT / 8);
   }
 
   public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache, EnvelopeKekRegistry envelopeKekRegistry, int dekSizeBytes) {
+    this(keyVault, wrappedDekCache, encryptDekSessionCache, envelopeKekRegistry, null, dekSizeBytes);
+  }
+
+  public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache, EnvelopeKekRegistry envelopeKekRegistry, EdekStore edekStore, int dekSizeBytes) {
     this.keyVault = keyVault;
     this.wrappedDekCache = wrappedDekCache;
     this.encryptDekSessionCache = encryptDekSessionCache;
     this.envelopeKekRegistry = envelopeKekRegistry;
+    this.edekStore = edekStore;
     this.dekSizeBytes = dekSizeBytes;
     try {
       AeadConfig.register();
@@ -285,7 +294,7 @@ public class Kryptonite implements AutoCloseable {
       if (!(cipherSpec instanceof AeadCipherSpec aead)) {
         throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
       }
-      LOG.log(DEBUG, "cipherFieldRaw: direct cipher path");
+      LOG.log(DEBUG, "cipherFieldRaw: direct encryption without envelope");
       var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
       return aead.getAlgorithm().cipher(plaintext, keysetHandle, metadata.asBytes());
     } catch (KryptoniteException e) {
@@ -297,39 +306,53 @@ public class Kryptonite implements AutoCloseable {
 
   private byte[] cipherEnvelopeKms(byte[] plaintext, PayloadMetaData metadata,
       AeadEnvelopeAlgorithm<EnvelopeKekEncryption> algorithm) throws Exception {
-    LOG.log(DEBUG, "cipherFieldRaw: envelope encryption path (KMS KEK)");
+    LOG.log(DEBUG, "cipherFieldRaw: KMS KEK envelope encryption");
     if (envelopeKekRegistry == null) {
       throw new KryptoniteException(
-          "envelope encryption (KMS KEK) requested but envelope_kek_configs is not configured");
+          "KMS KEK envelope encryption requested but envelope_kek_configs is not configured");
+    }
+    if (edekStore == null) {
+      throw new KryptoniteException(
+          "KMS KEK envelope encryption requested but no EdekStore is configured");
     }
     var envelopeKekEncryption = envelopeKekRegistry.get(metadata.getKeyId());
     var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
     var sessionCache = Objects.requireNonNull(encryptDekSessionCache,
         "DEK session cache is required for envelope encryption with KMS");
+    
+    // Session factory: creates DEK + publishes fingerprint to EdekStore atomically before caching.
+    // A session is only placed in the cache after a successful publish, so any cached session
+    // is guaranteed to have its fingerprint resolvable on the decrypt path.
     var session = sessionCache.getOrCreate(metadata.getKeyId(), () -> {
       try {
-        return algorithm.createSession(envelopeKekEncryption, wrapAad, dekSizeBytes, sessionCache.getClock());
+        var newSession = algorithm.createSession(envelopeKekEncryption, wrapAad, dekSizeBytes, sessionCache.getClock());
+        byte[] fingerprint = EdekStore.fingerprint(newSession.wrappedDek());
+        edekStore.put(fingerprint, newSession.wrappedDek());
+        LOG.log(DEBUG, "cipherFieldRaw: new DEK session created and published to EdekStore (fingerprint={0}B keyId=''{1}'')", fingerprint.length, metadata.getKeyId());
+        return newSession;
       } catch (Exception e) {
-        throw new KryptoniteException("failed to create DEK session for envelope encryption with KMS and keyId='" + metadata.getKeyId() + "'", e);
+        throw new KryptoniteException("failed to create DEK session for KMS KEK envelope encryption for keyId='" + metadata.getKeyId() + "'", e);
       }
     });
-    return algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), metadata.asBytes());
+
+    byte[] fingerprint = EdekStore.fingerprint(session.wrappedDek());
+    return algorithm.cipherWithDek(plaintext, session.dekAead(), fingerprint, metadata.asBytes());
   }
 
   private byte[] cipherEnvelopeKeyset(byte[] plaintext, PayloadMetaData metadata,
       AeadEnvelopeAlgorithm<KeysetHandle> algorithm, KeysetHandle keysetHandle, byte[] wrapAad) throws Exception {
     if (encryptDekSessionCache != null) {
-      LOG.log(DEBUG, "cipherFieldRaw: envelope encryption path (Keyset KEK) - DEK session cache enabled");
+      LOG.log(DEBUG, "cipherFieldRaw: Keyset KEK envelope encryption with enabled DEK session cache");
       var session = encryptDekSessionCache.getOrCreate(metadata.getKeyId(), () -> {
         try {
           return algorithm.createSession(keysetHandle, wrapAad, dekSizeBytes, encryptDekSessionCache.getClock());
         } catch (Exception e) {
-          throw new KryptoniteException("failed to create DEK session for envelope encryption with Keyset and keyId='" + metadata.getKeyId() + "'", e);
+          throw new KryptoniteException("failed to create DEK session for Keyset KEK envelope encryption and keyId='" + metadata.getKeyId() + "'", e);
         }
       });
       return algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), metadata.asBytes());
     }
-    LOG.log(DEBUG, "cipherFieldRaw: envelope encryption path (Keyset KEK) - no session cache, fresh DEK per call");
+    LOG.log(DEBUG, "cipherFieldRaw: Keyset KEK envelope encryption without session cache (fresh DEK per call)");
     var session = algorithm.createSession(keysetHandle, wrapAad, dekSizeBytes, Clock.systemUTC());
     return algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), metadata.asBytes());
   }
@@ -375,7 +398,7 @@ public class Kryptonite implements AutoCloseable {
       if (!(cipherSpec instanceof AeadCipherSpec aead)) {
         throw new KryptoniteException("algorithm ID '" + metadata.getAlgorithmId() + "' is not an AEAD algorithm");
       }
-      LOG.log(DEBUG, "decipherFieldRaw: direct decipher path");
+      LOG.log(DEBUG, "decipherFieldRaw: direct decryption without envelope\"");
       var keysetHandle = keyVault.readKeysetHandle(metadata.getKeyId());
       return aead.getAlgorithm().decipher(ciphertext, keysetHandle, metadata.asBytes());
     } catch (KryptoniteException e) {
@@ -387,26 +410,37 @@ public class Kryptonite implements AutoCloseable {
 
   private byte[] decipherEnvelopeKms(byte[] ciphertext, PayloadMetaData metadata,
       AeadEnvelopeAlgorithm<EnvelopeKekEncryption> algorithm) throws Exception {
-    LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (KMS KEK)");
+    LOG.log(DEBUG, "decipherFieldRaw: KMS KEK envelope decryption");
     if (envelopeKekRegistry == null) {
       throw new KryptoniteException(
-          "envelope decryption requested but envelope_kek_configs is not configured");
+          "KMS KEK envelope decryption requested but envelope_kek_configs is not configured");
     }
-    byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
+    if (edekStore == null) {
+      throw new KryptoniteException(
+          "KMS KEK envelope decryption requested but no EdekStore is configured");
+    }
+    // extractWrappedDek returns the 16-byte fingerprint for Mode B
+    byte[] fingerprint = algorithm.extractWrappedDek(ciphertext);
     var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
     var envelopeKekEncryption = envelopeKekRegistry.get(metadata.getKeyId());
     Aead dekAead;
     if (wrappedDekCache != null) {
-      LOG.log(DEBUG, "decipherFieldRaw: wrapped DEK cache enabled (wrappedDek={0}B)", wrappedDek.length);
-      dekAead = wrappedDekCache.get(wrappedDek, wdk -> {
+      LOG.log(DEBUG, "decipherFieldRaw: fingerprint-keyed DEK cache enabled (fingerprint={0}B)", fingerprint.length);
+      dekAead = wrappedDekCache.get(fingerprint, fp -> {
+        byte[] wrappedDek = edekStore.get(fp)
+            .orElseThrow(() -> new KryptoniteException(
+                "EDEK not found for fingerprint — the wrapped DEK may not yet have been replicated to this instance's EdekStore, or the EDEK topic may have been corrupted; keyId='" + metadata.getKeyId() + "'"));
         try {
-          return algorithm.unwrapDek(wdk, envelopeKekEncryption, wrapAad);
+          return algorithm.unwrapDek(wrappedDek, envelopeKekEncryption, wrapAad);
         } catch (Exception e) {
           throw new KryptoniteException("failed to unwrap DEK; keyId='" + metadata.getKeyId() + "'", e);
         }
       });
     } else {
-      LOG.log(DEBUG, "decipherFieldRaw: no wrapped DEK cache (wrappedDek={0}B)", wrappedDek.length);
+      LOG.log(DEBUG, "decipherFieldRaw: no DEK cache, looking up wrappedDek from EdekStore (fingerprint={0}B)", fingerprint.length);
+      byte[] wrappedDek = edekStore.get(fingerprint)
+          .orElseThrow(() -> new KryptoniteException(
+              "EDEK not found for fingerprint — the wrapped DEK may not yet have been replicated to this instance's EdekStore, or the EDEK topic may have been corrupted; keyId='" + metadata.getKeyId() + "'"));
       dekAead = algorithm.unwrapDek(wrappedDek, envelopeKekEncryption, wrapAad);
     }
     return algorithm.decipherWithDek(ciphertext, dekAead, metadata.asBytes());
@@ -417,7 +451,7 @@ public class Kryptonite implements AutoCloseable {
     byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
     Aead dekAead;
     if (wrappedDekCache != null) {
-      LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (Keyset KEK) - wrapped DEK cache enabled, wrappedDek={0}B)", wrappedDek.length);
+      LOG.log(DEBUG, "decipherFieldRaw: Keyset KEK envelope decryption with enabled DEK cache, wrappedDek={0}B)", wrappedDek.length);
       dekAead = wrappedDekCache.get(wrappedDek, wdk -> {
         try {
           return algorithm.unwrapDek(wdk, keysetHandle, wrapAad);
@@ -426,7 +460,7 @@ public class Kryptonite implements AutoCloseable {
         }
       });
     } else {
-      LOG.log(DEBUG, "decipherFieldRaw: envelope decryption path (Keyset KEK - no wrapped DEK cache, wrappedDek={0}B)", wrappedDek.length);
+      LOG.log(DEBUG, "decipherFieldRaw: Keyset KEK envelope decryption without DEK cache, wrappedDek={0}B)", wrappedDek.length);
       dekAead = algorithm.unwrapDek(wrappedDek, keysetHandle, wrapAad);
     }
     return algorithm.decipherWithDek(ciphertext, dekAead, metadata.asBytes());
@@ -483,8 +517,9 @@ public class Kryptonite implements AutoCloseable {
         keyConfigs.size(), defaultKeyId);
     var sessionCache = encryptDekSessionCache(config);
     var dekSizeBytes = dekSizeBytes(config);
-    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes);
-    return new Kryptonite(new TinkKeyVault(keyConfigs), wrappedDekCache(config), sessionCache, registry, dekSizeBytes);
+    var edekStore = buildEdekStore(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    return new Kryptonite(new TinkKeyVault(keyConfigs), wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
   private static Kryptonite withTinkKeyVaultEncrypted(Map<String,String> config)
@@ -501,8 +536,9 @@ public class Kryptonite implements AutoCloseable {
         kekType, keyConfigs.size(), defaultKeyId);
     var sessionCache = encryptDekSessionCache(config);
     var dekSizeBytes = dekSizeBytes(config);
-    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes);
-    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)), wrappedDekCache(config), sessionCache, registry, dekSizeBytes);
+    var edekStore = buildEdekStore(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)), wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
   private static Kryptonite withKmsKeyVault(Map<String,String> config) {
@@ -522,8 +558,9 @@ public class Kryptonite implements AutoCloseable {
     vault.startBackgroundRefresh(refreshIntervalMinutes);
     var sessionCache = encryptDekSessionCache(config);
     var dekSizeBytes = dekSizeBytes(config);
-    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes);
-    return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry, dekSizeBytes);
+    var edekStore = buildEdekStore(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
   private static Kryptonite withKmsKeyVaultEncrypted(Map<String,String> config) {
@@ -545,8 +582,9 @@ public class Kryptonite implements AutoCloseable {
     vault.startBackgroundRefresh(refreshIntervalMinutes);
     var sessionCache = encryptDekSessionCache(config);
     var dekSizeBytes = dekSizeBytes(config);
-    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes);
-    return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry, dekSizeBytes);
+    var edekStore = buildEdekStore(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
   private static int dekSizeBytes(Map<String,String> config) {
@@ -554,7 +592,7 @@ public class Kryptonite implements AutoCloseable {
     try {
       bits = Integer.parseInt(config.getOrDefault(DEK_KEY_BITS, String.valueOf(DEK_KEY_BITS_DEFAULT)));
     } catch (NumberFormatException e) {
-      bits = DEK_KEY_BITS_DEFAULT;
+      throw new ConfigurationException("dek_key_bits must be 128 or 256", e);
     }
     if (bits != 128 && bits != 256) {
       throw new ConfigurationException("dek_key_bits must be 128 or 256, got: " + bits);
@@ -600,7 +638,7 @@ public class Kryptonite implements AutoCloseable {
     }
   }
 
-  private static EnvelopeKekRegistry buildEnvelopeKekRegistry(Map<String,String> config, EncryptDekSessionCache sessionCache, int dekSizeBytes) {
+  private static EnvelopeKekRegistry buildEnvelopeKekRegistry(Map<String,String> config, EncryptDekSessionCache sessionCache, int dekSizeBytes, EdekStore edekStore) {
     var raw = config.getOrDefault(ENVELOPE_KEK_CONFIGS, ENVELOPE_KEK_CONFIGS_DEFAULT);
     if (raw == null || raw.isBlank() || raw.equals(ENVELOPE_KEK_CONFIGS_DEFAULT)) {
       LOG.log(DEBUG, "envelope_kek_configs: not configured — KMS envelope encryption not available");
@@ -613,12 +651,6 @@ public class Kryptonite implements AutoCloseable {
         LOG.log(DEBUG, "envelope_kek_configs: empty list — KMS envelope encryption not available");
         return null;
       }
-      ServiceLoader.load(EdekStore.class, EdekStore.class.getClassLoader())
-          .stream()
-          .findFirst()
-          .orElseThrow(() -> new ConfigurationException(
-              "no EdekStore implementation found on classpath — KMS envelope encryption requires an EdekStore; "
-                  + "add kryptonite-edek-store-kafka (or another EdekStore impl) to the classpath"));
       var registry = new EnvelopeKekRegistry(kekConfigs);
       LOG.log(INFO, "envelope KEK registry: {0} KEK(s) configured for KMS envelope encryption, dekSizeBytes={1}", registry.size(), dekSizeBytes);
       // Eagerly pre-init one DEK session per KEK — one KMS wrap call each.
@@ -629,7 +661,13 @@ public class Kryptonite implements AutoCloseable {
         var wrapAad = id.getBytes(StandardCharsets.UTF_8);
         sessionCache.getOrCreate(id, () -> {
           try {
-            return kmsAlgorithm.createSession(kek, wrapAad, dekSizeBytes, sessionCache.getClock());
+            var session = kmsAlgorithm.createSession(kek, wrapAad, dekSizeBytes, sessionCache.getClock());
+            if (edekStore != null) {
+              byte[] fp = EdekStore.fingerprint(session.wrappedDek());
+              edekStore.put(fp, session.wrappedDek());
+              LOG.log(DEBUG, "envelope KEK registry: published DEK fingerprint to EdekStore for KEK id=''{0}''", id);
+            }
+            return session;
           } catch (Exception e) {
             throw new KryptoniteException("failed to pre-init DEK session for envelope KEK '" + id + "'", e);
           }
@@ -641,6 +679,28 @@ public class Kryptonite implements AutoCloseable {
       throw e;
     } catch (Exception e) {
       throw new ConfigurationException("failed to parse envelope_kek_configs: " + e.getMessage(), e);
+    }
+  }
+
+  private static EdekStore buildEdekStore(Map<String,String> config) {
+    var raw = config.getOrDefault(EDEK_STORE_CONFIG, EDEK_STORE_CONFIG_DEFAULT);
+    if (raw == null || raw.isBlank() || raw.equals(EDEK_STORE_CONFIG_DEFAULT)) {
+      LOG.log(DEBUG, "edek_store_config: not configured — EdekStore not available");
+      return null;
+    }
+    var edekStoreImpl = ServiceLoader.load(EdekStore.class, EdekStore.class.getClassLoader())
+        .stream()
+        .map(ServiceLoader.Provider::get)
+        .findFirst()
+        .orElseThrow(() -> new ConfigurationException(
+            "edek_store_config is set but no EdekStore implementation found on classpath — "
+                + "add kryptonite-edek-store-kafka (or another EdekStore implementation) to the classpath"));
+    try {
+      edekStoreImpl.init(raw);
+      LOG.log(INFO, "EdekStore initialised: {0}", edekStoreImpl.getClass().getSimpleName());
+      return edekStoreImpl;
+    } catch (Exception e) {
+      throw new ConfigurationException("failed to initialise EdekStore: " + e.getMessage(), e);
     }
   }
 

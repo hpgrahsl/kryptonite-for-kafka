@@ -31,7 +31,7 @@ import java.util.Arrays;
  * source array cannot corrupt in-flight map lookups — the same pattern used by
  * {@code WrappedDekKey} in the Caffeine L1 cache.
  */
-public record FingerprintKey(byte[] bytes) {
+public record FingerprintKey(byte[] bytes) implements Comparable<FingerprintKey> {
 
   /** Defensive copy on construction — external mutation of the source array is safe. */
   public FingerprintKey(byte[] bytes) {
@@ -53,6 +53,16 @@ public record FingerprintKey(byte[] bytes) {
   @Override
   public int hashCode() {
     return Arrays.hashCode(bytes);
+  }
+
+  /** Lexicographic unsigned byte comparison — consistent with {@link #equals}. */
+  @Override
+  public int compareTo(FingerprintKey other) {
+    for (int i = 0; i < Math.min(bytes.length, other.bytes.length); i++) {
+      int cmp = Byte.compareUnsigned(bytes[i], other.bytes[i]);
+      if (cmp != 0) return cmp;
+    }
+    return Integer.compare(bytes.length, other.bytes.length);
   }
 
   @Override

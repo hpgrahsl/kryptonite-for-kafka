@@ -28,6 +28,10 @@ import static java.lang.System.Logger.Level.TRACE;
  * <p>A session slot is claimed atomically via {@link #tryAcquire}: TTL is checked first,
  * then the use-count is incremented with {@code getAndIncrement} — giving each caller a unique
  * slot number so exactly {@code maxEncryptions} calls succeed before rotation, never more.
+ *
+ * <p>EdekStore publish guarantee: a session is only placed into the
+ * {@code EncryptDekSessionCache} after its fingerprint has been successfully published to the
+ * EdekStore. Any session retrieved from the cache is therefore safe to encrypt with.
  */
 public class EncryptDekSession {
 

@@ -103,4 +103,7 @@ public class KryptoniteSettings {
   public static final String DEK_KEY_BITS = "dek_key_bits";
   public static final int    DEK_KEY_BITS_DEFAULT = 128;
 
+  public static final String EDEK_STORE_CONFIG = "edek_store_config";
+  public static final String EDEK_STORE_CONFIG_DEFAULT = "{}";
+
 }
