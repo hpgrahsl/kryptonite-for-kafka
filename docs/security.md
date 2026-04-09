@@ -18,19 +18,6 @@
 !!! warning "Do not use for Kafka record keys"
     Applying probabilistic encryption to a Kafka record key causes records with the same original key to land in different partitions. This breaks partitioning guarantees and record ordering. If you really plan to encrypt the whole key or parts thereof, switch to `TINK/AES_GCM_SIV` for keys instead.
 
-### AES-GCM-SIV
-
-`TINK/AES_GCM_SIV` is a nonce misuse-resistant variant. For the same plaintext and key, it always produces the same ciphertext.
-
-**Properties:**
-
-- **deterministic:** same plaintext + same key always produces the same ciphertext
-- **authenticated:** tamper detection is retained
-- **nonce misuse-resistant:** the cipher does not fail catastrophically if a nonce is repeated
-
-!!! question "When to use?"
-    Lookups / Joins / Aggregations on ciphertext require this deterministic encryption property to work correctly. Kafka record keys or parts thereof can only be encrypted deterministically in order not to break the partitioning and ordering of records.
-
 ### AES-GCM Envelope Encryption (Keyset-based)
 
 `TINK/AES_GCM_ENVELOPE_KEYSET` applies [envelope encryption](https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption) using a Tink keyset as the Key Encryption Key (KEK). A fresh AES-GCM DEK is generated per session, used to encrypt field data, and then wrapped with the KEK keyset. The wrapped DEK gets bundled as is inline with the ciphertext.
@@ -59,6 +46,19 @@
 
 !!! question "When to use?"
     For cloud deployments where maximum key isolation is required and the KEK must not leave the cloud KMS security perimeter. Using this mode requires a compatible `EdekStore` implementation which defaults to KCache/Kafka and requires proper configuration (`edek_store_config`) and a running Kafka cluster accessible to Kryptonite for Kafka. See [Envelope Encryption](envelope-encryption.md) for details.
+
+### AES-GCM-SIV
+
+`TINK/AES_GCM_SIV` is a nonce misuse-resistant variant. For the same plaintext and key, it always produces the same ciphertext.
+
+**Properties:**
+
+- **deterministic:** same plaintext + same key always produces the same ciphertext
+- **authenticated:** tamper detection is retained
+- **nonce misuse-resistant:** the cipher does not fail catastrophically if a nonce is repeated
+
+!!! question "When to use?"
+    Lookups / Joins / Aggregations on ciphertext require this deterministic encryption property to work correctly. Kafka record keys or parts thereof can only be encrypted deterministically in order not to break the partitioning and ordering of records.
 
 ---
 
