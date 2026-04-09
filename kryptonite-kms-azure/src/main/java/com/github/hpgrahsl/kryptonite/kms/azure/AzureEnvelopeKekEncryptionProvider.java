@@ -20,21 +20,15 @@ import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryption;
 import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryptionProvider;
 
 /**
- * {@link EnvelopeKekEncryptionProvider} stub for Azure Key Vault.
+ * {@link EnvelopeKekEncryptionProvider} for Azure Key Vault.
  *
- * <p>Envelope KMS encryption ({@code TINK/AES_GCM_ENVELOPE_KMS}) is <strong>not supported</strong>
- * for Azure Key Vault Standard or Premium. Both tiers only expose RSA and EC keys; RSA-OAEP
- * wrapping produces 256–512 bytes per wrapped DEK, which is unsuitable for per-field per-record
- * embedding in the ciphertext bundle.
+ * <p>Envelope KMS encryption ({@code TINK/AES_GCM_ENVELOPE_KMS}) with Azure Key Vault uses
+ * RSA-OAEP-256 key wrapping via {@link AzureEnvelopeKekEncryption}. The wrapped DEK (~256 bytes)
+ * is stored in the {@code EdekStore} (external Kafka topic); only a compact 16-byte fingerprint
+ * travels with each ciphertext, so the RSA-OAEP output size is not an issue.
  *
- * <p>The viable implementation path would be Azure Managed HSM with AES Key Wrap ({@code A256KW}),
- * which would produce significantly more compact wrapped DEKs. This is not implemented because Azure Managed HSM
- * is a substantially more expensive and operationally heavier offering that cannot be assumed
- * to be available.
- *
- * <p>This provider is registered via {@link java.util.ServiceLoader} so that a clear
- * {@link UnsupportedOperationException} is thrown at startup rather than a generic
- * "provider not found" error.
+ * <p>Note: Azure RSA-OAEP key wrap has no associated-data parameter, so the {@code wrapAad}
+ * argument is ignored. See {@link AzureEnvelopeKekEncryption} for details.
  */
 public class AzureEnvelopeKekEncryptionProvider implements EnvelopeKekEncryptionProvider {
 
@@ -45,11 +39,7 @@ public class AzureEnvelopeKekEncryptionProvider implements EnvelopeKekEncryption
 
     @Override
     public EnvelopeKekEncryption createEnvelopeKekEncryption(String kekUri, String kekConfig) {
-        throw new UnsupportedOperationException(
-            "envelope KMS encryption is not supported for kek_type 'AZURE': "
-            + "Azure Key Vault Standard/Premium only support RSA/EC keys — RSA-OAEP wrapped DEK "
-            + "size (256–512 bytes) is unsuitable for per-field per-record embedding. "
-            + "Azure Managed HSM (AES Key Wrap / A256KW) would be the viable path but is not yet implemented.");
+        return new AzureEnvelopeKekEncryption(kekUri, kekConfig);
     }
 
 }

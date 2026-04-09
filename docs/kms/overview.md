@@ -22,7 +22,7 @@ Kryptonite for Kafka supports three cloud KMS providers ([GCP Cloud KMS](https:/
 |---|---|---|---|
 | [GCP](gcp.md) | `GCP_SM_SECRETS` | `GCP` | `GCP` |
 | [AWS](aws.md) | `AWS_SM_SECRETS` | `AWS` | `AWS` |
-| [Azure](azure.md) | `AZ_KV_SECRETS` | `AZURE` | not yet supported |
+| [Azure](azure.md) | `AZ_KV_SECRETS` | `AZURE` | `AZURE` |
 
 ---
 

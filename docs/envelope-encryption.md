@@ -169,9 +169,26 @@ The `envelope_kek_configs` parameter takes a JSON array of KEK entries. Each ent
     ]
     ```
 
-Multiple KEK entries are supported. Each field can reference a different KEK identifier, enabling per-field or per-topic key isolation.
+=== "Azure Key Vault"
+    ```json
+    [
+      {
+        "identifier": "my-azure-kek",
+        "type": "AZURE",
+        "uri": "azure-kv://<vault-name>.vault.azure.net/keys/<key-name>",
+        "config": {
+          "clientId": "...",
+          "tenantId": "...",
+          "clientSecret": "...",
+          "keyVaultUrl": "https://<vault-name>.vault.azure.net"
+        }
+      }
+    ]
+    ```
 
-!!! warning "Azure Key Vault not supported for KMS-based envelope encryption"
-    Azure Key Vault (`kek_type=AZURE`) is not currently supported as a KEK for `TINK/AES_GCM_ENVELOPE_KMS`. Attempting to configure it will throw at startup. Azure Key Vault can still be used for keyset encryption (`key_source=CONFIG_ENCRYPTED` / `KMS_ENCRYPTED`) as normal.
+    !!! note "AAD not supported for Azure"
+        Azure Key Vault's RSA-OAEP-256 key wrap/unwrap has no associated-data parameter. The `wrapAad` binding used by GCP and AWS is silently ignored for Azure. Security relies on the EdekStore fingerprint lookup chain.
+
+Multiple KEK entries are supported. Each field can reference a different KEK identifier, enabling per-field or per-topic key isolation.
 
 See [Cloud KMS](kms/overview.md) for provider-specific IAM permissions and setup details.

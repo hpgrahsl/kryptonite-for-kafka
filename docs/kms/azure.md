@@ -1,9 +1,10 @@
 # Azure Key Vault
 
-The `kryptonite-kms-azure` module adds two capabilities:
+The `kryptonite-kms-azure` module adds three capabilities:
 
 1. **Keyset storage**: fetch Tink keysets from Azure Key Vault Secrets at runtime (`kms_type=AZ_KV_SECRETS`)
 2. **Keyset Encryption**: use an Azure Key Vault RSA key to encrypt/decrypt keysets at rest (`kek_type=AZURE`)
+3. **Envelope KEK**: use an Azure Key Vault RSA key as the Key Encryption Key for envelope encryption (`cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`)
 
 Add the module JAR to the classpath alongside the core library. It is discovered automatically via `ServiceLoader`.
 
@@ -118,3 +119,46 @@ Then configure:
   "kek_config": "{\"clientId\":\"...\",\"tenantId\":\"...\",\"clientSecret\":\"...\",\"keyVaultUrl\":\"https://my-keys-vault.vault.azure.net\"}"
 }
 ```
+
+---
+
+## Envelope KEK with `cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`
+
+Azure Key Vault RSA keys can act as the KEK for field-level envelope encryption. In this mode a fresh DEK is generated per session, all field encryption uses the DEK, and Azure Key Vault wraps/unwraps the DEK on session boundaries using RSA-OAEP-256. The wrapped DEK (~256 bytes) is stored in the EdekStore (external Kafka topic) — only a compact 16-byte fingerprint travels with each ciphertext.
+
+See [Envelope Encryption](../envelope-encryption.md) for a full explanation of the encrypt/decrypt paths, DEK session lifecycle, and EdekStore configuration.
+
+!!! note "AAD not supported"
+    Azure Key Vault's RSA-OAEP-256 key wrap/unwrap API has no associated-data parameter. The `wrapAad` binding present in GCP and AWS providers is silently ignored for Azure. The security model relies on the EdekStore fingerprint lookup chain rather than cryptographic binding of AAD to the wrapped DEK.
+
+### IAM permissions required
+
+The service principal used in `envelope_kek_configs` requires on the keys vault:
+
+- `Key Wrap Key`
+- `Key Unwrap Key`
+
+### Configuration
+
+```json
+{
+  "cipher_algorithm": "TINK/AES_GCM_ENVELOPE_KMS",
+  "envelope_kek_identifier": "my-azure-kek",
+  "envelope_kek_configs": "[{\"identifier\":\"my-azure-kek\",\"type\":\"AZURE\",\"uri\":\"azure-kv://my-keys-vault.vault.azure.net/keys/my-rsa-kek\",\"config\":{\"clientId\":\"...\",\"tenantId\":\"...\",\"clientSecret\":\"...\",\"keyVaultUrl\":\"https://my-keys-vault.vault.azure.net\"}}]",
+  "edek_store_config": "{\"kafkacache.bootstrap.servers\":\"broker1:9092\",\"kafkacache.topic\":\"_k4k_edeks\"}",
+  "cipher_data_keys": "[]",
+  "cipher_data_key_identifier": ""
+}
+```
+
+`envelope_kek_configs` entry fields:
+
+| Field | Description |
+|---|---|
+| `identifier` | Logical name referenced by `envelope_kek_identifier` |
+| `type` | Must be `AZURE` |
+| `uri` | Azure Key Vault key URI (`azure-kv://<vault-host>/keys/<key-name>[/<version>]`) |
+| `config.clientId` | Service principal application ID |
+| `config.tenantId` | Azure Active Directory tenant ID |
+| `config.clientSecret` | Service principal client secret |
+| `config.keyVaultUrl` | Base URL of the Key Vault instance holding the RSA key |
