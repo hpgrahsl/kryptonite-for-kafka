@@ -26,6 +26,8 @@ import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.TestFixturesCloudKms;
+import com.github.hpgrahsl.kryptonite.keys.EdekStore;
+import com.github.hpgrahsl.kryptonite.tink.test.EdekStoreFixtures;
 import com.github.hpgrahsl.kryptonite.config.EnvelopeKekConfig;
 import com.github.hpgrahsl.kryptonite.crypto.EncryptDekSessionCache;
 import com.github.hpgrahsl.kryptonite.crypto.WrappedDekCache;
@@ -126,10 +128,10 @@ public class GcpEnvelopeKekEncryptionTest {
         byte[] encryptAad = "meta".getBytes(StandardCharsets.UTF_8);
 
         var session = algorithm.createSession(KEK_ENCRYPTION, wrapAad);
-        byte[] ciphertext = algorithm.cipherWithDek(plaintext, session.dekAead(), session.wrappedDek(), encryptAad);
+        byte[] fingerprint = EdekStore.fingerprint(session.wrappedDek());
+        byte[] ciphertext = algorithm.cipherWithDek(plaintext, session.dekAead(), fingerprint, encryptAad);
 
-        byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
-        var dekAead = algorithm.unwrapDek(wrappedDek, KEK_ENCRYPTION, wrapAad);
+        var dekAead = algorithm.unwrapDek(session.wrappedDek(), KEK_ENCRYPTION, wrapAad);
         byte[] decrypted = algorithm.decipherWithDek(ciphertext, dekAead, encryptAad);
 
         assertArrayEquals(plaintext, decrypted);
@@ -158,7 +160,7 @@ public class GcpEnvelopeKekEncryptionTest {
         var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, ALGORITHM_ID, KEK_ID);
         var sessionCache = new EncryptDekSessionCache(100_000L, 720L);
         var dekCache = new WrappedDekCache(1024);
-        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), dekCache, sessionCache, KEK_REGISTRY)) {
+        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), dekCache, sessionCache, KEK_REGISTRY, EdekStoreFixtures.inMemoryEdekStore(), 16)) {
             byte[] plaintext = "gcp envelope-kms field".getBytes(StandardCharsets.UTF_8);
             byte[] ciphertext = kryptonite.cipherFieldRaw(plaintext, metadata);
             byte[] decrypted = kryptonite.decipherFieldRaw(ciphertext, metadata);
@@ -172,7 +174,7 @@ public class GcpEnvelopeKekEncryptionTest {
         var algorithm = new TinkAesGcmEnvelopeKms();
         var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, ALGORITHM_ID, KEK_ID);
         var sessionCache = new EncryptDekSessionCache(100_000L, 720L);
-        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), null, sessionCache, KEK_REGISTRY)) {
+        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), null, sessionCache, KEK_REGISTRY, EdekStoreFixtures.inMemoryEdekStore(), 16)) {
             byte[] ct1 = kryptonite.cipherFieldRaw("a".getBytes(StandardCharsets.UTF_8), metadata);
             byte[] ct2 = kryptonite.cipherFieldRaw("b".getBytes(StandardCharsets.UTF_8), metadata);
             assertArrayEquals(algorithm.extractWrappedDek(ct1), algorithm.extractWrappedDek(ct2),
@@ -186,7 +188,7 @@ public class GcpEnvelopeKekEncryptionTest {
         var algorithm = new TinkAesGcmEnvelopeKms();
         var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, ALGORITHM_ID, KEK_ID);
         var sessionCache = new EncryptDekSessionCache(2L, 720L); // rotate after 2 uses
-        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), null, sessionCache, KEK_REGISTRY)) {
+        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), null, sessionCache, KEK_REGISTRY, EdekStoreFixtures.inMemoryEdekStore(), 16)) {
             byte[] ct1 = kryptonite.cipherFieldRaw("a".getBytes(StandardCharsets.UTF_8), metadata);
             byte[] ct2 = kryptonite.cipherFieldRaw("b".getBytes(StandardCharsets.UTF_8), metadata);
             // session exhausted after 2 uses — next call must wrap a fresh DEK via KMS
@@ -203,22 +205,19 @@ public class GcpEnvelopeKekEncryptionTest {
     void kryptoniteDecryptCacheLoaderCalledOnlyOnMiss() throws Exception {
         var algorithm = new TinkAesGcmEnvelopeKms();
         byte[] wrapAad = KEK_ID.getBytes(StandardCharsets.UTF_8);
-        byte[] encryptAad = "meta".getBytes(StandardCharsets.UTF_8);
 
         var session = algorithm.createSession(KEK_ENCRYPTION, wrapAad);
-        byte[] ciphertext = algorithm.cipherWithDek(
-            "cache test".getBytes(StandardCharsets.UTF_8), session.dekAead(), session.wrappedDek(), encryptAad);
-        byte[] wrappedDek = algorithm.extractWrappedDek(ciphertext);
 
         var loadCount = new AtomicInteger(0);
         var dekCache = new WrappedDekCache(1024);
 
-        dekCache.get(wrappedDek, wdk -> {
+        // cache is keyed by the full wrappedDek — the loader receives wrappedDek, not fingerprint
+        dekCache.get(session.wrappedDek(), wdk -> {
             loadCount.incrementAndGet();
             try { return algorithm.unwrapDek(wdk, KEK_ENCRYPTION, wrapAad); }
             catch (Exception e) { throw new KryptoniteException(e); }
         });
-        dekCache.get(wrappedDek, wdk -> {
+        dekCache.get(session.wrappedDek(), wdk -> {
             loadCount.incrementAndGet();
             try { return algorithm.unwrapDek(wdk, KEK_ENCRYPTION, wrapAad); }
             catch (Exception e) { throw new KryptoniteException(e); }
@@ -234,7 +233,7 @@ public class GcpEnvelopeKekEncryptionTest {
         var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, ALGORITHM_ID, KEK_ID);
         var sessionCache = new EncryptDekSessionCache(1L, 720L); // rotate after every use
         var dekCache = new WrappedDekCache(1024);
-        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), dekCache, sessionCache, KEK_REGISTRY)) {
+        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), dekCache, sessionCache, KEK_REGISTRY, EdekStoreFixtures.inMemoryEdekStore(), 16)) {
             byte[] plaintext = "rotate test".getBytes(StandardCharsets.UTF_8);
             byte[] ct1 = kryptonite.cipherFieldRaw(plaintext, metadata);
             byte[] ct2 = kryptonite.cipherFieldRaw(plaintext, metadata); // triggers rotation
