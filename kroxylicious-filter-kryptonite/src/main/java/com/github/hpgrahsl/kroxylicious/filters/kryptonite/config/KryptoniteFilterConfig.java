@@ -31,6 +31,15 @@ public class KryptoniteFilterConfig {
     private final String kekUri;
     private final String kekConfig;
 
+    // --- Envelope encryption (TINK/AES_GCM_ENVELOPE_KMS) ---
+    private final List<Map<String, Object>> envelopeKekConfigs;
+    private final String envelopeKekIdentifier;
+    private final int dekKeyBits;
+    private final long dekMaxEncryptions;
+    private final long dekTtlMinutes;
+    private final int dekCacheSize;
+    private final Map<String, String> edekStoreConfig;
+
     // --- Schema Registry ---
     private final String schemaRegistryUrl;
     private final Map<String, String> schemaRegistryConfig;
@@ -60,6 +69,13 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "kek_type") String kekType,
             @JsonProperty(value = "kek_uri") String kekUri,
             @JsonProperty(value = "kek_config") String kekConfig,
+            @JsonProperty(value = "envelope_kek_configs") List<Map<String, Object>> envelopeKekConfigs,
+            @JsonProperty(value = "envelope_kek_identifier") String envelopeKekIdentifier,
+            @JsonProperty(value = "dek_key_bits") Integer dekKeyBits,
+            @JsonProperty(value = "dek_max_encryptions") Long dekMaxEncryptions,
+            @JsonProperty(value = "dek_ttl_minutes") Long dekTtlMinutes,
+            @JsonProperty(value = "dek_cache_size") Integer dekCacheSize,
+            @JsonProperty(value = "edek_store_config") Map<String, String> edekStoreConfig,
             @JsonProperty(value = "schema_registry_url") String schemaRegistryUrl,
             @JsonProperty(value = "schema_registry_config") Map<String, String> schemaRegistryConfig,
             @JsonProperty(value = "record_format") RecordFormat recordFormat,
@@ -77,6 +93,13 @@ public class KryptoniteFilterConfig {
         this.kekType = kekType != null ? kekType : KryptoniteSettings.KEK_TYPE_DEFAULT;
         this.kekUri = kekUri != null ? kekUri : KryptoniteSettings.KEK_URI_DEFAULT;
         this.kekConfig = kekConfig != null ? kekConfig : KryptoniteSettings.KEK_CONFIG_DEFAULT;
+        this.envelopeKekConfigs = envelopeKekConfigs != null ? envelopeKekConfigs : List.of();
+        this.envelopeKekIdentifier = envelopeKekIdentifier != null ? envelopeKekIdentifier : KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER_DEFAULT;
+        this.dekKeyBits = dekKeyBits != null ? dekKeyBits : KryptoniteSettings.DEK_KEY_BITS_DEFAULT;
+        this.dekMaxEncryptions = dekMaxEncryptions != null ? dekMaxEncryptions : KryptoniteSettings.DEK_MAX_ENCRYPTIONS_DEFAULT;
+        this.dekTtlMinutes = dekTtlMinutes != null ? dekTtlMinutes : KryptoniteSettings.DEK_TTL_MINUTES_DEFAULT;
+        this.dekCacheSize = dekCacheSize != null ? dekCacheSize : KryptoniteSettings.DEK_CACHE_SIZE_DEFAULT;
+        this.edekStoreConfig = edekStoreConfig != null ? edekStoreConfig : Map.of();
         this.schemaRegistryUrl = schemaRegistryUrl;
         this.schemaRegistryConfig = schemaRegistryConfig != null ? schemaRegistryConfig : Map.of();
         this.recordFormat = recordFormat;
@@ -96,6 +119,13 @@ public class KryptoniteFilterConfig {
     public String getKekType() { return kekType; }
     public String getKekUri() { return kekUri; }
     public String getKekConfig() { return kekConfig; }
+    public List<Map<String, Object>> getEnvelopeKekConfigs() { return envelopeKekConfigs; }
+    public String getEnvelopeKekIdentifier() { return envelopeKekIdentifier; }
+    public int getDekKeyBits() { return dekKeyBits; }
+    public long getDekMaxEncryptions() { return dekMaxEncryptions; }
+    public long getDekTtlMinutes() { return dekTtlMinutes; }
+    public int getDekCacheSize() { return dekCacheSize; }
+    public Map<String, String> getEdekStoreConfig() { return edekStoreConfig; }
     public String getSchemaRegistryUrl() { return schemaRegistryUrl; }
     public Map<String, String> getSchemaRegistryConfig() { return schemaRegistryConfig; }
     public RecordFormat getRecordFormat() { return recordFormat; }
@@ -188,11 +218,20 @@ public class KryptoniteFilterConfig {
         config.put(KryptoniteSettings.KEK_TYPE, kekType);
         config.put(KryptoniteSettings.KEK_URI, kekUri);
         config.put(KryptoniteSettings.KEK_CONFIG, kekConfig);
+        config.put(KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER, envelopeKekIdentifier);
+        config.put(KryptoniteSettings.DEK_KEY_BITS, String.valueOf(dekKeyBits));
+        config.put(KryptoniteSettings.DEK_MAX_ENCRYPTIONS, String.valueOf(dekMaxEncryptions));
+        config.put(KryptoniteSettings.DEK_TTL_MINUTES, String.valueOf(dekTtlMinutes));
+        config.put(KryptoniteSettings.DEK_CACHE_SIZE, String.valueOf(dekCacheSize));
         try {
             config.put(KryptoniteSettings.CIPHER_DATA_KEYS,
                     cipherDataKeys != null ? MAPPER.writeValueAsString(cipherDataKeys) : "[]");
+            config.put(KryptoniteSettings.ENVELOPE_KEK_CONFIGS,
+                    !envelopeKekConfigs.isEmpty() ? MAPPER.writeValueAsString(envelopeKekConfigs) : "[]");
+            config.put(KryptoniteSettings.EDEK_STORE_CONFIG,
+                    !edekStoreConfig.isEmpty() ? MAPPER.writeValueAsString(edekStoreConfig) : "{}");
         } catch (Exception e) {
-            throw new RuntimeException("Failed to serialize cipher_data_keys to JSON", e);
+            throw new RuntimeException("Failed to serialize config to JSON", e);
         }
         return config;
     }
