@@ -17,6 +17,12 @@ All Kryptonite for Kafka modules share the same set of core configuration parame
 | `cipher_algorithm` | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `field_mode` | - | `ELEMENT` | ✓ | — | — | ✓ | ✓ |
 | `cipher_mode` | ✓ | &nbsp; | ✓ | — | — | — | — |
+| `envelope_kek_configs` | — | `[]` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `envelope_kek_identifier` | ✓ (envelope encryption) | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `edek_store_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `dek_max_encryptions` | — | `100000` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `dek_ttl_minutes` | — | `720` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `dek_key_bits` | — | `128` | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 </div>
 
@@ -229,8 +235,13 @@ The default cipher algorithm used for encryption in case field settings do not s
 | `TINK/AES_GCM` | probabilistic AEAD |
 | `TINK/AES_GCM_SIV` | deterministic AEAD |
 | `CUSTOM/MYSTO_FPE_FF3_1` | format-preserving encryption |
+| `TINK/AES_GCM_ENVELOPE_KEYSET` | envelope encryption — Tink keyset as KEK, wrapped DEK bundled inline |
+| `TINK/AES_GCM_ENVELOPE_KMS` | envelope encryption — cloud KMS key as KEK, wrapped DEK in EdekStore |
 
 **Default: `TINK/AES_GCM`**
+
+!!! tip
+    See [Envelope Encryption](envelope-encryption.md) for a full explanation of the two envelope variants, DEK session lifecycle, and required configuration.
 
 ---
 
@@ -247,6 +258,75 @@ Controls how complex fields (`ARRAY`, `MAP`, `STRUCT`, and `ROW` types) are proc
 | `ELEMENT` | Each element of an array, value in a map, or field in a struct/row type is encrypted individually. The result preserves the container shape of the complex type and contains separate `VARCHAR`s for each encrypted element, value, or field. |
 
 **Default: `ELEMENT`**
+
+---
+
+## Envelope Encryption Parameters
+
+These parameters apply when `cipher_algorithm` is set to `TINK/AES_GCM_ENVELOPE_KEYSET` or `TINK/AES_GCM_ENVELOPE_KMS`.
+
+### `envelope_kek_configs`
+
+JSON array of KEK entries for KMS-based envelope encryption (`TINK/AES_GCM_ENVELOPE_KMS`). Each entry specifies a KEK `identifier`, `type` (cloud provider), `uri`, and provider-specific `config` credentials. Not required for keyset-based envelope encryption.
+
+```json
+[
+  {
+    "identifier": "my-kek",
+    "type": "GCP",
+    "uri": "gcp-kms://projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>",
+    "config": {
+      "credentials": "<GCP service account JSON>",
+      "projectId": "<project>"
+    }
+  }
+]
+```
+
+See [Envelope Encryption — KEK configuration](envelope-encryption.md#kek-configuration-for-kms-based-envelope-encryption) for examples for all supported providers.
+
+**Default: `[]` (disabled)**
+
+---
+
+### `edek_store_config`
+
+JSON object configuring the backing `EdekStore` implementation. It's required for KMS-based envelope encryption (`TINK/AES_GCM_ENVELOPE_KMS`). Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimum viable configuration is this:
+
+```json
+{
+  "kafkacache.bootstrap.servers": "broker1:9092,...",
+  "kafkacache.topic": "_k4k_edeks"
+}
+```
+
+See [Envelope Encryption — EdekStore configuration](envelope-encryption.md#edekstore-configuration) for the full list of supported keys.
+
+**Default: `{}` (disabled)**
+
+---
+
+### `dek_max_encryptions`
+
+Maximum number of field encryptions before the current DEK session is rotated and a new DEK is generated. Applies to both envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`).
+
+**Default: `100000`**
+
+---
+
+### `dek_ttl_minutes`
+
+Maximum age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of `dek_max_encryptions`. Applies to both envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`).
+
+**Default: `720` (12 hours)**
+
+---
+
+### `dek_key_bits`
+
+Size of the generated DEK in bits. Accepted values: `128` or `256`. Applies to both envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`).
+
+**Default: `128`**
 
 ---
 

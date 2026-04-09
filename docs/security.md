@@ -31,6 +31,37 @@
 !!! question "When to use?"
     Lookups / Joins / Aggregations on ciphertext require this deterministic encryption property to work correctly. Kafka record keys or parts thereof can only be encrypted deterministically in order not to break the partitioning and ordering of records.
 
+### AES-GCM Envelope Encryption (Keyset-based)
+
+`TINK/AES_GCM_ENVELOPE_KEYSET` applies [envelope encryption](https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption) using a Tink keyset as the Key Encryption Key (KEK). A fresh AES-GCM DEK is generated per session, used to encrypt field data, and then wrapped with the KEK keyset. The wrapped DEK gets bundled as is inline with the ciphertext.
+
+**Properties:**
+
+- **probabilistic:** each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent
+- **authenticated:** the DEK ciphertext includes a GCM authentication tag allowing to detected tampering on decryption
+- **DEK rotation:** the DEK rotates automatically after a configurable number of encryptions or time window
+
+!!! question "When to use?"
+    When you want envelope encryption without external KMS infrastructure for DEK encryption. The KEK keyset itself can still be sourced from configuration or a cloud secret manager using the standard `key_source` options. See [Envelope Encryption](envelope-encryption.md) for details.
+
+---
+
+### AES-GCM Envelope Encryption (KMS-based)
+
+`TINK/AES_GCM_ENVELOPE_KMS` applies [envelope encryption](https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption) using a cloud KMS key as the KEK. **The KEK never leaves the KMS therefore all wrap/unwrap operations of the DEK are remote calls.** Wrapped DEKs are stored externally; only a compact 16-byte fingerprint reference is embedded in each ciphertext rather than the wrapped DEK in full.
+
+**Properties:**
+
+- **probabilistic:** each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent
+- **authenticated:** the DEK ciphertext includes a GCM authentication tag allowing to detected tampering on decryption
+- **KEK isolation:** the KEK is held and managed entirely by the cloud KMS; **the raw KEK material is never directly exposed to Kryptonite for Kafka modules**
+- **DEK rotation:** the DEK rotates automatically after a configurable number of encryptions or time window
+
+!!! question "When to use?"
+    For cloud deployments where maximum key isolation is required and the KEK must not leave the cloud KMS security perimeter. Using this mode requires a compatible `EdekStore` implementation which defaults to KCache/Kafka and requires proper configuration (`edek_store_config`) and a running Kafka cluster accessible to Kryptonite for Kafka. See [Envelope Encryption](envelope-encryption.md) for details.
+
+---
+
 ### FPE FF3-1 
 
 `CUSTOM/MYSTO_FPE_FF3_1` is based on the NIST-standardised FF3-1 algorithm. It's a format-preserving encryption (FPE) algorithm.
