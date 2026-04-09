@@ -19,6 +19,7 @@
     <kryptonite.kms.aws.version>0.2.0-SNAPSHOT</kryptonite.kms.aws.version>
     <kryptonite.kms.azure.version>0.2.0-SNAPSHOT</kryptonite.kms.azure.version>
     <kryptonite.kms.gcp.version>0.2.0-SNAPSHOT</kryptonite.kms.gcp.version>
+    <kryptonite.edek.store.kafka.version>0.1.0-SNAPSHOT</kryptonite.edek.store.kafka.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
@@ -122,7 +123,12 @@
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite-kms-gcp</artifactId>
       <version>${kryptonite.kms.gcp.version}</version>
-    </dependency>    
+    </dependency>
+    <dependency>
+      <groupId>com.github.hpgrahsl</groupId>
+      <artifactId>kryptonite-edek-store-kafka</artifactId>
+      <version>${kryptonite.edek.store.kafka.version}</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

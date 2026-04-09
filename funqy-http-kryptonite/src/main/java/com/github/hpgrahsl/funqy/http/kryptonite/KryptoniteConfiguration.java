@@ -89,11 +89,33 @@ public class KryptoniteConfiguration {
     @ConfigProperty(name="serde_type")
     public SerdeType serdeType;
 
+    @ConfigProperty(name="envelope_kek_configs", defaultValue = "[]")
+    public String envelopeKekConfigs;
+
+    @ConfigProperty(name="envelope_kek_identifier", defaultValue = "")
+    public String envelopeKekIdentifier;
+
+    @ConfigProperty(name="dek_key_bits", defaultValue = "128")
+    public int dekKeyBits;
+
+    @ConfigProperty(name="dek_max_encryptions", defaultValue = "100000")
+    public long dekMaxEncryptions;
+
+    @ConfigProperty(name="dek_ttl_minutes", defaultValue = "720")
+    public long dekTtlMinutes;
+
+    @ConfigProperty(name="dek_cache_size", defaultValue = "1024")
+    public int dekCacheSize;
+
+    @ConfigProperty(name="edek_store_config", defaultValue = "{}")
+    public String edekStoreConfig;
+
     public static KryptoniteConfiguration fromSettings(String cipherDataKeys, String cipherDataKeyIdentifier,
-            String cipherTextEncoding, String cipherFpeTweak, AlphabetTypeFPE cipherFpeAlphabetType, String cipherFpeAlphabetCustom, 
+            String cipherTextEncoding, String cipherFpeTweak, AlphabetTypeFPE cipherFpeAlphabetType, String cipherFpeAlphabetCustom,
             KeySource keySource, KmsType kmsType, String kmsConfig, KekType kekType, String kekConfig,
             String kekUri, String dynamicKeyIdPrefix, String pathDelimiter, FieldMode fieldMode, String cipherAlgorithm,
-            SerdeType serdeType) {
+            SerdeType serdeType, String envelopeKekConfigs, String envelopeKekIdentifier,
+            int dekKeyBits, long dekMaxEncryptions, long dekTtlMinutes, int dekCacheSize, String edekStoreConfig) {
         var kc = new KryptoniteConfiguration();
         kc.cipherDataKeys = cipherDataKeys;
         kc.cipherDataKeyIdentifier = cipherDataKeyIdentifier;
@@ -111,6 +133,13 @@ public class KryptoniteConfiguration {
         kc.fieldMode = fieldMode;
         kc.cipherAlgorithm = cipherAlgorithm;
         kc.serdeType = serdeType;
+        kc.envelopeKekConfigs = envelopeKekConfigs;
+        kc.envelopeKekIdentifier = envelopeKekIdentifier;
+        kc.dekKeyBits = dekKeyBits;
+        kc.dekMaxEncryptions = dekMaxEncryptions;
+        kc.dekTtlMinutes = dekTtlMinutes;
+        kc.dekCacheSize = dekCacheSize;
+        kc.edekStoreConfig = edekStoreConfig;
         return kc;
     }
 
@@ -131,7 +160,14 @@ public class KryptoniteConfiguration {
             Map.entry(KryptoniteSettings.PATH_DELIMITER,pathDelimiter),
             Map.entry(KryptoniteSettings.FIELD_MODE,fieldMode.name()),
             Map.entry(KryptoniteSettings.CIPHER_ALGORITHM,cipherAlgorithm),
-            Map.entry(KryptoniteSettings.SERDE_TYPE,serdeType.name())
+            Map.entry(KryptoniteSettings.SERDE_TYPE,serdeType.name()),
+            Map.entry(KryptoniteSettings.ENVELOPE_KEK_CONFIGS,envelopeKekConfigs),
+            Map.entry(KryptoniteSettings.ENVELOPE_KEK_IDENTIFIER,envelopeKekIdentifier),
+            Map.entry(KryptoniteSettings.DEK_KEY_BITS,String.valueOf(dekKeyBits)),
+            Map.entry(KryptoniteSettings.DEK_MAX_ENCRYPTIONS,String.valueOf(dekMaxEncryptions)),
+            Map.entry(KryptoniteSettings.DEK_TTL_MINUTES,String.valueOf(dekTtlMinutes)),
+            Map.entry(KryptoniteSettings.DEK_CACHE_SIZE,String.valueOf(dekCacheSize)),
+            Map.entry(KryptoniteSettings.EDEK_STORE_CONFIG,edekStoreConfig)
         );
     }
 }
