@@ -519,6 +519,7 @@ public class Kryptonite implements AutoCloseable {
     var dekSizeBytes = dekSizeBytes(config);
     var edekStore = buildEdekStore(config);
     var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    validateEnvelopeKmsConfig(registry, edekStore);
     return new Kryptonite(new TinkKeyVault(keyConfigs), wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
@@ -538,6 +539,7 @@ public class Kryptonite implements AutoCloseable {
     var dekSizeBytes = dekSizeBytes(config);
     var edekStore = buildEdekStore(config);
     var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    validateEnvelopeKmsConfig(registry, edekStore);
     return new Kryptonite(new TinkKeyVaultEncrypted(keyConfigs, configureKmsKeyEncryption(config)), wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
@@ -560,6 +562,7 @@ public class Kryptonite implements AutoCloseable {
     var dekSizeBytes = dekSizeBytes(config);
     var edekStore = buildEdekStore(config);
     var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    validateEnvelopeKmsConfig(registry, edekStore);
     return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
@@ -584,6 +587,7 @@ public class Kryptonite implements AutoCloseable {
     var dekSizeBytes = dekSizeBytes(config);
     var edekStore = buildEdekStore(config);
     var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    validateEnvelopeKmsConfig(registry, edekStore);
     return new Kryptonite(vault, wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
@@ -679,6 +683,15 @@ public class Kryptonite implements AutoCloseable {
       throw e;
     } catch (Exception e) {
       throw new ConfigurationException("failed to parse envelope_kek_configs: " + e.getMessage(), e);
+    }
+  }
+
+  private static void validateEnvelopeKmsConfig(EnvelopeKekRegistry registry, EdekStore edekStore) {
+    if (registry != null && edekStore == null) {
+      throw new ConfigurationException(
+          "envelope_kek_configs is set (KMS envelope encryption enabled) but edek_store_config is missing — "
+              + "an EdekStore is required to persist wrapped DEKs; add edek_store_config and "
+              + "kryptonite-edek-store-kafka (or another EdekStore implementation) to the classpath");
     }
   }
 
