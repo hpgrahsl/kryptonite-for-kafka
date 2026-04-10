@@ -24,11 +24,11 @@ import java.time.Clock;
  *
  * <p>Type parameter {@code K} is the key material used to wrap/unwrap the DEK:
  * <ul>
- *   <li>{@code KeysetHandle} — DEK is wrapped by a local Tink keyset</li>
- *   <li>{@code EnvelopeKekEncryption} — DEK is wrapped by a cloud KMS key</li>
+ *   <li>{@code KeysetHandle}: DEK is wrapped by a local Tink keyset</li>
+ *   <li>{@code EnvelopeKekEncryption}: DEK is wrapped by a cloud KMS key</li>
  * </ul>
  *
- * <p>All implementations must be stateless — no key material or configuration
+ * <p>All implementations must be stateless. No key material or configuration
  * as instance fields. Key material is passed explicitly at each call site.
  */
 public interface AeadEnvelopeAlgorithm<K> {

@@ -34,7 +34,7 @@ import static java.lang.System.Logger.Level.DEBUG;
  * is bounded by the number of distinct keyIds in use, which is typically very small.
  * Rotation logic (maxEncryptions / TTL) is handled in user code via {@link EncryptDekSession}.
  *
- * <p>Use-count increments are soft limits — a session may be used slightly beyond either
+ * <p>Use-count increments are soft limits. A session may be used slightly beyond either
  * threshold under concurrent access, which is acceptable for a performance optimization.
  */
 public class EncryptDekSessionCache {

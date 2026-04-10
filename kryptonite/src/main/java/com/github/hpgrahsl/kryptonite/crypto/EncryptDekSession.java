@@ -26,7 +26,7 @@ import static java.lang.System.Logger.Level.TRACE;
  * and the unwrapped {@link Aead} (to encrypt plaintext), plus rotation bookkeeping.
  *
  * <p>A session slot is claimed atomically via {@link #tryAcquire}: TTL is checked first,
- * then the use-count is incremented with {@code getAndIncrement} — giving each caller a unique
+ * then the use-count is incremented with {@code getAndIncrement} giving each caller a unique
  * slot number so exactly {@code maxEncryptions} calls succeed before rotation, never more.
  *
  * <p>EdekStore publish guarantee: a session is only placed into the

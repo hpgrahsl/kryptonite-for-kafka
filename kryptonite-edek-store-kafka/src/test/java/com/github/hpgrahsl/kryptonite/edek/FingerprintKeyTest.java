@@ -14,10 +14,6 @@ import org.junit.jupiter.api.Test;
 
 class FingerprintKeyTest {
 
-  // -------------------------------------------------------------------------
-  // FingerprintKey — equality and map behaviour
-  // -------------------------------------------------------------------------
-
   @Test
   @DisplayName("FingerprintKey: same bytes → equal and same hashCode")
   void testEqualKeysForSameBytes() {
@@ -67,10 +63,6 @@ class FingerprintKeyTest {
     byte[] result = map.get(new FingerprintKey(fp));
     assertArrayEquals(new byte[]{42}, result, "lookup with equal key must find the stored value");
   }
-
-  // -------------------------------------------------------------------------
-  // EdekStore.fingerprint() static helper
-  // -------------------------------------------------------------------------
 
   @Test
   @DisplayName("fingerprint(): always returns exactly 16 bytes")

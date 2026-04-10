@@ -19,7 +19,7 @@ package com.github.hpgrahsl.kryptonite.kms;
 /**
  * ServiceLoader interface for creating {@link EnvelopeKekEncryption} instances.
  *
- * <p>One implementation per cloud KMS module (GCP, AWS). Each module registers its
+ * <p>One implementation per cloud KMS module (GCP, AWS, Azure). Each module registers its
  * implementation in {@code META-INF/services/com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryptionProvider}.
  *
  * <p>Parallel to {@link KmsKeyEncryptionProvider} which handles keyset-at-rest protection.
@@ -27,7 +27,7 @@ package com.github.hpgrahsl.kryptonite.kms;
 public interface EnvelopeKekEncryptionProvider {
 
     /**
-     * Returns the KMS type string this provider handles (e.g. "GCP", "AWS").
+     * Returns the KMS type string this provider handles (e.g. "GCP", "AWS", "AZURE").
      * Matched against the {@code kek_type} field in {@code envelope_kek_configs} entries.
      */
     String kekType();

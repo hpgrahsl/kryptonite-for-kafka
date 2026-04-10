@@ -45,7 +45,7 @@ import static java.lang.System.Logger.Level.TRACE;
  * via {@link com.github.hpgrahsl.kryptonite.keys.EdekStore#fingerprint(byte[])}. The actual
  * wrapped DEK is stored externally in an {@code EdekStore} (e.g. a KCache-backed compacted
  * Kafka topic) and looked up by fingerprint on the decrypt path. This keeps the field payload
- * compact — the wrapped DEK (~60 bytes for AES-128-GCM) is not repeated in every record.
+ * compact — the wrapped DEK is not repeated in every record.
  *
  * <p>Contrast with {@link TinkAesGcmEnvelopeKeyset}, which inlines the wrapped DEK
  * in the bundle as {@code [4-byte wrappedDekLen | wrappedDek | dekCiphertext]}.
@@ -57,7 +57,7 @@ import static java.lang.System.Logger.Level.TRACE;
  * invoking this method.
  *
  * <p>The DEK session cache ({@code EncryptDekSessionCache}) and EdekStore are
- * <strong>load-bearing</strong> for this mode — each KMS wrap/unwrap costs
+ * <strong>load-bearing</strong> for this mode as each KMS wrap/unwrap costs
  * tens-to-hundreds of ms.
  */
 public class TinkAesGcmEnvelopeKms implements AeadEnvelopeAlgorithm<EnvelopeKekEncryption> {

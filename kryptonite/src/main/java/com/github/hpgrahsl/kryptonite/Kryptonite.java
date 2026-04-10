@@ -237,20 +237,8 @@ public class Kryptonite implements AutoCloseable {
     this(keyVault, null, null, null, null, DEK_KEY_BITS_DEFAULT / 8);
   }
 
-  public Kryptonite(AbstractKeyVault keyVault, int wrappedDekCacheSize) {
-    this(keyVault, new WrappedDekCache(wrappedDekCacheSize), null, null, null, DEK_KEY_BITS_DEFAULT / 8);
-  }
-
   public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache) {
     this(keyVault, wrappedDekCache, encryptDekSessionCache, null, null, DEK_KEY_BITS_DEFAULT / 8);
-  }
-
-  public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache, EnvelopeKekRegistry envelopeKekRegistry) {
-    this(keyVault, wrappedDekCache, encryptDekSessionCache, envelopeKekRegistry, null, DEK_KEY_BITS_DEFAULT / 8);
-  }
-
-  public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache, EnvelopeKekRegistry envelopeKekRegistry, int dekSizeBytes) {
-    this(keyVault, wrappedDekCache, encryptDekSessionCache, envelopeKekRegistry, null, dekSizeBytes);
   }
 
   public Kryptonite(AbstractKeyVault keyVault, WrappedDekCache wrappedDekCache, EncryptDekSessionCache encryptDekSessionCache, EnvelopeKekRegistry envelopeKekRegistry, EdekStore edekStore, int dekSizeBytes) {
@@ -419,7 +407,7 @@ public class Kryptonite implements AutoCloseable {
       throw new KryptoniteException(
           "KMS KEK envelope decryption requested but no EdekStore is configured");
     }
-    // extractWrappedDek returns the 16-byte fingerprint for Mode B
+    // extractWrappedDek returns the 16-byte fingerprint for KMS-backed envelope encryption
     byte[] fingerprint = algorithm.extractWrappedDek(ciphertext);
     var wrapAad = metadata.getKeyId().getBytes(StandardCharsets.UTF_8);
     var envelopeKekEncryption = envelopeKekRegistry.get(metadata.getKeyId());
@@ -657,7 +645,7 @@ public class Kryptonite implements AutoCloseable {
       }
       var registry = new EnvelopeKekRegistry(kekConfigs);
       LOG.log(INFO, "envelope KEK registry: {0} KEK(s) configured for KMS envelope encryption, dekSizeBytes={1}", registry.size(), dekSizeBytes);
-      // Eagerly pre-init one DEK session per KEK — one KMS wrap call each.
+      // Eagerly pre-init one DEK session per KEK which means one KMS wrap call for each.
       // Surfaces auth/connectivity issues at startup rather than on first record.
       AeadEnvelopeAlgorithm<EnvelopeKekEncryption> kmsAlgorithm = new TinkAesGcmEnvelopeKms();
       for (String id : registry.identifiers()) {

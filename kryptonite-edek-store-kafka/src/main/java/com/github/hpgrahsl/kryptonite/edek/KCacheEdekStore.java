@@ -38,7 +38,7 @@ import static java.lang.System.Logger.Level.WARNING;
  * <p>At steady state, all lookups are in-process (KCache mirrors the topic into a local
  * in-memory map). Only the first encounter of a new fingerprint requires a Kafka produce call.
  *
- * <p>KCache key type is {@link FingerprintKey} — a dedicated record with content-based
+ * <p>KCache key type is {@link FingerprintKey}, a dedicated record with content-based
  * {@code equals}/{@code hashCode}. {@code ByteBuffer} is intentionally avoided as a cache
  * key because its position-relative {@code hashCode()} is mutated by every {@code get()} call,
  * corrupting map invariants.
@@ -84,11 +84,9 @@ public class KCacheEdekStore implements EdekStore {
     Map<String, Object> supplied = MAPPER.readValue(configJson, new TypeReference<>() {});
     Map<String, Object> config = new HashMap<>(supplied);
 
-    // Apply safe defaults — operator can override by including these keys in configJson
     config.putIfAbsent(KafkaCacheConfig.KAFKACACHE_BACKING_CACHE_CONFIG, "memory");
     config.putIfAbsent(KafkaCacheConfig.KAFKACACHE_TOPIC_REQUIRE_COMPACT_CONFIG, "true");
 
-    // Validate required keys
     if (!config.containsKey(KafkaCacheConfig.KAFKACACHE_BOOTSTRAP_SERVERS_CONFIG)) {
       throw new IllegalArgumentException(
           "missing required config: " + KafkaCacheConfig.KAFKACACHE_BOOTSTRAP_SERVERS_CONFIG);

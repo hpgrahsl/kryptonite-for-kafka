@@ -36,7 +36,7 @@
   </properties>
 
   <dependencies>
-    <!-- Always on the classpath at runtime — provides EdekStore interface and Jackson -->
+
     <dependency>
       <groupId>com.github.hpgrahsl</groupId>
       <artifactId>kryptonite</artifactId>
@@ -59,7 +59,7 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- slf4j-api: host provides the binding; do not shade -->
+    <!-- slf4j-api: host provides the binding -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
@@ -105,7 +105,7 @@
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <artifactSet>
                 <excludes>
-                  <!-- Never bundle kryptonite core — it is always on the classpath -->
+                  <!-- kryptonite core is expected to be always on the classpath -->
                   <exclude>com.github.hpgrahsl:kryptonite</exclude>
                   <!-- Jackson and slf4j are provided by the host environment -->
                   <exclude>com.fasterxml.jackson.*:*</exclude>

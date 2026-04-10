@@ -250,7 +250,7 @@ public class AzureEnvelopeKekEncryptionTest {
         var metadata = new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, ALGORITHM_ID, KEK_ID);
         var sessionCache = new EncryptDekSessionCache(100_000L, 720L);
         // null registry — envelope KMS not configured
-        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), null, sessionCache, null)) {
+        try (var kryptonite = new Kryptonite(new TinkKeyVault(Map.of()), null, sessionCache)) {
             assertThrows(KryptoniteException.class,
                 () -> kryptonite.cipherFieldRaw("x".getBytes(StandardCharsets.UTF_8), metadata));
         }

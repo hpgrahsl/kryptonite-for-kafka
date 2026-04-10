@@ -28,7 +28,7 @@ import static java.lang.System.Logger.Level.TRACE;
  * Bounded LRU cache mapping wrapped DEK bytes to their unwrapped {@link Aead} primitive.
  *
  * <p>Avoids redundant unwrap operations when the same wrapped DEK appears across multiple
- * records — common during replay or when encrypt-side DEK sessions are enabled.
+ * records which is common during replay or when encrypt-side DEK sessions are enabled.
  *
  * <p>Backed by Caffeine for correct, concurrent, bounded LRU eviction.
  */
