@@ -16,24 +16,14 @@
 
 package com.github.hpgrahsl.kryptonite.crypto.custom;
 
-import com.github.hpgrahsl.kryptonite.crypto.CryptoAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.FpeAlgorithm;
 import com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.FpeKeysetHandle;
 import com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe.FpeParameters;
 import com.google.crypto.tink.KeysetHandle;
 
-public class MystoFpeFF31 implements CryptoAlgorithm {
+public class MystoFpeFF31 implements FpeAlgorithm {
 
   public static final String CIPHER_ALGORITHM = "CUSTOM/MYSTO_FPE_FF3_1";
-
-  @Override
-  public byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
-    throw new UnsupportedOperationException("unsupported method 'cipher' for " + CIPHER_ALGORITHM);
-  }
-
-  @Override
-  public byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception {
-    throw new UnsupportedOperationException("unsupported method 'decipher' for " + CIPHER_ALGORITHM);
-  }
 
   @Override
   public byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception {

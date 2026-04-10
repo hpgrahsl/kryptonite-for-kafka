@@ -18,38 +18,52 @@ package com.github.hpgrahsl.kryptonite.crypto;
 
 import com.google.crypto.tink.KeysetHandle;
 
+/**
+ * @deprecated Use {@link AeadAlgorithm} or {@link FpeAlgorithm} instead.
+ */
+@Deprecated
 public interface CryptoAlgorithm {
 
+  @Deprecated
   default byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle) throws Exception {
     return cipher(plaintext, keysetHandle, null);
   }
 
+  @Deprecated
   byte[] cipher(byte[] plaintext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception;
 
+  @Deprecated
   default byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle) throws Exception {
     return cipherFPE(plaintext, keysetHandle, null, null);
   }
 
+  @Deprecated
   default byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet) throws Exception {
     return cipherFPE(plaintext, keysetHandle, alphabet, null);
   }
 
+  @Deprecated
   byte[] cipherFPE(byte[] plaintext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception;
 
+  @Deprecated
   default byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle) throws Exception {
     return decipher(ciphertext, keysetHandle, null);
   }
 
+  @Deprecated
   byte[] decipher(byte[] ciphertext, KeysetHandle keysetHandle, byte[] associatedData) throws Exception;
 
+  @Deprecated
   default byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle) throws Exception {
     return decipherFPE(ciphertext, keysetHandle, null, null);
   }
-  
+
+  @Deprecated
   default byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, String alphabet) throws Exception {
     return decipherFPE(ciphertext, keysetHandle, alphabet, null);
   }
 
+  @Deprecated
   byte[] decipherFPE(byte[] ciphertext, KeysetHandle keysetHandle, String alphabet, byte[] tweak) throws Exception;
 
 }

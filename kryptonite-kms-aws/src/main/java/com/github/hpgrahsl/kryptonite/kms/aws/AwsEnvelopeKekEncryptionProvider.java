@@ -14,13 +14,21 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.keys;
+package com.github.hpgrahsl.kryptonite.kms.aws;
 
-public class NoOpKeyStrategy extends KeyStrategy {
+import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryption;
+import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryptionProvider;
 
-  @Override
-  public byte[] processKey(byte[] origKeyBytes, String identifier) {
-    return origKeyBytes;
-  }
+public class AwsEnvelopeKekEncryptionProvider implements EnvelopeKekEncryptionProvider {
+
+    @Override
+    public String kekType() {
+        return "AWS";
+    }
+
+    @Override
+    public EnvelopeKekEncryption createEnvelopeKekEncryption(String kekUri, String kekConfig) {
+        return new AwsEnvelopeKekEncryption(kekUri, kekConfig);
+    }
 
 }

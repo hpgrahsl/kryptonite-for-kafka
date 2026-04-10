@@ -236,15 +236,17 @@ The Kryptonite proxy filter provides **transparent, client-agnostic field-level 
 
 ---
 
-## Supported Encryption Algorithms
+## Supported Encryption Algorithms & Modes
 
 <div class="k4k-param-table" markdown="1">
 
 | Algorithm | Mode | Input | Output | Usage |
 |---|---|---|---|---|
-| `TINK/AES_GCM` | [AEAD probabilistic](https://developers.google.com/tink/aead) | any supported data type | string (Base64) | most cases (default) |
+| `TINK/AES_GCM` | [AEAD probabilistic](https://developers.google.com/tink/aead) | any supported data type | string (Base64) | most cases unless envelope encryption is a hard requirement (default) |
+| `TINK/AES_GCM_ENVELOPE_KEYSET` | [AEAD probabilistic](https://developers.google.com/tink/aead)<br/>(envelope encryption) | any supported data type | string (Base64) | when you need envelope encryption but want local DEK wrap/unwrap using Tink keysets |
+| `TINK/AES_GCM_ENVELOPE_KMS` | [AEAD probabilistic](https://developers.google.com/tink/aead)<br/>(envelope encryption) | any supported data type | string (Base64) | when you need envelope encryption and must use a remote KEK for DEK wrap/unwrap |
 | `TINK/AES_GCM_SIV` | [AEAD deterministic](https://developers.google.com/tink/deterministic-aead) | any supported data type | string (Base64) | equality match, join operations, or aggregrations on encrypted data |
-| `CUSTOM/MYSTO_FPE_FF3_1` | [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) | string (specific alphabet) | string (same alphabet as input) | if alphabet must be preserved (credit cards, SSNs, IBANs, ...) |
+| `CUSTOM/MYSTO_FPE_FF3_1` | [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) | string (specific alphabet) | string (same alphabet as input) | when specific alphabet must be preserved for resulting ciphertext (e.g. SSNs, IBANs, ...) |
 
 </div>
 

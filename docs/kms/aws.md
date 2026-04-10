@@ -1,9 +1,10 @@
 # AWS KMS
 
-The `kryptonite-kms-aws` module adds two capabilities:
+The `kryptonite-kms-aws` module adds three capabilities:
 
 1. **Keyset Storage**: fetch Tink keysets from AWS Secrets Manager at runtime (`kms_type=AWS_SM_SECRETS`)
 2. **Keyset Encryption**: use an AWS KMS symmetric key to encrypt/decrypt keysets at rest (`kek_type=AWS`)
+3. **Envelope KEK**: use an AWS KMS key as the Key Encryption Key for envelope encryption (`cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`)
 
 Add the module JAR to the classpath alongside the core library. It is discovered automatically via `ServiceLoader`.
 
@@ -104,3 +105,45 @@ Then configure:
   "kek_config": "{\"accessKey\":\"AKIA...\",\"secretKey\":\"...\"}"
 }
 ```
+
+---
+
+## Envelope KEK with `cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`
+
+AWS KMS keys can act as the KEK for envelope encryption. In this mode a fresh DEK is generated per session, all field encryptions use the DEK, and AWS KMS wraps/unwraps the DEK on session boundaries. The raw KEK material never leaves AWS KMS.
+
+See [Envelope Encryption](../envelope-encryption.md) for a full explanation of the encrypt/decrypt paths, DEK session lifecycle, and `EdekStore` configuration.
+
+### IAM permissions required
+
+The credentials require the same permissions as for keyset encryption:
+
+- `kms:Encrypt`
+- `kms:Decrypt`
+- `kms:GenerateDataKey`
+
+Scope the policy to the specific KMS key ARN.
+
+### Configuration
+
+```json
+{
+  "cipher_algorithm": "TINK/AES_GCM_ENVELOPE_KMS",
+  "envelope_kek_identifier": "my-aws-kek",
+  "envelope_kek_configs": "[{\"identifier\":\"my-aws-kek\",\"type\":\"AWS\",\"uri\":\"aws-kms://arn:aws:kms:eu-central-1:123456789012:key/abcd-1234-efgh-5678\",\"config\":{\"accessKey\":\"AKIA...\",\"secretKey\":\"...\",\"region\":\"eu-central-1\"}}]",
+  "edek_store_config": "{\"kafkacache.bootstrap.servers\":\"broker1:9092\",\"kafkacache.topic\":\"_k4k_edeks\"}",
+  "cipher_data_keys": "[]",
+  "cipher_data_key_identifier": ""
+}
+```
+
+`envelope_kek_configs` entry fields:
+
+| Field | Description |
+|---|---|
+| `identifier` | Logical name referenced by `envelope_kek_identifier` |
+| `type` | Must be `AWS` |
+| `uri` | Full AWS KMS key ARN URI (`aws-kms://arn:aws:kms:...`) |
+| `config.accessKey` | AWS access key ID |
+| `config.secretKey` | AWS secret access key |
+| `config.region` | AWS region where the KMS key is located |

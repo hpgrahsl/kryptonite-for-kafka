@@ -22,8 +22,10 @@ public class KryptoniteTest {
     @MethodSource("com.github.hpgrahsl.kryptonite.KryptoniteTest#provideValidInputParamsLocalKeyVaultNoKeyEncryption")
     @DisplayName("test decrypt(encrypt(plaintext)) == plaintext")
     void testEncryptDecryptUsingLocalKeyVaultWithoutKeyEncryption(AbstractKeyVault keyVault, byte[] originalData, PayloadMetaData metaData) {
-        var kryptonite = new Kryptonite(keyVault);
-        assertArrayEquals(originalData,kryptonite.decipherField(kryptonite.cipherField(originalData, metaData)));
+        try (var kryptonite = new Kryptonite(keyVault)) {
+            byte[] ciphertext = kryptonite.cipherFieldRaw(originalData, metaData);
+            assertArrayEquals(originalData, kryptonite.decipherFieldRaw(ciphertext, metaData));
+        }
     }
 
     static List<Arguments> provideValidInputParamsLocalKeyVaultNoKeyEncryption() {

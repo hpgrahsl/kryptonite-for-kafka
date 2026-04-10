@@ -1,9 +1,10 @@
 # GCP Cloud KMS
 
-The `kryptonite-kms-gcp` module adds two capabilities:
+The `kryptonite-kms-gcp` module adds three capabilities:
 
 1. **Keyset Storage**: fetch Tink keysets from GCP Secret Manager at runtime (`kms_type=GCP_SM_SECRETS`)
 2. **Keyset Encryption Key**: use a GCP Cloud KMS symmetric key to encrypt/decrypt keysets at rest (`kek_type=GCP`)
+3. **Envelope KEK**: use a GCP Cloud KMS key as the Key Encryption Key for envelope encryption (`cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`)
 
 Add the module JAR to the classpath alongside the core library. It is discovered automatically via `ServiceLoader`.
 
@@ -96,3 +97,40 @@ Then configure:
   "kek_config": "{\"credentials\":\"<GCP service account JSON contents>\",\"projectId\":\"my-project\"}"
 }
 ```
+
+---
+
+## Envelope KEK with `cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`
+
+GCP Cloud KMS keys can act as the KEK for envelope encryption. In this mode a fresh DEK is generated per session, all field encryptions use the DEK, and GCP Cloud KMS wraps/unwraps the DEK on session boundaries. The raw KEK material never leaves GCP Cloud KMS.
+
+See [Envelope Encryption](../envelope-encryption.md) for a full explanation of the encrypt/decrypt paths, DEK session lifecycle, and `EdekStore` configuration.
+
+### IAM permissions required
+
+The service account requires the same permission as for keyset encryption:
+
+- `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the specific KMS key
+
+### Configuration
+
+```json
+{
+  "cipher_algorithm": "TINK/AES_GCM_ENVELOPE_KMS",
+  "envelope_kek_identifier": "my-gcp-kek",
+  "envelope_kek_configs": "[{\"identifier\":\"my-gcp-kek\",\"type\":\"GCP\",\"uri\":\"gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek\",\"config\":{\"credentials\":\"<GCP service account JSON contents>\",\"projectId\":\"my-project\"}}]",
+  "edek_store_config": "{\"kafkacache.bootstrap.servers\":\"broker1:9092\",\"kafkacache.topic\":\"_k4k_edeks\"}",
+  "cipher_data_keys": "[]",
+  "cipher_data_key_identifier": ""
+}
+```
+
+`envelope_kek_configs` entry fields:
+
+| Field | Description |
+|---|---|
+| `identifier` | Logical name referenced by `envelope_kek_identifier` |
+| `type` | Must be `GCP` |
+| `uri` | Full GCP Cloud KMS key URI (`gcp-kms://projects/...`) |
+| `config.credentials` | Full content of the GCP service account JSON key file |
+| `config.projectId` | GCP project ID where the KMS key is located |

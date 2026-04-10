@@ -30,9 +30,10 @@
   <packaging>jar</packaging>
 
   <properties>
-    <google.tink.java.version>1.19.0</google.tink.java.version>
+    <google.tink.java.version>1.21.0</google.tink.java.version>
     <mysto.fpe.version>1.2.0</mysto.fpe.version>
     <jackson.version>2.18.4</jackson.version>
+    <caffeine.version>3.2.0</caffeine.version>
     <junit.version>5.14.0</junit.version>
   </properties>
 
@@ -51,6 +52,11 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+      <version>${caffeine.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

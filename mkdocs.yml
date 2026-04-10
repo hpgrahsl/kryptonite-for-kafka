@@ -81,6 +81,7 @@ nav:
     - GCP Cloud KMS: kms/gcp.md
     - AWS KMS: kms/aws.md
     - Azure Key Vault: kms/azure.md
+  - Envelope Encryption: envelope-encryption.md
   - Keyset Tool: keyset-tool.md
   - Modules:
     - Apache Kafka Connect SMT: modules/connect-smt.md

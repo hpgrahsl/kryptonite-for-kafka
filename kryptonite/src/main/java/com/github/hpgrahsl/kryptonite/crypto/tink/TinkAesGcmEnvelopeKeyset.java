@@ -1,0 +1,157 @@
+/*
+ * Copyright (c) 2021. Hans-Peter Grahsl (grahslhp@gmail.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.github.hpgrahsl.kryptonite.crypto.tink;
+
+import com.github.hpgrahsl.kryptonite.crypto.AeadEnvelopeAlgorithm;
+import com.github.hpgrahsl.kryptonite.crypto.EncryptDekSession;
+import com.google.crypto.tink.Aead;
+import com.google.crypto.tink.InsecureSecretKeyAccess;
+import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.RegistryConfiguration;
+import com.google.crypto.tink.aead.AesGcmKey;
+import com.google.crypto.tink.aead.AesGcmParameters;
+import com.google.crypto.tink.util.SecretBytes;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.time.Clock;
+import static java.lang.System.Logger.Level.DEBUG;
+import static java.lang.System.Logger.Level.TRACE;
+
+/**
+ * Envelope encryption using a Tink keyset as the KEK (Key Encryption Key).
+ *
+ * <p>The DEK is a raw AES-GCM key whose size is determined by {@code dekSizeBytes} (16 or 32).
+ * Only the raw key bytes are wrapped by the KEK.
+ *
+ * <p>Encrypt path:
+ * <ol>
+ *   <li>Generate fresh random DEK bytes (size passed at call time)</li>
+ *   <li>Wrap the raw DEK bytes with the KEK using {@code wrapAad} as AAD</li>
+ *   <li>Reconstruct a Tink {@link Aead} from the raw DEK bytes</li>
+ *   <li>Encrypt the plaintext with the DEK using {@code encryptAad} as AAD</li>
+ *   <li>Bundle: {@code [4-byte wrappedDekLen | wrappedDek | dekCiphertext]}</li>
+ * </ol>
+ *
+ * <p>Decrypt path:
+ * <ol>
+ *   <li>Split the bundle to extract {@code wrappedDek} and {@code dekCiphertext}</li>
+ *   <li>Unwrap raw DEK bytes using {@code wrapAad} — must match encrypt time</li>
+ *   <li>Reconstruct Tink {@link Aead} from the raw DEK bytes (size derived from byte array length)</li>
+ *   <li>Decrypt the ciphertext using the DEK with {@code encryptAad} as AAD</li>
+ * </ol>
+ *
+ * <p>{@code wrapAad} is {@code keyId.getBytes(UTF_8)}, sourced from the parsed envelope header.
+ * {@code encryptAad} is the full payload metadata bytes (version + algorithmId + keyId).
+ */
+public class TinkAesGcmEnvelopeKeyset implements AeadEnvelopeAlgorithm<KeysetHandle> {
+
+  private static final System.Logger LOG = System.getLogger(TinkAesGcmEnvelopeKeyset.class.getName());
+
+  public static final String CIPHER_ALGORITHM = "TINK/AES_GCM_ENVELOPE_KEYSET";
+
+  private static final int DEK_SIZE_BYTES_DEFAULT = 16;
+  private static final int AES_GCM_IV_SIZE_BYTES = 12;
+  private static final int AES_GCM_TAG_SIZE_BYTES = 16;
+
+  @Override
+  public EncryptDekSession createSession(KeysetHandle keyMaterial, byte[] wrapAad, int dekSizeBytes, Clock clock) throws Exception {
+    LOG.log(DEBUG, "createSession: generating new DEK session (wrapAad={0}B dekSizeBytes={1})", wrapAad.length, dekSizeBytes);
+    SecretBytes rawDek = SecretBytes.randomBytes(dekSizeBytes);
+    Aead kekAead = keyMaterial.getPrimitive(RegistryConfiguration.get(), Aead.class);
+    byte[] wrappedDek = kekAead.encrypt(rawDek.toByteArray(InsecureSecretKeyAccess.get()), wrapAad);
+    LOG.log(DEBUG, "createSession: DEK session created, wrappedDek={0}B", wrappedDek.length);
+    Aead dekAead = dekAeadFromRawBytes(rawDek);
+    return new EncryptDekSession(wrappedDek, dekAead, clock);
+  }
+
+  public EncryptDekSession createSession(KeysetHandle keyMaterial, byte[] wrapAad) throws Exception {
+    return createSession(keyMaterial, wrapAad, DEK_SIZE_BYTES_DEFAULT, Clock.systemUTC());
+  }
+
+  public EncryptDekSession createSession(KeysetHandle keyMaterial, byte[] wrapAad, int dekSizeBytes) throws Exception {
+    return createSession(keyMaterial, wrapAad, dekSizeBytes, Clock.systemUTC());
+  }
+
+  @Override
+  public Aead unwrapDek(byte[] wrappedDek, KeysetHandle keyMaterial, byte[] wrapAad) throws Exception {
+    LOG.log(TRACE, "unwrapDek: wrappedDek={0}B wrapAad={1}B", wrappedDek.length, wrapAad.length);
+    Aead kekAead = keyMaterial.getPrimitive(RegistryConfiguration.get(), Aead.class);
+    byte[] rawDekBytes = kekAead.decrypt(wrappedDek, wrapAad);
+    LOG.log(TRACE, "unwrapDek: DEK unwrapped ({0}B)", rawDekBytes.length);
+    return dekAeadFromRawBytes(SecretBytes.copyFrom(rawDekBytes, InsecureSecretKeyAccess.get()));
+  }
+
+  @Override
+  public byte[] cipherWithDek(byte[] plaintext, Aead dekAead, byte[] wrappedDek, byte[] encryptAad) throws Exception {
+    LOG.log(TRACE, "cipherWithDek: reusing DEK session, plaintext={0}B wrappedDek={1}B", plaintext.length, wrappedDek.length);
+    byte[] dekCiphertext = dekAead.encrypt(plaintext, encryptAad);
+    byte[] bundle = bundle(wrappedDek, dekCiphertext);
+    LOG.log(TRACE, "cipherWithDek: bundle={0}B", bundle.length);
+    return bundle;
+  }
+
+  @Override
+  public byte[] decipherWithDek(byte[] ciphertext, Aead dekAead, byte[] encryptAad) throws Exception {
+    LOG.log(TRACE, "decipherWithDek: ciphertext={0}B (reusing cached DEK Aead)", ciphertext.length);
+    byte[][] parts = unbundle(ciphertext);
+    byte[] plaintext = dekAead.decrypt(parts[1], encryptAad);
+    LOG.log(TRACE, "decipherWithDek: plaintext={0}B", plaintext.length);
+    return plaintext;
+  }
+
+  @Override
+  public byte[] extractWrappedDek(byte[] bundle) {
+    return unbundle(bundle)[0];
+  }
+
+  private static Aead dekAeadFromRawBytes(SecretBytes rawDek) throws Exception {
+    AesGcmParameters params = AesGcmParameters.builder()
+        .setKeySizeBytes(rawDek.size())
+        .setIvSizeBytes(AES_GCM_IV_SIZE_BYTES)
+        .setTagSizeBytes(AES_GCM_TAG_SIZE_BYTES)
+        .setVariant(AesGcmParameters.Variant.NO_PREFIX)
+        .build();
+    AesGcmKey dekKey = AesGcmKey.builder()
+        .setParameters(params)
+        .setKeyBytes(rawDek)
+        .setIdRequirement(null)
+        .build();
+    KeysetHandle dekHandle = KeysetHandle.newBuilder()
+        .addEntry(KeysetHandle.importKey(dekKey).withRandomId().makePrimary())
+        .build();
+    return dekHandle.getPrimitive(RegistryConfiguration.get(), Aead.class);
+  }
+
+  private static byte[] bundle(byte[] wrappedDek, byte[] dekCiphertext) throws Exception {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    out.write(ByteBuffer.allocate(4).putInt(wrappedDek.length).array());
+    out.write(wrappedDek);
+    out.write(dekCiphertext);
+    return out.toByteArray();
+  }
+
+  private static byte[][] unbundle(byte[] bundle) {
+    ByteBuffer buf = ByteBuffer.wrap(bundle);
+    int wrappedDekLen = buf.getInt();
+    byte[] wrappedDek = new byte[wrappedDekLen];
+    buf.get(wrappedDek);
+    byte[] dekCiphertext = new byte[buf.remaining()];
+    buf.get(dekCiphertext);
+    return new byte[][]{wrappedDek, dekCiphertext};
+  }
+
+}

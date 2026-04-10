@@ -65,11 +65,17 @@ public class KryptoniteSettings {
   public static final String KMS_TYPE = "kms_type";
   public static final String KMS_CONFIG = "kms_config";
   public static final String KMS_REFRESH_INTERVAL_MINUTES = "kms_refresh_interval_minutes";
+  public static final String DEK_CACHE_SIZE = "dek_cache_size";
+  public static final String DEK_MAX_ENCRYPTIONS = "dek_max_encryptions";
+  public static final String DEK_TTL_MINUTES = "dek_ttl_minutes";
 
   public static final String KEK_TYPE = "kek_type";
   public static final String KEK_CONFIG = "kek_config";
   public static final String KEK_URI = "kek_uri";
   public static final String SERDE_TYPE = "serde_type";
+
+  public static final String ENVELOPE_KEK_CONFIGS = "envelope_kek_configs";
+  public static final String ENVELOPE_KEK_IDENTIFIER = "envelope_kek_identifier";
 
   public static final String PATH_DELIMITER_DEFAULT = ".";
   public static final String FIELD_MODE_DEFAULT = "ELEMENT";
@@ -84,9 +90,20 @@ public class KryptoniteSettings {
   public static final String KMS_TYPE_DEFAULT = "NONE";
   public static final String KMS_CONFIG_DEFAULT = "{}";
   public static final int KMS_REFRESH_INTERVAL_MINUTES_DEFAULT = 0;
+  public static final int DEK_CACHE_SIZE_DEFAULT = 1024;
+  public static final long DEK_MAX_ENCRYPTIONS_DEFAULT = 100_000L;
+  public static final long DEK_TTL_MINUTES_DEFAULT = 720L;
   public static final String KEK_TYPE_DEFAULT = "NONE";
   public static final String KEK_CONFIG_DEFAULT = "{}";
   public static final String KEK_URI_DEFAULT = "xyz-kms://";
   public static final String SERDE_TYPE_DEFAULT = "KRYO";
+  public static final String ENVELOPE_KEK_CONFIGS_DEFAULT = "[]";
+  public static final String ENVELOPE_KEK_IDENTIFIER_DEFAULT = "";
+
+  public static final String DEK_KEY_BITS = "dek_key_bits";
+  public static final int    DEK_KEY_BITS_DEFAULT = 128;
+
+  public static final String EDEK_STORE_CONFIG = "edek_store_config";
+  public static final String EDEK_STORE_CONFIG_DEFAULT = "{}";
 
 }

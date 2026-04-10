@@ -1,24 +1,28 @@
 # Cloud KMS Overview
 
-Kryptonite for Kafka supports three cloud KMS providers ([GCP Cloud KMS](https://cloud.google.com/security/products/security-key-management), [AWS KMS](https://aws.amazon.com/kms/), and [Azure Key Vault](https://azure.microsoft.com/en-us/products/key-vault)) each offering two independent capabilities:
+Kryptonite for Kafka supports three cloud KMS providers ([GCP Cloud KMS](https://cloud.google.com/security/products/security-key-management), [AWS KMS](https://aws.amazon.com/kms/), and [Azure Key Vault](https://azure.microsoft.com/en-us/products/key-vault)) each offering three independent capabilities:
 
 | Capability | `kms_type` / `key_source` | Description |
 |---|---|---|
 | **keyset storage** | `kms_type=<provider>`, `key_source=KMS` or `KMS_ENCRYPTED` | Tink keysets are stored in the cloud secret manager and fetched at runtime |
 | **keyset encryption** | `kek_type=<provider>`, `key_source=CONFIG_ENCRYPTED` or `KMS_ENCRYPTED` | Cloud KMS key is used to encrypt/decrypt the keyset material with a key encryption key (KEK) |
+| **Envelope KEK** | `envelope_kek_configs`, `cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS` | Cloud KMS key acts as KEK for envelope encryption |
 
 !!! note "KMS Storage & Encryption"
     These two capabilities are independent and can be mixed if necessary. For instance, while you could use GCP Secret Manager for keyset storage you might want to use AWS KMS for keyset encryption.
+
+!!! tip "Envelope Encryption"
+    Cloud KMS keys can also serve as KEKs for field-level envelope encryption (`TINK/AES_GCM_ENVELOPE_KMS`). In this mode a fresh DEK is generated per session, encrypted field data uses the DEK, and the cloud KMS wraps/unwraps the DEK on session boundaries. See [Envelope Encryption](../envelope-encryption.md) for a full explanation.
 
 ---
 
 ## Cloud KMS Provider Summary
 
-| Provider | Keyset storage (`kms_type`) | Keyset Encryption (`kek_type`) |
-|---|---|---|
-| [GCP](gcp.md) | `GCP_SM_SECRETS` | `GCP` |
-| [AWS](aws.md) | `AWS_SM_SECRETS` | `AWS` |
-| [Azure](azure.md) | `AZ_KV_SECRETS` | `AZURE` |
+| Provider | Keyset storage (`kms_type`) | Keyset Encryption (`kek_type`) | Envelope KEK (`envelope_kek_configs`) |
+|---|---|---|---|
+| [GCP](gcp.md) | `GCP_SM_SECRETS` | `GCP` | `GCP` |
+| [AWS](aws.md) | `AWS_SM_SECRETS` | `AWS` | `AWS` |
+| [Azure](azure.md) | `AZ_KV_SECRETS` | `AZURE` | `AZURE` |
 
 ---
 
@@ -49,11 +53,12 @@ KMS modules are **optional runtime dependencies**. The core library discovers av
 
 ```
 ServiceLoader
-  └── KmsKeyVaultProvider      ← keyset storage capability
-  └── KmsKeyEncryptionProvider ← keyset encryption capability
+  └── KmsKeyVaultProvider          ← keyset storage capability
+  └── KmsKeyEncryptionProvider     ← keyset encryption capability (kek_type)
+  └── EnvelopeKekEncryptionProvider ← envelope KEK capability (envelope_kek_configs)
 ```
 
-Each module registers its implementations in `META-INF/services/` descriptor files. If a module JAR is absent from the classpath, the corresponding `kms_type` or `kek_type` values are unavailable. You'd get a runtime exception in case the configured keyset storage or key encryption mechanism can't be found.
+Each module registers its implementations in `META-INF/services/` descriptor files. If a module JAR is absent from the classpath, the corresponding `kms_type`, `kek_type`, or envelope KEK provider is unavailable and a runtime exception is thrown if it is configured.
 
 ---
 

@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package com.github.hpgrahsl.kryptonite.keys;
+package com.github.hpgrahsl.kryptonite.kms.gcp;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryption;
+import com.github.hpgrahsl.kryptonite.kms.EnvelopeKekEncryptionProvider;
 
-public abstract class KeyStrategy {
+public class GcpEnvelopeKekEncryptionProvider implements EnvelopeKekEncryptionProvider {
 
-  private final Map<String,byte[]> keyCache = new HashMap<>();
+    @Override
+    public String kekType() {
+        return "GCP";
+    }
 
-  public Map<String, byte[]> getKeyCache() {
-    return keyCache;
-  }
-
-  public abstract byte[] processKey(byte[] origKeyBytes, String identifier);
+    @Override
+    public EnvelopeKekEncryption createEnvelopeKekEncryption(String kekUri, String kekConfig) {
+        return new GcpEnvelopeKekEncryption(kekUri, kekConfig);
+    }
 
 }
