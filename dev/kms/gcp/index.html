@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.31">
+      <meta name="generator" content="zensical-0.0.32">
     
     
       
@@ -268,6 +268,22 @@
         </a>
       </li>
     
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../envelope-encryption/" class="md-tabs__link">
+        
+  
+  Envelope Encryption
+
+      </a>
+    </li>
   
 
       
@@ -778,6 +794,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#envelope-kek-with-cipher_algorithmtinkaes_gcm_envelope_kms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Envelope KEK with cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Envelope KEK with cipher_algorithm=TINK&#x2f;AES_GCM_ENVELOPE_KMS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -857,6 +912,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../envelope-encryption/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Envelope Encryption
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../keyset-tool/" class="md-nav__link">
         
   
@@ -899,10 +981,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -920,8 +1002,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1272,6 +1354,45 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#envelope-kek-with-cipher_algorithmtinkaes_gcm_envelope_kms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Envelope KEK with cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Envelope KEK with cipher_algorithm=TINK&#x2f;AES_GCM_ENVELOPE_KMS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1291,10 +1412,11 @@
 
 
 <h1 id="gcp-cloud-kms">GCP Cloud KMS</h1>
-<p>The <code>kryptonite-kms-gcp</code> module adds two capabilities:</p>
+<p>The <code>kryptonite-kms-gcp</code> module adds three capabilities:</p>
 <ol>
 <li><strong>Keyset Storage</strong>: fetch Tink keysets from GCP Secret Manager at runtime (<code>kms_type=GCP_SM_SECRETS</code>)</li>
 <li><strong>Keyset Encryption Key</strong>: use a GCP Cloud KMS symmetric key to encrypt/decrypt keysets at rest (<code>kek_type=GCP</code>)</li>
+<li><strong>Envelope KEK</strong>: use a GCP Cloud KMS key as the Key Encryption Key for envelope encryption (<code>cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS</code>)</li>
 </ol>
 <p>Add the module JAR to the classpath alongside the core library. It is discovered automatically via <code>ServiceLoader</code>.</p>
 <hr />
@@ -1392,6 +1514,56 @@
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="nt">&quot;kek_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;credentials\&quot;:\&quot;&lt;GCP service account JSON contents&gt;\&quot;,\&quot;projectId\&quot;:\&quot;my-project\&quot;}&quot;</span>
 <a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">}</span>
 </code></pre></div>
+<hr />
+<h2 id="envelope-kek-with-cipher_algorithmtinkaes_gcm_envelope_kms">Envelope KEK with <code>cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS</code></h2>
+<p>GCP Cloud KMS keys can act as the KEK for envelope encryption. In this mode a fresh DEK is generated per session, all field encryptions use the DEK, and GCP Cloud KMS wraps/unwraps the DEK on session boundaries. The raw KEK material never leaves GCP Cloud KMS.</p>
+<p>See <a href="../../envelope-encryption/">Envelope Encryption</a> for a full explanation of the encrypt/decrypt paths, DEK session lifecycle, and <code>EdekStore</code> configuration.</p>
+<h3 id="iam-permissions-required_2">IAM permissions required</h3>
+<p>The service account requires the same permission as for keyset encryption:</p>
+<ul>
+<li><code>roles/cloudkms.cryptoKeyEncrypterDecrypter</code> on the specific KMS key</li>
+</ul>
+<h3 id="configuration_1">Configuration</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;cipher_algorithm&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;TINK/AES_GCM_ENVELOPE_KMS&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;envelope_kek_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-gcp-kek&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;envelope_kek_configs&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;identifier\&quot;:\&quot;my-gcp-kek\&quot;,\&quot;type\&quot;:\&quot;GCP\&quot;,\&quot;uri\&quot;:\&quot;gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek\&quot;,\&quot;config\&quot;:{\&quot;credentials\&quot;:\&quot;&lt;GCP service account JSON contents&gt;\&quot;,\&quot;projectId\&quot;:\&quot;my-project\&quot;}}]&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;edek_store_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;kafkacache.bootstrap.servers\&quot;:\&quot;broker1:9092\&quot;,\&quot;kafkacache.topic\&quot;:\&quot;_k4k_edeks\&quot;}&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[]&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">&quot;cipher_data_key_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>envelope_kek_configs</code> entry fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>identifier</code></td>
+<td>Logical name referenced by <code>envelope_kek_identifier</code></td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>Must be <code>GCP</code></td>
+</tr>
+<tr>
+<td><code>uri</code></td>
+<td>Full GCP Cloud KMS key URI (<code>gcp-kms://projects/...</code>)</td>
+</tr>
+<tr>
+<td><code>config.credentials</code></td>
+<td>Full content of the GCP service account JSON key file</td>
+</tr>
+<tr>
+<td><code>config.projectId</code></td>
+<td>GCP project ID where the KMS key is located</td>
+</tr>
+</tbody>
+</table>
 
 
 

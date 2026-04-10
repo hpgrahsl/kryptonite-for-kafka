@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="zensical-0.0.31">
+      <meta name="generator" content="zensical-0.0.32">
     
     
       
@@ -268,6 +268,22 @@
         </a>
       </li>
     
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../envelope-encryption/" class="md-tabs__link">
+        
+  
+  Envelope Encryption
+
+      </a>
+    </li>
   
 
       
@@ -801,6 +817,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../envelope-encryption/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Envelope Encryption
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../keyset-tool/" class="md-nav__link">
         
   
@@ -843,10 +886,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
   
   
@@ -864,8 +907,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1179,7 +1222,7 @@
 
 
 <h1 id="cloud-kms-overview">Cloud KMS Overview</h1>
-<p>Kryptonite for Kafka supports three cloud KMS providers (<a href="https://cloud.google.com/security/products/security-key-management">GCP Cloud KMS</a>, <a href="https://aws.amazon.com/kms/">AWS KMS</a>, and <a href="https://azure.microsoft.com/en-us/products/key-vault">Azure Key Vault</a>) each offering two independent capabilities:</p>
+<p>Kryptonite for Kafka supports three cloud KMS providers (<a href="https://cloud.google.com/security/products/security-key-management">GCP Cloud KMS</a>, <a href="https://aws.amazon.com/kms/">AWS KMS</a>, and <a href="https://azure.microsoft.com/en-us/products/key-vault">Azure Key Vault</a>) each offering three independent capabilities:</p>
 <table>
 <thead>
 <tr>
@@ -1199,11 +1242,20 @@
 <td><code>kek_type=&lt;provider&gt;</code>, <code>key_source=CONFIG_ENCRYPTED</code> or <code>KMS_ENCRYPTED</code></td>
 <td>Cloud KMS key is used to encrypt/decrypt the keyset material with a key encryption key (KEK)</td>
 </tr>
+<tr>
+<td><strong>Envelope KEK</strong></td>
+<td><code>envelope_kek_configs</code>, <code>cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS</code></td>
+<td>Cloud KMS key acts as KEK for envelope encryption</td>
+</tr>
 </tbody>
 </table>
 <div class="admonition note">
 <p class="admonition-title">KMS Storage &amp; Encryption</p>
 <p>These two capabilities are independent and can be mixed if necessary. For instance, while you could use GCP Secret Manager for keyset storage you might want to use AWS KMS for keyset encryption.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Envelope Encryption</p>
+<p>Cloud KMS keys can also serve as KEKs for field-level envelope encryption (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). In this mode a fresh DEK is generated per session, encrypted field data uses the DEK, and the cloud KMS wraps/unwraps the DEK on session boundaries. See <a href="../../envelope-encryption/">Envelope Encryption</a> for a full explanation.</p>
 </div>
 <hr />
 <h2 id="cloud-kms-provider-summary">Cloud KMS Provider Summary</h2>
@@ -1213,6 +1265,7 @@
 <th>Provider</th>
 <th>Keyset storage (<code>kms_type</code>)</th>
 <th>Keyset Encryption (<code>kek_type</code>)</th>
+<th>Envelope KEK (<code>envelope_kek_configs</code>)</th>
 </tr>
 </thead>
 <tbody>
@@ -1220,15 +1273,18 @@
 <td><a href="../gcp/">GCP</a></td>
 <td><code>GCP_SM_SECRETS</code></td>
 <td><code>GCP</code></td>
+<td><code>GCP</code></td>
 </tr>
 <tr>
 <td><a href="../aws/">AWS</a></td>
 <td><code>AWS_SM_SECRETS</code></td>
 <td><code>AWS</code></td>
+<td><code>AWS</code></td>
 </tr>
 <tr>
 <td><a href="../azure/">Azure</a></td>
 <td><code>AZ_KV_SECRETS</code></td>
+<td><code>AZURE</code></td>
 <td><code>AZURE</code></td>
 </tr>
 </tbody>
@@ -1253,10 +1309,11 @@
 <h2 id="service-loader-discovery">Service Loader Discovery</h2>
 <p>KMS modules are <strong>optional runtime dependencies</strong>. The core library discovers available providers at runtime using Java's <code>ServiceLoader</code> mechanism. Add the relevant <code>kryptonite-kms-*</code> JAR to the classpath alongside the core library to have it auto-discovered.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ServiceLoader
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └── KmsKeyVaultProvider      ← keyset storage capability
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  └── KmsKeyEncryptionProvider ← keyset encryption capability
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └── KmsKeyVaultProvider          ← keyset storage capability
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  └── KmsKeyEncryptionProvider     ← keyset encryption capability (kek_type)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  └── EnvelopeKekEncryptionProvider ← envelope KEK capability (envelope_kek_configs)
 </code></pre></div>
-<p>Each module registers its implementations in <code>META-INF/services/</code> descriptor files. If a module JAR is absent from the classpath, the corresponding <code>kms_type</code> or <code>kek_type</code> values are unavailable. You'd get a runtime exception in case the configured keyset storage or key encryption mechanism can't be found.</p>
+<p>Each module registers its implementations in <code>META-INF/services/</code> descriptor files. If a module JAR is absent from the classpath, the corresponding <code>kms_type</code>, <code>kek_type</code>, or envelope KEK provider is unavailable and a runtime exception is thrown if it is configured.</p>
 <hr />
 <h2 id="generating-kms-encrypted-keysets">Generating KMS-encrypted Keysets</h2>
 <p>Use the <a href="../../keyset-tool/">Keyset Tool</a> to generate keysets encrypted with any supported KEK. Pass the <code>--kek-type</code>, <code>--kek-uri</code>, and <code>--kek-config</code> flags along with <code>-e</code>.</p>
