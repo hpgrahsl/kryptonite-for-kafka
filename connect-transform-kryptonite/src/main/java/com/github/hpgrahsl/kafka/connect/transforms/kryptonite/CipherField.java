@@ -89,17 +89,31 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       .define(KEY_SOURCE, Type.STRING, KEY_SOURCE_DEFAULT, new KeySourceValidator(), ConfigDef.Importance.HIGH,
           "defines the origin of the Tink keysets which can be defined directly in the config or fetched from a remote/cloud KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)")
       .define(KMS_TYPE, Type.STRING, KMS_TYPE_DEFAULT, new KmsTypeValidator(),
-          ConfigDef.Importance.MEDIUM, "defines from which remote/cloud KMS keysets are resolved from (currently only supports Azure Key Vault)")
+          ConfigDef.Importance.MEDIUM, "defines from which remote/cloud KMS keysets are resolved from")
       .define(KMS_CONFIG, Type.PASSWORD, KMS_CONFIG_DEFAULT, ConfigDef.Importance.MEDIUM,
-          "JSON object specifying the KMS-specific client authentication settings (currently only supports Azure Key Vault)")
+          "JSON object specifying the KMS-specific client authentication settings")
       .define(KEK_TYPE, Type.STRING, KEK_TYPE_DEFAULT, new KekTypeValidator(),
-          ConfigDef.Importance.LOW, "defines which remote/cloud KMS is used for data key encryption (currently only supports GCP Cloud KMS)")
+          ConfigDef.Importance.LOW, "defines which remote/cloud KMS is used for data key encryption")
       .define(KEK_CONFIG, Type.PASSWORD, KEK_CONFIG_DEFAULT, ConfigDef.Importance.LOW,
-          "JSON object specifying the KMS-specific client authentication settings (currently only supports GCP Cloud KMS)")
+          "JSON object specifying the KMS-specific client authentication settings")
       .define(KEK_URI, Type.PASSWORD, KEK_URI_DEFAULT, ConfigDef.Importance.LOW,
-          "remote/cloud KMS-specific URI to refer to the key encryption key if applicable (currently only supports GCP Cloud KMS key URIs)")
+          "remote/cloud KMS-specific URI to refer to the key encryption key if applicable")
       .define(SERDE_TYPE, Type.STRING, SERDE_TYPE_DEFAULT, ConfigDef.Importance.LOW,
-          "defines the serde type used for field value serialization (currently only supports 'KRYO')");
+          "defines the serde type used for field value serialization ('KRYO' or 'AVRO')")
+      .define(ENVELOPE_KEK_CONFIGS, Type.PASSWORD, ENVELOPE_KEK_CONFIGS_DEFAULT, ConfigDef.Importance.MEDIUM,
+          "JSON array with envelope KEK config objects specifying identifier, kek_type, kek_uri and kek_config for each cloud KMS key encryption key to be used with TINK/AES_GCM_ENVELOPE_KMS")
+      .define(ENVELOPE_KEK_IDENTIFIER, Type.STRING, ENVELOPE_KEK_IDENTIFIER_DEFAULT, ConfigDef.Importance.MEDIUM,
+          "default envelope KEK identifier used for fields encrypted with TINK/AES_GCM_ENVELOPE_KMS")
+      .define(DEK_KEY_BITS, Type.INT, DEK_KEY_BITS_DEFAULT, ConfigDef.Importance.LOW,
+          "bit length of generated data encryption keys — must be 128 or 256")
+      .define(DEK_MAX_ENCRYPTIONS, Type.LONG, DEK_MAX_ENCRYPTIONS_DEFAULT, ConfigDef.Importance.LOW,
+          "maximum number of encrypt operations per DEK session before a new DEK is generated")
+      .define(DEK_TTL_MINUTES, Type.LONG, DEK_TTL_MINUTES_DEFAULT, ConfigDef.Importance.LOW,
+          "time-to-live in minutes for a DEK session before a new DEK is generated")
+      .define(DEK_CACHE_SIZE, Type.INT, DEK_CACHE_SIZE_DEFAULT, ConfigDef.Importance.LOW,
+          "maximum number of unwrapped DEKs to keep in the decrypt-side cache")
+      .define(EDEK_STORE_CONFIG, Type.PASSWORD, EDEK_STORE_CONFIG_DEFAULT, ConfigDef.Importance.MEDIUM,
+          "JSON object with EdekStore configuration (e.g. KCache-specific settings) to be used with TINK/AES_GCM_ENVELOPE_KMS");
 
   private static final String PURPOSE = "(de)cipher connect record fields";
 
@@ -196,7 +210,14 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       Map.entry(KEK_TYPE, Optional.ofNullable(config.getString(KEK_TYPE)).orElse(KEK_TYPE_DEFAULT)),
       Map.entry(KEK_CONFIG, Optional.ofNullable(config.getPassword(KEK_CONFIG).value()).orElse(KEK_CONFIG_DEFAULT)),
       Map.entry(KEK_URI, Optional.ofNullable(config.getPassword(KEK_URI).value()).orElse(KEK_URI_DEFAULT)),
-      Map.entry(SERDE_TYPE, Optional.ofNullable(config.getString(SERDE_TYPE)).orElse(SERDE_TYPE_DEFAULT))
+      Map.entry(SERDE_TYPE, Optional.ofNullable(config.getString(SERDE_TYPE)).orElse(SERDE_TYPE_DEFAULT)),
+      Map.entry(ENVELOPE_KEK_CONFIGS, Optional.ofNullable(config.getPassword(ENVELOPE_KEK_CONFIGS).value()).orElse(ENVELOPE_KEK_CONFIGS_DEFAULT)),
+      Map.entry(ENVELOPE_KEK_IDENTIFIER, Optional.ofNullable(config.getString(ENVELOPE_KEK_IDENTIFIER)).orElse(ENVELOPE_KEK_IDENTIFIER_DEFAULT)),
+      Map.entry(DEK_KEY_BITS, String.valueOf(config.getInt(DEK_KEY_BITS))),
+      Map.entry(DEK_MAX_ENCRYPTIONS, String.valueOf(config.getLong(DEK_MAX_ENCRYPTIONS))),
+      Map.entry(DEK_TTL_MINUTES, String.valueOf(config.getLong(DEK_TTL_MINUTES))),
+      Map.entry(DEK_CACHE_SIZE, String.valueOf(config.getInt(DEK_CACHE_SIZE))),
+      Map.entry(EDEK_STORE_CONFIG, Optional.ofNullable(config.getPassword(EDEK_STORE_CONFIG).value()).orElse(EDEK_STORE_CONFIG_DEFAULT))
     );
   }
 
