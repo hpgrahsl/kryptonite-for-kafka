@@ -12,6 +12,7 @@ import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaRegistryAdapter;
@@ -56,7 +57,6 @@ class JsonSchemaRegistryRecordProcessorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "test-topic";
     private static final String DEFAULT_KEY_ID = "keyA";
-    private static final String SERDE_TYPE = "KRYO";
     private static final int ORIGINAL_ID = 1;
     private static final int ENCRYPTED_ID = 42;
     private static final int PARTIAL_DECRYPT_ID = 99;
@@ -68,7 +68,7 @@ class JsonSchemaRegistryRecordProcessorTest {
 
     @BeforeEach
     void setUp() {
-        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, TestFixtures.realFilterConfig());
     }
 
     // ---- Shared helpers ----
@@ -290,8 +290,6 @@ class JsonSchemaRegistryRecordProcessorTest {
     @DisplayName("encryptFields — AVRO serde (SR schema path)")
     class EncryptFieldsAvroSerde {
 
-        private static final String SERDE_TYPE_AVRO = "AVRO";
-
         /** Flat JSON Schema with a required string field and a required integer field. */
         private static final String FLAT_JSON_SCHEMA = """
                 {
@@ -309,7 +307,7 @@ class JsonSchemaRegistryRecordProcessorTest {
         @org.junit.jupiter.api.BeforeEach
         void setUpAvro() {
             avroProcessor = new JsonSchemaRegistryRecordProcessor(
-                    kryptonite, adapter, SERDE_TYPE_AVRO, DEFAULT_KEY_ID);
+                    kryptonite, adapter, TestFixtures.realFilterConfig("AVRO"));
         }
 
         @Test

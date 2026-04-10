@@ -48,7 +48,7 @@ class JsonSchemaRegistryRoundTripTest {
     @Mock SchemaRegistryAdapter adapter;
 
     private static final String TOPIC = "test-topic";
-    private static final String DEFAULT_KEY_ID = "keyA";
+
     private static final int ORIGINAL_ID = 1;
     private static final int ENCRYPTED_ID = 99;
 
@@ -64,7 +64,7 @@ class JsonSchemaRegistryRoundTripTest {
 
     @BeforeEach
     void setUpProcessor() {
-        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType(), DEFAULT_KEY_ID);
+        processor = new JsonSchemaRegistryRecordProcessor(kryptonite, adapter, TestFixtures.realFilterConfig(serdeType()));
 
         // stripPrefix: extract schema ID + payload from any wire bytes
         lenient().when(adapter.stripPrefix(any())).thenAnswer(inv -> {

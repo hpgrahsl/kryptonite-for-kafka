@@ -27,15 +27,12 @@ class PlainJsonRoundTripTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "test-topic";
-    private static final String DEFAULT_KEY_ID = "keyA";
-    private static final String SERDE_TYPE = "KRYO";
-
     private static PlainJsonRecordProcessor processor;
 
     @BeforeAll
     static void setUpProcessor() {
         Kryptonite kryptonite = TestFixtures.realKryptonite();
-        processor = new PlainJsonRecordProcessor(kryptonite, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new PlainJsonRecordProcessor(kryptonite, TestFixtures.realFilterConfig());
     }
 
     private static void assertIsValidBase64(String value) {

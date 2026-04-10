@@ -1,6 +1,7 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldConfigResolver;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformer;
@@ -33,13 +34,16 @@ import java.util.function.Consumer;
  */
 abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
 
+    protected final KryptoniteFilterConfig config;
     protected final RecordValueProcessor processor;
     protected final TopicFieldConfigResolver resolver;
     protected final ExecutorService filterBlockingExecutor;
     protected final FilterDispatchExecutor filterDispatchExecutor;
 
-    AbstractKryptoniteFilter(RecordValueProcessor processor, TopicFieldConfigResolver resolver,
+    AbstractKryptoniteFilter(KryptoniteFilterConfig config, RecordValueProcessor processor,
+                             TopicFieldConfigResolver resolver,
                              ExecutorService filterBlockingExecutor, FilterDispatchExecutor filterDispatchExecutor) {
+        this.config = config;
         this.processor = processor;
         this.resolver = resolver;
         this.filterBlockingExecutor = filterBlockingExecutor;

@@ -1,8 +1,10 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.tink.test.PlaintextKeysets;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -28,6 +30,31 @@ import java.util.Map;
 public final class TestFixtures {
 
     private TestFixtures() {}
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    // ---- KryptoniteFilterConfig factories ----
+
+    public static KryptoniteFilterConfig realFilterConfig() {
+        return realFilterConfig("KRYO");
+    }
+
+    public static KryptoniteFilterConfig realFilterConfig(String serdeType) {
+        return MAPPER.convertValue(Map.of(
+                "key_source", "CONFIG",
+                "cipher_algorithm", "TINK/AES_GCM",
+                "cipher_data_key_identifier", "keyA",
+                "serde_type", serdeType
+        ), KryptoniteFilterConfig.class);
+    }
+
+    public static KryptoniteFilterConfig fpeFilterConfig() {
+        return MAPPER.convertValue(Map.of(
+                "key_source", "CONFIG",
+                "cipher_algorithm", "CUSTOM/MYSTO_FPE_FF3_1",
+                "cipher_data_key_identifier", "keyC"
+        ), KryptoniteFilterConfig.class);
+    }
 
     // ---- Kryptonite factories ----
 

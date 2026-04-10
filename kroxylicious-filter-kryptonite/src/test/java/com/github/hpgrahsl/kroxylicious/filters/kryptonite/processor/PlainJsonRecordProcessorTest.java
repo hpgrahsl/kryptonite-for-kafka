@@ -12,6 +12,7 @@ import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -49,8 +50,6 @@ class PlainJsonRecordProcessorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "test-topic";
     private static final String DEFAULT_KEY_ID = "keyA";
-    private static final String SERDE_TYPE = "KRYO";
-
     // A fake EncryptedField returned by the mock; encodeEncryptedField turns this into the Base64 wire value
     private static final EncryptedField FAKE_EF =
             new EncryptedField(new PayloadMetaData("1", "01", DEFAULT_KEY_ID), new byte[]{1, 2, 3, 4});
@@ -59,7 +58,7 @@ class PlainJsonRecordProcessorTest {
 
     @BeforeEach
     void setUp() {
-        processor = new PlainJsonRecordProcessor(kryptonite, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new PlainJsonRecordProcessor(kryptonite, TestFixtures.realFilterConfig());
     }
 
     // ---- Shared helpers ----
