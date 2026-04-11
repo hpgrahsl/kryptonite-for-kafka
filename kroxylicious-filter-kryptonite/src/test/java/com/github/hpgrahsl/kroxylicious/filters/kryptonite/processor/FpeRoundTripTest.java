@@ -36,8 +36,6 @@ class FpeRoundTripTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TOPIC = "test-topic";
-    private static final String DEFAULT_KEY_ID = "keyC";
-    private static final String SERDE_TYPE = "KRYO";
     private static final String FPE_ALGORITHM = "CUSTOM/MYSTO_FPE_FF3_1";
 
     private static PlainJsonRecordProcessor processor;
@@ -45,7 +43,7 @@ class FpeRoundTripTest {
     @BeforeAll
     static void setUpProcessor() {
         Kryptonite kryptonite = TestFixtures.fpeKryptonite();
-        processor = new PlainJsonRecordProcessor(kryptonite, SERDE_TYPE, DEFAULT_KEY_ID);
+        processor = new PlainJsonRecordProcessor(kryptonite, TestFixtures.fpeFilterConfig());
     }
 
     /**

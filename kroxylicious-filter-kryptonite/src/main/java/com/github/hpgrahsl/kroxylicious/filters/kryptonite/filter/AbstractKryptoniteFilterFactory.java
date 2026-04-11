@@ -2,7 +2,6 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
-import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.RecordFormat;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.SchemaMode;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.AvroSchemaRegistryRecordProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.JsonSchemaRegistryRecordProcessor;
@@ -33,7 +32,7 @@ import java.util.concurrent.Executors;
  * <p>Holds all shared state ({@link Kryptonite}, {@link RecordValueProcessor},
  * {@link TopicFieldConfigResolver}, blocking executor) and implements the common
  * {@link #initialize} and {@link #close} lifecycle. Subclasses only need to implement
- * {@link #createFilter} and {@link #defaultKeyId}.
+ * {@link #createFilter}.
  */
 abstract class AbstractKryptoniteFilterFactory
         implements FilterFactory<KryptoniteFilterConfig, KryptoniteFilterConfig> {
@@ -46,13 +45,6 @@ abstract class AbstractKryptoniteFilterFactory
     protected RecordValueProcessor processor;
     protected TopicFieldConfigResolver resolver;
 
-    /**
-     * Returns the default key identifier to pass to the record processor.
-     * Encryption factories return the configured {@code cipherDataKeyIdentifier};
-     * decryption factories return {@code ""} (key ID is read from the encrypted envelope).
-     */
-    protected abstract String defaultKeyId(KryptoniteFilterConfig config);
-
     @Override
     public abstract Filter createFilter(FilterFactoryContext context, KryptoniteFilterConfig config);
 
@@ -63,7 +55,7 @@ abstract class AbstractKryptoniteFilterFactory
         int poolSize = config.getBlockingPoolSize() > 0 ? config.getBlockingPoolSize() : DEFAULT_BLOCKING_POOL_SIZE;
         filterBlockingExecutor = Executors.newFixedThreadPool(poolSize);
         kryptonite = Kryptonite.createFromConfig(config.toKryptoniteConfigMap());
-        processor = createProcessor(kryptonite, config, defaultKeyId(config));
+        processor = createProcessor(kryptonite, config);
         resolver = new TopicFieldConfigResolver(config.getTopicFieldConfigs());
         LOG.info("{} initialized with blockingPoolSize={} recordFormat={} schemaMode={}",
                 getClass().getSimpleName(), poolSize, config.getRecordFormat(), config.getSchemaMode());
@@ -80,15 +72,13 @@ abstract class AbstractKryptoniteFilterFactory
         }
     }
 
-    private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig config, String defaultKeyId) {
-        RecordFormat format = config.getRecordFormat();
-        String serdeType = config.getSerdeType();
-        return switch (format) {
-            case JSON -> new PlainJsonRecordProcessor(kryptonite, serdeType, defaultKeyId);
+    private static RecordValueProcessor createProcessor(Kryptonite kryptonite, KryptoniteFilterConfig config) {
+        return switch (config.getRecordFormat()) {
+            case JSON -> new PlainJsonRecordProcessor(kryptonite, config);
             case JSON_SR -> new JsonSchemaRegistryRecordProcessor(kryptonite,
-                    createAdapter(createSrClient(config), config.getSchemaMode()), serdeType, defaultKeyId);
+                    createAdapter(createSrClient(config), config.getSchemaMode()), config);
             case AVRO -> new AvroSchemaRegistryRecordProcessor(kryptonite,
-                    createAdapter(createSrClient(config), config.getSchemaMode()), serdeType, defaultKeyId);
+                    createAdapter(createSrClient(config), config.getSchemaMode()), config);
             case PROTOBUF -> throw new IllegalArgumentException("PROTOBUF record format is not yet supported");
         };
     }

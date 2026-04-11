@@ -56,7 +56,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final String DEFAULT_KEY_ID = "keyA";
     protected String serdeType() { return "KRYO"; }
 
     // ---- Flat schema: id(string), value(double), label(string) ----
@@ -148,7 +147,7 @@ class AvroSchemaRegistryProcessorIT extends AbstractSchemaRegistryIT {
     void setUpPerTest() {
         topic = "topic-" + UUID.randomUUID();
         adapter = new DefaultDynamicSchemaRegistryAdapter(srClient);
-        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType(), DEFAULT_KEY_ID);
+        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, TestFixtures.realFilterConfig(serdeType()));
     }
 
     // ---- helpers ----

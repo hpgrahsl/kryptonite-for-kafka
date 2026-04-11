@@ -54,7 +54,6 @@ class AvroSchemaRegistryRoundTripTest {
     @Mock SchemaRegistryAdapter adapter;
 
     private static final String TOPIC = "test-topic";
-    private static final String DEFAULT_KEY_ID = "keyA";
     protected String serdeType() { return "KRYO"; }
     private static final int ORIGINAL_ID = 1;
     private static final int ENCRYPTED_ID = 2;
@@ -224,7 +223,7 @@ class AvroSchemaRegistryRoundTripTest {
 
     @BeforeEach
     void setUpProcessor() {
-        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, serdeType(), DEFAULT_KEY_ID);
+        processor = new AvroSchemaRegistryRecordProcessor(kryptonite, adapter, TestFixtures.realFilterConfig(serdeType()));
 
         // stripPrefix: extract schema ID + payload from any wire bytes
         lenient().when(adapter.stripPrefix(any())).thenAnswer(inv -> {

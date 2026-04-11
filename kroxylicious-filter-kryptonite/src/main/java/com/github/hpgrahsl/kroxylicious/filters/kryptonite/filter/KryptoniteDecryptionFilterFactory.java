@@ -13,14 +13,9 @@ public class KryptoniteDecryptionFilterFactory extends AbstractKryptoniteFilterF
     private static final Logger LOG = LoggerFactory.getLogger(KryptoniteDecryptionFilterFactory.class);
 
     @Override
-    protected String defaultKeyId(KryptoniteFilterConfig config) {
-        return "";
-    }
-
-    @Override
     public KryptoniteDecryptionFilter createFilter(FilterFactoryContext context, KryptoniteFilterConfig config) {
         LOG.debug("Creating KryptoniteDecryptionFilter for new connection (shared processor and resolver)");
         FilterDispatchExecutor filterDispatchExecutor = context.filterDispatchExecutor();
-        return new KryptoniteDecryptionFilter(processor, resolver, filterBlockingExecutor, filterDispatchExecutor);
+        return new KryptoniteDecryptionFilter(config, processor, resolver, filterBlockingExecutor, filterDispatchExecutor);
     }
 }

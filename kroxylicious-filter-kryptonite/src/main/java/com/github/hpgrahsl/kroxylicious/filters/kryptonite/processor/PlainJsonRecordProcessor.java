@@ -2,6 +2,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 
 import java.util.Set;
 
@@ -13,8 +14,8 @@ import java.util.Set;
  */
 public class PlainJsonRecordProcessor extends AbstractJsonRecordProcessor {
 
-    public PlainJsonRecordProcessor(Kryptonite kryptonite, String serdeType, String defaultKeyId) {
-        super(kryptonite, serdeType, defaultKeyId);
+    public PlainJsonRecordProcessor(Kryptonite kryptonite, KryptoniteFilterConfig config) {
+        super(kryptonite, config);
     }
 
     @Override

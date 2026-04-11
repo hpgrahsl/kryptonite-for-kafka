@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
 import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
@@ -58,8 +59,8 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
     /** Cache: {@code "schemaId:fieldPath"} → translated Avro {@link Schema}. */
     private final ConcurrentHashMap<String, Schema> fieldSchemaCache = new ConcurrentHashMap<>();
 
-    public JsonSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter, String serdeType, String defaultKeyId) {
-        super(kryptonite, serdeType, defaultKeyId);
+    public JsonSchemaRegistryRecordProcessor(Kryptonite kryptonite, SchemaRegistryAdapter adapter, KryptoniteFilterConfig config) {
+        super(kryptonite, config);
         this.adapter = adapter;
     }
 
@@ -134,19 +135,19 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
             } else {
                 // OBJECT mode
-                if (FieldConfigUtils.isFpe(fc)) {
+                if (FieldConfigUtils.isFpe(fc, config)) {
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, defaultKeyId));
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, config));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     Schema avroSchema = resolveFieldAvroSchema(schemaId, fc.getName());
                     accessor.setField(fc.getName(),
                             FieldHandler.encryptField(
                                     fieldConverter.toCanonical(node, fc.getName(), serdeType, avroSchema),
-                                    FieldConfigUtils.buildPayloadMetaData(fc, defaultKeyId), kryptonite, serdeType));
+                                    FieldConfigUtils.buildPayloadMetaData(fc, config), kryptonite, serdeType));
                 }
             }
         }

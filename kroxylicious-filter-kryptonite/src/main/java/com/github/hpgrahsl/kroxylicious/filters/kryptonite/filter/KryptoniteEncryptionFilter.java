@@ -1,6 +1,7 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldConfigResolver;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformer;
@@ -50,9 +51,10 @@ public class KryptoniteEncryptionFilter extends AbstractKryptoniteFilter impleme
             ApiVersionsResponseTransformers.limitMaxVersionForApiKeys(
                     Map.of(ApiKeys.PRODUCE, (short) 12));
 
-    KryptoniteEncryptionFilter(RecordValueProcessor processor, TopicFieldConfigResolver resolver,
+    KryptoniteEncryptionFilter(KryptoniteFilterConfig config, RecordValueProcessor processor,
+                               TopicFieldConfigResolver resolver,
                                ExecutorService filterBlockingExecutor, FilterDispatchExecutor filterDispatchExecutor) {
-        super(processor, resolver, filterBlockingExecutor, filterDispatchExecutor);
+        super(config, processor, resolver, filterBlockingExecutor, filterDispatchExecutor);
     }
 
     @Override
