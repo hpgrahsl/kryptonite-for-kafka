@@ -706,6 +706,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#no-keysets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No keysets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#secret-naming-conventions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1409,6 +1420,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#no-keysets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No keysets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#secret-naming-conventions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1477,13 +1499,14 @@
 
 
 <h1 id="key-management">Key Management</h1>
-<p>All Kryptonite for Kafka modules support four ways to source the required key material. You can define this by means of the <code>key_source</code> configuration parameter. The right choice primarly depends on your security posture and preferred operational model.</p>
+<p>All Kryptonite for Kafka modules support five ways to source the required key material. You can define this by means of the <code>key_source</code> configuration parameter. The right choice primarly depends on your security posture and preferred operational model.</p>
 <hr />
 <h2 id="overview">Overview</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>key_source=CONFIG              → plain keysets inline in config
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>key_source=CONFIG_ENCRYPTED    → KEK-encrypted keysets inline in config
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>key_source=KMS                 → plain keysets in cloud secret manager
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>key_source=KMS_ENCRYPTED       → KEK-encrypted keysets in cloud secret manager
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>key_source=NONE                → no keysets required (envelope encryption only)
 </code></pre></div>
 <hr />
 <h2 id="plain-keysets-in-configuration">Plain keysets in configuration</h2>
@@ -1623,6 +1646,22 @@
 <p class="admonition-title">Tip</p>
 <p>Generate encrypted keysets in <code>RAW</code> format with the <a href="../keyset-tool/#kek-encrypted-keysets">Keyset Tool</a>.</p>
 </div>
+<hr />
+<h2 id="no-keysets">No keysets</h2>
+<p>When using <code>key_source=NONE</code>, no Tink keysets are loaded or required. This only works if the configured <code>cipher_algorithm</code> is <code>TINK/AES_GCM_ENVELOPE_KMS</code> which is always backed by a cloud KMS key encryption key (KEK) used to wrap random, ephemeral data encryption keys (DEK). This is the right choice when you must exclusively rely on envelope encryption and do not want to directly work with Tink keysets at all.</p>
+<div class="admonition question">
+<p class="admonition-title">When to use?</p>
+<p>You are using <code>TINK/AES_GCM_ENVELOPE_KMS</code> for all fields, hence no Tink keyset management is required. The <code>cipher_data_keys</code> setting can be left empty <code>[]</code> in this case.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Requirement</p>
+<p><code>key_source=NONE</code> requires <code>envelope_kek_configs</code> to contain at least one valid KEK entry that is configured as the default <code>envelope_kek_identifier</code>. Startup fails with a clear error if envelope encryption is not properly configured. Also, you have to provide a valid <code>edek_store_configuration</code>.</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Incompatibility Note</p>
+<p>Cipher algorithms <code>TINK/AES_GCM</code>, <code>TINK/AES_GCM_SIV</code>, <code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, or <code>CUSTOM/MYSTO_FPE_FF3_1</code> are not compatible with this setting as they all require at least one Tink keyset.</p>
+</div>
+<p>Learn more about <a href=".././envelope-encryption/#kms-based-envelope-encryption">KMS-based envelope encryption</a>.</p>
 <hr />
 <h2 id="secret-naming-conventions">Secret naming conventions</h2>
 <p>Depending on which cloud secret manager is configured to store plain or encrypted keysets, the following secret name prefixes must be considered to distinguish plain from encrypted keysets:</p>

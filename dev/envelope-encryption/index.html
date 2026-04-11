@@ -1354,7 +1354,7 @@
 </div>
 <hr />
 <h2 id="kms-based-envelope-encryption">KMS-based Envelope Encryption</h2>
-<p>Uses a cloud KMS key as the KEK. The KEK never leaves the cloud KMS and all wrap/unwrap operations happen remotely. Because the wrapped DEK would make every ciphertext considerably larger if bundled inline, only a compact 16-byte fingerprint is embedded in the ciphertext; the actual wrapped DEK is stored externally using implementations of <code>EdekStore</code> for the default is KCache/Kafka.</p>
+<p>Uses a cloud KMS key as the KEK. The KEK never leaves the cloud KMS and all wrap/unwrap operations happen remotely. Because the wrapped DEK would make every ciphertext considerably larger if bundled inline, only a compact 16-byte fingerprint is embedded in the ciphertext; the actual wrapped DEK is stored externally using implementations of <code>EdekStore</code> for which the default is KCache/Kafka.</p>
 <p><strong>Wire format:</strong> <code>[16-byte fingerprint | dekCiphertext]</code></p>
 <p><strong>Configuration:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">cipher_algorithm</span><span class="o">=</span><span class="s">TINK/AES_GCM_ENVELOPE_KMS</span>
