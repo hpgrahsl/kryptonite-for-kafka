@@ -1684,7 +1684,7 @@
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># MANDATORY config settings</span>
 <a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1">#</span>
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="na">cipher_data_keys</span><span class="o">=</span><span class="s">[]</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="na">cipher_data_key_identifier</span><span class="o">=</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="na">cipher_data_key_identifier</span><span class="o">=</span><span class="s">some-key-id</span>
 <a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1">#</span>
 <a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># OPTIONAL config settings with the following defaults</span>
 <a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1">#</span>
@@ -1702,7 +1702,15 @@
 <a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="na">path_delimiter</span><span class="o">=</span><span class="s">.</span>
 <a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="na">field_mode</span><span class="o">=</span><span class="s">ELEMENT</span>
 <a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="na">cipher_algorithm</span><span class="o">=</span><span class="s">TINK/AES_GCM</span>
-<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="c1">#############################################</span>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="na">serde_type</span><span class="o">=</span><span class="s">KRYO</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="na">envelope_kek_configs</span><span class="o">=</span><span class="s">[]</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="na">envelope_kek_identifier</span><span class="o">=</span><span class="s">my-cloud-kms-kek</span>
+<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="na">edek_store_config</span><span class="o">=</span><span class="s">{}</span>
+<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="na">dek_key_bits</span><span class="o">=</span><span class="s">128</span>
+<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a><span class="na">dek_max_encryptions</span><span class="o">=</span><span class="s">100000</span>
+<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a><span class="na">dek_ttl_minutes</span><span class="o">=</span><span class="s">720</span>
+<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="na">dek_cache_size</span><span class="o">=</span><span class="s">1024</span>
+<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="c1">#############################################</span>
 </code></pre></div>
 <p>See the full <a href="../../configuration/">Configuration Reference</a> for learn about all parameters.</p>
 <hr />

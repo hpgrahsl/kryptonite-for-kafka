@@ -756,13 +756,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-rotation" class="md-nav__link">
+  <a href="#key-rotation-with-keysets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Rotation
+        Key Rotation with Keysets
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-rotation-with-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Rotation with Envelope Encryption
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Rotation with Envelope Encryption">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dek-rotation-automatic-and-continuous" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DEK Rotation: automatic and continuous
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kek-rotation-on-demand-and-manual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KEK Rotation: on-demand and manual
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1470,13 +1509,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#key-rotation" class="md-nav__link">
+  <a href="#key-rotation-with-keysets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Key Rotation
+        Key Rotation with Keysets
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-rotation-with-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Rotation with Envelope Encryption
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Rotation with Envelope Encryption">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dek-rotation-automatic-and-continuous" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DEK Rotation: automatic and continuous
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kek-rotation-on-demand-and-manual" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KEK Rotation: on-demand and manual
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1499,25 +1577,25 @@
 
 
 <h1 id="key-management">Key Management</h1>
-<p>All Kryptonite for Kafka modules support five ways to source the required key material. You can define this by means of the <code>key_source</code> configuration parameter. The right choice primarly depends on your security posture and preferred operational model.</p>
+<p>All Kryptonite for Kafka modules support multiple options to source the required key material. You can define this by means of the <code>key_source</code> configuration parameter. The right choice primarily depends on your security posture and preferred operational model.</p>
 <hr />
 <h2 id="overview">Overview</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>key_source=CONFIG              → plain keysets inline in config
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>key_source=CONFIG_ENCRYPTED    → KEK-encrypted keysets inline in config
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>key_source=KMS                 → plain keysets in cloud secret manager
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>key_source=KMS_ENCRYPTED       → KEK-encrypted keysets in cloud secret manager
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>key_source=NONE                → no keysets required (envelope encryption only)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>key_source=CONFIG           → plain keysets inline in config
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>key_source=CONFIG_ENCRYPTED → KEK-encrypted keysets inline in config
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>key_source=KMS              → plain keysets in cloud secret manager
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>key_source=KMS_ENCRYPTED    → KEK-encrypted keysets in cloud secret manager
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>key_source=NONE             → no keysets required (KMS-based envelope encryption only)
 </code></pre></div>
 <hr />
 <h2 id="plain-keysets-in-configuration">Plain keysets in configuration</h2>
 <p>The simplest and least secure mode. Plain keysets are embedded directly in the <code>cipher_data_keys</code> configuration parameter.</p>
 <div class="admonition question">
 <p class="admonition-title">When to use?</p>
-<p>Development &amp; testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected by other means (e.g., Kubernetes Secrets, Vault-injected env vars).</p>
+<p>Development &amp; testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected by other means (e.g. Kubernetes Secrets, Vault-injected env vars).</p>
 </div>
 <div class="admonition danger">
 <p class="admonition-title">Risk</p>
-<p>Key material might become visible or accidentally exposed. For instance, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production without additional access controls in place.</p>
+<p>Key material might become visible or accidentally exposed. For instance, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production workload without additional access controls in place.</p>
 </div>
 <h3 id="plain-keyset-example">Plain keyset example</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="w">  </span><span class="p">{</span>
@@ -1790,7 +1868,7 @@
 </code></pre></div>
 <p>Note the custom <code>typeUrl</code> and <code>outputPrefixType: RAW</code> for FPE keysets.</p>
 <hr />
-<h2 id="key-rotation">Key Rotation</h2>
+<h2 id="key-rotation-with-keysets">Key Rotation with Keysets</h2>
 <p>Tink keysets natively support multiple keys. The <code>primaryKeyId</code> determines which key is used for new encryptions. Older keys are supposed to remain in the keyset for decryption of existing ciphertexts.</p>
 <ol>
 <li>Generate a new keyset with multiple keys (e.g., <code>-n 2</code> with the <a href=".././keyset-tool/">Keyset Tool</a>)</li>
@@ -1800,6 +1878,36 @@
 <li>Once the primary key changed, old ciphertexts remain decryptable so long as the previously used primary key is still resolvable within the configured keyset.</li>
 </ol>
 <p>See <a href="../keyset-tool/">Keyset Tool</a> for examples of generating multi-key keysets.</p>
+<hr />
+<h2 id="key-rotation-with-envelope-encryption">Key Rotation with Envelope Encryption</h2>
+<p>Envelope encryption introduces a two-level key hierarchy — a short-lived Data Encryption Key (DEK) that encrypts the actual field data, and a long-lived Key Encryption Key (KEK) that wraps the DEK. Rotation operates differently at each level, and the two envelope variants behave differently.</p>
+<h3 id="dek-rotation-automatic-and-continuous">DEK Rotation: automatic and continuous</h3>
+<p>DEKs are ephemeral by design and rotate automatically without any manual intervention. A DEK session is considered expired when either of the following thresholds is reached:</p>
+<ul>
+<li><strong><code>dek_max_encryptions</code></strong> — maximum number of field encrypt operations performed with the current DEK (default: <code>100000</code>)</li>
+<li><strong><code>dek_ttl_minutes</code></strong> — maximum age of the current DEK session in minutes (default: <code>720</code>, i.e. 12 hours)</li>
+</ul>
+<p>Whichever threshold is hit first triggers the creation of a new DEK on the next encrypt call. Old DEKs are not discarded. They remain resolvable on the decrypt path as long as their wrapped form is present in the EdekStore (KMS-based variant) or inline in the ciphertext bundle (keyset-based variant). Tune these settings to control how frequently new DEKs are generated.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Decrease <code>dek_ttl_minutes</code> or <code>dek_max_encryptions</code> to rotate DEKs more aggressively. Increase them to reduce the frequency of KMS wrap calls (KMS-based variant only) at the cost of longer DEK lifetimes.</p>
+</div>
+<h3 id="kek-rotation-on-demand-and-manual">KEK Rotation: on-demand and manual</h3>
+<p>KEK rotation is not automatic and must be triggered explicitly from the ouside. The procedure differs between the two envelope variants:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Keyset-based (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>)</label><label for="__tabbed_2_2">KMS-based (<code>TINK/AES_GCM_ENVELOPE_KMS</code>)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>The KEK is a Tink keyset. Rotation follows the standard Tink keyset rotation process: add a new key to the keyset, promote it to primary, and keep the old key for decryption of existing ciphertexts. Update the <code>cipher_data_keys</code> configuration accordingly. All newly created DEK sessions will be wrapped with the new primary key. Existing ciphertexts remain decryptable as long as the old key is still present in the keyset.</p>
+</div>
+<div class="tabbed-block">
+<p>The KEK lives exclusively in the cloud KMS and never leaves it. Rotation is performed directly in the cloud provider's KMS console or API. Create a new key version to be used for future DEK wrap/unwrap operations and retain the old version for existing data. No configuration change in Kryptonite is required as long as the <code>kek_uri</code> keeps referring to the KEK in question. The existing wrapped DEKs in the <code>EdekStore</code> remain intact and can still be unwrapped with the old key version as long as it stays enabled in the KMS.</p>
+</div>
+</div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Rotating the KEK does not automatically re-wrap existing DEKs. Any DEKs wrapped with the old KEK version remain valid as long as that version is not disabled or deleted in the KMS. Plan KEK rotation carefully and ensure old key versions are kept active long enough to cover all existing ciphertexts in your Kafka topics.</p>
+</div>
 
 
 
