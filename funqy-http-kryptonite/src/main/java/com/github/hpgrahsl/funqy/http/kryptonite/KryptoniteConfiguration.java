@@ -38,7 +38,7 @@ public class KryptoniteConfiguration {
         OBJECT
     }
     
-    @ConfigProperty(name="cipher_data_keys")
+    @ConfigProperty(name="cipher_data_keys", defaultValue = "[]")
     public String cipherDataKeys;
 
     @ConfigProperty(name="cipher_data_key_identifier")

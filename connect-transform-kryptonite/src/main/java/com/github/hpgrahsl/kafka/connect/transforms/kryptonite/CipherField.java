@@ -87,7 +87,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       .define(CIPHER_MODE, Type.STRING, ConfigDef.NO_DEFAULT_VALUE, new CipherModeValidator(),
           ConfigDef.Importance.HIGH, "defines whether the data should get encrypted or decrypted")
       .define(KEY_SOURCE, Type.STRING, KEY_SOURCE_DEFAULT, new KeySourceValidator(), ConfigDef.Importance.HIGH,
-          "defines the origin of the Tink keysets which can be defined directly in the config or fetched from a remote/cloud KMS (see <pre>kms_type</pre> and <pre>kms_config</pre>)")
+          "defines the origin of the Tink keysets (CONFIG, CONFIG_ENCRYPTED, KMS, KMS_ENCRYPTED) or NONE to skip keyset-based encryption entirely and rely solely on envelope encryption via <pre>envelope_kek_configs</pre>")
       .define(KMS_TYPE, Type.STRING, KMS_TYPE_DEFAULT, new KmsTypeValidator(),
           ConfigDef.Importance.MEDIUM, "defines from which remote/cloud KMS keysets are resolved from")
       .define(KMS_CONFIG, Type.PASSWORD, KMS_CONFIG_DEFAULT, ConfigDef.Importance.MEDIUM,
