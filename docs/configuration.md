@@ -6,23 +6,23 @@ All Kryptonite for Kafka modules share the same set of core configuration parame
 
 | Parameter | Required | Default | [Kafka Connect SMT](./modules/connect-smt.md) | [Flink UDFs](./modules/flink-udfs.md) | [ksqlDB UDFs](./modules/ksqldb-udfs.md) | [Quarkus HTTP Service](./modules/funqy-http.md) | [Kroxylicious Filter](./modules/kroxylicious-filter.md) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `key_source` | — | `CONFIG` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `cipher_data_keys` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `cipher_data_key_identifier` | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `kms_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `kms_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `kek_type` | — | `NONE` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `kek_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `kek_uri` | — | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `cipher_algorithm` | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `field_mode` | - | `ELEMENT` | ✓ | — | — | ✓ | ✓ |
-| `cipher_mode` | ✓ | &nbsp; | ✓ | — | — | — | — |
-| `envelope_kek_configs` | — | `[]` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `envelope_kek_identifier` | ✓ (envelope encryption) | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `edek_store_config` | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `dek_max_encryptions` | — | `100000` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `dek_ttl_minutes` | — | `720` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `dek_key_bits` | — | `128` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`key_source`](#key_source) | — | `CONFIG` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`cipher_data_keys`](#cipher_data_keys) | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`cipher_data_key_identifier`](#cipher_data_key_identifier) | ✓ | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`kms_type`](#kms_type) | — | `NONE` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`kms_config`](#kms_config) | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`kek_type`](#kek_type) | — | `NONE` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`kek_config`](#kek_config) | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`kek_uri`](#kek_uri) | — | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`cipher_algorithm`](#cipher_algorithm) | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`field_mode`](#field_mode) | - | `ELEMENT` | ✓ | — | — | ✓ | ✓ |
+| [`cipher_mode`](#cipher_mode) | ✓ | &nbsp; | ✓ | — | — | — | — |
+| [`envelope_kek_configs`](#envelope_kek_configs) | ✓ (envelope encryption) | `[]` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`envelope_kek_identifier`](#envelope_kek_identifier) | ✓ (envelope encryption) | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`edek_store_config`](#edek_store_config) | ✓ (envelope encryption) | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`dek_max_encryptions`](#dek_max_encryptions) | — | `100000` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`dek_ttl_minutes`](#dek_ttl_minutes) | — | `720` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`dek_key_bits`](#dek_key_bits) | — | `128` | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 </div>
 
@@ -42,6 +42,7 @@ Defines the origin and protection of the key material.
 | `CONFIG_ENCRYPTED` | Encrypted Tink keysets provided in `cipher_data_keys` for which the proper key encryption key (KEK) is required to be able to decrypt them |
 | `KMS` | Plain Tink keysets stored in a cloud secret manager (requires `kms_type` and `kms_config` settings) |
 | `KMS_ENCRYPTED` | Encrypted Tink keysets stored in a cloud secret manager (requires: all related KMS and KEK settings) |
+| `NONE` | No Tink keysets involved. Use this exclusively with `TINK/AES_GCM_ENVELOPE_KMS` (requires `envelope_kek_configs` and `edek_store_config`) |
 
 </div>
 
@@ -54,6 +55,7 @@ Defines the origin and protection of the key material.
 A JSON array of Tink keyset objects. Each entry has an `identifier` and a `material` field containing a Tink keyset specification.
 
 !!! warning "`cipher_data_keys` is a required config parameter"
+    Also may be deliberately set to the empty array `[]` when working with `key_source=KMS`, `key_source=KMS_ENCRYPTED`, or `key_source=NONE`.
 
 **Plain keyset example** (when `key_source=CONFIG`):
 
@@ -104,7 +106,7 @@ A JSON array of Tink keyset objects. Each entry has an `identifier` and a `mater
 ]
 ```
 
-May be deliberately left empty `[]` when keysets are sourced from cloud secret managers (`key_source=KMS` or `key_source=KMS_ENCRYPTED`).
+May be deliberately left empty `[]` when keysets are sourced from cloud secret managers (`key_source=KMS` or `key_source=KMS_ENCRYPTED`), or when exclusively working with [KMS-backed envelope encryption](./envelope-encryption.md#kms-based-envelope-encryption) (`key_source=NONE`).
 
 ---
 
@@ -283,9 +285,15 @@ JSON array of KEK entries for KMS-based envelope encryption (`TINK/AES_GCM_ENVEL
 ]
 ```
 
-See [Envelope Encryption — KEK configuration](envelope-encryption.md#kek-configuration-for-kms-based-envelope-encryption) for examples for all supported providers.
+See [Envelope Encryption / KEK configuration](envelope-encryption.md#kek-configuration-for-kms-based-envelope-encryption) for examples for all supported providers.
 
 **Default: `[]` (disabled)**
+
+---
+
+### `envelope_kek_identifier`
+
+The default KEK identifier when working with envelope encryption and field settings do not specify their own individual key. Must match an identifier present in `envelope_kek_configs`.
 
 ---
 
@@ -300,7 +308,7 @@ JSON object configuring the backing `EdekStore` implementation. It's required fo
 }
 ```
 
-See [Envelope Encryption — EdekStore configuration](envelope-encryption.md#edekstore-configuration) for the full list of supported keys.
+See [Envelope Encryption / EdekStore configuration](envelope-encryption.md#edekstore-configuration) for the full list of supported keys.
 
 **Default: `{}` (disabled)**
 

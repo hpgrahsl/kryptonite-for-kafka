@@ -1,6 +1,6 @@
 # Key Management
 
-All Kryptonite for Kafka modules support four ways to source the required key material. You can define this by means of the `key_source` configuration parameter. The right choice primarly depends on your security posture and preferred operational model.
+All Kryptonite for Kafka modules support five ways to source the required key material. You can define this by means of the `key_source` configuration parameter. The right choice primarly depends on your security posture and preferred operational model.
 
 ---
 
@@ -11,6 +11,7 @@ key_source=CONFIG              → plain keysets inline in config
 key_source=CONFIG_ENCRYPTED    → KEK-encrypted keysets inline in config
 key_source=KMS                 → plain keysets in cloud secret manager
 key_source=KMS_ENCRYPTED       → KEK-encrypted keysets in cloud secret manager
+key_source=NONE                → no keysets required (envelope encryption only)
 ```
 
 ---
@@ -168,6 +169,23 @@ For cloud secret manager usage, encrypted keysets must be generated in `RAW` for
 
 !!! tip "Tip"
     Generate encrypted keysets in `RAW` format with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+
+---
+
+## No keysets
+
+When using `key_source=NONE`, no Tink keysets are loaded or required. This only works if the configured `cipher_algorithm` is `TINK/AES_GCM_ENVELOPE_KMS` which is always backed by a cloud KMS key encryption key (KEK) used to wrap random, ephemeral data encryption keys (DEK). This is the right choice when you must exclusively rely on envelope encryption and do not want to directly work with Tink keysets at all.
+
+!!! question "When to use?"
+    You are using `TINK/AES_GCM_ENVELOPE_KMS` for all fields, hence no Tink keyset management is required. The `cipher_data_keys` setting can be left empty `[]` in this case.
+
+!!! warning "Requirement"
+    `key_source=NONE` requires `envelope_kek_configs` to contain at least one valid KEK entry that is configured as the default `envelope_kek_identifier`. Startup fails with a clear error if envelope encryption is not properly configured. Also, you have to provide a valid `edek_store_configuration`.
+
+!!! danger "Incompatibility Note"
+    Cipher algorithms `TINK/AES_GCM`, `TINK/AES_GCM_SIV`, `TINK/AES_GCM_ENVELOPE_KEYSET`, or `CUSTOM/MYSTO_FPE_FF3_1` are not compatible with this setting as they all require at least one Tink keyset.
+
+Learn more about [KMS-based envelope encryption](./envelope-encryption.md#kms-based-envelope-encryption).
 
 ---
 

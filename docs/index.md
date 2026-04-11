@@ -262,6 +262,7 @@ The Kryptonite proxy filter provides **transparent, client-agnostic field-level 
 | `CONFIG_ENCRYPTED` | inline as part of configuration | Cloud KMS wrapping key |  reasonable | Production (without centralised management) |
 | `KMS` | cloud secret manager | None | reasonable | Production (with centralised management) |
 | `KMS_ENCRYPTED` | cloud secret manager | Cloud KMS wrapping key | **highest** | Production (with centralised management) |
+| `NONE` | no Tink keysets required | not applicable | **highest** | Production (with exclusive [envelope encryption](envelope-encryption.md)) |
 
 :octicons-book-24: [Key Management Details](key-management.md) &nbsp;| &nbsp;:octicons-book-24: [Cloud KMS Overview](kms/overview.md)
 

@@ -46,7 +46,7 @@ The `cipher_data_key_identifier` and `cipher_data_keys` refer to the keyset acti
 
 ## KMS-based Envelope Encryption
 
-Uses a cloud KMS key as the KEK. The KEK never leaves the cloud KMS and all wrap/unwrap operations happen remotely. Because the wrapped DEK would make every ciphertext considerably larger if bundled inline, only a compact 16-byte fingerprint is embedded in the ciphertext; the actual wrapped DEK is stored externally using implementations of `EdekStore` for the default is KCache/Kafka.
+Uses a cloud KMS key as the KEK. The KEK never leaves the cloud KMS and all wrap/unwrap operations happen remotely. Because the wrapped DEK would make every ciphertext considerably larger if bundled inline, only a compact 16-byte fingerprint is embedded in the ciphertext; the actual wrapped DEK is stored externally using implementations of `EdekStore` for which the default is KCache/Kafka.
 
 **Wire format:** `[16-byte fingerprint | dekCiphertext]`
 
