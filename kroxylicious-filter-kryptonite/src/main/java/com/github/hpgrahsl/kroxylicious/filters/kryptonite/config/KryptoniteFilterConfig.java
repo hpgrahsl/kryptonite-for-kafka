@@ -20,7 +20,7 @@ import java.util.Map;
 public class KryptoniteFilterConfig {
 
     // --- Key management ---
-    private final String keySource;                 // CONFIG | CONFIG_ENCRYPTED | KMS | KMS_ENCRYPTED
+    private final String keySource;                 // CONFIG | CONFIG_ENCRYPTED | KMS | KMS_ENCRYPTED | NONE
     private final String cipherAlgorithm;           // default: "TINK/AES_GCM"
     private final String cipherDataKeyIdentifier;   // default key id used when a field has no per-field keyId
     private final List<Map<String, Object>> cipherDataKeys;
@@ -159,7 +159,7 @@ public class KryptoniteFilterConfig {
         try {
             parsedKeySource = KeySource.valueOf(keySource);
         } catch (IllegalArgumentException | NullPointerException e) {
-            errors.add("key_source is invalid: '" + keySource + "' — must be one of CONFIG, CONFIG_ENCRYPTED, KMS, KMS_ENCRYPTED");
+            errors.add("key_source is invalid: '" + keySource + "' — must be one of CONFIG, CONFIG_ENCRYPTED, KMS, KMS_ENCRYPTED, NONE");
         }
 
         if (parsedKeySource != null) {

@@ -474,6 +474,8 @@ public class Kryptonite implements AutoCloseable {
       var keySource = KeySource.valueOf(config.get(KEY_SOURCE));
       LOG.log(INFO, "creating Kryptonite instance from config (keySource={0})", keySource);
       switch (keySource) {
+        case NONE:
+          return withoutKeyVault(config);
         case CONFIG:
           return withTinkKeyVault(config);
         case CONFIG_ENCRYPTED:
@@ -490,6 +492,21 @@ public class Kryptonite implements AutoCloseable {
     } catch (Exception e) {
       throw new ConfigurationException(e.getMessage(), e);
     }
+  }
+
+  private static Kryptonite withoutKeyVault(Map<String,String> config) {
+    LOG.log(INFO, "key vault: none -> envelope encryption only");
+    var sessionCache = encryptDekSessionCache(config);
+    var dekSizeBytes = dekSizeBytes(config);
+    var edekStore = buildEdekStore(config);
+    var registry = buildEnvelopeKekRegistry(config, sessionCache, dekSizeBytes, edekStore);
+    if (registry == null) {
+      throw new ConfigurationException(
+          "key_source=NONE requires envelope encryption to be configured — "
+              + "envelope_kek_configs must be a non-empty list of KEK entries");
+    }
+    validateEnvelopeKmsConfig(registry, edekStore);
+    return new Kryptonite(new TinkKeyVault(Map.of()), wrappedDekCache(config), sessionCache, registry, edekStore, dekSizeBytes);
   }
 
   private static Kryptonite withTinkKeyVault(Map<String,String> config)

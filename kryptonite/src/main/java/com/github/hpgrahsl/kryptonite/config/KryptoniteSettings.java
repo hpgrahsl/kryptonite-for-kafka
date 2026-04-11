@@ -6,7 +6,8 @@ public class KryptoniteSettings {
     CONFIG,
     KMS,
     CONFIG_ENCRYPTED,
-    KMS_ENCRYPTED
+    KMS_ENCRYPTED,
+    NONE
   }
 
   public enum KmsType {
