@@ -1,6 +1,6 @@
 # Getting Started Guides
 
-Kryptonite for Kafka ships four independent integration modules. Pick the ones that fit your use cases and follow the module-specific guide.
+Kryptonite for Kafka ships five independent integration modules. Pick the one(s) that fit your use case(s) and follow the module-specific guide.
 
 <div class="grid cards" markdown>
 

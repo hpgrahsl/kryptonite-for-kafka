@@ -102,7 +102,7 @@ The default `application.properties` file that ship with the `funqy-http-krypton
 # MANDATORY config settings
 #
 cipher_data_keys=[]
-cipher_data_key_identifier=
+cipher_data_key_identifier=some-key-id
 #
 # OPTIONAL config settings with the following defaults
 #
@@ -120,6 +120,14 @@ dynamic_key_id_prefix=__#
 path_delimiter=.
 field_mode=ELEMENT
 cipher_algorithm=TINK/AES_GCM
+serde_type=KRYO
+envelope_kek_configs=[]
+envelope_kek_identifier=my-cloud-kms-kek
+edek_store_config={}
+dek_key_bits=128
+dek_max_encryptions=100000
+dek_ttl_minutes=720
+dek_cache_size=1024
 #############################################
 ```
 

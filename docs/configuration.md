@@ -232,6 +232,8 @@ URI referencing the Key Encryption Key in the chosen cloud KMS.
 
 The default cipher algorithm used for encryption in case field settings do not specify their own cipher algorithm.
 
+<div class="k4k-param-table" markdown="1">
+
 | Value | Description |
 |---|---|
 | `TINK/AES_GCM` | probabilistic AEAD |
@@ -239,6 +241,8 @@ The default cipher algorithm used for encryption in case field settings do not s
 | `CUSTOM/MYSTO_FPE_FF3_1` | format-preserving encryption |
 | `TINK/AES_GCM_ENVELOPE_KEYSET` | envelope encryption — Tink keyset as KEK, wrapped DEK bundled inline |
 | `TINK/AES_GCM_ENVELOPE_KMS` | envelope encryption — cloud KMS key as KEK, wrapped DEK in EdekStore |
+
+</div>
 
 **Default: `TINK/AES_GCM`**
 

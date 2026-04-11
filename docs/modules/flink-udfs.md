@@ -18,6 +18,8 @@ Kryptonite for Kafka provides multiple Flink user-defined functions (UDFs) for e
 
 ### Probabilistic / Deterministic Encryption
 
+<div class="k4k-param-table" markdown="1">
+
 | UDF | Description |
 |---|---|
 | `k4k_encrypt` | Encrypt scalar or complex values |
@@ -28,9 +30,11 @@ Kryptonite for Kafka provides multiple Flink user-defined functions (UDFs) for e
 | `k4k_decrypt_map_with_schema` | Decrypt `MAP` values individually using a schema string literal for the expected target type |
 | `k4k_encrypt_row` | Encrypt `ROW` fields individually |
 | `k4k_decrypt_row_with_schema` | Decrypt `ROW` fields individually using a schema string literal for the expected target type |
-| `k4k_decrypt` _**(deprecated)**_ | Decrypt scalar or complex values using an exemplary type capture value for type inference - **please use `k4k_decrypt_with_schema` instead!** |
-| `k4k_decrypt_array` _**(deprecated)**_ | Decrypt `ARRAY` elements using an exemplary type capture value for type inference - **please use `k4k_decrypt_array_with_schema` instead!** |
-| `k4k_decrypt_map` _**(deprecated)**_ | Decrypt `MAP` values  using an exemplary type capture value for type inference - **please use `k4k_decrypt_map_with_schema` instead!** |
+| `k4k_decrypt` <br/> _**(deprecated)**_ | Decrypt scalar or complex values using an exemplary type capture value for type inference. **Please use `k4k_decrypt_with_schema` instead!** |
+| `k4k_decrypt_array` <br/> _**(deprecated)**_ | Decrypt `ARRAY` elements using an exemplary type capture value for type inference. **Please use `k4k_decrypt_array_with_schema` instead!** |
+| `k4k_decrypt_map` <br/> _**(deprecated)**_ | Decrypt `MAP` values  using an exemplary type capture value for type inference. **Please use `k4k_decrypt_map_with_schema` instead!** |
+
+</div>
 
 ### Format-Preserving Encryption
 

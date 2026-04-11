@@ -9,7 +9,7 @@ hide:
 <div class="hero-text" markdown>
 ## Client-Side Field Level Cryptography (CSFLC) for Data Streaming Workloads
 
-Encrypt and decrypt payload fields end-to-end **before sensitive data ever reaches the Kafka brokers**.<br/>Seamless integrations with and across [Apache Kafka Connect](https://kafka.apache.org/documentation/#connect), [Apache Flink](https://flink.apache.org), [ksqlDB](https://www.confluent.io/product/ksqldb/), and a standalone [Quarkus](https://quarkus.io) HTTP service.
+Encrypt and decrypt payload fields end-to-end **before sensitive data ever reaches the Kafka brokers**.<br/>Seamless integrations with and across [Apache Kafka Connect](https://kafka.apache.org/documentation/#connect), [Apache Flink](https://flink.apache.org), [ksqlDB](https://www.confluent.io/product/ksqldb/), a standalone [Quarkus](https://quarkus.io) HTTP service, and a dedicated [Kroxylicious](https://kroxylicious.io) filter.
 
 <div class="k4k-modules" markdown>
 
@@ -50,7 +50,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 
     **Sensitive plaintext never leaves the client-side application.**
     
-    Neither Kafka brokers nor any intermediary Kafka proxy infrastructure ever gets to see sensitive payload fields in plaintext. Encryption / Decryption of data happens exclusively within the security perimeter of the client-side application.
+    Neither Kafka brokers nor any intermediary gateway or reverse proxy infrastructure ever gets to see sensitive payload fields in plaintext. Encryption / Decryption of data happens exclusively within the security perimeter of the client application.
 
 -   :material-cursor-default-click: &nbsp; **Field-Level Scope**
 

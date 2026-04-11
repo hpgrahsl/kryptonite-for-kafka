@@ -53,8 +53,8 @@ KMS modules are **optional runtime dependencies**. The core library discovers av
 
 ```
 ServiceLoader
-  └── KmsKeyVaultProvider          ← keyset storage capability
-  └── KmsKeyEncryptionProvider     ← keyset encryption capability (kek_type)
+  └── KmsKeyVaultProvider           ← keyset storage capability
+  └── KmsKeyEncryptionProvider      ← keyset encryption capability (kek_type)
   └── EnvelopeKekEncryptionProvider ← envelope KEK capability (envelope_kek_configs)
 ```
 

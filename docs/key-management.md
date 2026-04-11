@@ -1,17 +1,17 @@
 # Key Management
 
-All Kryptonite for Kafka modules support five ways to source the required key material. You can define this by means of the `key_source` configuration parameter. The right choice primarly depends on your security posture and preferred operational model.
+All Kryptonite for Kafka modules support multiple options to source the required key material. You can define this by means of the `key_source` configuration parameter. The right choice primarily depends on your security posture and preferred operational model.
 
 ---
 
 ## Overview
 
 ```
-key_source=CONFIG              → plain keysets inline in config
-key_source=CONFIG_ENCRYPTED    → KEK-encrypted keysets inline in config
-key_source=KMS                 → plain keysets in cloud secret manager
-key_source=KMS_ENCRYPTED       → KEK-encrypted keysets in cloud secret manager
-key_source=NONE                → no keysets required (envelope encryption only)
+key_source=CONFIG           → plain keysets inline in config
+key_source=CONFIG_ENCRYPTED → KEK-encrypted keysets inline in config
+key_source=KMS              → plain keysets in cloud secret manager
+key_source=KMS_ENCRYPTED    → KEK-encrypted keysets in cloud secret manager
+key_source=NONE             → no keysets required (KMS-based envelope encryption only)
 ```
 
 ---
@@ -21,10 +21,10 @@ key_source=NONE                → no keysets required (envelope encryption only
 The simplest and least secure mode. Plain keysets are embedded directly in the `cipher_data_keys` configuration parameter.
 
 !!! question "When to use?"
-    Development & testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected by other means (e.g., Kubernetes Secrets, Vault-injected env vars).
+    Development & testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected by other means (e.g. Kubernetes Secrets, Vault-injected env vars).
 
 !!! danger "Risk"
-    Key material might become visible or accidentally exposed. For instance, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production without additional access controls in place.
+    Key material might become visible or accidentally exposed. For instance, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production workload without additional access controls in place.
 
 ### Plain keyset example
 
@@ -286,7 +286,7 @@ Note the custom `typeUrl` and `outputPrefixType: RAW` for FPE keysets.
 
 ---
 
-## Key Rotation
+## Key Rotation with Keysets
 
 Tink keysets natively support multiple keys. The `primaryKeyId` determines which key is used for new encryptions. Older keys are supposed to remain in the keyset for decryption of existing ciphertexts.
 
@@ -297,3 +297,34 @@ Tink keysets natively support multiple keys. The `primaryKeyId` determines which
 5. Once the primary key changed, old ciphertexts remain decryptable so long as the previously used primary key is still resolvable within the configured keyset.
 
 See [Keyset Tool](keyset-tool.md) for examples of generating multi-key keysets.
+
+---
+
+## Key Rotation with Envelope Encryption
+
+Envelope encryption introduces a two-level key hierarchy — a short-lived Data Encryption Key (DEK) that encrypts the actual field data, and a long-lived Key Encryption Key (KEK) that wraps the DEK. Rotation operates differently at each level, and the two envelope variants behave differently.
+
+### DEK Rotation: automatic and continuous
+
+DEKs are ephemeral by design and rotate automatically without any manual intervention. A DEK session is considered expired when either of the following thresholds is reached:
+
+- **`dek_max_encryptions`** — maximum number of field encrypt operations performed with the current DEK (default: `100000`)
+- **`dek_ttl_minutes`** — maximum age of the current DEK session in minutes (default: `720`, i.e. 12 hours)
+
+Whichever threshold is hit first triggers the creation of a new DEK on the next encrypt call. Old DEKs are not discarded. They remain resolvable on the decrypt path as long as their wrapped form is present in the EdekStore (KMS-based variant) or inline in the ciphertext bundle (keyset-based variant). Tune these settings to control how frequently new DEKs are generated.
+
+!!! tip
+    Decrease `dek_ttl_minutes` or `dek_max_encryptions` to rotate DEKs more aggressively. Increase them to reduce the frequency of KMS wrap calls (KMS-based variant only) at the cost of longer DEK lifetimes.
+
+### KEK Rotation: on-demand and manual
+
+KEK rotation is not automatic and must be triggered explicitly from the ouside. The procedure differs between the two envelope variants:
+
+=== "Keyset-based (`TINK/AES_GCM_ENVELOPE_KEYSET`)"
+    The KEK is a Tink keyset. Rotation follows the standard Tink keyset rotation process: add a new key to the keyset, promote it to primary, and keep the old key for decryption of existing ciphertexts. Update the `cipher_data_keys` configuration accordingly. All newly created DEK sessions will be wrapped with the new primary key. Existing ciphertexts remain decryptable as long as the old key is still present in the keyset.
+
+=== "KMS-based (`TINK/AES_GCM_ENVELOPE_KMS`)"
+    The KEK lives exclusively in the cloud KMS and never leaves it. Rotation is performed directly in the cloud provider's KMS console or API. Create a new key version to be used for future DEK wrap/unwrap operations and retain the old version for existing data. No configuration change in Kryptonite is required as long as the `kek_uri` keeps referring to the KEK in question. The existing wrapped DEKs in the `EdekStore` remain intact and can still be unwrapped with the old key version as long as it stays enabled in the KMS.
+
+!!! warning
+    Rotating the KEK does not automatically re-wrap existing DEKs. Any DEKs wrapped with the old KEK version remain valid as long as that version is not disabled or deleted in the KMS. Plan KEK rotation carefully and ensure old key versions are kept active long enough to cover all existing ciphertexts in your Kafka topics.
