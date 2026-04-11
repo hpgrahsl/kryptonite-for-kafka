@@ -68,11 +68,11 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
     
     Quickly need to inline keysets for development? Need to store keysets in a cloud key management systems (KMS)? Want to encrypt keysets with a key encryption key (KEK) stored in a cloud provider's KMS? [GCP Cloud KMS](https://cloud.google.com/security/products/security-key-management), [AWS KMS](https://aws.amazon.com/kms/), and [Azure Key Vault](https://azure.microsoft.com/en-us/products/key-vault) are supported - the choice is yours!
 
--   :material-puzzle-outline: &nbsp; **Four Ready-Made Integrations**
+-   :material-puzzle-outline: &nbsp; **Ready-Made Integrations**
 
     ---
 
-    Apache Kafka Connect [SMTs](https://kafka.apache.org/42/kafka-connect/user-guide/#transformations), Apache Flink [UDFs](https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/functions/udfs/), ksqlDB [UDFs](https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html), and a Quarkus [Funqy](https://quarkus.io/guides/funqy) HTTP service. No custom serializers or any custom code required as the encrypt/decrypt capabilities are largely based on flexible configuration options.
+    Apache Kafka Connect [SMTs](https://kafka.apache.org/42/kafka-connect/user-guide/#transformations), Apache Flink [UDFs](https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/functions/udfs/), ksqlDB [UDFs](https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html), a Quarkus [Funqy](https://quarkus.io/guides/funqy) HTTP service, and a dedicated [Kroxylicious](https://kroxylicious.io) filter. No custom serializers or any custom code required as the encrypt/decrypt capabilities are largely based on flexible configuration options.
 
 -   :material-table-key: &nbsp; **Versatile Encryption Capabilities**
 
