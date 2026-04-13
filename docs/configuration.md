@@ -42,7 +42,7 @@ Defines the origin and protection of the key material.
 | `CONFIG_ENCRYPTED` | Encrypted Tink keysets provided in `cipher_data_keys` for which the proper key encryption key (KEK) is required to be able to decrypt them |
 | `KMS` | Plain Tink keysets stored in a cloud secret manager (requires `kms_type` and `kms_config` settings) |
 | `KMS_ENCRYPTED` | Encrypted Tink keysets stored in a cloud secret manager (requires: all related KMS and KEK settings) |
-| `NONE` | No Tink keysets involved. Use this exclusively with `TINK/AES_GCM_ENVELOPE_KMS` (requires `envelope_kek_configs`, `envelope_kek_identifier`, and `edek_store_config`) |
+| `NONE` | No Tink keysets involved. Use this only with `TINK/AES_GCM_ENVELOPE_KMS` (requires `envelope_kek_configs`, `envelope_kek_identifier`, and `edek_store_config`) |
 
 </div>
 
@@ -106,7 +106,7 @@ A JSON array of Tink keyset objects. Each entry has an `identifier` and a `mater
 ]
 ```
 
-May be deliberately left empty `[]` when keysets are sourced from cloud secret managers (`key_source=KMS` or `key_source=KMS_ENCRYPTED`), or when exclusively working with [KMS-backed envelope encryption](./envelope-encryption.md#kms-based-envelope-encryption) (`key_source=NONE`).
+May be deliberately left empty `[]` when keysets are sourced from cloud secret managers (`key_source=KMS` or `key_source=KMS_ENCRYPTED`), or when using only [KMS-backed envelope encryption](./envelope-encryption.md#kms-based-envelope-encryption) (`key_source=NONE`).
 
 ---
 
@@ -256,11 +256,11 @@ The default cipher algorithm used for encryption in case field settings do not s
 Controls how complex fields (`ARRAY`, `MAP`, `STRUCT`, and `ROW` types) are processed. 
 
 !!! note 
-    This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UDFs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.
+    Only the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service expose this setting directly. The Apache Flink and ksqlDB UDF integrations offer similar capabilities through their function variants.
 
 | Value | Description |
 |---|---|
-| `OBJECT` | The complex field is serialised in its entirety and encrypted as a single opaque blob which always results in a `VARCHAR` |
+| `OBJECT` | Kryptonite serialises the complex field in its entirety and encrypts it as a single opaque blob, which always results in a `VARCHAR` |
 | `ELEMENT` | Each element of an array, value in a map, or field in a struct/row type is encrypted individually. The result preserves the container shape of the complex type and contains separate `VARCHAR`s for each encrypted element, value, or field. |
 
 **Default: `ELEMENT`**
@@ -306,7 +306,7 @@ Applies to **KMS-based envelope encryption only** (`TINK/AES_GCM_ENVELOPE_KMS`).
 
 ### `edek_store_config`
 
-Applies to **KMS-based envelope encryption only** (`TINK/AES_GCM_ENVELOPE_KMS`). JSON object configuring the backing `EdekStore` implementation. Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimum viable configuration is this:
+Applies to **KMS-based envelope encryption only** (`TINK/AES_GCM_ENVELOPE_KMS`). JSON object configuring the backing `EdekStore` implementation. Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimal viable configuration is:
 
 ```json
 {
@@ -323,7 +323,7 @@ See [Envelope Encryption / EdekStore configuration](envelope-encryption.md#edeks
 
 ### `dek_max_encryptions`
 
-Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`). Maximum number of field encryptions before the current DEK session is rotated and a new DEK is generated.
+Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`). Upper limit for field encryptions before the current DEK session is rotated and a new DEK is generated.
 
 **Default: `100000`**
 
@@ -331,7 +331,7 @@ Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`
 
 ### `dek_ttl_minutes`
 
-Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`). Maximum age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of `dek_max_encryptions`.
+Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`). Longest allowed age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of `dek_max_encryptions`.
 
 **Default: `720` (12 hours)**
 
@@ -376,7 +376,7 @@ The character set to which both plaintext and ciphertext characters are mapped.
 
 ### `cipher_fpe_alphabet_custom`
 
-The explicit character set when `cipher_fpe_alphabet_type=CUSTOM`. Minimum 2 unique characters. Example: `01` for binary strings.
+The explicit character set when `cipher_fpe_alphabet_type=CUSTOM`. At least 2 unique characters are required. Example: `01` for binary strings.
 
 ---
 
@@ -390,7 +390,7 @@ The explicit character set when `cipher_fpe_alphabet_type=CUSTOM`. Minimum 2 uni
 
 #### `field_config`
 
-JSON array listing the payload fields to process. Each entry specifies at minimum the field `name`. Optional per-field overrides for other settings influencing the encryption / decryption behaviour.
+JSON array listing the payload fields to process. Each entry must at least specify the field `name`. Optional per-field overrides for other settings influencing the encryption / decryption behaviour.
 
 * Example
 

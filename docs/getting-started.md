@@ -102,4 +102,4 @@ This generates and pretty prints a turn-key ready keyset to `stdout`:
 !!! warning "Key material is a secret"
     The `value` field is the actual raw key in Base64 encoding. Treat it with utmost secrecy, just like any important password. **NEVER commit production keysets to source control!**
 
-See [Key Management](key-management.md) for production options regarding keyset storage and optional keyset encryption.
+See [Key Management](key-management.md) for production options for keyset storage and optional keyset encryption.

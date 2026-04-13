@@ -1,6 +1,6 @@
 # :material-table-arrow-right: Apache Flink UDFs
 
-Kryptonite for Kafka provides multiple Flink user-defined functions (UDFs) for encrypting and decrypting column values in Flink Table API and Flink SQL jobs.
+Kryptonite for Kafka provides a range of Flink user-defined functions (UDFs) for encrypting and decrypting column values in Flink Table API and Flink SQL jobs.
 
 **Field-Level Encryption with UDFs in Flink SQL**
 
@@ -98,7 +98,7 @@ SHOW USER FUNCTIONS;
 
 ## Configuration
 
-Any UDF-specific configuration is passed as environment variables to the Flink TaskManagers (or alternatively in `flink-conf.yaml`):
+Any UDF-specific configuration is passed as environment variables to the Flink TaskManagers (or, if you prefer, in `flink-conf.yaml`):
 
 ```yaml
 environment:
@@ -174,7 +174,7 @@ K4K_DECRYPT_MAP_WITH_SCHEMA(data MAP<K,VARCHAR>, schemaString VARCHAR) → MAP<K
 
 ### k4k_encrypt_row
 
-Encrypts `ROW` fields individually. Encrypted fields are returned as `VARCHAR`. Fields not in `fieldList` retain their original types. The `fieldList` parameter is a comma-separated list of field names to encrypt. Omitting it encrypts all fields. The `fieldList` parameter must be a string literal.
+Encrypts `ROW` fields individually. The function returns encrypted fields as `VARCHAR`. Fields not in `fieldList` keep their original types. The `fieldList` parameter is a comma-separated list of field names to encrypt. Omitting it encrypts all fields. The `fieldList` parameter must be a string literal.
 
 ```sql
 -- Encrypt all fields with configured defaults

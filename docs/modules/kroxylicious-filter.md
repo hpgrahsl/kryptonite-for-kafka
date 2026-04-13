@@ -28,11 +28,11 @@ Kryptonite for Kafka ships two independent filters:
 | **Encryption** | Produce (client → proxy → broker) | Intercepts `ProduceRequest` messages and encrypts the configured fields before records reach the broker |
 | **Decryption** | Fetch (broker → proxy → client) | Intercepts `FetchResponse` messages and decrypts the configured fields before records reach the consumer |
 
-Each filter operates entirely independently. Running both in the same proxy instance is the most common setup. It gives producers and consumers a single transparent endpoint with bi-directional, end-to-end field-level protection. However, this is not a requirement. You can deploy only the encryption filter in a proxy that sits in front of producers, and a separate proxy instance with only the decryption filter in front of consumers, depending on your architecture.
+Each filter operates entirely independently. Running both in the same proxy instance is the most common setup. It gives producers and consumers a single transparent endpoint with bi-directional, end-to-end field-level protection. That said, you do not have to deploy them together. You can place only the encryption filter in a proxy in front of producers, and a separate proxy instance with only the decryption filter in front of consumers, depending on your architecture.
 
-Fields that are not listed in the configuration (see  `topic_field_configs` setting) pass through completely unmodified regardless of which filters are active.
+Fields that are not listed in the configuration (see `topic_field_configs`) pass through unchanged regardless of which filters are active.
 
-Topic routing is controlled by `topic_pattern` entries, each carrying its own `field_configs` list. Patterns are **Java regular expressions** anchored at both ends (equivalent to `^pattern$`), giving full regex expressiveness for topic name matching.
+Topic routing is controlled by `topic_pattern` entries, each carrying its own `field_configs` list. Patterns are **Java regular expressions** anchored at both ends (the same as `^pattern$`), giving full regex expressiveness for topic name matching.
 
 !!! note "Schema Registry Integration"
     For schema-aware record formats (`JSON_SR`, `AVRO`) the filter automatically derives and registers encrypted schemas in the schema registry. Consumers always receive schema-correct records. The encrypted schema uses type `string` for every encrypted field, and the decrypted schema fully restores the original type.
@@ -58,7 +58,7 @@ If building from sources:
 
 ### Proxy Config Structure
 
-A basic Kroxylicious proxy config defines a `virtualClusters` block which, at the very minimum, specifies the upstream broker and the gateway address, plus optional `filterDefinitions` and a corresponding `defaultFilters` block. A minimal skeleton could look like this:
+A basic Kroxylicious proxy config defines a `virtualClusters` block which specifies at least the upstream broker and the gateway address, plus optional `filterDefinitions` and a corresponding `defaultFilters` block. A minimal skeleton could look like this:
 
 ```yaml
 virtualClusters:
@@ -82,9 +82,9 @@ defaultFilters:
 ```
 
 !!! note
-    `advertisedBrokerAddressPattern` controls the broker address that Kroxylicious advertises to clients in metadata responses. Set it to the hostname or IP that clients use to reach the proxy. For single-node local setups `localhost` is typical; for containerised or remote deployments use the proxy's externally reachable hostname.
+    `advertisedBrokerAddressPattern` controls the broker address that Kroxylicious advertises to clients in metadata responses. Set it to the hostname or IP that clients use to reach the proxy. For single-node local setups, `localhost` is typical; for containerised or remote deployments, use the proxy's externally reachable hostname.
 
-If you want to dig deeper, it is recommended to read the official documentation to understand all the [proxy configuration](https://kroxylicious.io/documentation/0.20.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy) options in-depth.
+If you want to dig deeper, read the official documentation to understand all [proxy configuration](https://kroxylicious.io/documentation/0.20.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy) options in depth.
 
 ---
 
@@ -375,7 +375,7 @@ topic_field_configs:
 ```
 
 !!! warning "First-match semantics"
-    Only the first matching `topic_pattern` is applied. Order your entries from most specific to least specific.
+    Only the first matching `topic_pattern` is applied. Order your entries from the most specific to the least specific.
 
 ---
 
@@ -398,8 +398,8 @@ Each field entry supports an optional `fieldMode` that controls how complex valu
 
 | `fieldMode` | Behaviour |
 |---|---|
-| `OBJECT` (default) | The entire field value is encrypted as a single unit and stored as a Base64-encoded ciphertext string |
-| `ELEMENT` | For arrays each array element is individually encrypted. For maps each map value is individually encrypted. For structs/records/objects each field value is individually encrypted. The container structure is always preserved. |
+| `OBJECT` (default) | The filter encrypts the entire field value as a single unit and stores it as a Base64-encoded ciphertext string |
+| `ELEMENT` | For arrays, the filter encrypts each array element individually. For maps, it encrypts each map value individually. For structs/records/objects, it encrypts each field value individually. The container structure always stays intact. |
 
 ```yaml
 field_configs:
@@ -526,7 +526,7 @@ See the [Key Management](../key-management.md) and [Cloud KMS](../kms/overview.m
 
 ## Schema Registry Subjects
 
-When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages additional schema registry subjects alongside the original record value schemas. All subject names are derived from the original `<topic>-value` subject and follow these naming conventions:
+When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages extra schema registry subjects alongside the original record value schemas. All subject names are derived from the original `<topic>-value` subject and follow these naming conventions:
 
 | Subject name | Purpose |
 |---|---|
@@ -545,13 +545,13 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages addi
 | `schema_mode` | Description |
 |---|---|
 | `DYNAMIC` (default) | The filter derives and registers encrypted/decrypted schemas automatically at runtime. Use this for most deployments as all the necessary actions happen transparently under the hood. |
-| `STATIC` | Additional schemas must be pre-registered in the schema registry before the proxy is started to process any data. The proxy filter in this case will look them up on demand by the subjects naming convention rather than deriving and registering them. This mode is typically only used if strict schema governance envrionments would prohibit any ad hoc registration of schemas. In this mode, the proxy filter doesn't need schema registry write access. |
+| `STATIC` | Extra schemas must be pre-registered in the schema registry before the proxy is started to process any data. The proxy filter in this case will look them up on demand by the subjects naming convention rather than deriving and registering them. This mode is typically used when strict schema governance environments prohibit ad-hoc schema registration. In this mode, the proxy filter doesn't need schema registry write access. |
 
 ---
 
 ## Configuration Reference
 
-**Configuration Settings common to both the encrypt and decrypt filter definitions:**
+**Configuration settings common to both the encrypt and decrypt filter definitions:**
 
 <div class="k4k-param-table" markdown="1">
 
@@ -569,7 +569,7 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages addi
 | `kek_uri` | No | — | KEK URI |
 | `kek_config` | No | — | KEK provider config (JSON string or file path) |
 | `schema_registry_url` | No | — | Confluent Schema Registry base URL (required for `JSON_SR`, `AVRO`) |
-| `schema_registry_config` | No | `{}` | Additional SR client properties (e.g. auth headers) as a string map |
+| `schema_registry_config` | No | `{}` | Extra SR client properties (e.g. auth headers) as a string map |
 | `schema_mode` | No | `DYNAMIC` | Schema handling mode: `DYNAMIC` or `STATIC` |
 | `serde_type` | No | `KRYO` | Internal serde format for encrypted field envelopes: `KRYO` or `AVRO` |
 | `blocking_pool_size` | No | JVM default | Size of the blocking executor thread pool used to dispatch blocking calls to |

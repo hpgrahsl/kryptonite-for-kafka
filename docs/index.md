@@ -50,7 +50,7 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 
     **Sensitive plaintext never leaves the client-side application.**
     
-    Neither Kafka brokers nor any intermediary gateway or reverse proxy infrastructure ever gets to see sensitive payload fields in plaintext. Encryption / Decryption of data happens exclusively within the security perimeter of the client application.
+    Neither Kafka brokers nor any intermediary gateway or reverse proxy infrastructure ever gets to see sensitive payload fields in plaintext. Encryption / Decryption of data happens only within the security perimeter of the client application.
 
 -   :material-cursor-default-click: &nbsp; **Field-Level Scope**
 
@@ -72,13 +72,13 @@ Encrypt and decrypt payload fields end-to-end **before sensitive data ever reach
 
     ---
 
-    Apache Kafka Connect [SMTs](https://kafka.apache.org/42/kafka-connect/user-guide/#transformations), Apache Flink [UDFs](https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/functions/udfs/), ksqlDB [UDFs](https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html), a Quarkus [Funqy](https://quarkus.io/guides/funqy) HTTP service, and a dedicated [Kroxylicious](https://kroxylicious.io) filter. No custom serializers or any custom code required as the encrypt/decrypt capabilities are largely based on flexible configuration options.
+    Apache Kafka Connect [SMTs](https://kafka.apache.org/42/kafka-connect/user-guide/#transformations), Apache Flink [UDFs](https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/functions/udfs/), ksqlDB [UDFs](https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html), a Quarkus [Funqy](https://quarkus.io/guides/funqy) HTTP service, and a dedicated [Kroxylicious](https://kroxylicious.io) filter. You don't need custom serializers or custom code because flexible configuration options drive the encrypt/decrypt capabilities.
 
 -   :material-table-key: &nbsp; **Versatile Encryption Capabilities**
 
     ---
 
-    By default, all modules apply [probabilistic encryption](https://en.wikipedia.org/wiki/Probabilistic_encryption) using AES GCM 256-bit encryption. If your use case requires [deterministic encryption](https://en.wikipedia.org/wiki/Deterministic_encryption) you can choose AES GCM SIV. In order to allow for [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption), FF3-1 is currently supported.
+    By default, all modules apply [probabilistic encryption](https://en.wikipedia.org/wiki/Probabilistic_encryption) using AES GCM 256-bit encryption. If your use case requires [deterministic encryption](https://en.wikipedia.org/wiki/Deterministic_encryption), you can choose AES GCM SIV. To support [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption), FF3-1 is currently available.
 
 -   :material-google: &nbsp; **Built on top of Google Tink**
 
@@ -138,7 +138,7 @@ The `CipherField` Single Message Transformation (SMT) encrypts or decrypts paylo
 
 <div class="k4k-module-body" markdown>
 
-Multiple user-defined functions (`K4K_ENCRYPT_*`/`K4K_DECRYPT_*`) can be applied in Flink Table API or Flink SQL jobs. The UDFs can process both primitive and complex Flink Table API data types.
+A set of user-defined functions (`K4K_ENCRYPT_*`/`K4K_DECRYPT_*`) can be applied in Flink Table API or Flink SQL jobs. The UDFs can process both primitive and complex Flink Table API data types.
 
 :octicons-book-24: [Learn more](modules/flink-udfs.md)
 
@@ -164,7 +164,7 @@ Multiple user-defined functions (`K4K_ENCRYPT_*`/`K4K_DECRYPT_*`) can be applied
 
 <div class="k4k-module-body" markdown>
 
-Multiple user-defined functions (`K4K_ENCRYPT*`/`K4K_DECRYPT*`) can be applied in ksqlDB `STREAM` or `TABLE` queries. The UDFs can process both primitive and complex ksqlDB data types.
+A set of user-defined functions (`K4K_ENCRYPT*`/`K4K_DECRYPT*`) can be applied in ksqlDB `STREAM` or `TABLE` queries. The UDFs can process both primitive and complex ksqlDB data types.
 
 :octicons-book-24: [Learn more](modules/ksqldb-udfs.md)
 
@@ -190,7 +190,7 @@ Multiple user-defined functions (`K4K_ENCRYPT*`/`K4K_DECRYPT*`) can be applied i
 
 <div class="k4k-module-body" markdown>
 
-A lightweight HTTP service that exposes a web API with multiple encryption and decryption endpoints. This enables applications written in any language to participate in end-to-end encryption scenarios.
+A lightweight HTTP service that exposes a web API with dedicated encryption and decryption endpoints. This enables applications written in any language to take part in end-to-end encryption scenarios.
 
 :octicons-book-24: [Learn more](modules/funqy-http.md)
 
@@ -242,11 +242,11 @@ The Kryptonite proxy filter provides **transparent, client-agnostic field-level 
 
 | Algorithm | Mode | Input | Output | Usage |
 |---|---|---|---|---|
-| `TINK/AES_GCM` | [AEAD probabilistic](https://developers.google.com/tink/aead) | any supported data type | string (Base64) | most cases unless envelope encryption is a hard requirement (default) |
+| `TINK/AES_GCM` | [AEAD probabilistic](https://developers.google.com/tink/aead) | any supported data type | string (Base64) | most cases unless envelope encryption is required (default) |
 | `TINK/AES_GCM_ENVELOPE_KEYSET` | [AEAD probabilistic](https://developers.google.com/tink/aead)<br/>(envelope encryption) | any supported data type | string (Base64) | when you need envelope encryption but want local DEK wrap/unwrap using Tink keysets |
 | `TINK/AES_GCM_ENVELOPE_KMS` | [AEAD probabilistic](https://developers.google.com/tink/aead)<br/>(envelope encryption) | any supported data type | string (Base64) | when you need envelope encryption and must use a remote KEK for DEK wrap/unwrap |
-| `TINK/AES_GCM_SIV` | [AEAD deterministic](https://developers.google.com/tink/deterministic-aead) | any supported data type | string (Base64) | equality match, join operations, or aggregrations on encrypted data |
-| `CUSTOM/MYSTO_FPE_FF3_1` | [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) | string (specific alphabet) | string (same alphabet as input) | when specific alphabet must be preserved for resulting ciphertext (e.g. SSNs, IBANs, ...) |
+| `TINK/AES_GCM_SIV` | [AEAD deterministic](https://developers.google.com/tink/deterministic-aead) | any supported data type | string (Base64) | equality match, join operations, or aggregations on encrypted data |
+| `CUSTOM/MYSTO_FPE_FF3_1` | [format-preserving encryption](https://en.wikipedia.org/wiki/Format-preserving_encryption) | string (specific alphabet) | string (same alphabet as input) | when the output must preserve a specific alphabet (e.g. SSNs, IBANs, ...) |
 
 </div>
 

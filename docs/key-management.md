@@ -1,6 +1,6 @@
 # Key Management
 
-All Kryptonite for Kafka modules support multiple options to source the required key material. You can define this by means of the `key_source` configuration parameter. The right choice primarily depends on your security posture and preferred operational model.
+All Kryptonite for Kafka modules support different options to source the required key material. You can define this with the `key_source` configuration parameter. The right choice primarily depends on your security posture and preferred operational model.
 
 ---
 
@@ -21,10 +21,10 @@ key_source=NONE             → no keysets required (KMS-based envelope encrypti
 The simplest and least secure mode. Plain keysets are embedded directly in the `cipher_data_keys` configuration parameter.
 
 !!! question "When to use?"
-    Development & testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected by other means (e.g. Kubernetes Secrets, Vault-injected env vars).
+    Development & testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected in other ways (e.g. Kubernetes Secrets, Vault-injected env vars).
 
 !!! danger "Risk"
-    Key material might become visible or accidentally exposed. For instance, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production workload without additional access controls in place.
+    Key material might become visible or accidentally exposed. For example, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production workload without extra access controls in place.
 
 ### Plain keyset example
 
@@ -64,7 +64,7 @@ Encrypted keysets give you moderate security while still being able to directly 
 !!! question "When to use?"
     You'd like to ship encrypted keysets as part of the configuration but do not want to store keysets externally in a cloud secret manager.
 
-**Requires:** `key_source=CONFIG_ENCRYPTED`, depends on `kek_type`, `kek_uri`, and `kek_config` in addition to `cipher_data_keys`.
+**Requires:** `key_source=CONFIG_ENCRYPTED`, depends on `kek_type`, `kek_uri`, `kek_config`, and `cipher_data_keys`.
 
 ### Encrypted keyset example
 
@@ -97,19 +97,19 @@ Note, that the `material` field takes the encrypted keyset form:
 
 ## Plain keysets in cloud secret manager
 
-Plain keysets are stored as secrets in a cloud secret manager which provides reasonable key material protection. These are either fetched lazily on-demand or eagerly loaded during module initialization using the configured cloud provider credentials.
+Store plain keysets as secrets in a cloud secret manager to get reasonable key material protection. Modules either fetch them lazily on demand or load them eagerly during initialization with the configured cloud provider credentials.
 
 !!! question "When to use?"
     You already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.
 
-**Requires:** `key_source=KMS`, depends on `kms_type` and `kms_config`. When using a cloud secret manager `cipher_data_keys` can be deliberately set to the empty JSON array `[]`.
+**Requires:** `key_source=KMS`, depends on `kms_type` and `kms_config`. When using a cloud secret manager, `cipher_data_keys` can be deliberately set to the empty JSON array `[]`.
 
 ### Plain keyset example
 
 For cloud secret manager usage, plain keysets must be generated in `RAW` format with the [keyset tool](./keyset-tool.md).
 
 !!! note
-    The wrapping structure with `identifier`and `material` fields isn't present due to format `RAW`. The keysets are directly identified by means of the secret name in the cloud secret manager in this case.
+    The wrapping structure with `identifier`and `material` fields isn't present due to format `RAW`. In this case, the keysets are identified directly by the secret name in the cloud secret manager.
 
 ```json
 {
@@ -136,10 +136,10 @@ For cloud secret manager usage, plain keysets must be generated in `RAW` format 
 
 ## Encrypted keysets in cloud secret manager
 
-The most secure mode. Keysets are stored encrypted in a cloud secret manager, and a separate cloud KMS key encryption key is required to decrypt them at runtime.
+The most secure mode. This setup stores keysets encrypted in a cloud secret manager, and a separate cloud KMS key encryption key decrypts them at runtime.
 
 !!! question "When to use?"
-    **Production environments requiring maximum keyset protection.** An attacker who gains access to the secret manager secrets still cannot make use of any of the keysets without having access to the KEK in the KMS.
+    **Production environments requiring strong keyset protection.** An attacker who gains access to the secret manager secrets still cannot make use of any of the keysets without having access to the KEK in the KMS.
 
 **Requires:** `key_source=KMS_ENCRYPTED`, depends on `kms_type`,`kms_config`, `kek_type`, `kek_uri`, and `kek_config`. When using a cloud secret manager `cipher_data_keys` can be deliberately set to the empty JSON array `[]`.
 
@@ -148,7 +148,7 @@ The most secure mode. Keysets are stored encrypted in a cloud secret manager, an
 For cloud secret manager usage, encrypted keysets must be generated in `RAW` format with the [keyset tool](./keyset-tool.md).
 
 !!! note
-    The wrapping structure with `identifier`and `material` fields isn't present due to format `RAW`. The keysets are directly identified by means of the secret name in the cloud secret manager in this case.
+    The wrapping structure with `identifier`and `material` fields isn't present due to format `RAW`. In this case, the keysets are identified directly by the secret name in the cloud secret manager.
 
 ```json
 {
@@ -174,13 +174,13 @@ For cloud secret manager usage, encrypted keysets must be generated in `RAW` for
 
 ## No keysets
 
-When using `key_source=NONE`, no Tink keysets are loaded or required. This only works if the configured `cipher_algorithm` is `TINK/AES_GCM_ENVELOPE_KMS` which is always backed by a cloud KMS key encryption key (KEK) used to wrap random, ephemeral data encryption keys (DEK). This is the right choice when you must exclusively rely on envelope encryption and do not want to directly work with Tink keysets at all.
+When using `key_source=NONE`, no Tink keysets are loaded or required. This only works if the configured `cipher_algorithm` is `TINK/AES_GCM_ENVELOPE_KMS` which is always backed by a cloud KMS key encryption key (KEK) used to wrap random, ephemeral data encryption keys (DEK). This is the right choice when you must rely only on envelope encryption and do not want to work directly with Tink keysets at all.
 
 !!! question "When to use?"
     You are using `TINK/AES_GCM_ENVELOPE_KMS` for all fields, hence no Tink keyset management is required. The `cipher_data_keys` setting can be left empty `[]` in this case.
 
-!!! warning "Requirement"
-    `key_source=NONE` requires `envelope_kek_configs` to contain at least one valid KEK entry that is configured as the default `envelope_kek_identifier`. Startup fails with a clear error if envelope encryption is not properly configured. Also, you have to provide a valid `edek_store_configuration`.
+!!! warning "Required setup"
+    `key_source=NONE` requires `envelope_kek_configs` to contain at least one valid KEK entry that is configured as the default `envelope_kek_identifier`. Startup fails with a clear error if envelope encryption is not properly configured. You also have to provide a valid `edek_store_configuration`.
 
 !!! danger "Incompatibility Note"
     Cipher algorithms `TINK/AES_GCM`, `TINK/AES_GCM_SIV`, `TINK/AES_GCM_ENVELOPE_KEYSET`, or `CUSTOM/MYSTO_FPE_FF3_1` are not compatible with this setting as they all require at least one Tink keyset.
@@ -288,13 +288,13 @@ Note the custom `typeUrl` and `outputPrefixType: RAW` for FPE keysets.
 
 ## Key Rotation with Keysets
 
-Tink keysets natively support multiple keys. The `primaryKeyId` determines which key is used for new encryptions. Older keys are supposed to remain in the keyset for decryption of existing ciphertexts.
+Tink keysets natively support more than one key. The `primaryKeyId` determines which key is used for new encryptions. Older keys are supposed to remain in the keyset for decryption of existing ciphertexts.
 
-1. Generate a new keyset with multiple keys (e.g., `-n 2` with the [Keyset Tool](./keyset-tool.md))
+1. Generate a new keyset with more than one key (e.g., `-n 2` with the [Keyset Tool](./keyset-tool.md))
 2. One of the keys in the keyset must be the primary key, initially it's the first one
 3. Any new encryption operations use the currently designated primary key
 4. A different key in the keyset can be promoted to become the primary key at any time
-5. Once the primary key changed, old ciphertexts remain decryptable so long as the previously used primary key is still resolvable within the configured keyset.
+5. Once the primary key changes, old ciphertexts remain decryptable as long as the old primary key is still resolvable within the configured keyset.
 
 See [Keyset Tool](keyset-tool.md) for examples of generating multi-key keysets.
 
@@ -308,8 +308,8 @@ Envelope encryption introduces a two-level key hierarchy — a short-lived Data 
 
 DEKs are ephemeral by design and rotate automatically without any manual intervention. A DEK session is considered expired when either of the following thresholds is reached:
 
-- **`dek_max_encryptions`** — maximum number of field encrypt operations performed with the current DEK (default: `100000`)
-- **`dek_ttl_minutes`** — maximum age of the current DEK session in minutes (default: `720`, i.e. 12 hours)
+- **`dek_max_encryptions`** — upper limit for field encrypt operations performed with the current DEK (default: `100000`)
+- **`dek_ttl_minutes`** — longest allowed age of the current DEK session in minutes (default: `720`, i.e. 12 hours)
 
 Whichever threshold is hit first triggers the creation of a new DEK on the next encrypt call. Old DEKs are not discarded. They remain resolvable on the decrypt path as long as their wrapped form is present in the EdekStore (KMS-based variant) or inline in the ciphertext bundle (keyset-based variant). Tune these settings to control how frequently new DEKs are generated.
 
@@ -324,7 +324,7 @@ KEK rotation is not automatic and must be triggered explicitly from the outside.
     The KEK is a Tink keyset. Rotation follows the standard Tink keyset rotation process: add a new key to the keyset, promote it to primary, and keep the old key for decryption of existing ciphertexts. Update the `cipher_data_keys` configuration accordingly. All newly created DEK sessions will be wrapped with the new primary key. Existing ciphertexts remain decryptable as long as the old key is still present in the keyset.
 
 === "KMS-based (`TINK/AES_GCM_ENVELOPE_KMS`)"
-    The KEK lives exclusively in the cloud KMS and never leaves it. Rotation is performed directly in the cloud provider's KMS console or API. Create a new key version to be used for future DEK wrap/unwrap operations and retain the old version for existing data. No configuration change in Kryptonite is required as long as the `kek_uri` keeps referring to the KEK in question. The existing wrapped DEKs in the `EdekStore` remain intact and can still be unwrapped with the old key version as long as it stays enabled in the KMS.
+    The KEK lives only in the cloud KMS and never leaves it. Rotation is performed directly in the cloud provider's KMS console or API. Create a new key version to be used for future DEK wrap/unwrap operations and keep the old version for existing data. No configuration change in Kryptonite is required as long as the `kek_uri` keeps referring to the KEK in question. The existing wrapped DEKs in the `EdekStore` remain intact and can still be unwrapped with the old key version as long as it stays enabled in the KMS.
 
 !!! warning
     Rotating the KEK does not automatically re-wrap existing DEKs. Any DEKs wrapped with the old KEK version remain valid as long as that version is not disabled or deleted in the KMS. Plan KEK rotation carefully and ensure old key versions are kept active long enough to cover all existing ciphertexts in your Kafka topics.
