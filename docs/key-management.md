@@ -100,7 +100,7 @@ Note, that the `material` field takes the encrypted keyset form:
 Plain keysets are stored as secrets in a cloud secret manager which provides reasonable key material protection. These are either fetched lazily on-demand or eagerly loaded during module initialization using the configured cloud provider credentials.
 
 !!! question "When to use?"
-    Your already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.
+    You already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.
 
 **Requires:** `key_source=KMS`, depends on `kms_type` and `kms_config`. When using a cloud secret manager `cipher_data_keys` can be deliberately set to the empty JSON array `[]`.
 
@@ -318,7 +318,7 @@ Whichever threshold is hit first triggers the creation of a new DEK on the next 
 
 ### KEK Rotation: on-demand and manual
 
-KEK rotation is not automatic and must be triggered explicitly from the ouside. The procedure differs between the two envelope variants:
+KEK rotation is not automatic and must be triggered explicitly from the outside. The procedure differs between the two envelope variants:
 
 === "Keyset-based (`TINK/AES_GCM_ENVELOPE_KEYSET`)"
     The KEK is a Tink keyset. Rotation follows the standard Tink keyset rotation process: add a new key to the keyset, promote it to primary, and keep the old key for decryption of existing ciphertexts. Update the `cipher_data_keys` configuration accordingly. All newly created DEK sessions will be wrapped with the new primary key. Existing ciphertexts remain decryptable as long as the old key is still present in the keyset.

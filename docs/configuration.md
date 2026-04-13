@@ -256,7 +256,7 @@ The default cipher algorithm used for encryption in case field settings do not s
 Controls how complex fields (`ARRAY`, `MAP`, `STRUCT`, and `ROW` types) are processed. 
 
 !!! note 
-    This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UFDs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.
+    This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UDFs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.
 
 | Value | Description |
 |---|---|
