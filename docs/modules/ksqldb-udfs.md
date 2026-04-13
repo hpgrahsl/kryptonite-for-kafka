@@ -89,7 +89,7 @@ KSQL_KSQL_FUNCTIONS_K4K__DECRYPT_CIPHER__DATA__KEYS: '[ { "identifier": "my-key"
 ```
 
 !!! note "ENV VAR naming"
-    Confluent's Docker images convert environment variables to ksqlDB properties using these rules: dots (`.`) become single underscores (`_`), and underscores (`_`) become double underscores (`__`). Since Kryptonite's own config key contain underscores "_" separators (e.g. `cipher_data_keys`), each underscore in a config key becomes double underscores `__` in the environment variable name. The same applies to underscores in the UDF name itself (e.g. `k4k_encrypt` → `K4K__ENCRYPT`).
+    Confluent's Docker images convert environment variables to ksqlDB properties using these rules: dots (`.`) become single underscores (`_`), and underscores (`_`) become double underscores (`__`). Since Kryptonite's own config keys contain underscore (`_`) separators (e.g. `cipher_data_keys`), each underscore in a config key becomes double underscores `__` in the environment variable name. The same applies to underscores in the UDF name itself (e.g. `k4k_encrypt` → `K4K__ENCRYPT`).
 
 The same `key_source`, `kms_type`, `kms_config`, `kek_type`, `kek_config`, and `kek_uri` parameters are supported as for the other Kryptonite for Kafka modules. Prefix each with `ksql.functions.<udf-name>.` in `ksql-server.properties` (using `__` in env vars for any occurring underscore in a config key's name).
 
