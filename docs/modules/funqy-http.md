@@ -64,8 +64,8 @@ CUSTOM_JVM_ARGS=(
   --add-opens java.base/java.util=ALL-UNNAMED
 )
 java "${CUSTOM_JVM_ARGS[@]}" \
-  -Dcipher.data.keys='[<YOUR_TINK_KEYSETS HERE>]' \
-  -Dcipher.data.key.identifier=yourKey \
+  -Dcipher_data_keys='[<YOUR_TINK_KEYSETS HERE>]' \
+  -Dcipher_data_key_identifier=yourKey \
   -jar <PATH_TO_APP>/quarkus-app/quarkus-run.jar
 ```
 
