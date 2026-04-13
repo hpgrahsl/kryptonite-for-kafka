@@ -50,7 +50,7 @@ The simplest and least secure mode. Plain keysets are embedded directly in the `
 ```
 
 !!! tip "Tip"
-    Generate plain keysets with the [Keyset Tool](./keyset-tool/#plain-keysets).
+    Generate plain keysets with the [Keyset Tool](./keyset-tool.md#plain-keysets).
 
 !!! tip "Tip"
     For Kafka Connect, it's recommended to use the [file config provider](https://kafka.apache.org/42/configuration/configuration-providers/#example-referencing-files). Find a concrete example to store keysets in an external properties file instead of exposing it directly in the connector's configuration [here](modules/connect-smt.md#externalising-key-material).
@@ -91,7 +91,7 @@ Note, that the `material` field takes the encrypted keyset form:
 ```
 
 !!! tip "Tip"
-    Generate encrypted keysets in `FULL` format with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+    Generate encrypted keysets in `FULL` format with the [Keyset Tool](keyset-tool.md#encrypted-keysets).
 
 ---
 
@@ -130,7 +130,7 @@ For cloud secret manager usage, plain keysets must be generated in `RAW` format 
 ```
 
 !!! tip "Tip"
-    Generate plain keysets in `RAW` format with the [Keyset Tool](./keyset-tool/#plain-keysets).
+    Generate plain keysets in `RAW` format with the [Keyset Tool](./keyset-tool.md#plain-keysets).
 
 ---
 
@@ -168,7 +168,7 @@ For cloud secret manager usage, encrypted keysets must be generated in `RAW` for
 ```
 
 !!! tip "Tip"
-    Generate encrypted keysets in `RAW` format with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+    Generate encrypted keysets in `RAW` format with the [Keyset Tool](keyset-tool.md#encrypted-keysets).
 
 ---
 
