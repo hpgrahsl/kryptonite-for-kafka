@@ -751,15 +751,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#secret-storage-with-kms_typeaws_sm_secrets" class="md-nav__link">
+  <a href="#secret-storage-with-kms_typeaz_kv_secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Secret Storage with kms_type=AWS_SM_SECRETS
+        Secret Storage with kms_type=AZ_KV_SECRETS
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Secret Storage with kms_type=AWS_SM_SECRETS">
+    <nav class="md-nav" aria-label="Secret Storage with kms_type=AZ_KV_SECRETS">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1266,15 +1266,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#secret-storage-with-kms_typeaws_sm_secrets" class="md-nav__link">
+  <a href="#secret-storage-with-kms_typeaz_kv_secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Secret Storage with kms_type=AWS_SM_SECRETS
+        Secret Storage with kms_type=AZ_KV_SECRETS
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Secret Storage with kms_type=AWS_SM_SECRETS">
+    <nav class="md-nav" aria-label="Secret Storage with kms_type=AZ_KV_SECRETS">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1442,7 +1442,7 @@
 </ol>
 <p>Add the module JAR to the classpath alongside the core library. It is discovered automatically via <code>ServiceLoader</code>.</p>
 <hr />
-<h2 id="secret-storage-with-kms_typeaws_sm_secrets">Secret Storage with <code>kms_type=AWS_SM_SECRETS</code></h2>
+<h2 id="secret-storage-with-kms_typeaz_kv_secrets">Secret Storage with <code>kms_type=AZ_KV_SECRETS</code></h2>
 <h3 id="secret-naming">Secret naming</h3>
 <p>Unlike the AWS and GCP modules, Azure Key Vault uses the secret name <strong>directly</strong> as the keyset identifier, hence no prefix is prepended. The secret name is exactly the identifier used by the module. To separate plain and encrypted keysets, use two different Key Vault instances each with their individual <code>keyVaultUrl</code>.</p>
 <p>Create the actual cloud secrets using the Azure CLI or Portal. <strong>Each secret's value must be the Tink keyset JSON in <code>RAW</code> format:</strong></p>

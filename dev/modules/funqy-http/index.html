@@ -1624,7 +1624,7 @@
 <h2 id="installation-deployment">Installation / Deployment</h2>
 <ol>
 <li>Download the ZIP archive from the <a href="https://github.com/hpgrahsl/kryptonite-for-kafka/releases">GitHub Releases page</a>.</li>
-<li>Extract the archive </li>
+<li>Extract the archive.</li>
 </ol>
 <p>If building from sources:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./mvnw<span class="w"> </span>clean<span class="w"> </span>package<span class="w"> </span>-DskipTests<span class="w"> </span>-pl<span class="w"> </span>funqy-http-kryptonite
@@ -1658,8 +1658,8 @@
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--add-opens<span class="w"> </span>java.base/java.util<span class="o">=</span>ALL-UNNAMED
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="o">)</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>java<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUSTOM_JVM_ARGS</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>-Dcipher.data.keys<span class="o">=</span><span class="s1">&#39;[&lt;YOUR_TINK_KEYSETS HERE&gt;]&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>-Dcipher.data.key.identifier<span class="o">=</span>yourKey<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>-Dcipher_data_keys<span class="o">=</span><span class="s1">&#39;[&lt;YOUR_TINK_KEYSETS HERE&gt;]&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>-Dcipher_data_key_identifier<span class="o">=</span>yourKey<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span>-jar<span class="w"> </span>&lt;PATH_TO_APP&gt;/quarkus-app/quarkus-run.jar
 </code></pre></div>
 <h3 id="development-mode">Development mode</h3>
@@ -1676,7 +1676,7 @@
 </code></pre></div>
 <hr />
 <h2 id="configuration">Configuration</h2>
-<p>The default <code>application.properties</code> file that ship with the <code>funqy-http-kryptonite</code> module is this:</p>
+<p>The default <code>application.properties</code> file that ships with the <code>funqy-http-kryptonite</code> module is this:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">#############################################</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># Kryptonite for Kafka HTTP API configuration</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1">#############################################</span>
@@ -1712,7 +1712,7 @@
 <a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="na">dek_cache_size</span><span class="o">=</span><span class="s">1024</span>
 <a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="c1">#############################################</span>
 </code></pre></div>
-<p>See the full <a href="../../configuration/">Configuration Reference</a> for learn about all parameters.</p>
+<p>See the full <a href="../../configuration/">Configuration Reference</a> to learn about all parameters.</p>
 <hr />
 <h2 id="api-endpoints">API Endpoints</h2>
 <h3 id="encryption">Encryption</h3>
@@ -1749,7 +1749,7 @@
 </tbody>
 </table>
 <h3 id="decryption">Decryption</h3>
-<p>The service exposes the following API endpoints to encrypt different JSON inputs:</p>
+<p>The service exposes the following API endpoints to decrypt different JSON inputs:</p>
 <table>
 <thead>
 <tr>
@@ -1776,7 +1776,7 @@
 </tr>
 <tr>
 <td><code>POST /decrypt/value-with-config</code></td>
-<td><code>{data: {&lt;JSON_INPUT_DATA}, fieldConfig: [...]}</code></td>
+<td><code>{data: {&lt;JSON_INPUT_DATA&gt;}, fieldConfig: [...]}</code></td>
 <td>JSON object with decrypted fields according to the <a href="#fieldconfig-object">field config</a> specified</td>
 </tr>
 </tbody>

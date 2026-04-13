@@ -1363,7 +1363,7 @@
 <p><strong>Properties:</strong></p>
 <ul>
 <li><strong>probabilistic:</strong> each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent</li>
-<li><strong>authenticated:</strong> the DEK ciphertext includes a GCM authentication tag allowing to detected tampering on decryption</li>
+<li><strong>authenticated:</strong> the DEK ciphertext includes a GCM authentication tag allowing detection of tampering on decryption</li>
 <li><strong>DEK rotation:</strong> the DEK rotates automatically after a configurable number of encryptions or time window</li>
 </ul>
 <div class="admonition question">
@@ -1376,7 +1376,7 @@
 <p><strong>Properties:</strong></p>
 <ul>
 <li><strong>probabilistic:</strong> each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent</li>
-<li><strong>authenticated:</strong> the DEK ciphertext includes a GCM authentication tag allowing to detected tampering on decryption</li>
+<li><strong>authenticated:</strong> the DEK ciphertext includes a GCM authentication tag allowing detection of tampering on decryption</li>
 <li><strong>KEK isolation:</strong> the KEK is held and managed entirely by the cloud KMS; <strong>the raw KEK material is never directly exposed to Kryptonite for Kafka modules</strong></li>
 <li><strong>DEK rotation:</strong> the DEK rotates automatically after a configurable number of encryptions or time window</li>
 </ul>
@@ -1479,16 +1479,16 @@
 </tr>
 <tr>
 <td>Attacker "magically" gets access to the partially encrypted Kafka topic data, the encrypted keysets stored in the cloud secret manager, and the corresponding key encryption key from the cloud KMS</td>
-<td><strong>💀 NONE - YOU'RE REALLY F... ! 💥</strong></td>
+<td><strong>💀 None. This scenario means total compromise. 💥</strong></td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="dependencies">Dependencies</h2>
 <p>Cryptographic operations are implemented via <strong><a href="https://github.com/tink-crypto/">Google Tink</a></strong> (Java), a peer-reviewed, audited multi-language cryptography library. Kryptonite for Kafka does not implement any cryptographic primitives itself — all AEAD operations delegate to Tink. The FPE implementation uses the <a href="https://github.com/mysto"><strong>mysto</strong></a> library for the FF3-1 algorithm. A custom Tink key type is used for FPE to transparently integrate with Tink's keyset mechanism.</p>
-<div class="admonition note">
-<p class="admonition-title">Why FF3-1 for format-preserving encryption?</p>
-<p>Since NIST has officially withdrawn FF3 in 2025, FF1 should have preferrably been chosed as the FPE cipher algorithm in Kryptonite for Kafka. However, there are still patent claims and copyrights which forbid its usage in open-source software. As there aren't any other significantly better FPE cipher alternatives left, FF3-1 was chosen as the next best thing that has been NIST vetted and at the same time has seen some reasonable adoption in the field.</p>
+<div class="admonition question">
+<p class="admonition-title">Why FF3-1?</p>
+<p>Since NIST officially withdrew FF3 in 2025, FF1 should preferably have been chosen as the FPE cipher algorithm in Kryptonite for Kafka. However, there are still patent claims and copyrights which forbid its usage in open-source software. As there aren't any significantly better open alternatives left, FF3-1 was chosen as the next best option that has been NIST-vetted and has also seen reasonable adoption in the field.</p>
 </div>
 
 

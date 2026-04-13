@@ -1945,7 +1945,7 @@
 </tr>
 <tr>
 <td style="text-align: left;"><a href="#envelope_kek_configs"><code>envelope_kek_configs</code></a></td>
-<td style="text-align: center;">✓ (envelope encryption)</td>
+<td style="text-align: center;">✓ (KMS-based envelope encryption only)</td>
 <td style="text-align: center;"><code>[]</code></td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
@@ -1955,7 +1955,7 @@
 </tr>
 <tr>
 <td style="text-align: left;"><a href="#envelope_kek_identifier"><code>envelope_kek_identifier</code></a></td>
-<td style="text-align: center;">✓ (envelope encryption)</td>
+<td style="text-align: center;">✓ (KMS-based envelope encryption only)</td>
 <td style="text-align: center;">&nbsp;</td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
@@ -1965,7 +1965,7 @@
 </tr>
 <tr>
 <td style="text-align: left;"><a href="#edek_store_config"><code>edek_store_config</code></a></td>
-<td style="text-align: center;">✓ (envelope encryption)</td>
+<td style="text-align: center;">✓ (KMS-based envelope encryption only)</td>
 <td style="text-align: center;"><code>{}</code></td>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
@@ -2037,7 +2037,7 @@
 </tr>
 <tr>
 <td><code>NONE</code></td>
-<td>No Tink keysets involved. Use this exclusively with <code>TINK/AES_GCM_ENVELOPE_KMS</code> (requires <code>envelope_kek_configs</code> and <code>edek_store_config</code>)</td>
+<td>No Tink keysets involved. Use this exclusively with <code>TINK/AES_GCM_ENVELOPE_KMS</code> (requires <code>envelope_kek_configs</code>, <code>envelope_kek_identifier</code>, and <code>edek_store_config</code>)</td>
 </tr>
 </tbody>
 </table>
@@ -2293,7 +2293,7 @@
 <p>Controls how complex fields (<code>ARRAY</code>, <code>MAP</code>, <code>STRUCT</code>, and <code>ROW</code> types) are processed. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UFDs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.</p>
+<p>This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UDFs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.</p>
 </div>
 <table>
 <thead>
@@ -2316,9 +2316,13 @@
 <p><strong>Default: <code>ELEMENT</code></strong></p>
 <hr />
 <h2 id="envelope-encryption-parameters">Envelope Encryption Parameters</h2>
-<p>These parameters apply when <code>cipher_algorithm</code> is set to <code>TINK/AES_GCM_ENVELOPE_KEYSET</code> or <code>TINK/AES_GCM_ENVELOPE_KMS</code>.</p>
+<p>The parameters below are split into:</p>
+<ul>
+<li>parameters that apply only to <strong>KMS-based envelope encryption</strong> (<code>TINK/AES_GCM_ENVELOPE_KMS</code>)</li>
+<li>parameters that apply to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>)</li>
+</ul>
 <h3 id="envelope_kek_configs"><code>envelope_kek_configs</code></h3>
-<p>JSON array of KEK entries for KMS-based envelope encryption (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). Each entry specifies a KEK <code>identifier</code>, <code>type</code> (cloud provider), <code>uri</code>, and provider-specific <code>config</code> credentials. Not required for keyset-based envelope encryption.</p>
+<p>Applies to <strong>KMS-based envelope encryption only</strong> (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). JSON array of KEK entries where each entry specifies a KEK <code>identifier</code>, <code>type</code> (cloud provider), <code>uri</code>, and provider-specific <code>config</code> credentials. Not used for keyset-based envelope encryption (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>).</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">[</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="p">{</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">&quot;identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-kek&quot;</span><span class="p">,</span>
@@ -2335,10 +2339,10 @@
 <p><strong>Default: <code>[]</code> (disabled)</strong></p>
 <hr />
 <h3 id="envelope_kek_identifier"><code>envelope_kek_identifier</code></h3>
-<p>The default KEK identifier when working with envelope encryption and field settings do not specify their own individual key. Must match an identifier present in <code>envelope_kek_configs</code>.</p>
+<p>Applies to <strong>KMS-based envelope encryption only</strong> (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). The default KEK identifier used when field settings do not specify their own individual KEK. Must match an identifier present in <code>envelope_kek_configs</code>.</p>
 <hr />
 <h3 id="edek_store_config"><code>edek_store_config</code></h3>
-<p>JSON object configuring the backing <code>EdekStore</code> implementation. It's required for KMS-based envelope encryption (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimum viable configuration is this:</p>
+<p>Applies to <strong>KMS-based envelope encryption only</strong> (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). JSON object configuring the backing <code>EdekStore</code> implementation. Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimum viable configuration is this:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;kafkacache.bootstrap.servers&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;broker1:9092,...&quot;</span><span class="p">,</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;kafkacache.topic&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;_k4k_edeks&quot;</span>
@@ -2348,15 +2352,15 @@
 <p><strong>Default: <code>{}</code> (disabled)</strong></p>
 <hr />
 <h3 id="dek_max_encryptions"><code>dek_max_encryptions</code></h3>
-<p>Maximum number of field encryptions before the current DEK session is rotated and a new DEK is generated. Applies to both envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>).</p>
+<p>Applies to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>). Maximum number of field encryptions before the current DEK session is rotated and a new DEK is generated.</p>
 <p><strong>Default: <code>100000</code></strong></p>
 <hr />
 <h3 id="dek_ttl_minutes"><code>dek_ttl_minutes</code></h3>
-<p>Maximum age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of <code>dek_max_encryptions</code>. Applies to both envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>).</p>
+<p>Applies to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>). Maximum age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of <code>dek_max_encryptions</code>.</p>
 <p><strong>Default: <code>720</code> (12 hours)</strong></p>
 <hr />
 <h3 id="dek_key_bits"><code>dek_key_bits</code></h3>
-<p>Size of the generated DEK in bits. Accepted values: <code>128</code> or <code>256</code>. Applies to both envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>).</p>
+<p>Applies to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>). Size of the generated DEK in bits. Accepted values: <code>128</code> or <code>256</code>.</p>
 <p><strong>Default: <code>128</code></strong></p>
 <hr />
 <h2 id="fpe-settings">FPE Settings</h2>
