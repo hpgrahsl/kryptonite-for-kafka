@@ -6,7 +6,7 @@ The `kryptonite-kms-azure` module adds three capabilities:
 2. **Keyset Encryption**: use an Azure Key Vault RSA key to encrypt/decrypt keysets at rest (`kek_type=AZURE`)
 3. **Envelope KEK**: use an Azure Key Vault RSA key as the Key Encryption Key for envelope encryption (`cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`)
 
-Add the module JAR to the classpath alongside the core library. It is discovered automatically via `ServiceLoader`.
+Add the module JAR to the classpath alongside the core library. The runtime discovers it automatically via `ServiceLoader`.
 
 ---
 
@@ -58,14 +58,14 @@ The service principal used in `kms_config` requires on the secrets vault:
 ## Key Encryption Key with `kek_type=AZURE`
 
 !!! info "Envelope encryption"
-    Azure Key Vault standard tier only exposes RSA and EC keys — symmetric AEAD is not available. Since direct RSA encryption of a full Tink keyset is not feasible (RSA modulus limit) the module transparently implements **envelope encryption**:
+    Azure Key Vault standard tier only exposes RSA and EC keys — symmetric AEAD is not available. Since direct RSA encryption of a full Tink keyset is impractical (RSA modulus limit), the module transparently implements **envelope encryption**:
 
     1. A fresh ephemeral 256-bit DEK and 12-byte IV are generated locally
     2. The keyset is encrypted locally with AES-256-GCM using the DEK
     3. Only the 32-byte DEK is wrapped with RSA-OAEP-256 via `CryptographyClient.wrapKey()`
     4. The output wire format: `[4-byte wrappedKeyLen][wrappedKey][12-byte IV][AES-GCM ciphertext+tag]`
 
-    As this is fully transparent to the caller it can be configured like any other KEK provider.
+    Since this is fully transparent to the caller, it can be configured like any other KEK provider.
 
 ### IAM permissions required
 
@@ -75,7 +75,7 @@ The service principal used in `kek_config` requires the following permissions on
 - `Key Unwrap Key`
 
 !!! tip "Use separate vaults for keys and secrets"
-    It is recommended to use one Key Vault instance for KEK keys (with `Key Wrap/Unwrap` permissions) and a separate instance for keyset secrets (with `Secret Get/List` permissions). This isolates the two permission scopes cleanly.
+    Use one Key Vault instance for KEK keys (with `Key Wrap/Unwrap` permissions) and a separate instance for keyset secrets (with `Secret Get/List` permissions). This isolates the two permission scopes cleanly.
 
 ### KEK URI format
 

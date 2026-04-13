@@ -54,7 +54,7 @@ Or run directly via Maven:
 | `-s, --key-size` | No | `256` | Key size in bits. `AES_GCM`: 128 or 256. `AES_GCM_SIV`: fixed (ignored). `FPE_FF31`: 128, 192, or 256 |
 | `-n, --num-keys` | No | `1` | Number of keys per keyset (1–1000) — useful for key rotation setups |
 | `-k, --num-keysets` | No | `1` | Number of keysets to generate. When >1, output is a JSON array (or YAML sequence with `--yaml`); identifiers are suffixed `_1`, `_2`, etc. |
-| `--initial-key-id` | No | `10000` | Starting key ID, incremented by 1 per additional key |
+| `--initial-key-id` | No | `10000` | Starting key ID, incremented by 1 for each extra key |
 | `-o, --output` | No | `stdout` | Output file path (default: `stdout`) |
 | `-p, --pretty` | No | `false` | Pretty-print JSON output (default: single-line; ignored for YAML) |
 | `--yaml` | No | `false` | Output YAML instead of JSON |
@@ -77,7 +77,7 @@ Or run directly via Maven:
 
 ### Key ID assignment
 
-Key IDs are assigned sequentially from `--initial-key-id`. The first (lowest) key ID becomes the `primaryKeyId`. When generating multiple keysets (`-k N`), IDs are non-overlapping across keysets.
+Key IDs are assigned sequentially from `--initial-key-id`. The first (lowest) key ID becomes the `primaryKeyId`. When generating more than one keyset (`-k N`), IDs are non-overlapping across keysets.
 
 Example with `-n 3 -k 2 --initial-key-id 1000`:
 

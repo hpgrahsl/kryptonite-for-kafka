@@ -1,6 +1,6 @@
 # :material-api: Quarkus HTTP Service
 
-The Quarkus Funqy HTTP API is a lightweight standalone service that exposes encryption and decryption over HTTP. Its primary purpose is to allow client applications written in languages other than Java to participate in end-to-end encryption scenarios built on top of Kafka.
+The Quarkus Funqy HTTP API is a lightweight standalone service that exposes encryption and decryption over HTTP. Its primary purpose is to allow client applications written in languages other than Java to take part in end-to-end encryption scenarios built on top of Kafka.
 
 **Field-Level Encryption with HTTP API**
 
@@ -39,7 +39,7 @@ docker pull hpgrahsl/funqy-http-kryptonite:$K4K_FUNQY_HTTP_IMAGE_TAG
 ```
 
 !!! warning "Mandatory Configuration"
-    The default `application.properties` file which ships with the pre-built container images requires you to override the two mandatory config settings `cipher_data_keys` and `cipher_data_key_identifier` by means of environment variables.
+    The default `application.properties` file which ships with the pre-built container images requires you to override the two mandatory config settings `cipher_data_keys` and `cipher_data_key_identifier` through environment variables.
 
 Start a container with your container runtime of choice (Docker or Podman) and specify the mandatory environment variable overrides for `cipher_data_keys` and `cipher_data_key_identifier`.
 
@@ -82,7 +82,7 @@ Then navigate into the `funqy-http-kryptonite` module folder and run:
 ./mvnw quarkus:dev
 ```
 
-If you have the Quarkus CLI installed in your environment you could alternatively run this command from within the `funqy-http-kryptonite` module folder:
+If you have the Quarkus CLI installed in your environment, you can also run this command from within the `funqy-http-kryptonite` module folder:
 
 ```bash
 quarkus dev

@@ -58,7 +58,7 @@ ServiceLoader
   └── EnvelopeKekEncryptionProvider ← envelope KEK capability (envelope_kek_configs)
 ```
 
-Each module registers its implementations in `META-INF/services/` descriptor files. If a module JAR is absent from the classpath, the corresponding `kms_type`, `kek_type`, or envelope KEK provider is unavailable and a runtime exception is thrown if it is configured.
+Each module registers its implementations in `META-INF/services/` descriptor files. If a module JAR is absent from the classpath, the corresponding `kms_type`, `kek_type`, or envelope KEK provider becomes unavailable, and the runtime throws an exception if you configure it.
 
 ---
 
@@ -68,4 +68,4 @@ Use the [Keyset Tool](../keyset-tool.md) to generate keysets encrypted with any 
 
 For `key_source=CONFIG_ENCRYPTED`, generate keysets in `FULL` format (`-f FULL`) and use the resulting JSON for the config setting `cipher_data_keys`.
 
-For `key_source=KMS_ENCRYPTED`, generate keysets in `RAW` format (`-f RAW`) and upload the resulting JSON as the secret value in your cloud secret manager. See [here](../key-management.md#secret-naming-conventions) for secret naming conventions.
+For `key_source=KMS_ENCRYPTED`, generate keysets in `RAW` format (`-f RAW`) and upload the resulting JSON as the secret value in your cloud secret manager. See [the Key Management page](../key-management.md#secret-naming-conventions) for secret naming conventions.

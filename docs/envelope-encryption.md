@@ -68,7 +68,7 @@ The `EdekStore` defaults to KCache which persists into a compacted Kafka topic t
 
 **Encrypt path:**
 
-1. When a new DEK session is created, the wrapped DEK is published to the `EdekStore` before any encryption happens, only then is the DEK session made available for use
+1. When a new DEK session is created, Kryptonite publishes the wrapped DEK to the `EdekStore` before any encryption happens, and only then makes the DEK session available for use
 2. Each ciphertext carries only the 16-byte fingerprint as a compact pointer to the wrapped DEK in the `EdekStore`
 
 **Decrypt path:**
@@ -82,8 +82,8 @@ The `EdekStore` defaults to KCache which persists into a compacted Kafka topic t
 **Topic requirements:**
 
 - Must be a compacted topic — `cleanup.policy=compact`
-- `kafkacache.topic.require.compact=true` is enforced by default; Kryptonite for Kafka will refuse to start against a non-compacted topic
-- Replication factor and partition count follow standard Kafka best practices for your environment; a single partition is sufficient since write volume is very low (one record per DEK session)
+- `kafkacache.topic.require.compact=true` applies by default; Kryptonite for Kafka will refuse to start against a non-compacted topic
+- Replication factor and partition count follow standard Kafka best practices for your environment; one partition is enough in low-write-volume setups like this one (one record per DEK session)
 
 !!! info "Cross-Instance Consumer Lag"
     Each instance maintains a local in-memory mirror of the `EdekStore` topic via a background KCache consumer thread. After a new wrapped DEK is published, other instances will only see it once their consumer thread has caught up to that offset. If a decrypt request for a freshly-encrypted record reaches an instance whose consumer hasn't yet processed the new entry, the fingerprint lookup will fail. In practice this lag should be sub-second under normal conditions, and retry logic in the consumer application is the recommended mitigation.
@@ -124,13 +124,13 @@ Both variants share the same DEK session management. Instead of generating a fre
 
 A session expires when **either** threshold is reached first:
 
-- **`dek_max_encryptions`:** maximum number of field encryptions with this DEK (default: `100,000`)
-- **`dek_ttl_minutes`:** maximum age of the DEK session (default: `720` = 12 hours)
+- **`dek_max_encryptions`:** upper limit for field encryptions with this DEK (default: `100,000`)
+- **`dek_ttl_minutes`:** longest allowed age of the DEK session (default: `720` = 12 hours)
 
 When a session expires, a new DEK is generated and wrapped transparently without the need for intervention. For KMS-based envelope encryption the new wrapped DEK is published to the `EdekStore` before the session becomes active.
 
 !!! tip "Tuning Guidance"
-    Lower `dek_max_encryptions` or `dek_ttl_minutes` to increase DEK freshness at the cost of more frequent KMS calls. The defaults are reasonable and suit most workloads. For KMS-based envelope encryption each session creation involves one KMS network call, so very aggressive rotation (e.g., `dek_max_encryptions=1`) will not only significantly impact throughput but might saturate the KMS quickly and noticeably increase cloud KMS costs.
+    Lower `dek_max_encryptions` or `dek_ttl_minutes` to increase DEK freshness at the cost of more frequent KMS calls. The defaults are reasonable and suit most workloads. For KMS-based envelope encryption each session creation involves one KMS network call, so aggressive rotation (e.g., `dek_max_encryptions=1`) will reduce throughput, might saturate the KMS quickly, and can noticeably increase cloud KMS costs.
 
 ---
 
@@ -189,6 +189,6 @@ The `envelope_kek_configs` parameter takes a JSON array of KEK entries. Each ent
     !!! note "AAD not supported for Azure"
         Azure Key Vault's RSA-OAEP-256 key wrap/unwrap has no associated-data parameter. The `wrapAad` binding used by GCP and AWS is silently ignored for Azure. Security relies on the `EdekStore` fingerprint lookup chain.
 
-Multiple KEK entries are supported. Each field can reference a different KEK identifier, enabling per-field or per-topic key isolation.
+You can define more than one KEK entry. Each field can reference a different KEK identifier, enabling per-field or per-topic key isolation.
 
 See [Cloud KMS](kms/overview.md) for provider-specific IAM permissions and setup details.

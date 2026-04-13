@@ -6,7 +6,7 @@ The `kryptonite-kms-gcp` module adds three capabilities:
 2. **Keyset Encryption Key**: use a GCP Cloud KMS symmetric key to encrypt/decrypt keysets at rest (`kek_type=GCP`)
 3. **Envelope KEK**: use a GCP Cloud KMS key as the Key Encryption Key for envelope encryption (`cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS`)
 
-Add the module JAR to the classpath alongside the core library. It is discovered automatically via `ServiceLoader`.
+Add the module JAR to the classpath alongside the core library. The runtime discovers it automatically via `ServiceLoader`.
 
 ---
 

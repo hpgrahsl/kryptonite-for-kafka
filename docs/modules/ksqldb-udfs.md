@@ -1,6 +1,6 @@
 # :material-database-search: ksqlDB UDFs
 
-Kryptonite for Kafka provides multiple ksqlDB user-defined functions (UDFs) for encrypting and decrypting column values in ksqlDB `STREAM` and `TABLE` queries.
+Kryptonite for Kafka provides a range of ksqlDB user-defined functions (UDFs) for encrypting and decrypting column values in ksqlDB `STREAM` and `TABLE` queries.
 
 **Field-Level Encryption with UDFs in ksqlDB**
 
