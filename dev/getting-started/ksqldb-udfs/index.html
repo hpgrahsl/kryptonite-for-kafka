@@ -23,7 +23,7 @@
     
     
       
-        <title>Getting Started — ksqlDB UDFs - Kryptonite for Apache Kafka</title>
+        <title>Ksqldb udfs - Kryptonite for Apache Kafka</title>
       
     
     
@@ -82,8 +82,7 @@
     <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#getting-started-ksqldb-udfs" class="md-skip">
+        <a href="#__skip" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Started — ksqlDB UDFs
+              Ksqldb udfs
             
           </span>
         </div>
@@ -1032,13 +1031,6 @@
                     
                     
                     
-                      
-                    
-                    
-                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-                      <div class="md-sidebar-button__wrapper">
-                        <label class="md-sidebar-button" for="__toc"></label>
-                      </div>
                     
                   
                   <div class="md-sidebar__inner">
@@ -1049,121 +1041,6 @@
   
   
   
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-1-install-the-udf-jar" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 1 — Install the UDF JAR
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Step 1 — Install the UDF JAR">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-a-pre-built-artifact-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option A — Pre-built artifact (recommended)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-build-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B — Build from source
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-2-generate-a-keyset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 2 — Generate a keyset
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-3-configure-the-ksqldb-server" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 3 — Configure the ksqlDB server
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-4-verify-deployment" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 4 — Verify deployment
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-5-encrypt-and-decrypt-in-ksqldb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 5 — Encrypt and decrypt in ksqlDB
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1181,96 +1058,9 @@
   
 
 
-<h1 id="getting-started-ksqldb-udfs">Getting Started — ksqlDB UDFs</h1>
-<p>Kryptonite for Kafka provides four ksqlDB user-defined functions: <code>K4KENCRYPT</code>, <code>K4KDECRYPT</code>, <code>K4KENCRYPTFPE</code>, and <code>K4KDECRYPTFPE</code>. Once deployed, they integrate directly into ksqlDB queries and persistent stream transformations.</p>
-<hr />
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li><strong>Java 17+</strong> on every ksqlDB server node</li>
-<li>A running ksqlDB server with a configured extension directory (<code>ksql.extension.dir</code> in <code>ksql-server.properties</code>)</li>
-<li>A running Apache Kafka cluster reachable by ksqlDB</li>
-</ul>
-<hr />
-<h2 id="step-1-install-the-udf-jar">Step 1 — Install the UDF JAR</h2>
-<h3 id="option-a-pre-built-artifact-recommended">Option A — Pre-built artifact (recommended)</h3>
-<ol>
-<li>Download the UDF JAR from the <a href="https://github.com/hpgrahsl/kryptonite-for-kafka/releases">GitHub Releases page</a>.</li>
-<li>Copy the JAR into the directory configured via <code>ksql.extension.dir</code> on every ksqlDB server node.</li>
-<li><strong>Restart all ksqlDB server(s)</strong> to load the new functions.</li>
-</ol>
-<h3 id="option-b-build-from-source">Option B — Build from source</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/hpgrahsl/kryptonite-for-kafka.git
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>kryptonite-for-kafka
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>./mvnw<span class="w"> </span>clean<span class="w"> </span>package<span class="w"> </span>-DskipTests<span class="w"> </span>-pl<span class="w"> </span>ksqldb-udfs-kryptonite
-</code></pre></div>
-<p>The UDF JAR is produced under <code>ksqldb-udfs-kryptonite/target/</code>.</p>
-<hr />
-<h2 id="step-2-generate-a-keyset">Step 2 — Generate a keyset</h2>
-<p>Use the <a href="../../keyset-tool/">Keyset Tool</a> to produce key material:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>java<span class="w"> </span>-jar<span class="w"> </span>kryptonite-keyset-tool/target/kryptonite-keyset-tool-0.1.0.jar<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-a<span class="w"> </span>AES_GCM<span class="w"> </span>-i<span class="w"> </span>my-demo-key<span class="w"> </span>-f<span class="w"> </span>FULL<span class="w"> </span>-p
-</code></pre></div>
-<p>Copy the printed JSON — you will reference it in the ksqlDB server configuration in the next step.</p>
-<div class="admonition warning">
-<p class="admonition-title">Key material is a secret</p>
-<p>Do not commit key material to source control. For production use, see <a href="../../key-management/">Key Management</a>.</p>
-</div>
-<hr />
-<h2 id="step-3-configure-the-ksqldb-server">Step 3 — Configure the ksqlDB server</h2>
-<p>UDF configuration is set in <code>ksql-server.properties</code>. Each UDF is configured independently under its own prefix. At minimum, configure <code>K4KENCRYPT</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">ksql.functions.k4kencrypt.cipher.data.keys</span><span class="o">=</span><span class="s">[{&quot;identifier&quot;:&quot;my-demo-key&quot;,&quot;material&quot;:{&quot;primaryKeyId&quot;:10000,&quot;key&quot;:[{&quot;keyData&quot;:{&quot;typeUrl&quot;:&quot;type.googleapis.com/google.crypto.tink.AesGcmKey&quot;,&quot;value&quot;:&quot;&lt;BASE64_KEY&gt;&quot;,&quot;keyMaterialType&quot;:&quot;SYMMETRIC&quot;},&quot;status&quot;:&quot;ENABLED&quot;,&quot;keyId&quot;:10000,&quot;outputPrefixType&quot;:&quot;TINK&quot;}]}}]</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="na">ksql.functions.k4kencrypt.cipher.data.key.identifier</span><span class="o">=</span><span class="s">my-demo-key</span>
-</code></pre></div>
-<p>For Docker / docker-compose, set the equivalent environment variables:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">KSQL_KSQL_FUNCTIONS_K4KENCRYPT_CIPHER_DATA_KEYS</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;[{&quot;identifier&quot;:&quot;my-demo-key&quot;,&quot;material&quot;:{...}}]&#39;</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nt">KSQL_KSQL_FUNCTIONS_K4KENCRYPT_CIPHER_DATA_KEY_IDENTIFIER</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-demo-key&quot;</span>
-</code></pre></div>
-<p><code>K4KDECRYPT</code> shares key configuration with <code>K4KENCRYPT</code> by default. Configure <code>K4KENCRYPTFPE</code> and <code>K4KDECRYPTFPE</code> separately if you intend to use format-preserving encryption.</p>
-<p>See the <a href="../../configuration/">Configuration reference</a> for all available parameters.</p>
-<hr />
-<h2 id="step-4-verify-deployment">Step 4 — Verify deployment</h2>
-<p>After restarting ksqlDB, confirm the UDFs are registered:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">SHOW</span><span class="w"> </span><span class="n">FUNCTIONS</span><span class="p">;</span>
-</code></pre></div>
-<p>The output should include:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a> Function Name | Category
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>---------------+-----------
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a> K4KDECRYPT    | OTHER
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a> K4KDECRYPTFPE | OTHER
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a> K4KENCRYPT    | OTHER
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a> K4KENCRYPTFPE | OTHER
-</code></pre></div>
-<hr />
-<h2 id="step-5-encrypt-and-decrypt-in-ksqldb">Step 5 — Encrypt and decrypt in ksqlDB</h2>
-<p>With the functions registered and key material configured, use them in any ksqlDB statement:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1">-- Create an encrypted stream</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">CREATE</span><span class="w"> </span><span class="n">STREAM</span><span class="w"> </span><span class="n">orders_encrypted</span><span class="w"> </span><span class="k">AS</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="k">SELECT</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="n">order_id</span><span class="p">,</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="n">K4KENCRYPT</span><span class="p">(</span><span class="n">customer_email</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">customer_email</span><span class="p">,</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="n">K4KENCRYPT</span><span class="p">(</span><span class="n">credit_card</span><span class="p">)</span><span class="w">    </span><span class="k">AS</span><span class="w"> </span><span class="n">credit_card</span><span class="p">,</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">    </span><span class="n">amount</span><span class="w">                                        </span><span class="c1">-- untouched</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">orders_raw</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">  </span><span class="n">EMIT</span><span class="w"> </span><span class="n">CHANGES</span><span class="p">;</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1">-- Decrypt on read</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="k">SELECT</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="w">  </span><span class="n">order_id</span><span class="p">,</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="w">  </span><span class="n">K4KDECRYPT</span><span class="p">(</span><span class="n">customer_email</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">customer_email</span><span class="p">,</span>
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="w">  </span><span class="n">K4KDECRYPT</span><span class="p">(</span><span class="n">credit_card</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="w">    </span><span class="k">AS</span><span class="w"> </span><span class="n">credit_card</span><span class="p">,</span>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="w">  </span><span class="n">amount</span>
-<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="k">FROM</span><span class="w"> </span><span class="n">orders_encrypted</span>
-<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="n">EMIT</span><span class="w"> </span><span class="n">CHANGES</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">5</span><span class="p">;</span>
-</code></pre></div>
-<p>Encrypted fields are stored as <code>VARCHAR</code> (Base64-encoded ciphertext). Pass an exemplary value of the expected return type as the second argument to <code>K4KDECRYPT</code> for type inference (<code>''</code> for <code>STRING</code>, <code>0</code> for <code>INT</code>, <code>false</code> for <code>BOOLEAN</code>, etc.).</p>
-<hr />
-<h2 id="next-steps">Next Steps</h2>
-<ul>
-<li><a href="../../modules/ksqldb-udfs/">ksqlDB UDFs reference</a> — all UDF signatures, element-mode variants, FPE examples, data type mapping</li>
-<li><a href="../../configuration/">Configuration reference</a> — all parameters and their naming conventions</li>
-<li><a href="../../key-management/">Key Management</a> — moving from inline keys to cloud KMS</li>
-<li><a href="../../keyset-tool/">Keyset Tool</a> — generate keys for all algorithms and KMS backends</li>
-</ul>
+  <h1 id="__skip">Ksqldb udfs</h1>
+
+
 
 
 

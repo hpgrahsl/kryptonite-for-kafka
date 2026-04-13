@@ -1577,7 +1577,7 @@
 
 
 <h1 id="key-management">Key Management</h1>
-<p>All Kryptonite for Kafka modules support multiple options to source the required key material. You can define this by means of the <code>key_source</code> configuration parameter. The right choice primarily depends on your security posture and preferred operational model.</p>
+<p>All Kryptonite for Kafka modules support different options to source the required key material. You can define this with the <code>key_source</code> configuration parameter. The right choice primarily depends on your security posture and preferred operational model.</p>
 <hr />
 <h2 id="overview">Overview</h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>key_source=CONFIG           → plain keysets inline in config
@@ -1591,11 +1591,11 @@
 <p>The simplest and least secure mode. Plain keysets are embedded directly in the <code>cipher_data_keys</code> configuration parameter.</p>
 <div class="admonition question">
 <p class="admonition-title">When to use?</p>
-<p>Development &amp; testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected by other means (e.g. Kubernetes Secrets, Vault-injected env vars).</p>
+<p>Development &amp; testing, or demos. Also, it could be a legitimate choice for environments where configuration is already protected in other ways (e.g. Kubernetes Secrets, Vault-injected env vars).</p>
 </div>
 <div class="admonition danger">
 <p class="admonition-title">Risk</p>
-<p>Key material might become visible or accidentally exposed. For instance, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production workload without additional access controls in place.</p>
+<p>Key material might become visible or accidentally exposed. For example, this could happen in Kafka Connect environments where connector configurations might be accessible via the Kafka Connect REST API. Avoid this configuration for any serious production workload without extra access controls in place.</p>
 </div>
 <h3 id="plain-keyset-example">Plain keyset example</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="w">  </span><span class="p">{</span>
@@ -1632,7 +1632,7 @@
 <p class="admonition-title">When to use?</p>
 <p>You'd like to ship encrypted keysets as part of the configuration but do not want to store keysets externally in a cloud secret manager.</p>
 </div>
-<p><strong>Requires:</strong> <code>key_source=CONFIG_ENCRYPTED</code>, depends on <code>kek_type</code>, <code>kek_uri</code>, and <code>kek_config</code> in addition to <code>cipher_data_keys</code>.</p>
+<p><strong>Requires:</strong> <code>key_source=CONFIG_ENCRYPTED</code>, depends on <code>kek_type</code>, <code>kek_uri</code>, <code>kek_config</code>, and <code>cipher_data_keys</code>.</p>
 <h3 id="encrypted-keyset-example">Encrypted keyset example</h3>
 <p>Note, that the <code>material</code> field takes the encrypted keyset form:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="w">  </span><span class="p">{</span>
@@ -1659,17 +1659,17 @@
 </div>
 <hr />
 <h2 id="plain-keysets-in-cloud-secret-manager">Plain keysets in cloud secret manager</h2>
-<p>Plain keysets are stored as secrets in a cloud secret manager which provides reasonable key material protection. These are either fetched lazily on-demand or eagerly loaded during module initialization using the configured cloud provider credentials.</p>
+<p>Store plain keysets as secrets in a cloud secret manager to get reasonable key material protection. Modules either fetch them lazily on demand or load them eagerly during initialization with the configured cloud provider credentials.</p>
 <div class="admonition question">
 <p class="admonition-title">When to use?</p>
 <p>You already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.</p>
 </div>
-<p><strong>Requires:</strong> <code>key_source=KMS</code>, depends on <code>kms_type</code> and <code>kms_config</code>. When using a cloud secret manager <code>cipher_data_keys</code> can be deliberately set to the empty JSON array <code>[]</code>.</p>
+<p><strong>Requires:</strong> <code>key_source=KMS</code>, depends on <code>kms_type</code> and <code>kms_config</code>. When using a cloud secret manager, <code>cipher_data_keys</code> can be deliberately set to the empty JSON array <code>[]</code>.</p>
 <h3 id="plain-keyset-example_1">Plain keyset example</h3>
 <p>For cloud secret manager usage, plain keysets must be generated in <code>RAW</code> format with the <a href=".././keyset-tool/">keyset tool</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The wrapping structure with <code>identifier</code>and <code>material</code> fields isn't present due to format <code>RAW</code>. The keysets are directly identified by means of the secret name in the cloud secret manager in this case.</p>
+<p>The wrapping structure with <code>identifier</code>and <code>material</code> fields isn't present due to format <code>RAW</code>. In this case, the keysets are identified directly by the secret name in the cloud secret manager.</p>
 </div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;primaryKeyId&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10000</span><span class="p">,</span>
@@ -1693,17 +1693,17 @@
 </div>
 <hr />
 <h2 id="encrypted-keysets-in-cloud-secret-manager">Encrypted keysets in cloud secret manager</h2>
-<p>The most secure mode. Keysets are stored encrypted in a cloud secret manager, and a separate cloud KMS key encryption key is required to decrypt them at runtime.</p>
+<p>The most secure mode. This setup stores keysets encrypted in a cloud secret manager, and a separate cloud KMS key encryption key decrypts them at runtime.</p>
 <div class="admonition question">
 <p class="admonition-title">When to use?</p>
-<p><strong>Production environments requiring maximum keyset protection.</strong> An attacker who gains access to the secret manager secrets still cannot make use of any of the keysets without having access to the KEK in the KMS.</p>
+<p><strong>Production environments requiring strong keyset protection.</strong> An attacker who gains access to the secret manager secrets still cannot make use of any of the keysets without having access to the KEK in the KMS.</p>
 </div>
 <p><strong>Requires:</strong> <code>key_source=KMS_ENCRYPTED</code>, depends on <code>kms_type</code>,<code>kms_config</code>, <code>kek_type</code>, <code>kek_uri</code>, and <code>kek_config</code>. When using a cloud secret manager <code>cipher_data_keys</code> can be deliberately set to the empty JSON array <code>[]</code>.</p>
 <h3 id="encrypted-keyset-example_1">Encrypted keyset example</h3>
 <p>For cloud secret manager usage, encrypted keysets must be generated in <code>RAW</code> format with the <a href=".././keyset-tool/">keyset tool</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The wrapping structure with <code>identifier</code>and <code>material</code> fields isn't present due to format <code>RAW</code>. The keysets are directly identified by means of the secret name in the cloud secret manager in this case.</p>
+<p>The wrapping structure with <code>identifier</code>and <code>material</code> fields isn't present due to format <code>RAW</code>. In this case, the keysets are identified directly by the secret name in the cloud secret manager.</p>
 </div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;encryptedKeyset&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;ENCRYPTED_AND_BASE64_ENCODED_KEYSET_HERE&gt;&quot;</span><span class="p">,</span>
@@ -1726,14 +1726,14 @@
 </div>
 <hr />
 <h2 id="no-keysets">No keysets</h2>
-<p>When using <code>key_source=NONE</code>, no Tink keysets are loaded or required. This only works if the configured <code>cipher_algorithm</code> is <code>TINK/AES_GCM_ENVELOPE_KMS</code> which is always backed by a cloud KMS key encryption key (KEK) used to wrap random, ephemeral data encryption keys (DEK). This is the right choice when you must exclusively rely on envelope encryption and do not want to directly work with Tink keysets at all.</p>
+<p>When using <code>key_source=NONE</code>, no Tink keysets are loaded or required. This only works if the configured <code>cipher_algorithm</code> is <code>TINK/AES_GCM_ENVELOPE_KMS</code> which is always backed by a cloud KMS key encryption key (KEK) used to wrap random, ephemeral data encryption keys (DEK). This is the right choice when you must rely only on envelope encryption and do not want to work directly with Tink keysets at all.</p>
 <div class="admonition question">
 <p class="admonition-title">When to use?</p>
 <p>You are using <code>TINK/AES_GCM_ENVELOPE_KMS</code> for all fields, hence no Tink keyset management is required. The <code>cipher_data_keys</code> setting can be left empty <code>[]</code> in this case.</p>
 </div>
 <div class="admonition warning">
-<p class="admonition-title">Requirement</p>
-<p><code>key_source=NONE</code> requires <code>envelope_kek_configs</code> to contain at least one valid KEK entry that is configured as the default <code>envelope_kek_identifier</code>. Startup fails with a clear error if envelope encryption is not properly configured. Also, you have to provide a valid <code>edek_store_configuration</code>.</p>
+<p class="admonition-title">Required setup</p>
+<p><code>key_source=NONE</code> requires <code>envelope_kek_configs</code> to contain at least one valid KEK entry that is configured as the default <code>envelope_kek_identifier</code>. Startup fails with a clear error if envelope encryption is not properly configured. You also have to provide a valid <code>edek_store_configuration</code>.</p>
 </div>
 <div class="admonition danger">
 <p class="admonition-title">Incompatibility Note</p>
@@ -1869,13 +1869,13 @@
 <p>Note the custom <code>typeUrl</code> and <code>outputPrefixType: RAW</code> for FPE keysets.</p>
 <hr />
 <h2 id="key-rotation-with-keysets">Key Rotation with Keysets</h2>
-<p>Tink keysets natively support multiple keys. The <code>primaryKeyId</code> determines which key is used for new encryptions. Older keys are supposed to remain in the keyset for decryption of existing ciphertexts.</p>
+<p>Tink keysets natively support more than one key. The <code>primaryKeyId</code> determines which key is used for new encryptions. Older keys are supposed to remain in the keyset for decryption of existing ciphertexts.</p>
 <ol>
-<li>Generate a new keyset with multiple keys (e.g., <code>-n 2</code> with the <a href=".././keyset-tool/">Keyset Tool</a>)</li>
+<li>Generate a new keyset with more than one key (e.g., <code>-n 2</code> with the <a href=".././keyset-tool/">Keyset Tool</a>)</li>
 <li>One of the keys in the keyset must be the primary key, initially it's the first one</li>
 <li>Any new encryption operations use the currently designated primary key</li>
 <li>A different key in the keyset can be promoted to become the primary key at any time</li>
-<li>Once the primary key changed, old ciphertexts remain decryptable so long as the previously used primary key is still resolvable within the configured keyset.</li>
+<li>Once the primary key changes, old ciphertexts remain decryptable as long as the old primary key is still resolvable within the configured keyset.</li>
 </ol>
 <p>See <a href="../keyset-tool/">Keyset Tool</a> for examples of generating multi-key keysets.</p>
 <hr />
@@ -1884,8 +1884,8 @@
 <h3 id="dek-rotation-automatic-and-continuous">DEK Rotation: automatic and continuous</h3>
 <p>DEKs are ephemeral by design and rotate automatically without any manual intervention. A DEK session is considered expired when either of the following thresholds is reached:</p>
 <ul>
-<li><strong><code>dek_max_encryptions</code></strong> — maximum number of field encrypt operations performed with the current DEK (default: <code>100000</code>)</li>
-<li><strong><code>dek_ttl_minutes</code></strong> — maximum age of the current DEK session in minutes (default: <code>720</code>, i.e. 12 hours)</li>
+<li><strong><code>dek_max_encryptions</code></strong> — upper limit for field encrypt operations performed with the current DEK (default: <code>100000</code>)</li>
+<li><strong><code>dek_ttl_minutes</code></strong> — longest allowed age of the current DEK session in minutes (default: <code>720</code>, i.e. 12 hours)</li>
 </ul>
 <p>Whichever threshold is hit first triggers the creation of a new DEK on the next encrypt call. Old DEKs are not discarded. They remain resolvable on the decrypt path as long as their wrapped form is present in the EdekStore (KMS-based variant) or inline in the ciphertext bundle (keyset-based variant). Tune these settings to control how frequently new DEKs are generated.</p>
 <div class="admonition tip">
@@ -1900,7 +1900,7 @@
 <p>The KEK is a Tink keyset. Rotation follows the standard Tink keyset rotation process: add a new key to the keyset, promote it to primary, and keep the old key for decryption of existing ciphertexts. Update the <code>cipher_data_keys</code> configuration accordingly. All newly created DEK sessions will be wrapped with the new primary key. Existing ciphertexts remain decryptable as long as the old key is still present in the keyset.</p>
 </div>
 <div class="tabbed-block">
-<p>The KEK lives exclusively in the cloud KMS and never leaves it. Rotation is performed directly in the cloud provider's KMS console or API. Create a new key version to be used for future DEK wrap/unwrap operations and retain the old version for existing data. No configuration change in Kryptonite is required as long as the <code>kek_uri</code> keeps referring to the KEK in question. The existing wrapped DEKs in the <code>EdekStore</code> remain intact and can still be unwrapped with the old key version as long as it stays enabled in the KMS.</p>
+<p>The KEK lives only in the cloud KMS and never leaves it. Rotation is performed directly in the cloud provider's KMS console or API. Create a new key version to be used for future DEK wrap/unwrap operations and keep the old version for existing data. No configuration change in Kryptonite is required as long as the <code>kek_uri</code> keeps referring to the KEK in question. The existing wrapped DEKs in the <code>EdekStore</code> remain intact and can still be unwrapped with the old key version as long as it stays enabled in the KMS.</p>
 </div>
 </div>
 </div>

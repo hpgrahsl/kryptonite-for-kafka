@@ -1313,12 +1313,12 @@
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  └── KmsKeyEncryptionProvider      ← keyset encryption capability (kek_type)
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  └── EnvelopeKekEncryptionProvider ← envelope KEK capability (envelope_kek_configs)
 </code></pre></div>
-<p>Each module registers its implementations in <code>META-INF/services/</code> descriptor files. If a module JAR is absent from the classpath, the corresponding <code>kms_type</code>, <code>kek_type</code>, or envelope KEK provider is unavailable and a runtime exception is thrown if it is configured.</p>
+<p>Each module registers its implementations in <code>META-INF/services/</code> descriptor files. If a module JAR is absent from the classpath, the corresponding <code>kms_type</code>, <code>kek_type</code>, or envelope KEK provider becomes unavailable, and the runtime throws an exception if you configure it.</p>
 <hr />
 <h2 id="generating-kms-encrypted-keysets">Generating KMS-encrypted Keysets</h2>
 <p>Use the <a href="../../keyset-tool/">Keyset Tool</a> to generate keysets encrypted with any supported KEK. Pass the <code>--kek-type</code>, <code>--kek-uri</code>, and <code>--kek-config</code> flags along with <code>-e</code>.</p>
 <p>For <code>key_source=CONFIG_ENCRYPTED</code>, generate keysets in <code>FULL</code> format (<code>-f FULL</code>) and use the resulting JSON for the config setting <code>cipher_data_keys</code>.</p>
-<p>For <code>key_source=KMS_ENCRYPTED</code>, generate keysets in <code>RAW</code> format (<code>-f RAW</code>) and upload the resulting JSON as the secret value in your cloud secret manager. See <a href="../../key-management/#secret-naming-conventions">here</a> for secret naming conventions.</p>
+<p>For <code>key_source=KMS_ENCRYPTED</code>, generate keysets in <code>RAW</code> format (<code>-f RAW</code>) and upload the resulting JSON as the secret value in your cloud secret manager. See <a href="../../key-management/#secret-naming-conventions">the Key Management page</a> for secret naming conventions.</p>
 
 
 

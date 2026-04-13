@@ -2037,7 +2037,7 @@
 </tr>
 <tr>
 <td><code>NONE</code></td>
-<td>No Tink keysets involved. Use this exclusively with <code>TINK/AES_GCM_ENVELOPE_KMS</code> (requires <code>envelope_kek_configs</code>, <code>envelope_kek_identifier</code>, and <code>edek_store_config</code>)</td>
+<td>No Tink keysets involved. Use this only with <code>TINK/AES_GCM_ENVELOPE_KMS</code> (requires <code>envelope_kek_configs</code>, <code>envelope_kek_identifier</code>, and <code>edek_store_config</code>)</td>
 </tr>
 </tbody>
 </table>
@@ -2093,7 +2093,7 @@
 <a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="p">]</span>
 </code></pre></div>
-<p>May be deliberately left empty <code>[]</code> when keysets are sourced from cloud secret managers (<code>key_source=KMS</code> or <code>key_source=KMS_ENCRYPTED</code>), or when exclusively working with <a href=".././envelope-encryption/#kms-based-envelope-encryption">KMS-backed envelope encryption</a> (<code>key_source=NONE</code>).</p>
+<p>May be deliberately left empty <code>[]</code> when keysets are sourced from cloud secret managers (<code>key_source=KMS</code> or <code>key_source=KMS_ENCRYPTED</code>), or when using only <a href=".././envelope-encryption/#kms-based-envelope-encryption">KMS-backed envelope encryption</a> (<code>key_source=NONE</code>).</p>
 <hr />
 <h3 id="cipher_data_key_identifier"><code>cipher_data_key_identifier</code></h3>
 <p>The default keyset identifier used for encryption in case field settings do not specify their own key. Must match an <code>identifier</code> present in <code>cipher_data_keys</code> (or resolvable from the used cloud KMS).</p>
@@ -2293,7 +2293,7 @@
 <p>Controls how complex fields (<code>ARRAY</code>, <code>MAP</code>, <code>STRUCT</code>, and <code>ROW</code> types) are processed. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UDFs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.</p>
+<p>Only the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service expose this setting directly. The Apache Flink and ksqlDB UDF integrations offer similar capabilities through their function variants.</p>
 </div>
 <table>
 <thead>
@@ -2305,7 +2305,7 @@
 <tbody>
 <tr>
 <td><code>OBJECT</code></td>
-<td>The complex field is serialised in its entirety and encrypted as a single opaque blob which always results in a <code>VARCHAR</code></td>
+<td>Kryptonite serialises the complex field in its entirety and encrypts it as a single opaque blob, which always results in a <code>VARCHAR</code></td>
 </tr>
 <tr>
 <td><code>ELEMENT</code></td>
@@ -2342,7 +2342,7 @@
 <p>Applies to <strong>KMS-based envelope encryption only</strong> (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). The default KEK identifier used when field settings do not specify their own individual KEK. Must match an identifier present in <code>envelope_kek_configs</code>.</p>
 <hr />
 <h3 id="edek_store_config"><code>edek_store_config</code></h3>
-<p>Applies to <strong>KMS-based envelope encryption only</strong> (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). JSON object configuring the backing <code>EdekStore</code> implementation. Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimum viable configuration is this:</p>
+<p>Applies to <strong>KMS-based envelope encryption only</strong> (<code>TINK/AES_GCM_ENVELOPE_KMS</code>). JSON object configuring the backing <code>EdekStore</code> implementation. Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimal viable configuration is:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">&quot;kafkacache.bootstrap.servers&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;broker1:9092,...&quot;</span><span class="p">,</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">&quot;kafkacache.topic&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;_k4k_edeks&quot;</span>
@@ -2352,11 +2352,11 @@
 <p><strong>Default: <code>{}</code> (disabled)</strong></p>
 <hr />
 <h3 id="dek_max_encryptions"><code>dek_max_encryptions</code></h3>
-<p>Applies to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>). Maximum number of field encryptions before the current DEK session is rotated and a new DEK is generated.</p>
+<p>Applies to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>). Upper limit for field encryptions before the current DEK session is rotated and a new DEK is generated.</p>
 <p><strong>Default: <code>100000</code></strong></p>
 <hr />
 <h3 id="dek_ttl_minutes"><code>dek_ttl_minutes</code></h3>
-<p>Applies to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>). Maximum age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of <code>dek_max_encryptions</code>.</p>
+<p>Applies to <strong>both</strong> envelope encryption variants (<code>TINK/AES_GCM_ENVELOPE_KEYSET</code>, <code>TINK/AES_GCM_ENVELOPE_KMS</code>). Longest allowed age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of <code>dek_max_encryptions</code>.</p>
 <p><strong>Default: <code>720</code> (12 hours)</strong></p>
 <hr />
 <h3 id="dek_key_bits"><code>dek_key_bits</code></h3>
@@ -2414,14 +2414,14 @@
 </table>
 <p><strong>Default: <code>ALPHANUMERIC</code></strong></p>
 <h3 id="cipher_fpe_alphabet_custom"><code>cipher_fpe_alphabet_custom</code></h3>
-<p>The explicit character set when <code>cipher_fpe_alphabet_type=CUSTOM</code>. Minimum 2 unique characters. Example: <code>01</code> for binary strings.</p>
+<p>The explicit character set when <code>cipher_fpe_alphabet_type=CUSTOM</code>. At least 2 unique characters are required. Example: <code>01</code> for binary strings.</p>
 <hr />
 <h2 id="module-specific-parameters">Module Specific Parameters</h2>
 <h3 id="kafka-connect-smt">Kafka Connect SMT</h3>
 <h4 id="cipher_mode"><code>cipher_mode</code></h4>
 <p><code>ENCRYPT</code> or <code>DECRYPT</code>. Required. Determines the direction of the transformation.</p>
 <h4 id="field_config"><code>field_config</code></h4>
-<p>JSON array listing the payload fields to process. Each entry specifies at minimum the field <code>name</code>. Optional per-field overrides for other settings influencing the encryption / decryption behaviour.</p>
+<p>JSON array listing the payload fields to process. Each entry must at least specify the field <code>name</code>. Optional per-field overrides for other settings influencing the encryption / decryption behaviour.</p>
 <ul>
 <li>Example</li>
 </ul>

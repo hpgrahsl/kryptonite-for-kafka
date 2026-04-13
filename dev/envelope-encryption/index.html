@@ -1370,7 +1370,7 @@
 <p>The <code>EdekStore</code> defaults to KCache which persists into a compacted Kafka topic to permanently store the wrapped DEKs. Each record maps a 16-byte fingerprint (a SHA-256 prefix of the wrapped DEK) to the actual wrapped DEK bytes.</p>
 <p><strong>Encrypt path:</strong></p>
 <ol>
-<li>When a new DEK session is created, the wrapped DEK is published to the <code>EdekStore</code> before any encryption happens, only then is the DEK session made available for use</li>
+<li>When a new DEK session is created, Kryptonite publishes the wrapped DEK to the <code>EdekStore</code> before any encryption happens, and only then makes the DEK session available for use</li>
 <li>Each ciphertext carries only the 16-byte fingerprint as a compact pointer to the wrapped DEK in the <code>EdekStore</code></li>
 </ol>
 <p><strong>Decrypt path:</strong></p>
@@ -1384,8 +1384,8 @@
 <p><strong>Topic requirements:</strong></p>
 <ul>
 <li>Must be a compacted topic — <code>cleanup.policy=compact</code></li>
-<li><code>kafkacache.topic.require.compact=true</code> is enforced by default; Kryptonite for Kafka will refuse to start against a non-compacted topic</li>
-<li>Replication factor and partition count follow standard Kafka best practices for your environment; a single partition is sufficient since write volume is very low (one record per DEK session)</li>
+<li><code>kafkacache.topic.require.compact=true</code> applies by default; Kryptonite for Kafka will refuse to start against a non-compacted topic</li>
+<li>Replication factor and partition count follow standard Kafka best practices for your environment; one partition is enough in low-write-volume setups like this one (one record per DEK session)</li>
 </ul>
 <div class="admonition info">
 <p class="admonition-title">Cross-Instance Consumer Lag</p>
@@ -1448,13 +1448,13 @@
 <p>Both variants share the same DEK session management. Instead of generating a fresh DEK for every field encryption (which would mean a KMS/keyset operation per record), a DEK session is reused across a configurable window.</p>
 <p>A session expires when <strong>either</strong> threshold is reached first:</p>
 <ul>
-<li><strong><code>dek_max_encryptions</code>:</strong> maximum number of field encryptions with this DEK (default: <code>100,000</code>)</li>
-<li><strong><code>dek_ttl_minutes</code>:</strong> maximum age of the DEK session (default: <code>720</code> = 12 hours)</li>
+<li><strong><code>dek_max_encryptions</code>:</strong> upper limit for field encryptions with this DEK (default: <code>100,000</code>)</li>
+<li><strong><code>dek_ttl_minutes</code>:</strong> longest allowed age of the DEK session (default: <code>720</code> = 12 hours)</li>
 </ul>
 <p>When a session expires, a new DEK is generated and wrapped transparently without the need for intervention. For KMS-based envelope encryption the new wrapped DEK is published to the <code>EdekStore</code> before the session becomes active.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tuning Guidance</p>
-<p>Lower <code>dek_max_encryptions</code> or <code>dek_ttl_minutes</code> to increase DEK freshness at the cost of more frequent KMS calls. The defaults are reasonable and suit most workloads. For KMS-based envelope encryption each session creation involves one KMS network call, so very aggressive rotation (e.g., <code>dek_max_encryptions=1</code>) will not only significantly impact throughput but might saturate the KMS quickly and noticeably increase cloud KMS costs.</p>
+<p>Lower <code>dek_max_encryptions</code> or <code>dek_ttl_minutes</code> to increase DEK freshness at the cost of more frequent KMS calls. The defaults are reasonable and suit most workloads. For KMS-based envelope encryption each session creation involves one KMS network call, so aggressive rotation (e.g., <code>dek_max_encryptions=1</code>) will reduce throughput, might saturate the KMS quickly, and can noticeably increase cloud KMS costs.</p>
 </div>
 <hr />
 <h2 id="kek-configuration-for-kms-based-envelope-encryption">KEK configuration for KMS-based envelope encryption</h2>
@@ -1512,7 +1512,7 @@
 </div>
 </div>
 </div>
-<p>Multiple KEK entries are supported. Each field can reference a different KEK identifier, enabling per-field or per-topic key isolation.</p>
+<p>You can define more than one KEK entry. Each field can reference a different KEK identifier, enabling per-field or per-topic key isolation.</p>
 <p>See <a href="../kms/overview/">Cloud KMS</a> for provider-specific IAM permissions and setup details.</p>
 
 

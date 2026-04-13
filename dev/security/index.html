@@ -1346,20 +1346,20 @@
 <p><code>TINK/AES_GCM</code> is the default algorithm. It applies AES in <a href="https://en.wikipedia.org/wiki/Galois/Counter_Mode">Galois/Counter Mode</a>.</p>
 <p><strong>Properties:</strong></p>
 <ul>
-<li><strong>probabilistic:</strong> encrypting the same plaintext multiple times always produces different ciphertexts</li>
+<li><strong>probabilistic:</strong> encrypting the same plaintext repeatedly always produces different ciphertexts</li>
 <li><strong>authenticated:</strong> the ciphertext includes a GCM authentication tag; any tampering is detected on decryption</li>
 <li><strong>key sizes:</strong> 128-bit or 256-bit (default)</li>
 </ul>
 <div class="admonition question">
 <p class="admonition-title">When to use?</p>
-<p>It's the right default choice unless you have very specific, use case-driven reasons for one of the other options explained further below. The randomness prevents statistical analysis and makes certain attack models for cryptanalysis significantly harder.</p>
+<p>It's the right default choice unless you have specific, use case-driven reasons for one of the other options explained further below. The randomness prevents statistical analysis and makes certain cryptanalytic attack models harder.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Do not use for Kafka record keys</p>
-<p>Applying probabilistic encryption to a Kafka record key causes records with the same original key to land in different partitions. This breaks partitioning guarantees and record ordering. If you really plan to encrypt the whole key or parts thereof, switch to <code>TINK/AES_GCM_SIV</code> for keys instead.</p>
+<p>Applying probabilistic encryption to a Kafka record key causes records with the same original key to land in different partitions. This breaks partitioning guarantees and record ordering. If you plan to encrypt the whole key or parts of it, switch to <code>TINK/AES_GCM_SIV</code> for keys instead.</p>
 </div>
 <h3 id="aes-gcm-envelope-encryption-keyset-based">AES-GCM Envelope Encryption (Keyset-based)</h3>
-<p><code>TINK/AES_GCM_ENVELOPE_KEYSET</code> applies <a href="https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption">envelope encryption</a> using a Tink keyset as the Key Encryption Key (KEK). A fresh AES-GCM DEK is generated per session, used to encrypt field data, and then wrapped with the KEK keyset. The wrapped DEK gets bundled as is inline with the ciphertext.</p>
+<p><code>TINK/AES_GCM_ENVELOPE_KEYSET</code> applies <a href="https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption">envelope encryption</a> using a Tink keyset as the Key Encryption Key (KEK). For each session, Kryptonite generates a fresh AES-GCM DEK, uses it to encrypt field data, and then wraps it with the KEK keyset. Kryptonite bundles the wrapped DEK inline with the ciphertext.</p>
 <p><strong>Properties:</strong></p>
 <ul>
 <li><strong>probabilistic:</strong> each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent</li>
@@ -1372,17 +1372,17 @@
 </div>
 <hr />
 <h3 id="aes-gcm-envelope-encryption-kms-based">AES-GCM Envelope Encryption (KMS-based)</h3>
-<p><code>TINK/AES_GCM_ENVELOPE_KMS</code> applies <a href="https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption">envelope encryption</a> using a cloud KMS key as the KEK. <strong>The KEK never leaves the KMS therefore all wrap/unwrap operations of the DEK are remote calls.</strong> Wrapped DEKs are stored externally; only a compact 16-byte fingerprint reference is embedded in each ciphertext rather than the wrapped DEK in full.</p>
+<p><code>TINK/AES_GCM_ENVELOPE_KMS</code> applies <a href="https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption">envelope encryption</a> using a cloud KMS key as the KEK. <strong>The KEK never leaves the KMS, so all wrap/unwrap operations of the DEK are remote calls.</strong> Wrapped DEKs are stored externally; only a compact 16-byte fingerprint reference is embedded in each ciphertext rather than the wrapped DEK in full.</p>
 <p><strong>Properties:</strong></p>
 <ul>
 <li><strong>probabilistic:</strong> each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent</li>
 <li><strong>authenticated:</strong> the DEK ciphertext includes a GCM authentication tag allowing detection of tampering on decryption</li>
-<li><strong>KEK isolation:</strong> the KEK is held and managed entirely by the cloud KMS; <strong>the raw KEK material is never directly exposed to Kryptonite for Kafka modules</strong></li>
+<li><strong>KEK isolation:</strong> the cloud KMS holds and manages the KEK entirely; <strong>the raw KEK material never becomes directly exposed to Kryptonite for Kafka modules</strong></li>
 <li><strong>DEK rotation:</strong> the DEK rotates automatically after a configurable number of encryptions or time window</li>
 </ul>
 <div class="admonition question">
 <p class="admonition-title">When to use?</p>
-<p>For cloud deployments where maximum key isolation is required and the KEK must not leave the cloud KMS security perimeter. Using this mode requires a compatible <code>EdekStore</code> implementation which defaults to KCache/Kafka and requires proper configuration (<code>edek_store_config</code>) and a running Kafka cluster accessible to Kryptonite for Kafka. See <a href="../envelope-encryption/">Envelope Encryption</a> for details.</p>
+<p>For cloud deployments where strong key isolation is required and the KEK must not leave the cloud KMS security perimeter. Using this mode requires a compatible <code>EdekStore</code> implementation which defaults to KCache/Kafka and requires proper configuration (<code>edek_store_config</code>) and a running Kafka cluster accessible to Kryptonite for Kafka. See <a href="../envelope-encryption/">Envelope Encryption</a> for details.</p>
 </div>
 <h3 id="aes-gcm-siv">AES-GCM-SIV</h3>
 <p><code>TINK/AES_GCM_SIV</code> is a nonce misuse-resistant variant. For the same plaintext and key, it always produces the same ciphertext.</p>
@@ -1402,7 +1402,7 @@
 <p><strong>Properties:</strong></p>
 <ul>
 <li><strong>length-preserving:</strong> a 16-digit number encrypts to different 16-digit number</li>
-<li><strong>character-set-preserving:</strong> ciphertext uses only characters from the configured alphabet matching the input data's character set</li>
+<li><strong>character-set-preserving:</strong> ciphertext uses only characters from the configured alphabet matching the character set of the input data</li>
 <li><strong>deterministic with tweak:</strong> same plaintext + same key + same tweak = same ciphertext</li>
 </ul>
 <div class="admonition question">
@@ -1411,7 +1411,7 @@
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Trade-offs</p>
-<p>It's generally considered weaker security-wise than standard AEAD ciphers. Use it only where format preservation is a hard requirement. Also, this cipher has a minimum plaintext length requirement depending on alphabet size (e.g., the <code>DIGITS</code> alphabet  requires at least 6 characters of input data).</p>
+<p>It's generally considered weaker security-wise than standard AEAD ciphers. Use it only where format preservation is required. Also, this cipher has a shortest supported plaintext length that depends on alphabet size (e.g., the <code>DIGITS</code> alphabet requires at least 6 characters of input data).</p>
 </div>
 <div class="admonition danger">
 <p class="admonition-title">Tweak Choice</p>
@@ -1421,13 +1421,13 @@
 <h2 id="key-material-security">Key Material Security</h2>
 <ol>
 <li>
-<p><strong>Try to avoid working with plain keysets</strong> and don't source them from configuration as this could easily cause keys to be leaked by accident.</p>
+<p><strong>Try to avoid working with plain keysets</strong> and don't source them from configuration, as this could easily leak keys by accident.</p>
 </li>
 <li>
-<p>Ideally default to <strong>either encrypted keysets in configuration</strong> or <strong>plain keysets in cloud secret managers.</strong> Both approaches provide reasonable security for your keysets and are significantly better than just going with plain keysets in configuration for convenience.</p>
+<p>Ideally default to <strong>either encrypted keysets in configuration</strong> or <strong>plain keysets in cloud secret managers.</strong> Both approaches provide reasonable security for your keysets and offer much better protection than storing plain keysets in configuration for convenience.</p>
 </li>
 <li>
-<p><strong>Prefer <code>KMS_ENCRYPTED</code> for maximum security in production.</strong> Keysets are stored encrypted in a cloud secret manager which means an attacker would need both secret manager access and possession of the key encryption key to be able to decrypt any ciphertext.</p>
+<p><strong>Prefer <code>KMS_ENCRYPTED</code> for strong security in production.</strong> Keysets are stored encrypted in a cloud secret manager, which means an attacker would need both secret manager access and possession of the key encryption key to decrypt any ciphertext.</p>
 </li>
 <li>
 <p><strong>Rotate keys periodically.</strong> Tink's multi-key keyset design makes key rotation straightforward. Promote another key in the keyset as the new primary, leave old keys in the keyset for backward-compatible decryption and add new keys to the keyset whenever needed. Optionally phase out / delete keys from the keysets for which you are certain that you don't need them any longer due to data retention. </p>
@@ -1436,7 +1436,7 @@
 <p><strong>Use separate key encryption keys (KEK)</strong> for different environments. Never share a production KEK with staging or development.</p>
 </li>
 <li>
-<p><strong>Limit IAM permissions for cloud KMS usage</strong> to the minimum required:</p>
+<p><strong>Limit IAM permissions for cloud KMS usage</strong> to the least privilege required:</p>
 <ul>
 <li>secret manager access: <code>get</code> + <code>list</code> for the k4k-prefixed secrets only</li>
 <li>key encryption key access: <code>encrypt</code> + <code>decrypt</code> (or <code>wrapKey</code> + <code>unwrapKey</code> for Azure) on the cloud KMS key in question</li>
@@ -1445,7 +1445,7 @@
 </ol>
 <div class="admonition danger">
 <p class="admonition-title">Key material is the root of trust</p>
-<p>Exposure of a Tink keyset's <code>value</code> field is equivalent to total loss of confidentiality for all data encrypted with that key. Treat it with the same care as an important private key or password. <strong>NEVER commit plain keysets to source control - ever!</strong></p>
+<p>Exposure of a Tink keyset's <code>value</code> field means total loss of confidentiality for all data encrypted with that key. Treat it with the same care as an important private key or password. <strong>NEVER commit plain keysets to source control - ever!</strong></p>
 </div>
 <hr />
 <h2 id="threat-model">Threat Model</h2>
@@ -1459,7 +1459,7 @@
 <tbody>
 <tr>
 <td>Attacker gets access to partially encrypted Kafka topic data</td>
-<td>Due to AEAD encryption the ciphertext is unintelligible without access to the keyset. Breaking AES_GCM itself or running a brute-force attack against a 256-bit key is considered largely impractical at the moment.</td>
+<td>Due to AEAD encryption the ciphertext is unintelligible without access to the keyset. Breaking AES_GCM itself or running a brute-force attack against a 256-bit key is currently considered impractical.</td>
 </tr>
 <tr>
 <td>Attacker tries to run statistical analysis on ciphertexts</td>
@@ -1467,7 +1467,7 @@
 </tr>
 <tr>
 <td>Attacker tampers with ciphertext or the attached metadata</td>
-<td>The authentication tag in AES_GCM will make the decryption fail due to an integrity error.</td>
+<td>The authentication tag in AES_GCM makes decryption fail with an integrity error.</td>
 </tr>
 <tr>
 <td>Attacker somehow gets unauthorized access to keysets from the configuration</td>
@@ -1488,7 +1488,7 @@
 <p>Cryptographic operations are implemented via <strong><a href="https://github.com/tink-crypto/">Google Tink</a></strong> (Java), a peer-reviewed, audited multi-language cryptography library. Kryptonite for Kafka does not implement any cryptographic primitives itself — all AEAD operations delegate to Tink. The FPE implementation uses the <a href="https://github.com/mysto"><strong>mysto</strong></a> library for the FF3-1 algorithm. A custom Tink key type is used for FPE to transparently integrate with Tink's keyset mechanism.</p>
 <div class="admonition question">
 <p class="admonition-title">Why FF3-1?</p>
-<p>Since NIST officially withdrew FF3 in 2025, FF1 should preferably have been chosen as the FPE cipher algorithm in Kryptonite for Kafka. However, there are still patent claims and copyrights which forbid its usage in open-source software. As there aren't any significantly better open alternatives left, FF3-1 was chosen as the next best option that has been NIST-vetted and has also seen reasonable adoption in the field.</p>
+<p>Since NIST officially withdrew FF3 in 2025, FF1 would have been the preferred FPE cipher algorithm in Kryptonite for Kafka. Yet there are still patent claims and copyrights which forbid its usage in open-source software. As there are no better open alternatives with broad adoption, FF3-1 was chosen as the next best option that has been NIST-vetted and has also seen reasonable adoption in the field.</p>
 </div>
 
 

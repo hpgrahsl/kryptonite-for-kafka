@@ -1602,9 +1602,9 @@
 </tr>
 </tbody>
 </table>
-<p>Each filter operates entirely independently. Running both in the same proxy instance is the most common setup. It gives producers and consumers a single transparent endpoint with bi-directional, end-to-end field-level protection. However, this is not a requirement. You can deploy only the encryption filter in a proxy that sits in front of producers, and a separate proxy instance with only the decryption filter in front of consumers, depending on your architecture.</p>
-<p>Fields that are not listed in the configuration (see  <code>topic_field_configs</code> setting) pass through completely unmodified regardless of which filters are active.</p>
-<p>Topic routing is controlled by <code>topic_pattern</code> entries, each carrying its own <code>field_configs</code> list. Patterns are <strong>Java regular expressions</strong> anchored at both ends (equivalent to <code>^pattern$</code>), giving full regex expressiveness for topic name matching.</p>
+<p>Each filter operates entirely independently. Running both in the same proxy instance is the most common setup. It gives producers and consumers a single transparent endpoint with bi-directional, end-to-end field-level protection. That said, you do not have to deploy them together. You can place only the encryption filter in a proxy in front of producers, and a separate proxy instance with only the decryption filter in front of consumers, depending on your architecture.</p>
+<p>Fields that are not listed in the configuration (see <code>topic_field_configs</code>) pass through unchanged regardless of which filters are active.</p>
+<p>Topic routing is controlled by <code>topic_pattern</code> entries, each carrying its own <code>field_configs</code> list. Patterns are <strong>Java regular expressions</strong> anchored at both ends (the same as <code>^pattern$</code>), giving full regex expressiveness for topic name matching.</p>
 <div class="admonition note">
 <p class="admonition-title">Schema Registry Integration</p>
 <p>For schema-aware record formats (<code>JSON_SR</code>, <code>AVRO</code>) the filter automatically derives and registers encrypted schemas in the schema registry. Consumers always receive schema-correct records. The encrypted schema uses type <code>string</code> for every encrypted field, and the decrypted schema fully restores the original type.</p>
@@ -1623,7 +1623,7 @@
 <hr />
 <h2 id="basic-usage">Basic Usage</h2>
 <h3 id="proxy-config-structure">Proxy Config Structure</h3>
-<p>A basic Kroxylicious proxy config defines a <code>virtualClusters</code> block which, at the very minimum, specifies the upstream broker and the gateway address, plus optional <code>filterDefinitions</code> and a corresponding <code>defaultFilters</code> block. A minimal skeleton could look like this:</p>
+<p>A basic Kroxylicious proxy config defines a <code>virtualClusters</code> block which specifies at least the upstream broker and the gateway address, plus optional <code>filterDefinitions</code> and a corresponding <code>defaultFilters</code> block. A minimal skeleton could look like this:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">virtualClusters</span><span class="p">:</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycluster</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">targetCluster</span><span class="p">:</span>
@@ -1645,9 +1645,9 @@
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>advertisedBrokerAddressPattern</code> controls the broker address that Kroxylicious advertises to clients in metadata responses. Set it to the hostname or IP that clients use to reach the proxy. For single-node local setups <code>localhost</code> is typical; for containerised or remote deployments use the proxy's externally reachable hostname.</p>
+<p><code>advertisedBrokerAddressPattern</code> controls the broker address that Kroxylicious advertises to clients in metadata responses. Set it to the hostname or IP that clients use to reach the proxy. For single-node local setups, <code>localhost</code> is typical; for containerised or remote deployments, use the proxy's externally reachable hostname.</p>
 </div>
-<p>If you want to dig deeper, it is recommended to read the official documentation to understand all the <a href="https://kroxylicious.io/documentation/0.20.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy">proxy configuration</a> options in-depth.</p>
+<p>If you want to dig deeper, read the official documentation to understand all <a href="https://kroxylicious.io/documentation/0.20.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy">proxy configuration</a> options in depth.</p>
 <hr />
 <h3 id="kryptonite-filter-definitions">Kryptonite Filter Definitions</h3>
 <p>What follows are basic examples for proxy filter definitions.</p>
@@ -1912,7 +1912,7 @@
 </code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">First-match semantics</p>
-<p>Only the first matching <code>topic_pattern</code> is applied. Order your entries from most specific to least specific.</p>
+<p>Only the first matching <code>topic_pattern</code> is applied. Order your entries from the most specific to the least specific.</p>
 </div>
 <hr />
 <h2 id="field-configuration">Field Configuration</h2>
@@ -1935,11 +1935,11 @@
 <tbody>
 <tr>
 <td><code>OBJECT</code> (default)</td>
-<td>The entire field value is encrypted as a single unit and stored as a Base64-encoded ciphertext string</td>
+<td>The filter encrypts the entire field value as a single unit and stores it as a Base64-encoded ciphertext string</td>
 </tr>
 <tr>
 <td><code>ELEMENT</code></td>
-<td>For arrays each array element is individually encrypted. For maps each map value is individually encrypted. For structs/records/objects each field value is individually encrypted. The container structure is always preserved.</td>
+<td>For arrays, the filter encrypts each array element individually. For maps, it encrypts each map value individually. For structs/records/objects, it encrypts each field value individually. The container structure always stays intact.</td>
 </tr>
 </tbody>
 </table>
@@ -2051,7 +2051,7 @@
 <p>See the <a href="../../key-management/">Key Management</a> and <a href="../../kms/overview/">Cloud KMS</a> pages for details.</p>
 <hr />
 <h2 id="schema-registry-subjects">Schema Registry Subjects</h2>
-<p>When <code>record_format</code> is <code>JSON_SR</code> or <code>AVRO</code>, the filter creates and manages additional schema registry subjects alongside the original record value schemas. All subject names are derived from the original <code>&lt;topic&gt;-value</code> subject and follow these naming conventions:</p>
+<p>When <code>record_format</code> is <code>JSON_SR</code> or <code>AVRO</code>, the filter creates and manages extra schema registry subjects alongside the original record value schemas. All subject names are derived from the original <code>&lt;topic&gt;-value</code> subject and follow these naming conventions:</p>
 <table>
 <thead>
 <tr>
@@ -2098,13 +2098,13 @@
 </tr>
 <tr>
 <td><code>STATIC</code></td>
-<td>Additional schemas must be pre-registered in the schema registry before the proxy is started to process any data. The proxy filter in this case will look them up on demand by the subjects naming convention rather than deriving and registering them. This mode is typically only used if strict schema governance envrionments would prohibit any ad hoc registration of schemas. In this mode, the proxy filter doesn't need schema registry write access.</td>
+<td>Extra schemas must be pre-registered in the schema registry before the proxy is started to process any data. The proxy filter in this case will look them up on demand by the subjects naming convention rather than deriving and registering them. This mode is typically used when strict schema governance environments prohibit ad-hoc schema registration. In this mode, the proxy filter doesn't need schema registry write access.</td>
 </tr>
 </tbody>
 </table>
 <hr />
 <h2 id="configuration-reference">Configuration Reference</h2>
-<p><strong>Configuration Settings common to both the encrypt and decrypt filter definitions:</strong></p>
+<p><strong>Configuration settings common to both the encrypt and decrypt filter definitions:</strong></p>
 <div class="k4k-param-table">
 <table>
 <thead>
@@ -2192,7 +2192,7 @@
 <td><code>schema_registry_config</code></td>
 <td>No</td>
 <td><code>{}</code></td>
-<td>Additional SR client properties (e.g. auth headers) as a string map</td>
+<td>Extra SR client properties (e.g. auth headers) as a string map</td>
 </tr>
 <tr>
 <td><code>schema_mode</code></td>

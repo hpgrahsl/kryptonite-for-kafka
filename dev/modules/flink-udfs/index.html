@@ -1666,7 +1666,7 @@
 
 
 <h1 id="apache-flink-udfs"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 3h14a2 2 0 0 1 2 2v7.08a6 6 0 0 0-4.32.92H12v4h1.08c-.11.68-.11 1.35 0 2H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2m0 4v4h6V7zm8 0v4h6V7zm-8 6v4h6v-4zm15.44 8v-2h-4v-2h4v-2l3 3z"/></svg></span> Apache Flink UDFs</h1>
-<p>Kryptonite for Kafka provides multiple Flink user-defined functions (UDFs) for encrypting and decrypting column values in Flink Table API and Flink SQL jobs.</p>
+<p>Kryptonite for Kafka provides a range of Flink user-defined functions (UDFs) for encrypting and decrypting column values in Flink Table API and Flink SQL jobs.</p>
 <p><strong>Field-Level Encryption with UDFs in Flink SQL</strong></p>
 <div class="k4k-module-img">
 <a href="../../assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
@@ -1809,7 +1809,7 @@
 </code></pre></div>
 <hr />
 <h2 id="configuration">Configuration</h2>
-<p>Any UDF-specific configuration is passed as environment variables to the Flink TaskManagers (or alternatively in <code>flink-conf.yaml</code>):</p>
+<p>Any UDF-specific configuration is passed as environment variables to the Flink TaskManagers (or, if you prefer, in <code>flink-conf.yaml</code>):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">environment</span><span class="p">:</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cipher_data_keys=[{&quot;identifier&quot;:&quot;my-key&quot;,&quot;material&quot;:{&quot;primaryKeyId&quot;:1234567890,&quot;key&quot;:[{&quot;keyData&quot;:{&quot;typeUrl&quot;:&quot;type.googleapis.com/google.crypto.tink.AesGcmKey&quot;,&quot;value&quot;:&quot;&lt;BASE64_KEY&gt;&quot;,&quot;keyMaterialType&quot;:&quot;SYMMETRIC&quot;},&quot;status&quot;:&quot;ENABLED&quot;,&quot;keyId&quot;:1234567890,&quot;outputPrefixType&quot;:&quot;TINK&quot;}]}}]</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cipher_data_key_identifier=my-key</span>
@@ -1857,7 +1857,7 @@
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">K4K_DECRYPT_MAP_WITH_SCHEMA</span><span class="p">(</span><span class="k">data</span><span class="w"> </span><span class="k">MAP</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="nb">VARCHAR</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">schemaString</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="k">MAP</span><span class="o">&lt;</span><span class="n">K</span><span class="p">,</span><span class="n">V</span><span class="o">&gt;</span>
 </code></pre></div>
 <h3 id="k4k_encrypt_row">k4k_encrypt_row</h3>
-<p>Encrypts <code>ROW</code> fields individually. Encrypted fields are returned as <code>VARCHAR</code>. Fields not in <code>fieldList</code> retain their original types. The <code>fieldList</code> parameter is a comma-separated list of field names to encrypt. Omitting it encrypts all fields. The <code>fieldList</code> parameter must be a string literal.</p>
+<p>Encrypts <code>ROW</code> fields individually. The function returns encrypted fields as <code>VARCHAR</code>. Fields not in <code>fieldList</code> keep their original types. The <code>fieldList</code> parameter is a comma-separated list of field names to encrypt. Omitting it encrypts all fields. The <code>fieldList</code> parameter must be a string literal.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1">-- Encrypt all fields with configured defaults</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">K4K_ENCRYPT_ROW</span><span class="p">(</span><span class="k">data</span><span class="w"> </span><span class="k">ROW</span><span class="o">&lt;</span><span class="p">...</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="k">ROW</span><span class="o">&lt;</span><span class="p">...(</span><span class="k">all</span><span class="w"> </span><span class="n">fields</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nb">VARCHAR</span><span class="p">)...</span><span class="o">&gt;</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>

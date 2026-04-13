@@ -1440,7 +1440,7 @@
 <li><strong>Keyset Encryption</strong>: use an Azure Key Vault RSA key to encrypt/decrypt keysets at rest (<code>kek_type=AZURE</code>)</li>
 <li><strong>Envelope KEK</strong>: use an Azure Key Vault RSA key as the Key Encryption Key for envelope encryption (<code>cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS</code>)</li>
 </ol>
-<p>Add the module JAR to the classpath alongside the core library. It is discovered automatically via <code>ServiceLoader</code>.</p>
+<p>Add the module JAR to the classpath alongside the core library. The runtime discovers it automatically via <code>ServiceLoader</code>.</p>
 <hr />
 <h2 id="secret-storage-with-kms_typeaz_kv_secrets">Secret Storage with <code>kms_type=AZ_KV_SECRETS</code></h2>
 <h3 id="secret-naming">Secret naming</h3>
@@ -1497,14 +1497,14 @@
 <h2 id="key-encryption-key-with-kek_typeazure">Key Encryption Key with <code>kek_type=AZURE</code></h2>
 <div class="admonition info">
 <p class="admonition-title">Envelope encryption</p>
-<p>Azure Key Vault standard tier only exposes RSA and EC keys — symmetric AEAD is not available. Since direct RSA encryption of a full Tink keyset is not feasible (RSA modulus limit) the module transparently implements <strong>envelope encryption</strong>:</p>
+<p>Azure Key Vault standard tier only exposes RSA and EC keys — symmetric AEAD is not available. Since direct RSA encryption of a full Tink keyset is impractical (RSA modulus limit), the module transparently implements <strong>envelope encryption</strong>:</p>
 <ol>
 <li>A fresh ephemeral 256-bit DEK and 12-byte IV are generated locally</li>
 <li>The keyset is encrypted locally with AES-256-GCM using the DEK</li>
 <li>Only the 32-byte DEK is wrapped with RSA-OAEP-256 via <code>CryptographyClient.wrapKey()</code></li>
 <li>The output wire format: <code>[4-byte wrappedKeyLen][wrappedKey][12-byte IV][AES-GCM ciphertext+tag]</code></li>
 </ol>
-<p>As this is fully transparent to the caller it can be configured like any other KEK provider.</p>
+<p>Since this is fully transparent to the caller, it can be configured like any other KEK provider.</p>
 </div>
 <h3 id="iam-permissions-required_1">IAM permissions required</h3>
 <p>The service principal used in <code>kek_config</code> requires the following permissions on the key vault (which may be a separate vault from the keyset storage vault):</p>
@@ -1514,7 +1514,7 @@
 </ul>
 <div class="admonition tip">
 <p class="admonition-title">Use separate vaults for keys and secrets</p>
-<p>It is recommended to use one Key Vault instance for KEK keys (with <code>Key Wrap/Unwrap</code> permissions) and a separate instance for keyset secrets (with <code>Secret Get/List</code> permissions). This isolates the two permission scopes cleanly.</p>
+<p>Use one Key Vault instance for KEK keys (with <code>Key Wrap/Unwrap</code> permissions) and a separate instance for keyset secrets (with <code>Secret Get/List</code> permissions). This isolates the two permission scopes cleanly.</p>
 </div>
 <h3 id="kek-uri-format">KEK URI format</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>azure-kv://&lt;vault-name&gt;.vault.azure.net/keys/&lt;key-name&gt;

@@ -1415,7 +1415,7 @@
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 11c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V5l9-4 9 4zm-9 10c3.75-1 7-5.46 7-9.78V6.3l-7-3.12L5 6.3v4.92C5 15.54 8.25 20 12 21m2.8-10V9.5C14.8 8.1 13.4 7 12 7S9.2 8.1 9.2 9.5V11c-.6 0-1.2.6-1.2 1.2v3.5c0 .7.6 1.3 1.2 1.3h5.5c.7 0 1.3-.6 1.3-1.2v-3.5c0-.7-.6-1.3-1.2-1.3m-1.3 0h-3V9.5c0-.8.7-1.3 1.5-1.3s1.5.5 1.5 1.3z"/></svg></span> &nbsp; <strong>True Client-Side Encryption</strong></p>
 <hr />
 <p><strong>Sensitive plaintext never leaves the client-side application.</strong></p>
-<p>Neither Kafka brokers nor any intermediary gateway or reverse proxy infrastructure ever gets to see sensitive payload fields in plaintext. Encryption / Decryption of data happens exclusively within the security perimeter of the client application.</p>
+<p>Neither Kafka brokers nor any intermediary gateway or reverse proxy infrastructure ever gets to see sensitive payload fields in plaintext. Encryption / Decryption of data happens only within the security perimeter of the client application.</p>
 </li>
 <li>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10.76 8.69a.76.76 0 0 0-.76.76V20.9c0 .42.34.76.76.76.19 0 .35-.06.48-.16l1.91-1.55 1.66 3.62c.13.27.4.43.69.43.11 0 .22 0 .33-.08l2.76-1.28c.38-.18.56-.64.36-1.01L17.28 18l2.41-.45a.9.9 0 0 0 .43-.26c.27-.32.23-.79-.12-1.08l-8.74-7.35-.01.01a.76.76 0 0 0-.49-.18M15 10V8h5v2zm-1.17-5.24 2.83-2.83 1.41 1.41-2.83 2.83zM10 0h2v5h-2zM3.93 14.66l2.83-2.83 1.41 1.41-2.83 2.83zm0-11.32 1.41-1.41 2.83 2.83-1.41 1.41zM7 10H2V8h5z"/></svg></span> &nbsp; <strong>Field-Level Scope</strong></p>
@@ -1432,12 +1432,12 @@
 <li>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M22 13.5c0 1.76-1.3 3.22-3 3.46V20a2 2 0 0 1-2 2h-3.8v-.3a2.7 2.7 0 0 0-2.7-2.7c-1.5 0-2.7 1.21-2.7 2.7v.3H4a2 2 0 0 1-2-2v-3.8h.3C3.79 16.2 5 15 5 13.5s-1.21-2.7-2.7-2.7H2V7a2 2 0 0 1 2-2h3.04c.24-1.7 1.7-3 3.46-3s3.22 1.3 3.46 3H17a2 2 0 0 1 2 2v3.04c1.7.24 3 1.7 3 3.46M17 15h1.5a1.5 1.5 0 0 0 1.5-1.5 1.5 1.5 0 0 0-1.5-1.5H17V7h-5V5.5A1.5 1.5 0 0 0 10.5 4 1.5 1.5 0 0 0 9 5.5V7H4v2.12c1.76.68 3 2.38 3 4.38s-1.25 3.7-3 4.38V20h2.12a4.7 4.7 0 0 1 4.38-3c2 0 3.7 1.25 4.38 3H17z"/></svg></span> &nbsp; <strong>Ready-Made Integrations</strong></p>
 <hr />
-<p>Apache Kafka Connect <a href="https://kafka.apache.org/42/kafka-connect/user-guide/#transformations">SMTs</a>, Apache Flink <a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/functions/udfs/">UDFs</a>, ksqlDB <a href="https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html">UDFs</a>, a Quarkus <a href="https://quarkus.io/guides/funqy">Funqy</a> HTTP service, and a dedicated <a href="https://kroxylicious.io">Kroxylicious</a> filter. No custom serializers or any custom code required as the encrypt/decrypt capabilities are largely based on flexible configuration options.</p>
+<p>Apache Kafka Connect <a href="https://kafka.apache.org/42/kafka-connect/user-guide/#transformations">SMTs</a>, Apache Flink <a href="https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/functions/udfs/">UDFs</a>, ksqlDB <a href="https://docs.confluent.io/platform/current/ksqldb/reference/user-defined-functions.html">UDFs</a>, a Quarkus <a href="https://quarkus.io/guides/funqy">Funqy</a> HTTP service, and a dedicated <a href="https://kroxylicious.io">Kroxylicious</a> filter. You don't need custom serializers or custom code because flexible configuration options drive the encrypt/decrypt capabilities.</p>
 </li>
 <li>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.8 17c-.4-1.2-1.5-2-2.8-2-1.7 0-3 1.3-3 3s1.3 3 3 3c1.3 0 2.4-.8 2.8-2H19v2h2v-2h2v-2zM14 19c-.6 0-1-.5-1-1s.4-1 1-1 1 .5 1 1-.4 1-1 1m-5-1H4v-4h6v1c.9-1.2 2.4-2 4-2 1.1 0 2.1.4 3 1h1v1h2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5.4c-.3-.6-.4-1.3-.4-2m3-10h6v4h-6zM4 8h6v4H4z"/></svg></span> &nbsp; <strong>Versatile Encryption Capabilities</strong></p>
 <hr />
-<p>By default, all modules apply <a href="https://en.wikipedia.org/wiki/Probabilistic_encryption">probabilistic encryption</a> using AES GCM 256-bit encryption. If your use case requires <a href="https://en.wikipedia.org/wiki/Deterministic_encryption">deterministic encryption</a> you can choose AES GCM SIV. In order to allow for <a href="https://en.wikipedia.org/wiki/Format-preserving_encryption">format-preserving encryption</a>, FF3-1 is currently supported.</p>
+<p>By default, all modules apply <a href="https://en.wikipedia.org/wiki/Probabilistic_encryption">probabilistic encryption</a> using AES GCM 256-bit encryption. If your use case requires <a href="https://en.wikipedia.org/wiki/Deterministic_encryption">deterministic encryption</a>, you can choose AES GCM SIV. To support <a href="https://en.wikipedia.org/wiki/Format-preserving_encryption">format-preserving encryption</a>, FF3-1 is currently available.</p>
 </li>
 <li>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81"/></svg></span> &nbsp; <strong>Built on top of Google Tink</strong></p>
@@ -1475,7 +1475,7 @@
 <a href="assets/images/04b_csflc_flink_sql_udf_decryption.png" class="glightbox"><img src="assets/images/04b_csflc_flink_sql_udf_decryption.png" alt="Apache Flink UDFs"></a>
 </div>
 <div class="k4k-module-body">
-<p>Multiple user-defined functions (<code>K4K_ENCRYPT_*</code>/<code>K4K_DECRYPT_*</code>) can be applied in Flink Table API or Flink SQL jobs. The UDFs can process both primitive and complex Flink Table API data types.</p>
+<p>A set of user-defined functions (<code>K4K_ENCRYPT_*</code>/<code>K4K_DECRYPT_*</code>) can be applied in Flink Table API or Flink SQL jobs. The UDFs can process both primitive and complex Flink Table API data types.</p>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 3.75A.75.75 0 0 1 .75 3h7.497c1.566 0 2.945.8 3.751 2.014A4.5 4.5 0 0 1 15.75 3h7.5a.75.75 0 0 1 .75.75v15.063a.75.75 0 0 1-.755.75l-7.682-.052a3 3 0 0 0-2.142.878l-.89.891a.75.75 0 0 1-1.061 0l-.902-.901a3 3 0 0 0-2.121-.879H.75a.75.75 0 0 1-.75-.75Zm12.75 15.232a4.5 4.5 0 0 1 2.823-.971l6.927.047V4.5h-6.75a3 3 0 0 0-3 3ZM11.247 7.497a3 3 0 0 0-3-2.997H1.5V18h6.947c1.018 0 2.006.346 2.803.98Z"/></svg></span> <a href="modules/flink-udfs/">Learn more</a></p>
 </div>
 </div>
@@ -1490,7 +1490,7 @@
 <a href="assets/images/05b_csflc_ksqldb_decryption.png" class="glightbox"><img src="assets/images/05b_csflc_ksqldb_decryption.png" alt="ksqlDB UDFs"></a>
 </div>
 <div class="k4k-module-body">
-<p>Multiple user-defined functions (<code>K4K_ENCRYPT*</code>/<code>K4K_DECRYPT*</code>) can be applied in ksqlDB <code>STREAM</code> or <code>TABLE</code> queries. The UDFs can process both primitive and complex ksqlDB data types.</p>
+<p>A set of user-defined functions (<code>K4K_ENCRYPT*</code>/<code>K4K_DECRYPT*</code>) can be applied in ksqlDB <code>STREAM</code> or <code>TABLE</code> queries. The UDFs can process both primitive and complex ksqlDB data types.</p>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 3.75A.75.75 0 0 1 .75 3h7.497c1.566 0 2.945.8 3.751 2.014A4.5 4.5 0 0 1 15.75 3h7.5a.75.75 0 0 1 .75.75v15.063a.75.75 0 0 1-.755.75l-7.682-.052a3 3 0 0 0-2.142.878l-.89.891a.75.75 0 0 1-1.061 0l-.902-.901a3 3 0 0 0-2.121-.879H.75a.75.75 0 0 1-.75-.75Zm12.75 15.232a4.5 4.5 0 0 1 2.823-.971l6.927.047V4.5h-6.75a3 3 0 0 0-3 3ZM11.247 7.497a3 3 0 0 0-3-2.997H1.5V18h6.947c1.018 0 2.006.346 2.803.98Z"/></svg></span> <a href="modules/ksqldb-udfs/">Learn more</a></p>
 </div>
 </div>
@@ -1505,7 +1505,7 @@
 <a href="assets/images/06b_csflc_quarkus_funqy_decryption.png" class="glightbox"><img src="assets/images/06b_csflc_quarkus_funqy_decryption.png" alt="Quarkus HTTP API"></a>
 </div>
 <div class="k4k-module-body">
-<p>A lightweight HTTP service that exposes a web API with multiple encryption and decryption endpoints. This enables applications written in any language to participate in end-to-end encryption scenarios.</p>
+<p>A lightweight HTTP service that exposes a web API with dedicated encryption and decryption endpoints. This enables applications written in any language to take part in end-to-end encryption scenarios.</p>
 <p><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 3.75A.75.75 0 0 1 .75 3h7.497c1.566 0 2.945.8 3.751 2.014A4.5 4.5 0 0 1 15.75 3h7.5a.75.75 0 0 1 .75.75v15.063a.75.75 0 0 1-.755.75l-7.682-.052a3 3 0 0 0-2.142.878l-.89.891a.75.75 0 0 1-1.061 0l-.902-.901a3 3 0 0 0-2.121-.879H.75a.75.75 0 0 1-.75-.75Zm12.75 15.232a4.5 4.5 0 0 1 2.823-.971l6.927.047V4.5h-6.75a3 3 0 0 0-3 3ZM11.247 7.497a3 3 0 0 0-3-2.997H1.5V18h6.947c1.018 0 2.006.346 2.803.98Z"/></svg></span> <a href="modules/funqy-http/">Learn more</a></p>
 </div>
 </div>
@@ -1550,7 +1550,7 @@
 <td><a href="https://developers.google.com/tink/aead">AEAD probabilistic</a></td>
 <td>any supported data type</td>
 <td>string (Base64)</td>
-<td>most cases unless envelope encryption is a hard requirement (default)</td>
+<td>most cases unless envelope encryption is required (default)</td>
 </tr>
 <tr>
 <td><code>TINK/AES_GCM_ENVELOPE_KEYSET</code></td>
@@ -1571,14 +1571,14 @@
 <td><a href="https://developers.google.com/tink/deterministic-aead">AEAD deterministic</a></td>
 <td>any supported data type</td>
 <td>string (Base64)</td>
-<td>equality match, join operations, or aggregrations on encrypted data</td>
+<td>equality match, join operations, or aggregations on encrypted data</td>
 </tr>
 <tr>
 <td><code>CUSTOM/MYSTO_FPE_FF3_1</code></td>
 <td><a href="https://en.wikipedia.org/wiki/Format-preserving_encryption">format-preserving encryption</a></td>
 <td>string (specific alphabet)</td>
 <td>string (same alphabet as input)</td>
-<td>when specific alphabet must be preserved for resulting ciphertext (e.g. SSNs, IBANs, ...)</td>
+<td>when the output must preserve a specific alphabet (e.g. SSNs, IBANs, ...)</td>
 </tr>
 </tbody>
 </table>

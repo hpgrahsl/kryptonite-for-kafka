@@ -1894,7 +1894,7 @@
 <td><code>--initial-key-id</code></td>
 <td>No</td>
 <td><code>10000</code></td>
-<td>Starting key ID, incremented by 1 per additional key</td>
+<td>Starting key ID, incremented by 1 for each extra key</td>
 </tr>
 <tr>
 <td><code>-o, --output</code></td>
@@ -1977,7 +1977,7 @@
 </tbody>
 </table>
 <h3 id="key-id-assignment">Key ID assignment</h3>
-<p>Key IDs are assigned sequentially from <code>--initial-key-id</code>. The first (lowest) key ID becomes the <code>primaryKeyId</code>. When generating multiple keysets (<code>-k N</code>), IDs are non-overlapping across keysets.</p>
+<p>Key IDs are assigned sequentially from <code>--initial-key-id</code>. The first (lowest) key ID becomes the <code>primaryKeyId</code>. When generating more than one keyset (<code>-k N</code>), IDs are non-overlapping across keysets.</p>
 <p>Example with <code>-n 3 -k 2 --initial-key-id 1000</code>:</p>
 <ul>
 <li>Keyset 1: IDs 1000, 1001, 1002 (primary = 1000)</li>

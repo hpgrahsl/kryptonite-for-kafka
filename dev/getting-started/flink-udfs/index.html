@@ -23,7 +23,7 @@
     
     
       
-        <title>Getting Started — Apache Flink UDFs - Kryptonite for Apache Kafka</title>
+        <title>Flink udfs - Kryptonite for Apache Kafka</title>
       
     
     
@@ -82,8 +82,7 @@
     <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#getting-started-apache-flink-udfs" class="md-skip">
+        <a href="#__skip" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Started — Apache Flink UDFs
+              Flink udfs
             
           </span>
         </div>
@@ -1032,13 +1031,6 @@
                     
                     
                     
-                      
-                    
-                    
-                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-                      <div class="md-sidebar-button__wrapper">
-                        <label class="md-sidebar-button" for="__toc"></label>
-                      </div>
                     
                   
                   <div class="md-sidebar__inner">
@@ -1049,110 +1041,6 @@
   
   
   
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-1-install-the-udf-jar" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 1 — Install the UDF JAR
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Step 1 — Install the UDF JAR">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-a-pre-built-artifact-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option A — Pre-built artifact (recommended)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-build-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B — Build from source
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-2-configure-key-material" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 2 — Configure key material
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-3-register-the-udfs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 3 — Register the UDFs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-4-encrypt-and-decrypt-in-sql" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 4 — Encrypt and decrypt in SQL
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1170,96 +1058,9 @@
   
 
 
-<h1 id="getting-started-apache-flink-udfs">Getting Started — Apache Flink UDFs</h1>
-<p>Kryptonite for Kafka provides twelve Flink user-defined functions (UDFs) for encrypting and decrypting column values in Flink Table API / SQL pipelines. Once registered, they work like any built-in function in <code>INSERT</code>, <code>SELECT</code>, and streaming jobs.</p>
-<hr />
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li><strong>Java 17+</strong> on all Flink TaskManager and JobManager nodes</li>
-<li>A running Flink cluster (local, standalone, YARN, or Kubernetes)</li>
-<li>Access to a Flink SQL client or Table API application</li>
-</ul>
-<hr />
-<h2 id="step-1-install-the-udf-jar">Step 1 — Install the UDF JAR</h2>
-<h3 id="option-a-pre-built-artifact-recommended">Option A — Pre-built artifact (recommended)</h3>
-<ol>
-<li>Download the UDF JAR from the <a href="https://github.com/hpgrahsl/kryptonite-for-kafka/releases">GitHub Releases page</a> (available since version 0.5.0).</li>
-<li>Place the JAR in the <strong>Flink libraries directory</strong> that is scanned at cluster startup (typically <code>$FLINK_HOME/lib/</code>).</li>
-<li><strong>Restart the Flink cluster</strong> so the JAR is on the classpath.</li>
-</ol>
-<h3 id="option-b-build-from-source">Option B — Build from source</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/hpgrahsl/kryptonite-for-kafka.git
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>kryptonite-for-kafka
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>./mvnw<span class="w"> </span>clean<span class="w"> </span>package<span class="w"> </span>-DskipTests<span class="w"> </span>-pl<span class="w"> </span>flink-udfs-kryptonite
-</code></pre></div>
-<p>The fat JAR is produced under <code>flink-udfs-kryptonite/target/</code>.</p>
-<hr />
-<h2 id="step-2-configure-key-material">Step 2 — Configure key material</h2>
-<p>Key material is supplied to the Flink TaskManagers via environment variables. Set these in your Flink configuration (<code>flink-conf.yaml</code>) or as container environment variables:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">env.java.opts.taskmanager</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="no">-Dcipher_data_keys=[{&quot;identifier&quot;:&quot;my-demo-key&quot;,&quot;material&quot;:{&quot;primaryKeyId&quot;:10000,&quot;key&quot;:[{&quot;keyData&quot;:{&quot;typeUrl&quot;:&quot;type.googleapis.com/google.crypto.tink.AesGcmKey&quot;,&quot;value&quot;:&quot;&lt;BASE64_KEY&gt;&quot;,&quot;keyMaterialType&quot;:&quot;SYMMETRIC&quot;},&quot;status&quot;:&quot;ENABLED&quot;,&quot;keyId&quot;:10000,&quot;outputPrefixType&quot;:&quot;TINK&quot;}]}}]</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="no">-Dcipher_data_key_identifier=my-demo-key</span>
-</code></pre></div>
-<p>Or as plain environment variables on each TaskManager node:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">cipher_data_keys</span><span class="o">=</span><span class="s1">&#39;[{&quot;identifier&quot;:&quot;my-demo-key&quot;,&quot;material&quot;:{...}}]&#39;</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">cipher_data_key_identifier</span><span class="o">=</span>my-demo-key
-</code></pre></div>
-<div class="admonition warning">
-<p class="admonition-title">Key material is a secret</p>
-<p>Do not commit key material to source control. For production use, see <a href="../../key-management/">Key Management</a>.</p>
-</div>
-<p>Use the <a href="../../keyset-tool/">Keyset Tool</a> to generate key material if you do not have a keyset yet.</p>
-<hr />
-<h2 id="step-3-register-the-udfs">Step 3 — Register the UDFs</h2>
-<p>In a Flink SQL client session (or your Table API bootstrap code), load the JAR and register the functions:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">ADD</span><span class="w"> </span><span class="n">JAR</span><span class="w"> </span><span class="s1">&#39;&lt;FULL_PATH_TO_FLINK_UDFS_KRYPTONITE_JAR&gt;&#39;</span><span class="p">;</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_encrypt</span><span class="w">          </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.EncryptUdf&#39;</span><span class="w">        </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_decrypt</span><span class="w">          </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.DecryptUdf&#39;</span><span class="w">        </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_encrypt_array</span><span class="w">    </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.EncryptArrayUdf&#39;</span><span class="w">   </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_decrypt_array</span><span class="w">    </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.DecryptArrayUdf&#39;</span><span class="w">   </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_encrypt_map</span><span class="w">      </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.EncryptMapUdf&#39;</span><span class="w">     </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_decrypt_map</span><span class="w">      </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.DecryptMapUdf&#39;</span><span class="w">     </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_encrypt_fpe</span><span class="w">      </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.EncryptFpeUdf&#39;</span><span class="w">     </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_decrypt_fpe</span><span class="w">      </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.DecryptFpeUdf&#39;</span><span class="w">     </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_encrypt_array_fpe</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.EncryptArrayFpeUdf&#39;</span><span class="w"> </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_decrypt_array_fpe</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.DecryptArrayFpeUdf&#39;</span><span class="w"> </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_encrypt_map_fpe</span><span class="w">  </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.EncryptMapFpeUdf&#39;</span><span class="w">  </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="k">CREATE</span><span class="w"> </span><span class="k">FUNCTION</span><span class="w"> </span><span class="n">k4k_decrypt_map_fpe</span><span class="w">  </span><span class="k">AS</span><span class="w"> </span><span class="s1">&#39;com.github.hpgrahsl.flink.functions.kryptonite.DecryptMapFpeUdf&#39;</span><span class="w">  </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="n">JAVA</span><span class="p">;</span>
-</code></pre></div>
-<p>Verify all twelve functions are available:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">SHOW</span><span class="w"> </span><span class="k">USER</span><span class="w"> </span><span class="n">FUNCTIONS</span><span class="p">;</span>
-</code></pre></div>
-<hr />
-<h2 id="step-4-encrypt-and-decrypt-in-sql">Step 4 — Encrypt and decrypt in SQL</h2>
-<p>With the functions registered and key material configured, use them in any Flink SQL statement:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1">-- Encrypt selected columns on insert</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">orders_encrypted</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">SELECT</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="n">order_id</span><span class="p">,</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="n">K4K_ENCRYPT</span><span class="p">(</span><span class="n">customer_email</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">customer_email</span><span class="p">,</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="n">K4K_ENCRYPT</span><span class="p">(</span><span class="n">credit_card</span><span class="p">)</span><span class="w">    </span><span class="k">AS</span><span class="w"> </span><span class="n">credit_card</span><span class="p">,</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="n">amount</span><span class="w">                                          </span><span class="c1">-- untouched</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">FROM</span><span class="w"> </span><span class="n">orders_raw</span><span class="p">;</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1">-- Decrypt on read</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="k">SELECT</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="n">order_id</span><span class="p">,</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span><span class="n">K4K_DECRYPT</span><span class="p">(</span><span class="n">customer_email</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">customer_email</span><span class="p">,</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">  </span><span class="n">K4K_DECRYPT</span><span class="p">(</span><span class="n">credit_card</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="w">    </span><span class="k">AS</span><span class="w"> </span><span class="n">credit_card</span><span class="p">,</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">  </span><span class="n">amount</span>
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="k">FROM</span><span class="w"> </span><span class="n">orders_encrypted</span>
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
-</code></pre></div>
-<p>Encrypted columns are stored as <code>VARCHAR</code> (Base64-encoded ciphertext). Pass an exemplary value of the expected return type as the second argument to <code>K4K_DECRYPT</code> for type inference.</p>
-<hr />
-<h2 id="next-steps">Next Steps</h2>
-<ul>
-<li><a href="../../modules/flink-udfs/">Flink UDFs reference</a> — all twelve UDF signatures, element-mode variants, FPE examples</li>
-<li><a href="../../configuration/">Configuration reference</a> — all parameters and their naming conventions</li>
-<li><a href="../../key-management/">Key Management</a> — moving from inline keys to cloud KMS</li>
-<li><a href="../../keyset-tool/">Keyset Tool</a> — generate keys for all algorithms and KMS backends</li>
-</ul>
+  <h1 id="__skip">Flink udfs</h1>
+
+
 
 
 

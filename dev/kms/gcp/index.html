@@ -1418,7 +1418,7 @@
 <li><strong>Keyset Encryption Key</strong>: use a GCP Cloud KMS symmetric key to encrypt/decrypt keysets at rest (<code>kek_type=GCP</code>)</li>
 <li><strong>Envelope KEK</strong>: use a GCP Cloud KMS key as the Key Encryption Key for envelope encryption (<code>cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS</code>)</li>
 </ol>
-<p>Add the module JAR to the classpath alongside the core library. It is discovered automatically via <code>ServiceLoader</code>.</p>
+<p>Add the module JAR to the classpath alongside the core library. The runtime discovers it automatically via <code>ServiceLoader</code>.</p>
 <hr />
 <h2 id="secret-storage-with-kms_typegcp_sm_secrets">Secret Storage with <code>kms_type=GCP_SM_SECRETS</code></h2>
 <h3 id="secret-naming">Secret naming</h3>

@@ -23,7 +23,7 @@
     
     
       
-        <title>Getting Started — Quarkus HTTP API - Kryptonite for Apache Kafka</title>
+        <title>Funqy http - Kryptonite for Apache Kafka</title>
       
     
     
@@ -82,8 +82,7 @@
     <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#getting-started-quarkus-http-api" class="md-skip">
+        <a href="#__skip" class="md-skip">
           Skip to content
         </a>
       
@@ -117,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Getting Started — Quarkus HTTP API
+              Funqy http
             
           </span>
         </div>
@@ -1032,13 +1031,6 @@
                     
                     
                     
-                      
-                    
-                    
-                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-                      <div class="md-sidebar-button__wrapper">
-                        <label class="md-sidebar-button" for="__toc"></label>
-                      </div>
                     
                   
                   <div class="md-sidebar__inner">
@@ -1049,121 +1041,6 @@
   
   
   
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-1-get-the-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 1 — Get the service
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Step 1 — Get the service">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#option-a-pre-built-artifact-recommended" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option A — Pre-built artifact (recommended)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#option-b-build-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Option B — Build from source
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-2-generate-a-keyset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 2 — Generate a keyset
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-3-configure-the-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 3 — Configure the service
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-4-start-the-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 4 — Start the service
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-5-make-your-first-request" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step 5 — Make your first request
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#next-steps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Next Steps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
   
 </nav>
                   </div>
@@ -1181,85 +1058,9 @@
   
 
 
-<h1 id="getting-started-quarkus-http-api">Getting Started — Quarkus HTTP API</h1>
-<p>The Quarkus Funqy HTTP API is a lightweight standalone service that exposes encryption and decryption over HTTP. It lets applications written in any language participate in end-to-end field-level encryption without needing a JVM runtime on the client side.</p>
-<hr />
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li><strong>Java 17+</strong> on the host running the service</li>
-<li>A running Apache Kafka cluster is <strong>not</strong> required just to run the service itself — it operates independently and is called directly by client applications</li>
-</ul>
-<hr />
-<h2 id="step-1-get-the-service">Step 1 — Get the service</h2>
-<h3 id="option-a-pre-built-artifact-recommended">Option A — Pre-built artifact (recommended)</h3>
-<ol>
-<li>Download the ZIP archive from the <a href="https://github.com/hpgrahsl/kryptonite-for-kafka/releases">GitHub Releases page</a> (available since version 0.4.0).</li>
-<li>Extract the archive. It contains a <code>quarkus-app/</code> directory with the runnable JAR and its dependencies.</li>
-</ol>
-<h3 id="option-b-build-from-source">Option B — Build from source</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/hpgrahsl/kryptonite-for-kafka.git
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>kryptonite-for-kafka
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>./mvnw<span class="w"> </span>clean<span class="w"> </span>package<span class="w"> </span>-DskipTests<span class="w"> </span>-pl<span class="w"> </span>funqy-http-kryptonite
-</code></pre></div>
-<p>The runnable application is produced under <code>funqy-http-kryptonite/target/quarkus-app/</code>.</p>
-<hr />
-<h2 id="step-2-generate-a-keyset">Step 2 — Generate a keyset</h2>
-<p>Use the <a href="../../keyset-tool/">Keyset Tool</a> to produce key material:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>java<span class="w"> </span>-jar<span class="w"> </span>kryptonite-keyset-tool/target/kryptonite-keyset-tool-0.1.0.jar<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span>-a<span class="w"> </span>AES_GCM<span class="w"> </span>-i<span class="w"> </span>my-demo-key<span class="w"> </span>-f<span class="w"> </span>FULL<span class="w"> </span>-p
-</code></pre></div>
-<p>Copy the printed JSON — you will reference it in the configuration in the next step.</p>
-<div class="admonition warning">
-<p class="admonition-title">Key material is a secret</p>
-<p>Do not commit key material to source control. For production use, see <a href="../../key-management/">Key Management</a>.</p>
-</div>
-<hr />
-<h2 id="step-3-configure-the-service">Step 3 — Configure the service</h2>
-<p>Configuration lives in <code>funqy-http-kryptonite/src/main/resources/application.properties</code>. The two mandatory settings are:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="na">cipher.data.keys</span><span class="o">=</span><span class="s">[{&quot;identifier&quot;:&quot;my-demo-key&quot;,&quot;material&quot;:{&quot;primaryKeyId&quot;:10000,&quot;key&quot;:[{&quot;keyData&quot;:{&quot;typeUrl&quot;:&quot;type.googleapis.com/google.crypto.tink.AesGcmKey&quot;,&quot;value&quot;:&quot;&lt;BASE64_KEY&gt;&quot;,&quot;keyMaterialType&quot;:&quot;SYMMETRIC&quot;},&quot;status&quot;:&quot;ENABLED&quot;,&quot;keyId&quot;:10000,&quot;outputPrefixType&quot;:&quot;TINK&quot;}]}}]</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="na">cipher.data.key.identifier</span><span class="o">=</span><span class="s">my-demo-key</span>
-</code></pre></div>
-<p>For the pre-built JAR, override settings at runtime via system properties instead of editing the file:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>java<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>-Dcipher.data.keys<span class="o">=</span><span class="s1">&#39;[{&quot;identifier&quot;:&quot;my-demo-key&quot;,&quot;material&quot;:{...}}]&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span>-Dcipher.data.key.identifier<span class="o">=</span>my-demo-key<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>-jar<span class="w"> </span>target/quarkus-app/quarkus-run.jar
-</code></pre></div>
-<p>See the <a href="../../configuration/">Configuration reference</a> for all available parameters.</p>
-<hr />
-<h2 id="step-4-start-the-service">Step 4 — Start the service</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>java<span class="w"> </span>-jar<span class="w"> </span>target/quarkus-app/quarkus-run.jar
-</code></pre></div>
-<p>The service starts on port <code>8080</code> by default. In development mode (with live reload):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>./mvnw<span class="w"> </span>quarkus:dev<span class="w"> </span>-pl<span class="w"> </span>funqy-http-kryptonite
-</code></pre></div>
-<p>The Swagger UI is available at <code>http://localhost:8080/q/swagger-ui/</code> in dev mode.</p>
-<hr />
-<h2 id="step-5-make-your-first-request">Step 5 — Make your first request</h2>
-<p>Encrypt a single value:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/encrypt/value<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;&quot;4455202014528870&quot;&#39;</span>
-</code></pre></div>
-<p>Response:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="s2">&quot;UuEKnrv91bLImQvKqXTET7RTP93XeLfNRhzJaXVc6OGA...&quot;</span>
-</code></pre></div>
-<p>Decrypt it back:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>curl<span class="w"> </span>-s<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8080/decrypt/value<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;&quot;UuEKnrv91bLImQvKqXTET7RTP93XeLfNRhzJaXVc6OGA...&quot;&#39;</span>
-</code></pre></div>
-<p>Response:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="s2">&quot;4455202014528870&quot;</span>
-</code></pre></div>
-<hr />
-<h2 id="next-steps">Next Steps</h2>
-<ul>
-<li><a href="../../modules/funqy-http/">Quarkus HTTP API reference</a> — all eight endpoints, <code>fieldConfig</code> object, FPE examples, Postman collection</li>
-<li><a href="../../configuration/">Configuration reference</a> — all parameters and their naming conventions</li>
-<li><a href="../../key-management/">Key Management</a> — moving from inline keys to cloud KMS</li>
-<li><a href="../../keyset-tool/">Keyset Tool</a> — generate keys for all algorithms and KMS backends</li>
-</ul>
+  <h1 id="__skip">Funqy http</h1>
+
+
 
 
 
