@@ -17,9 +17,9 @@ All Kryptonite for Kafka modules share the same set of core configuration parame
 | [`cipher_algorithm`](#cipher_algorithm) | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | [`field_mode`](#field_mode) | - | `ELEMENT` | ✓ | — | — | ✓ | ✓ |
 | [`cipher_mode`](#cipher_mode) | ✓ | &nbsp; | ✓ | — | — | — | — |
-| [`envelope_kek_configs`](#envelope_kek_configs) | ✓ (envelope encryption) | `[]` | ✓ | ✓ | ✓ | ✓ | ✓ |
-| [`envelope_kek_identifier`](#envelope_kek_identifier) | ✓ (envelope encryption) | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
-| [`edek_store_config`](#edek_store_config) | ✓ (envelope encryption) | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`envelope_kek_configs`](#envelope_kek_configs) | ✓ (KMS-based envelope encryption only) | `[]` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`envelope_kek_identifier`](#envelope_kek_identifier) | ✓ (KMS-based envelope encryption only) | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`edek_store_config`](#edek_store_config) | ✓ (KMS-based envelope encryption only) | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | [`dek_max_encryptions`](#dek_max_encryptions) | — | `100000` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | [`dek_ttl_minutes`](#dek_ttl_minutes) | — | `720` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | [`dek_key_bits`](#dek_key_bits) | — | `128` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -42,7 +42,7 @@ Defines the origin and protection of the key material.
 | `CONFIG_ENCRYPTED` | Encrypted Tink keysets provided in `cipher_data_keys` for which the proper key encryption key (KEK) is required to be able to decrypt them |
 | `KMS` | Plain Tink keysets stored in a cloud secret manager (requires `kms_type` and `kms_config` settings) |
 | `KMS_ENCRYPTED` | Encrypted Tink keysets stored in a cloud secret manager (requires: all related KMS and KEK settings) |
-| `NONE` | No Tink keysets involved. Use this exclusively with `TINK/AES_GCM_ENVELOPE_KMS` (requires `envelope_kek_configs` and `edek_store_config`) |
+| `NONE` | No Tink keysets involved. Use this exclusively with `TINK/AES_GCM_ENVELOPE_KMS` (requires `envelope_kek_configs`, `envelope_kek_identifier`, and `edek_store_config`) |
 
 </div>
 
@@ -256,7 +256,7 @@ The default cipher algorithm used for encryption in case field settings do not s
 Controls how complex fields (`ARRAY`, `MAP`, `STRUCT`, and `ROW` types) are processed. 
 
 !!! note 
-    This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UFDs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.
+    This setting is only available for the Apache Kafka Connect SMT and the Quarkus Funqy HTTP Service. However, the UDFs in the module integrations for Apache Flink and ksqlDB offer similar capabilities directly when applying them.
 
 | Value | Description |
 |---|---|
@@ -269,11 +269,14 @@ Controls how complex fields (`ARRAY`, `MAP`, `STRUCT`, and `ROW` types) are proc
 
 ## Envelope Encryption Parameters
 
-These parameters apply when `cipher_algorithm` is set to `TINK/AES_GCM_ENVELOPE_KEYSET` or `TINK/AES_GCM_ENVELOPE_KMS`.
+The parameters below are split into:
+
+- parameters that apply only to **KMS-based envelope encryption** (`TINK/AES_GCM_ENVELOPE_KMS`)
+- parameters that apply to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`)
 
 ### `envelope_kek_configs`
 
-JSON array of KEK entries for KMS-based envelope encryption (`TINK/AES_GCM_ENVELOPE_KMS`). Each entry specifies a KEK `identifier`, `type` (cloud provider), `uri`, and provider-specific `config` credentials. Not required for keyset-based envelope encryption.
+Applies to **KMS-based envelope encryption only** (`TINK/AES_GCM_ENVELOPE_KMS`). JSON array of KEK entries where each entry specifies a KEK `identifier`, `type` (cloud provider), `uri`, and provider-specific `config` credentials. Not used for keyset-based envelope encryption (`TINK/AES_GCM_ENVELOPE_KEYSET`).
 
 ```json
 [
@@ -297,13 +300,13 @@ See [Envelope Encryption / KEK configuration](envelope-encryption.md#kek-configu
 
 ### `envelope_kek_identifier`
 
-The default KEK identifier when working with envelope encryption and field settings do not specify their own individual key. Must match an identifier present in `envelope_kek_configs`.
+Applies to **KMS-based envelope encryption only** (`TINK/AES_GCM_ENVELOPE_KMS`). The default KEK identifier used when field settings do not specify their own individual KEK. Must match an identifier present in `envelope_kek_configs`.
 
 ---
 
 ### `edek_store_config`
 
-JSON object configuring the backing `EdekStore` implementation. It's required for KMS-based envelope encryption (`TINK/AES_GCM_ENVELOPE_KMS`). Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimum viable configuration is this:
+Applies to **KMS-based envelope encryption only** (`TINK/AES_GCM_ENVELOPE_KMS`). JSON object configuring the backing `EdekStore` implementation. Currently, the default implementation is based on KCache/Kafka which persistently maps DEK fingerprints to wrapped DEKs. A minimum viable configuration is this:
 
 ```json
 {
@@ -320,7 +323,7 @@ See [Envelope Encryption / EdekStore configuration](envelope-encryption.md#edeks
 
 ### `dek_max_encryptions`
 
-Maximum number of field encryptions before the current DEK session is rotated and a new DEK is generated. Applies to both envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`).
+Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`). Maximum number of field encryptions before the current DEK session is rotated and a new DEK is generated.
 
 **Default: `100000`**
 
@@ -328,7 +331,7 @@ Maximum number of field encryptions before the current DEK session is rotated an
 
 ### `dek_ttl_minutes`
 
-Maximum age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of `dek_max_encryptions`. Applies to both envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`).
+Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`). Maximum age of a DEK session in minutes. The session is rotated when this threshold is reached, regardless of `dek_max_encryptions`.
 
 **Default: `720` (12 hours)**
 
@@ -336,7 +339,7 @@ Maximum age of a DEK session in minutes. The session is rotated when this thresh
 
 ### `dek_key_bits`
 
-Size of the generated DEK in bits. Accepted values: `128` or `256`. Applies to both envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`).
+Applies to **both** envelope encryption variants (`TINK/AES_GCM_ENVELOPE_KEYSET`, `TINK/AES_GCM_ENVELOPE_KMS`). Size of the generated DEK in bits. Accepted values: `128` or `256`.
 
 **Default: `128`**
 

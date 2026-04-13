@@ -17,7 +17,7 @@ The Quarkus Funqy HTTP API is a lightweight standalone service that exposes encr
 ## Installation / Deployment
 
 1. Download the ZIP archive from the [GitHub Releases page](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
-2. Extract the archive 
+2. Extract the archive.
 
 If building from sources:
 
@@ -64,8 +64,8 @@ CUSTOM_JVM_ARGS=(
   --add-opens java.base/java.util=ALL-UNNAMED
 )
 java "${CUSTOM_JVM_ARGS[@]}" \
-  -Dcipher.data.keys='[<YOUR_TINK_KEYSETS HERE>]' \
-  -Dcipher.data.key.identifier=yourKey \
+  -Dcipher_data_keys='[<YOUR_TINK_KEYSETS HERE>]' \
+  -Dcipher_data_key_identifier=yourKey \
   -jar <PATH_TO_APP>/quarkus-app/quarkus-run.jar
 ```
 
@@ -92,7 +92,7 @@ quarkus dev
 
 ## Configuration
 
-The default `application.properties` file that ship with the `funqy-http-kryptonite` module is this:
+The default `application.properties` file that ships with the `funqy-http-kryptonite` module is this:
 
 ```properties
 #############################################
@@ -131,7 +131,7 @@ dek_cache_size=1024
 #############################################
 ```
 
-See the full [Configuration Reference](../configuration.md) for learn about all parameters.
+See the full [Configuration Reference](../configuration.md) to learn about all parameters.
 
 ---
 
@@ -150,14 +150,14 @@ The service exposes the following API endpoints to encrypt different JSON inputs
 
 ### Decryption
 
-The service exposes the following API endpoints to encrypt different JSON inputs:
+The service exposes the following API endpoints to decrypt different JSON inputs:
 
 | Endpoint | Input | Output |
 |---|---|---|
 | `POST /decrypt/value` | Base64 ciphertext string | original JSON plaintext value |
 | `POST /decrypt/array-elements` | JSON array with Base64-encoded ciphertext strings | JSON array with original plaintext values |
 | `POST /decrypt/map-entries` | JSON object with Base64-encoded ciphertext values | JSON object with original plaintext values |
-| `POST /decrypt/value-with-config` | `{data: {<JSON_INPUT_DATA}, fieldConfig: [...]}` | JSON object with decrypted fields according to the [field config](#fieldconfig-object) specified |
+| `POST /decrypt/value-with-config` | `{data: {<JSON_INPUT_DATA>}, fieldConfig: [...]}` | JSON object with decrypted fields according to the [field config](#fieldconfig-object) specified |
 
 When running the application in dev mode the Swagger UI is available at `http://localhost:8080/q/swagger-ui/`
 

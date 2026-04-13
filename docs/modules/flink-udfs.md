@@ -78,8 +78,8 @@ CREATE FUNCTION k4k_encrypt_map_fpe           AS 'com.github.hpgrahsl.flink.func
 CREATE FUNCTION k4k_decrypt_map_fpe           AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptMapFpeUdf'            LANGUAGE JAVA;
 
 -- NOTE: The following functions have been deprecated. Please use the corresponding
--- "*_with_schema" function alternatives instead. Registration and usage of these functions 
--- for new projects is highly discouraged to due upcoming removal!
+-- "*_with_schema" function alternatives instead. Registration and usage of these functions
+-- in new projects is highly discouraged due to their upcoming removal.
 -- CREATE FUNCTION k4k_decrypt                   AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptUdf'                  LANGUAGE JAVA;
 -- CREATE FUNCTION k4k_decrypt_array             AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptArrayUdf'             LANGUAGE JAVA;
 -- CREATE FUNCTION k4k_decrypt_map               AS 'com.github.hpgrahsl.flink.functions.kryptonite.DecryptMapUdf'               LANGUAGE JAVA;

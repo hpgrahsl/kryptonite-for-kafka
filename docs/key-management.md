@@ -50,7 +50,7 @@ The simplest and least secure mode. Plain keysets are embedded directly in the `
 ```
 
 !!! tip "Tip"
-    Generate plain keysets with the [Keyset Tool](./keyset-tool/#plain-keysets).
+    Generate plain keysets with the [Keyset Tool](./keyset-tool.md#plain-keysets).
 
 !!! tip "Tip"
     For Kafka Connect, it's recommended to use the [file config provider](https://kafka.apache.org/42/configuration/configuration-providers/#example-referencing-files). Find a concrete example to store keysets in an external properties file instead of exposing it directly in the connector's configuration [here](modules/connect-smt.md#externalising-key-material).
@@ -91,7 +91,7 @@ Note, that the `material` field takes the encrypted keyset form:
 ```
 
 !!! tip "Tip"
-    Generate encrypted keysets in `FULL` format with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+    Generate encrypted keysets in `FULL` format with the [Keyset Tool](keyset-tool.md#encrypted-keysets).
 
 ---
 
@@ -100,7 +100,7 @@ Note, that the `material` field takes the encrypted keyset form:
 Plain keysets are stored as secrets in a cloud secret manager which provides reasonable key material protection. These are either fetched lazily on-demand or eagerly loaded during module initialization using the configured cloud provider credentials.
 
 !!! question "When to use?"
-    Your already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.
+    You already manage other types of application secrets centrally via any supported cloud provider KMS (GCP Secret Manager, AWS Secrets Manager, Azure Key Vault) and you want keysets to be treated the same.
 
 **Requires:** `key_source=KMS`, depends on `kms_type` and `kms_config`. When using a cloud secret manager `cipher_data_keys` can be deliberately set to the empty JSON array `[]`.
 
@@ -130,7 +130,7 @@ For cloud secret manager usage, plain keysets must be generated in `RAW` format 
 ```
 
 !!! tip "Tip"
-    Generate plain keysets in `RAW` format with the [Keyset Tool](./keyset-tool/#plain-keysets).
+    Generate plain keysets in `RAW` format with the [Keyset Tool](./keyset-tool.md#plain-keysets).
 
 ---
 
@@ -168,7 +168,7 @@ For cloud secret manager usage, encrypted keysets must be generated in `RAW` for
 ```
 
 !!! tip "Tip"
-    Generate encrypted keysets in `RAW` format with the [Keyset Tool](keyset-tool.md#kek-encrypted-keysets).
+    Generate encrypted keysets in `RAW` format with the [Keyset Tool](keyset-tool.md#encrypted-keysets).
 
 ---
 
@@ -318,7 +318,7 @@ Whichever threshold is hit first triggers the creation of a new DEK on the next 
 
 ### KEK Rotation: on-demand and manual
 
-KEK rotation is not automatic and must be triggered explicitly from the ouside. The procedure differs between the two envelope variants:
+KEK rotation is not automatic and must be triggered explicitly from the outside. The procedure differs between the two envelope variants:
 
 === "Keyset-based (`TINK/AES_GCM_ENVELOPE_KEYSET`)"
     The KEK is a Tink keyset. Rotation follows the standard Tink keyset rotation process: add a new key to the keyset, promote it to primary, and keep the old key for decryption of existing ciphertexts. Update the `cipher_data_keys` configuration accordingly. All newly created DEK sessions will be wrapped with the new primary key. Existing ciphertexts remain decryptable as long as the old key is still present in the keyset.

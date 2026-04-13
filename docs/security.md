@@ -25,7 +25,7 @@
 **Properties:**
 
 - **probabilistic:** each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent
-- **authenticated:** the DEK ciphertext includes a GCM authentication tag allowing to detected tampering on decryption
+- **authenticated:** the DEK ciphertext includes a GCM authentication tag allowing detection of tampering on decryption
 - **DEK rotation:** the DEK rotates automatically after a configurable number of encryptions or time window
 
 !!! question "When to use?"
@@ -40,7 +40,7 @@
 **Properties:**
 
 - **probabilistic:** each DEK is randomly generated; field ciphertexts produced by different sessions are cryptographically independent
-- **authenticated:** the DEK ciphertext includes a GCM authentication tag allowing to detected tampering on decryption
+- **authenticated:** the DEK ciphertext includes a GCM authentication tag allowing detection of tampering on decryption
 - **KEK isolation:** the KEK is held and managed entirely by the cloud KMS; **the raw KEK material is never directly exposed to Kryptonite for Kafka modules**
 - **DEK rotation:** the DEK rotates automatically after a configurable number of encryptions or time window
 
@@ -114,7 +114,7 @@
 | Attacker tampers with ciphertext or the attached metadata | The authentication tag in AES_GCM will make the decryption fail due to an integrity error. |
 | Attacker somehow gets unauthorized access to keysets from the configuration | Instead of plain keysets stored in the configuration (`key_source=CONFIG`) either use `key_source=KMS` to externalize keysets to a cloud secret manager or switch to `key_source=CONFIG_ENCRYPTED` to work with encrypted keysets based on a key encryption key. The encrypted keyset is useless without access to the KEK that is separately stored in a cloud KMS. |
 | Attacker manages to access the cloud secret manager secrets | Use `key_source=KMS_ENCRYPTED` to work with encrypted keysets based on a key encryption key. The encrypted keyset is useless without access to the KEK that is separately stored in a cloud KMS. |
-| Attacker "magically" gets access to the partially encrypted Kafka topic data, the encrypted keysets stored in the cloud secret manager, and the corresponding key encryption key from the cloud KMS | **💀 NONE - YOU'RE REALLY F... ! 💥** |
+| Attacker "magically" gets access to the partially encrypted Kafka topic data, the encrypted keysets stored in the cloud secret manager, and the corresponding key encryption key from the cloud KMS | **💀 None. This scenario means total compromise. 💥** |
 
 ---
 
@@ -122,5 +122,5 @@
 
 Cryptographic operations are implemented via **[Google Tink](https://github.com/tink-crypto/)** (Java), a peer-reviewed, audited multi-language cryptography library. Kryptonite for Kafka does not implement any cryptographic primitives itself — all AEAD operations delegate to Tink. The FPE implementation uses the [**mysto**](https://github.com/mysto) library for the FF3-1 algorithm. A custom Tink key type is used for FPE to transparently integrate with Tink's keyset mechanism.
 
-!!! note "Why FF3-1 for format-preserving encryption?"
-    Since NIST has officially withdrawn FF3 in 2025, FF1 should have preferrably been chosed as the FPE cipher algorithm in Kryptonite for Kafka. However, there are still patent claims and copyrights which forbid its usage in open-source software. As there aren't any other significantly better FPE cipher alternatives left, FF3-1 was chosen as the next best thing that has been NIST vetted and at the same time has seen some reasonable adoption in the field.
+!!! question "Why FF3-1?"
+    Since NIST officially withdrew FF3 in 2025, FF1 should preferably have been chosen as the FPE cipher algorithm in Kryptonite for Kafka. However, there are still patent claims and copyrights which forbid its usage in open-source software. As there aren't any significantly better open alternatives left, FF3-1 was chosen as the next best option that has been NIST-vetted and has also seen reasonable adoption in the field.

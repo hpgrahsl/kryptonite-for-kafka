@@ -10,7 +10,7 @@ Add the module JAR to the classpath alongside the core library. It is discovered
 
 ---
 
-## Secret Storage with `kms_type=AWS_SM_SECRETS`
+## Secret Storage with `kms_type=AZ_KV_SECRETS`
 
 ### Secret naming
 

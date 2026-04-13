@@ -42,7 +42,7 @@ Topic routing is controlled by `topic_pattern` entries, each carrying its own `f
 ## Installation / Deployment
 
 1. Download the filter JAR from the [GitHub Releases page](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
-2. Place the JAR in a folder that is on Kroxylicious' classpath (e.g. the `lib/` directory next any other JARs shipping with Kroxylicious).
+2. Place the JAR in a folder that is on Kroxylicious' classpath (e.g. the `lib/` directory next to any other JARs shipping with Kroxylicious).
 3. Reference the filter factories in your Kroxylicious proxy configuration YAML (see examples below).
 4. Run Kroxylicious (see official [Proxy Quick Start](https://kroxylicious.io/documentation/0.20.0/html/proxy-quick-start/))
 

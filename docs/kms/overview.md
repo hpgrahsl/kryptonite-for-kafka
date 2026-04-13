@@ -68,4 +68,4 @@ Use the [Keyset Tool](../keyset-tool.md) to generate keysets encrypted with any 
 
 For `key_source=CONFIG_ENCRYPTED`, generate keysets in `FULL` format (`-f FULL`) and use the resulting JSON for the config setting `cipher_data_keys`.
 
-For `key_source=KMS_ENCRYPTED`, generate keysets in `RAW` format (`-f RAW`) and upload the resulting JSON as the secret value in your cloud secret manager. See [here](../key-management/#secret-naming-conventions) for secret naming conventions.
+For `key_source=KMS_ENCRYPTED`, generate keysets in `RAW` format (`-f RAW`) and upload the resulting JSON as the secret value in your cloud secret manager. See [here](../key-management.md#secret-naming-conventions) for secret naming conventions.
