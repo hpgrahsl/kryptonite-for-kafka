@@ -124,6 +124,7 @@ public class KryptoniteConfiguration {
         kc.cipherFpeAlphabetType = cipherFpeAlphabetType;
         kc.cipherFpeAlphabetCustom = Optional.of(cipherFpeAlphabetCustom);
         kc.keySource = keySource;
+        kc.kmsType = kmsType;
         kc.kmsConfig = kmsConfig;
         kc.kekType = kekType;
         kc.kekConfig = kekConfig;
