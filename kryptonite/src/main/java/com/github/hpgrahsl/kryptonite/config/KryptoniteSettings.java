@@ -52,6 +52,7 @@ public class KryptoniteSettings {
   }
 
   public static final String FIELD_CONFIG = "field_config";
+  public static final String DYNAMIC_KEY_ID_PREFIX = "dynamic_key_id_prefix";
   public static final String PATH_DELIMITER = "path_delimiter";
   public static final String FIELD_MODE = "field_mode";
   public static final String CIPHER_ALGORITHM = "cipher_algorithm";
@@ -78,6 +79,7 @@ public class KryptoniteSettings {
   public static final String ENVELOPE_KEK_CONFIGS = "envelope_kek_configs";
   public static final String ENVELOPE_KEK_IDENTIFIER = "envelope_kek_identifier";
 
+  public static final String DYNAMIC_KEY_ID_PREFIX_DEFAULT = "__#";
   public static final String PATH_DELIMITER_DEFAULT = ".";
   public static final String FIELD_MODE_DEFAULT = "ELEMENT";
   public static final String CIPHER_ALGORITHM_DEFAULT = "TINK/AES_GCM";
