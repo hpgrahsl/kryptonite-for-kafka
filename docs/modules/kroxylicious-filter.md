@@ -549,6 +549,26 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages extr
 
 ---
 
+## Dynamic key identifiers
+
+The Kroxylicious filter supports dynamic key identifier resolution for:
+
+- field-level `keyId`
+- default `cipher_data_key_identifier`
+- for `TINK/AES_GCM_ENVELOPE_KMS`, default `envelope_kek_identifier`
+
+When the selected configured identifier starts with `dynamic_key_id_prefix` (default `__#`), the remaining suffix is interpreted as a field path and resolved from the input record.
+
+Example:
+
+- configured identifier: `__#customer.country`
+- record field value at `customer.country`: `Austria`
+- effective runtime key identifier: `Austria`
+
+For `TINK/AES_GCM_ENVELOPE_KMS`, the algorithm-aware default fallback is `envelope_kek_identifier` rather than `cipher_data_key_identifier`.
+
+Resolution is performed against the top-level record before the selected field is encrypted or decrypted. This works for plain JSON, JSON Schema Registry, and Avro records. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails.
+
 ## Configuration Reference
 
 **Configuration settings common to both the encrypt and decrypt filter definitions:**
@@ -561,7 +581,7 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages extr
 | `record_format` | Yes | — | Record format: `JSON`, `JSON_SR`, or `AVRO` |
 | `key_source` | No | `CONFIG` | Key management mode: `CONFIG`, `CONFIG_ENCRYPTED`, `KMS`, `KMS_ENCRYPTED` |
 | `cipher_algorithm` | No | `TINK/AES_GCM` | Default cipher algorithm for all fields |
-| `cipher_data_key_identifier` | No | — | Default keyset identifier for encryption |
+| `cipher_data_key_identifier` | No | — | Default key identifier for encryption |
 | `cipher_data_keys` | No | — | Inline keyset list (required when `key_source` is `CONFIG` or `CONFIG_ENCRYPTED`) |
 | `kms_type` | No | `NONE` | Cloud secret manager type: `AZ_KV_SECRETS`, `AWS_SM_SECRETS`, `GCP_SM_SECRETS` |
 | `kms_config` | No | — | Cloud secret manager config (JSON string or file path) |
@@ -572,6 +592,7 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages extr
 | `schema_registry_config` | No | `{}` | Extra SR client properties (e.g. auth headers) as a string map |
 | `schema_mode` | No | `DYNAMIC` | Schema handling mode: `DYNAMIC` or `STATIC` |
 | `serde_type` | No | `KRYO` | Internal serde format for encrypted field envelopes: `KRYO` or `AVRO` |
+| `dynamic_key_id_prefix` | No | `__#` | Prefix that marks a key identifier as dynamic. The remaining suffix is interpreted as a field path and resolved from the input record to obtain the effective runtime key identifier. |
 | `blocking_pool_size` | No | JVM default | Size of the blocking executor thread pool used to dispatch blocking calls to |
 
 </div>
@@ -592,7 +613,7 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages extr
 | `name` | Yes | — | Field name (dot-separated path for nested fields, e.g. `person.address.street`) |
 | `fieldMode` | No | `OBJECT` | `OBJECT` or `ELEMENT` |
 | `algorithm` | No | Filter default | Cipher algorithm override for this field |
-| `keyId` | No | Filter default | Keyset identifier override for this field |
+| `keyId` | No | Filter default | Key identifier override for this field. For regular and keyset-based encryption this is the data key identifier; for `TINK/AES_GCM_ENVELOPE_KMS` it is the KEK identifier. If it starts with `dynamic_key_id_prefix` (default `__#`), the remaining suffix is interpreted as a field path and resolved from the input record at runtime. |
 | `fpeTweak` | No | — | FPE tweak value (FPE algorithms only) |
 | `fpeAlphabetType` | No | — | FPE alphabet type: `DIGITS`, `ALPHANUMERIC`, `LETTERS`, `CUSTOM` (FPE algorithms only) |
 | `fpeAlphabetCustom` | No | — | Custom alphabet string (only when `fpeAlphabetType: CUSTOM`) |

@@ -169,12 +169,55 @@ Used in `/encrypt/value-with-config` and `/decrypt/value-with-config` to overrid
 |---|---|---|
 | `name` | string | Field name (dot-separated for nested fields) |
 | `algorithm` | string | Override cipher algorithm for this field |
-| `keyId` | string | Override keyset identifier for this field |
+| `keyId` | string | Override the key identifier for this field. For regular and keyset-based encryption this is the data-key identifier; for `TINK/AES_GCM_ENVELOPE_KMS` it is the KEK identifier. If it starts with `dynamic_key_id_prefix`, the suffix is resolved from the request payload at runtime. |
 | `schema` | object | For schema-aware decryption — original field schema |
 | `fieldMode` | `OBJECT` or `ELEMENT` | Override field mode |
 | `fpeTweak` | string | FPE tweak value |
 | `fpeAlphabetType` | string | FPE alphabet type |
 | `fpeAlphabetCustom` | string | FPE custom alphabet (when `fpeAlphabetType=CUSTOM`) |
+
+### Dynamic key identifiers
+
+The `/encrypt/value-with-config` and `/decrypt/value-with-config` endpoints support dynamic key identifier resolution for:
+
+- field-level `keyId`
+- default `cipher_data_key_identifier`
+- for `TINK/AES_GCM_ENVELOPE_KMS`, default `envelope_kek_identifier`
+
+When the selected configured identifier starts with `dynamic_key_id_prefix` (default `__#`), the remaining suffix is interpreted as a field path and resolved from the input record.
+
+Example:
+
+- configured identifier: `__#customer.country`
+- record field value at `customer.country`: `Austria`
+- effective runtime key identifier: `Austria`
+
+For `TINK/AES_GCM_ENVELOPE_KMS`, the algorithm-aware default fallback is `envelope_kek_identifier` rather than `cipher_data_key_identifier`.
+
+Resolution is performed against the `data` object of the request body and only applies to the `.../value-with-config` endpoints. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, request processing fails.
+
+Example request using a dynamic field-level `keyId`:
+
+```bash
+curl --location 'localhost:8080/encrypt/value-with-config' \
+  --header 'Content-Type: application/json' \
+  --data '{
+      "data": {
+          "customer": {
+              "country": "Austria"
+          },
+          "ssn": "230564998"
+      },
+      "fieldConfig": [
+          {
+              "name": "ssn",
+              "algorithm": "CUSTOM/MYSTO_FPE_FF3_1",
+              "keyId": "__#customer.country",
+              "fpeAlphabetType": "DIGITS"
+          }
+      ]
+  }'
+```
 
 ---
 
