@@ -55,25 +55,26 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             if (fieldValue == null) continue;
             JsonNode node = (JsonNode) fieldValue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
+            String resolvedKeyId = DynamicKeyIdResolver.resolve(fc, config, accessor);
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isNull()) {
                 LOG.warn("ELEMENT mode: field '{}' is null — skipping (cannot iterate null container)", fc.getName());
                 continue;
             }
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
-                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc));
+                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, null, resolvedKeyId));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
-                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc));
+                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, null, resolvedKeyId));
             } else {
                 if (FieldConfigUtils.isFpe(fc, config)) {
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, config));
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType), FieldConfigUtils.buildPayloadMetaData(fc, config), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType), FieldConfigUtils.buildPayloadMetaData(fc, config, resolvedKeyId), kryptonite, serdeType));
                 }
             }
         }
@@ -96,25 +97,26 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             JsonNode node = (JsonNode) fieldValue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
             String schemaCacheKey = topicName + "." + fc.getName();
+            String resolvedKeyId = DynamicKeyIdResolver.resolve(fc, config, accessor);
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isNull()) {
                 LOG.warn("ELEMENT mode: field '{}' is null — skipping (cannot iterate null container)", fc.getName());
                 continue;
             }
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
-                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, schemaCacheKey));
+                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, schemaCacheKey, resolvedKeyId));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
-                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
+                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey, resolvedKeyId));
             } else {
                 if (FieldConfigUtils.isFpe(fc, config)) {
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, config));
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
-                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, config), kryptonite, serdeType));
+                            FieldHandler.encryptField(fieldConverter.toCanonical(node, fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, config, resolvedKeyId), kryptonite, serdeType));
                 }
             }
         }
@@ -133,17 +135,24 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             if (fieldValue instanceof JsonNode fvNode && fvNode.isNull()) continue; // null value — not a ciphertext
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
             if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ArrayNode arr) {
-                accessor.setField(fc.getName(), decryptArrayElements(arr, fc));
+                String resolvedKeyId = FieldConfigUtils.isFpe(fc, config)
+                        ? DynamicKeyIdResolver.resolve(fc, config, accessor)
+                        : null;
+                accessor.setField(fc.getName(), decryptArrayElements(arr, fc, resolvedKeyId));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof ObjectNode obj) {
-                accessor.setField(fc.getName(), decryptObjectValues(obj, fc));
+                String resolvedKeyId = FieldConfigUtils.isFpe(fc, config)
+                        ? DynamicKeyIdResolver.resolve(fc, config, accessor)
+                        : null;
+                accessor.setField(fc.getName(), decryptObjectValues(obj, fc, resolvedKeyId));
             } else {
                 if (!(fieldValue instanceof JsonNode leafNode) || !leafNode.isTextual()) {
                     LOG.warn("Decryption skipping field '{}': value is not a textual node — possibly pre-existing unencrypted data", fc.getName());
                     continue;
                 }
                 if (FieldConfigUtils.isFpe(fc, config)) {
+                    String resolvedKeyId = DynamicKeyIdResolver.resolve(fc, config, accessor);
                     byte[] ciphertext = leafNode.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] plaintext = kryptonite.decipherFieldFPE(ciphertext, FieldConfigUtils.buildFieldMetaData(fc, config));
+                    byte[] plaintext = kryptonite.decipherFieldFPE(ciphertext, FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId));
                     accessor.setField(fc.getName(), new String(plaintext, StandardCharsets.UTF_8));
                 } else {
                     accessor.setField(fc.getName(),
@@ -154,14 +163,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         return accessor.serialize();
     }
 
-    private ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc) {
-        return encryptArrayElements(source, fc, null);
-    }
-
-    protected ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc, String schemaCacheKey) {
+    protected ArrayNode encryptArrayElements(ArrayNode source, FieldConfig fc, String schemaCacheKey, String resolvedKeyId) {
         ArrayNode result = MAPPER.createArrayNode();
         if (FieldConfigUtils.isFpe(fc, config)) {
-            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config);
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             for (JsonNode element : source) {
                 if (!element.isTextual()) throw new IllegalStateException(
                         "FPE encryption requires string elements in field '" + fc.getName()
@@ -172,20 +177,16 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             }
         } else {
             for (JsonNode element : source) {
-                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, config), kryptonite, serdeType));
+                result.add(FieldHandler.encryptField(fieldConverter.toCanonical(element, fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, config, resolvedKeyId), kryptonite, serdeType));
             }
         }
         return result;
     }
 
-    private ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc) {
-        return encryptObjectValues(source, fc, null);
-    }
-
-    protected ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc, String schemaCacheKey) {
+    protected ObjectNode encryptObjectValues(ObjectNode source, FieldConfig fc, String schemaCacheKey, String resolvedKeyId) {
         ObjectNode result = MAPPER.createObjectNode();
         if (FieldConfigUtils.isFpe(fc, config)) {
-            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config);
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
                 if (!value.isTextual()) throw new IllegalStateException(
@@ -198,16 +199,16 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         } else {
             source.properties().forEach(entry ->
                 result.put(entry.getKey(),
-                        FieldHandler.encryptField(fieldConverter.toCanonical(entry.getValue(), fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, config), kryptonite, serdeType))
+                        FieldHandler.encryptField(fieldConverter.toCanonical(entry.getValue(), fc.getName(), serdeType, schemaCacheKey), FieldConfigUtils.buildPayloadMetaData(fc, config, resolvedKeyId), kryptonite, serdeType))
             );
         }
         return result;
     }
 
-    private ArrayNode decryptArrayElements(ArrayNode source, FieldConfig fc) {
+    private ArrayNode decryptArrayElements(ArrayNode source, FieldConfig fc, String resolvedKeyId) {
         ArrayNode result = MAPPER.createArrayNode();
         if (FieldConfigUtils.isFpe(fc, config)) {
-            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config);
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             for (JsonNode element : source) {
                 if (element.isNull()) {
                     result.addNull();
@@ -239,10 +240,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         return result;
     }
 
-    private ObjectNode decryptObjectValues(ObjectNode source, FieldConfig fc) {
+    private ObjectNode decryptObjectValues(ObjectNode source, FieldConfig fc, String resolvedKeyId) {
         ObjectNode result = MAPPER.createObjectNode();
         if (FieldConfigUtils.isFpe(fc, config)) {
-            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config);
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
                 if (value.isNull()) {

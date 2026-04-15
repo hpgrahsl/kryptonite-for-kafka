@@ -19,7 +19,6 @@ import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestF
 import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures.avroSerialize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DisplayName("AvroGenericRecordAccessor")
 class AvroGenericRecordAccessorTest {
