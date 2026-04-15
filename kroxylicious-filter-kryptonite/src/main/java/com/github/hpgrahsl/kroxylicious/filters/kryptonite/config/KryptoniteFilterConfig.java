@@ -204,10 +204,6 @@ public class KryptoniteFilterConfig {
             }
         }
 
-        if (dynamicKeyIdPrefix == null || dynamicKeyIdPrefix.isBlank()) {
-            errors.add("dynamic_key_id_prefix must not be blank");
-        }
-
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException(
                     "Invalid Kryptonite filter configuration (" + errors.size() + " error(s)):\n  - "
