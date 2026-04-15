@@ -471,6 +471,7 @@ public class Kryptonite implements AutoCloseable {
 
   public static Kryptonite createFromConfig(Map<String,String> config) {
     try {
+      validateDynamicKeyIdPrefix(config);
       var keySource = KeySource.valueOf(config.get(KEY_SOURCE));
       LOG.log(INFO, "creating Kryptonite instance from config (keySource={0})", keySource);
       switch (keySource) {
@@ -491,6 +492,13 @@ public class Kryptonite implements AutoCloseable {
       throw e;
     } catch (Exception e) {
       throw new ConfigurationException(e.getMessage(), e);
+    }
+  }
+
+  private static void validateDynamicKeyIdPrefix(Map<String, String> config) {
+    var prefix = config.getOrDefault(DYNAMIC_KEY_ID_PREFIX, DYNAMIC_KEY_ID_PREFIX_DEFAULT);
+    if (prefix.isBlank()) {
+      throw new ConfigurationException("dynamic_key_id_prefix must not be blank");
     }
   }
 

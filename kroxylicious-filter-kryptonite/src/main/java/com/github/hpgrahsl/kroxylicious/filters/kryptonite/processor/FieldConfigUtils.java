@@ -23,9 +23,8 @@ final class FieldConfigUtils {
         return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
     }
 
-    static FieldMetaData buildFieldMetaData(FieldConfig fc, KryptoniteFilterConfig config) {
+    static FieldMetaData buildFieldMetaData(FieldConfig fc, KryptoniteFilterConfig config, String keyId) {
         String algorithm = fc.getAlgorithm().orElse(config.getCipherAlgorithm());
-        String keyId = fc.getKeyId().orElse(config.getCipherDataKeyIdentifier());
         String fpeTweak = fc.getFpeTweak().orElse(KryptoniteSettings.CIPHER_FPE_TWEAK_DEFAULT);
         String fpeAlphabet = determineAlphabet(fc);
         String encoding = fc.getEncoding().orElse(KryptoniteSettings.CIPHER_TEXT_ENCODING_DEFAULT);
@@ -39,10 +38,9 @@ final class FieldConfigUtils {
                 .build();
     }
 
-    static PayloadMetaData buildPayloadMetaData(FieldConfig fc, KryptoniteFilterConfig config) {
+    static PayloadMetaData buildPayloadMetaData(FieldConfig fc, KryptoniteFilterConfig config, String keyId) {
         String algorithm = fc.getAlgorithm().orElse(config.getCipherAlgorithm());
         String algorithmId = Kryptonite.CIPHERSPEC_ID_LUT.get(Kryptonite.CipherSpec.fromName(algorithm));
-        String keyId = fc.getKeyId().orElse(config.getCipherDataKeyIdentifier());
         return new PayloadMetaData(Kryptonite.KRYPTONITE_VERSION, algorithmId, keyId);
     }
 

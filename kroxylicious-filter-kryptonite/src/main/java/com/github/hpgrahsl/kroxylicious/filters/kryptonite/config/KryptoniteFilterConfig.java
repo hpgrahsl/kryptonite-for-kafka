@@ -51,6 +51,7 @@ public class KryptoniteFilterConfig {
     private final SchemaMode schemaMode;
 
     private final String serdeType;
+    private final String dynamicKeyIdPrefix;
 
     // --- Topic-to-field routing ---
     private final List<TopicFieldConfig> topicFieldConfigs;
@@ -81,6 +82,7 @@ public class KryptoniteFilterConfig {
             @JsonProperty(value = "record_format") RecordFormat recordFormat,
             @JsonProperty(value = "schema_mode") SchemaMode schemaMode,
             @JsonProperty(value = "serde_type") String serdeType,
+            @JsonProperty(value = "dynamic_key_id_prefix") String dynamicKeyIdPrefix,
             @JsonProperty(value = "topic_field_configs") List<TopicFieldConfig> topicFieldConfigs,
             @JsonProperty(value = "blocking_pool_size") int blockingPoolSize) {
         this.keySource = keySource != null ? keySource : KryptoniteSettings.KEY_SOURCE_DEFAULT;
@@ -105,6 +107,7 @@ public class KryptoniteFilterConfig {
         this.recordFormat = recordFormat;
         this.schemaMode = schemaMode != null ? schemaMode : SchemaMode.DYNAMIC;
         this.serdeType = serdeType != null ? serdeType : KryptoniteSettings.SERDE_TYPE_DEFAULT;
+        this.dynamicKeyIdPrefix = dynamicKeyIdPrefix != null ? dynamicKeyIdPrefix : KryptoniteSettings.DYNAMIC_KEY_ID_PREFIX_DEFAULT;
         this.topicFieldConfigs = topicFieldConfigs != null ? topicFieldConfigs : List.of();
         this.blockingPoolSize = blockingPoolSize;
     }
@@ -131,6 +134,7 @@ public class KryptoniteFilterConfig {
     public RecordFormat getRecordFormat() { return recordFormat; }
     public SchemaMode getSchemaMode() { return schemaMode; }
     public String getSerdeType() { return serdeType; }
+    public String getDynamicKeyIdPrefix() { return dynamicKeyIdPrefix; }
     public List<TopicFieldConfig> getTopicFieldConfigs() { return topicFieldConfigs; }
     public int getBlockingPoolSize() { return blockingPoolSize; }
 

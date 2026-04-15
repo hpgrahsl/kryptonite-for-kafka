@@ -159,42 +159,70 @@ public class RecordHandler {
   }
 
   private FieldMetaData determineFieldMetaData(Map<String,Object> objectOriginal, Object object, String fieldPath) {
-    
-    var fieldMetaData = Optional.ofNullable(fieldConfig.get(fieldPath))
-          .map(fc -> 
-            FieldMetaData.builder()
-              .algorithm(fc.getAlgorithm().orElseGet(() -> config.cipherAlgorithm))
-              .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
-              .keyId(fc.getKeyId().orElseGet(() -> config.cipherDataKeyIdentifier))
-              .fpeTweak(fc.getFpeTweak().orElseGet(() -> config.cipherFpeTweak))
-              .fpeAlphabet(determineAlphabetFromFieldConfig(fc))
-              .encoding(fc.getEncoding().orElse(config.cipherTextEncoding))
-              .build()
-        ).orElseGet(
-            () -> FieldMetaData.builder()
-              .algorithm(config.cipherAlgorithm)
-              .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
-              .keyId(config.cipherDataKeyIdentifier)
-              .fpeTweak(config.cipherFpeTweak)
-              .fpeAlphabet(getAlphabetFromGlobalConfig())
-              .encoding(config.cipherTextEncoding)
-              .build()
-        );  
-    
-    if(!fieldMetaData.getKeyId().startsWith(config.dynamicKeyIdPrefix)) {
-        return fieldMetaData;
+    var fc = fieldConfig.get(fieldPath);
+    var algorithm = Optional.ofNullable(fc)
+        .flatMap(FieldConfig::getAlgorithm)
+        .orElse(config.cipherAlgorithm);
+    var configuredKeyId = Optional.ofNullable(fc)
+        .map(cfg -> determineConfiguredKeyId(cfg, algorithm))
+        .orElseGet(() -> determineDefaultConfiguredKeyId(algorithm));
+
+    var fieldMetaData = Optional.ofNullable(fc)
+        .map(cfg -> FieldMetaData.builder()
+            .algorithm(algorithm)
+            .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
+            .keyId(configuredKeyId)
+            .fpeTweak(cfg.getFpeTweak().orElseGet(() -> config.cipherFpeTweak))
+            .fpeAlphabet(determineAlphabetFromFieldConfig(cfg))
+            .encoding(cfg.getEncoding().orElse(config.cipherTextEncoding))
+            .build())
+        .orElseGet(() -> FieldMetaData.builder()
+            .algorithm(algorithm)
+            .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
+            .keyId(configuredKeyId)
+            .fpeTweak(config.cipherFpeTweak)
+            .fpeAlphabet(getAlphabetFromGlobalConfig())
+            .encoding(config.cipherTextEncoding)
+            .build());
+
+    return resolveDynamicKeyIdIfNeeded(objectOriginal, fieldMetaData);
+  }
+
+  private String determineConfiguredKeyId(FieldConfig fieldConfig, String algorithm) {
+    return fieldConfig.getKeyId().orElseGet(() -> determineDefaultConfiguredKeyId(algorithm));
+  }
+
+  private String determineDefaultConfiguredKeyId(String algorithm) {
+    var cipherSpec = CipherSpec.fromName(algorithm.toUpperCase());
+    return cipherSpec instanceof Kryptonite.KmsEnvelopeCipherSpec
+        ? config.envelopeKekIdentifier
+        : config.cipherDataKeyIdentifier;
+  }
+
+  private FieldMetaData resolveDynamicKeyIdIfNeeded(Map<String, Object> objectOriginal, FieldMetaData fieldMetaData) {
+    var configuredKeyId = fieldMetaData.getKeyId();
+    if (!configuredKeyId.startsWith(config.dynamicKeyIdPrefix)) {
+      return fieldMetaData;
     }
 
-    var extractedKeyIdentifier = extractKeyIdentifierFromPayload(objectOriginal, fieldMetaData.getKeyId().replace(config.dynamicKeyIdPrefix, ""));
-    
+    var fieldPath = configuredKeyId.substring(config.dynamicKeyIdPrefix.length());
+    if (fieldPath.isBlank()) {
+      throw new IllegalStateException("error: dynamic key identifier has no field path after prefix '" + config.dynamicKeyIdPrefix + "'");
+    }
+
+    var extractedKeyIdentifier = extractKeyIdentifierFromPayload(objectOriginal, fieldPath);
+    if (extractedKeyIdentifier.isBlank()) {
+      throw new IllegalStateException("error: dynamic key identifier extraction failed -> resolved to a blank string");
+    }
+
     return FieldMetaData.builder()
-      .algorithm(fieldMetaData.getAlgorithm())
-      .dataType(fieldMetaData.getDataType())
-      .keyId(extractedKeyIdentifier.orElseGet(() -> config.cipherDataKeyIdentifier))
-      .fpeTweak(fieldMetaData.getFpeTweak())
-      .fpeAlphabet(fieldMetaData.getFpeAlphabet())
-      .encoding(fieldMetaData.getEncoding())
-      .build();
+        .algorithm(fieldMetaData.getAlgorithm())
+        .dataType(fieldMetaData.getDataType())
+        .keyId(extractedKeyIdentifier)
+        .fpeTweak(fieldMetaData.getFpeTweak())
+        .fpeAlphabet(fieldMetaData.getFpeAlphabet())
+        .encoding(fieldMetaData.getEncoding())
+        .build();
   }
 
   private String determineAlphabetFromFieldConfig(FieldConfig fieldConfig) {
@@ -212,22 +240,23 @@ public class RecordHandler {
   }
  
   @SuppressWarnings("unchecked")
-  private Optional<String> extractKeyIdentifierFromPayload(Map<String, Object> payload, String fieldPath) {
+  private String extractKeyIdentifierFromPayload(Map<String, Object> payload, String fieldPath) {
     if(!fieldPath.contains(config.pathDelimiter)) {
       Object value = payload.get(fieldPath);
-      if(! (value instanceof String)) {
-        throw new RuntimeException("error: key identifier extraction failed"
-        + " -> either the dynamic key identifier has an invalid field path set or the payload itself doesn't contain the specified field(s)");
+      if(!(value instanceof String)) {
+        throw new IllegalStateException("error: key identifier extraction failed"
+            + " -> either the dynamic key identifier has an invalid field path set or the payload itself doesn't contain the specified field(s)");
       }
-      return Optional.of((String)value);
+      return (String) value;
     }
     String[] fields = fieldPath.split("\\"+config.pathDelimiter);
     Object field = payload.get(fields[0]);
     if(!(field instanceof Map)) {
-      throw new RuntimeException("error: key identifier extraction failed"
-      + " -> either the dynamic key identifier has an invalid field path set or the payload itself doesn't contain the specified field(s)");  
+      throw new IllegalStateException("error: key identifier extraction failed"
+          + " -> either the dynamic key identifier has an invalid field path set or the payload itself doesn't contain the specified field(s)");
     }
-    return extractKeyIdentifierFromPayload((Map<String,Object>)field, String.join(config.pathDelimiter, Arrays.copyOfRange(fields, 1, fields.length)));
+    return extractKeyIdentifierFromPayload((Map<String,Object>) field,
+        String.join(config.pathDelimiter, Arrays.copyOfRange(fields, 1, fields.length)));
   }
 
 }

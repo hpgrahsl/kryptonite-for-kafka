@@ -72,6 +72,8 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
           "defines how to process complex field types (maps, lists, structs), either as full objects or element-wise")
       .define(CIPHER_ALGORITHM, Type.STRING, CIPHER_ALGORITHM_DEFAULT, new CipherNameValidator(),
           ConfigDef.Importance.LOW, "cipher algorithm used for data encryption (currently supports only one AEAD cipher: "+CIPHER_ALGORITHM_DEFAULT+")")
+      .define(DYNAMIC_KEY_ID_PREFIX, Type.STRING, DYNAMIC_KEY_ID_PREFIX_DEFAULT,
+          ConfigDef.Importance.LOW, "prefix that marks key identifiers as dynamic so the remaining suffix is resolved as a field path against the current record")
       .define(CIPHER_DATA_KEYS, Type.PASSWORD, CIPHER_DATA_KEYS_DEFAULT,
           ConfigDef.Importance.HIGH, "JSON array with data key objects specifying the key identifiers together with key sets for encryption / decryption which are defined in Tink's key specification format")
       .define(CIPHER_DATA_KEY_IDENTIFIER, Type.STRING, CIPHER_DATA_KEY_IDENTIFIER_DEFAULT,
@@ -197,6 +199,7 @@ public abstract class CipherField<R extends ConnectRecord<R>> implements Transfo
       Map.entry(PATH_DELIMITER, Optional.ofNullable(config.getString(PATH_DELIMITER)).orElse(PATH_DELIMITER_DEFAULT)),
       Map.entry(FIELD_MODE, Optional.ofNullable(config.getString(FIELD_MODE)).orElse(FIELD_MODE_DEFAULT)),
       Map.entry(CIPHER_ALGORITHM, Optional.ofNullable(config.getString(CIPHER_ALGORITHM)).orElse(CIPHER_ALGORITHM_DEFAULT)),
+      Map.entry(DYNAMIC_KEY_ID_PREFIX, Optional.ofNullable(config.getString(DYNAMIC_KEY_ID_PREFIX)).orElse(DYNAMIC_KEY_ID_PREFIX_DEFAULT)),
       Map.entry(CIPHER_DATA_KEYS, Optional.ofNullable(config.getPassword(CIPHER_DATA_KEYS).value()).orElse(CIPHER_DATA_KEYS_DEFAULT)),
       Map.entry(CIPHER_DATA_KEY_IDENTIFIER, Optional.ofNullable(config.getString(CIPHER_DATA_KEY_IDENTIFIER)).orElse(CIPHER_DATA_KEY_IDENTIFIER_DEFAULT)),
       Map.entry(CIPHER_TEXT_ENCODING, Optional.ofNullable(config.getString(CIPHER_TEXT_ENCODING)).orElse(CIPHER_TEXT_ENCODING_DEFAULT)),

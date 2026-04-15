@@ -121,6 +121,7 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
             if (fieldValue == null) continue;
             JsonNode node = (JsonNode) fieldValue;
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
+            String resolvedKeyId = DynamicKeyIdResolver.resolve(fc, config, accessor);
 
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isNull()) {
                 LOG.warn("ELEMENT mode: field '{}' is null — skipping (cannot iterate null container)", fc.getName());
@@ -129,10 +130,10 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
             if (mode == FieldConfig.FieldMode.ELEMENT && node.isArray()) {
                 // ELEMENT mode: fall back to value-derived schema with topic-scoped caching
                 String schemaCacheKey = topicName + "." + fc.getName();
-                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, schemaCacheKey));
+                accessor.setField(fc.getName(), encryptArrayElements((ArrayNode) node, fc, schemaCacheKey, resolvedKeyId));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && node.isObject()) {
                 String schemaCacheKey = topicName + "." + fc.getName();
-                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey));
+                accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey, resolvedKeyId));
             } else {
                 // OBJECT mode
                 if (FieldConfigUtils.isFpe(fc, config)) {
@@ -140,14 +141,14 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
                     byte[] plaintext = node.asText().getBytes(StandardCharsets.UTF_8);
-                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, config));
+                    byte[] ciphertext = kryptonite.cipherFieldFPE(plaintext, FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId));
                     accessor.setField(fc.getName(), new String(ciphertext, StandardCharsets.UTF_8));
                 } else {
                     Schema avroSchema = resolveFieldAvroSchema(schemaId, fc.getName());
                     accessor.setField(fc.getName(),
                             FieldHandler.encryptField(
                                     fieldConverter.toCanonical(node, fc.getName(), serdeType, avroSchema),
-                                    FieldConfigUtils.buildPayloadMetaData(fc, config), kryptonite, serdeType));
+                                    FieldConfigUtils.buildPayloadMetaData(fc, config, resolvedKeyId), kryptonite, serdeType));
                 }
             }
         }

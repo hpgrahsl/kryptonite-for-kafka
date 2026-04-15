@@ -7,11 +7,13 @@ import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.hpgrahsl.kryptonite.EncryptedField;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.FieldMetaData;
 import com.github.hpgrahsl.kryptonite.PayloadMetaData;
 import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoInstance;
 import com.github.hpgrahsl.kryptonite.serdes.kryo.KryoSerdeProcessor;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.JsonObjectNodeAccessor;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,11 +24,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -72,6 +76,80 @@ class PlainJsonRecordProcessorTest {
 
     private static byte[] serdeBytes(JsonNode node) {
         return JsonObjectNodeAccessor.nodeToBytes(node, SERDE);
+    }
+
+    @Test
+    @DisplayName("encryptFields resolves dynamic default key id from payload")
+    void encryptResolvesDynamicDefaultKeyIdFromPayload() {
+        var dynamicConfig = MAPPER.convertValue(Map.of(
+                "key_source", "CONFIG",
+                "cipher_algorithm", "TINK/AES_GCM",
+                "cipher_data_key_identifier", "__#customer.country",
+                "dynamic_key_id_prefix", "__#",
+                "serde_type", "KRYO"
+        ), KryptoniteFilterConfig.class);
+        processor = new PlainJsonRecordProcessor(kryptonite, dynamicConfig);
+        when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+
+        byte[] input = """
+                {"customer":{"country":"de"},"age":30}""".getBytes();
+
+        processor.encryptFields(input, TOPIC,
+                Set.of(FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
+
+        ArgumentCaptor<PayloadMetaData> captor = ArgumentCaptor.forClass(PayloadMetaData.class);
+        verify(kryptonite).cipherFieldRaw(any(), captor.capture());
+        assertThat(captor.getValue().getKeyId()).isEqualTo("de");
+    }
+
+    @Test
+    @DisplayName("encryptFields resolves dynamic envelope_kek_identifier from payload for KMS envelope")
+    void encryptResolvesDynamicEnvelopeKekIdentifierFromPayloadForKmsEnvelope() {
+        var dynamicEnvelopeConfig = MAPPER.convertValue(Map.of(
+                "key_source", "NONE",
+                "cipher_algorithm", "TINK/AES_GCM_ENVELOPE_KMS",
+                "cipher_data_key_identifier", "data-key-ignored",
+                "envelope_kek_identifier", "__#customer.country",
+                "dynamic_key_id_prefix", "__#",
+                "serde_type", "KRYO",
+                "record_format", "JSON"
+        ), KryptoniteFilterConfig.class);
+        processor = new PlainJsonRecordProcessor(kryptonite, dynamicEnvelopeConfig);
+        when(kryptonite.cipherFieldRaw(any(), any())).thenReturn(FAKE_EF.ciphertext());
+
+        byte[] input = """
+                {"customer":{"country":"de"},"age":30}""".getBytes();
+
+        processor.encryptFields(input, TOPIC,
+                Set.of(FieldConfig.builder().name("age").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
+
+        ArgumentCaptor<PayloadMetaData> captor = ArgumentCaptor.forClass(PayloadMetaData.class);
+        verify(kryptonite).cipherFieldRaw(any(), captor.capture());
+        assertThat(captor.getValue().getKeyId()).isEqualTo("de");
+    }
+
+    @Test
+    @DisplayName("decryptFields resolves dynamic default key id from payload for FPE")
+    void decryptResolvesDynamicDefaultKeyIdFromPayloadForFpe() {
+        var dynamicFpeConfig = MAPPER.convertValue(Map.of(
+                "key_source", "CONFIG",
+                "cipher_algorithm", "CUSTOM/MYSTO_FPE_FF3_1",
+                "cipher_data_key_identifier", "__#customer.country",
+                "dynamic_key_id_prefix", "__#"
+        ), KryptoniteFilterConfig.class);
+        processor = new PlainJsonRecordProcessor(kryptonite, dynamicFpeConfig);
+        when(kryptonite.decipherFieldFPE(any(), any())).thenReturn("4111111111111111".getBytes());
+
+        byte[] input = """
+                {"customer":{"country":"de"},"card":"ciphertext"}""".getBytes();
+
+        processor.decryptFields(input, TOPIC,
+                Set.of(FieldConfig.builder().name("card").fieldMode(FieldConfig.FieldMode.OBJECT).build()));
+
+        ArgumentCaptor<FieldMetaData> captor =
+                ArgumentCaptor.forClass(FieldMetaData.class);
+        verify(kryptonite).decipherFieldFPE(any(), captor.capture());
+        assertThat(captor.getValue().getKeyId()).isEqualTo("de");
     }
 
     // ---- encryptFields — OBJECT mode ----
