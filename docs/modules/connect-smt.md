@@ -81,9 +81,12 @@ The settings in detail:
 
 1. `cipher_mode: "ENCRYPT"` runs the SMT in encrypt mode
 2. `cipher_data_keys: "..."` specifies the keysets that are available to choose from directly in the configuration. Learn more about other [key management](../key-management.md) options and how to generate your own keysets with the provided [keytool](../keyset-tool.md).
-3. `cipher_data_key_identifier": "my-key"`: specifies the default keyset identifier to use for encryption operations when no field-level overrides are in place.
-4. `field_config": "..."` defines which payload field(s) should get processed by the SMT. Each field could define overrides for any SMT defaults to influence the SMT's behaviour on field-level. For instance, you can choose a different keyset identifier and/or a different cipher algorithm for some of the fields.
+3. `cipher_data_key_identifier": "my-key"`: specifies the default key identifier to use for encryption operations when no field-level overrides are in place.
+4. `field_config": "..."` defines which payload field(s) should get processed by the SMT. Each field could define overrides for any SMT defaults to influence the SMT's behaviour on field-level. For instance, you can choose a different key identifier and/or a different cipher algorithm for some of the fields.
 5. `field_mode": "OBJECT"` instructs the SMT to process any field value with a complex data type (`ARRAY,MAP,STRUCT`) in its entirety. 
+
+!!! tip
+    Per-field `keyId` values may also be dynamic: if a configured identifier starts with [`dynamic_key_id_prefix`](../configuration.md#dynamic_key_id_prefix) (default `__#`), the remaining suffix is resolved as a field path against the top-level record at runtime.
 
 The result of applying the SMT with these settings based on the input record value looks like this:
 
@@ -148,6 +151,26 @@ The result of applying the SMT with these settings based on the partially encryp
   "mySubDoc2": {"k1": 9, "k2": 8, "k3": 7}
 }
 ```
+
+### Dynamic key identifiers
+
+The Kafka Connect SMT supports dynamic key identifier resolution for:
+
+- field-level `keyId`
+- default `cipher_data_key_identifier`
+- for `TINK/AES_GCM_ENVELOPE_KMS`, default `envelope_kek_identifier`
+
+When the selected configured identifier starts with `dynamic_key_id_prefix` (default `__#`), the remaining suffix is interpreted as a field path and resolved from the input record.
+
+Example:
+
+- configured identifier: `__#customer.region`
+- record field value at `customer.region`: `EMEA`
+- effective runtime key identifier: `EMEA`
+
+For `TINK/AES_GCM_ENVELOPE_KMS`, the algorithm-aware default fallback is `envelope_kek_identifier` rather than `cipher_data_key_identifier`.
+
+Resolution is performed against the top-level record. This works for both schemaless records (`Map`) and schema-aware records (`Struct`). If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails.
 
 ### Schema-aware records
 
@@ -272,8 +295,10 @@ See the full [Configuration Reference](../configuration.md) for all parameters.
 |---|---|
 | `cipher_mode` | `ENCRYPT` or `DECRYPT` |
 | `cipher_data_keys` | JSON array of keyset objects |
-| `cipher_data_key_identifier` | Default keyset identifier for encryption |
+| `cipher_data_key_identifier` | Default key identifier for encryption |
 | `field_config` | JSON array of field names (and optional per-field overrides) |
 | `field_mode` | `OBJECT` or `ELEMENT` |
+| `path_delimiter` | Nested field separator for `field_config` and dynamic key identifier paths |
+| `dynamic_key_id_prefix` | Prefix that marks key identifiers as field-path expressions to resolve dynamically |
 | `key_source` | `CONFIG`, `CONFIG_ENCRYPTED`, `KMS`, or `KMS_ENCRYPTED` |
 | `cipher_algorithm` | `TINK/AES_GCM` (default), `TINK/AES_GCM_SIV`, `CUSTOM/MYSTO_FPE_FF3_1` |

@@ -15,6 +15,8 @@ All Kryptonite for Kafka modules share the same set of core configuration parame
 | [`kek_config`](#kek_config) | — | `{}` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | [`kek_uri`](#kek_uri) | — | &nbsp; | ✓ | ✓ | ✓ | ✓ | ✓ |
 | [`cipher_algorithm`](#cipher_algorithm) | — | `TINK/AES_GCM` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| [`dynamic_key_id_prefix`](#dynamic_key_id_prefix) | — | `__#` | ✓ | — | — | ✓ | ✓ |
+| [`path_delimiter`](#path_delimiter) | — | `.` | ✓ | — | — | ✓ | - |
 | [`field_mode`](#field_mode) | - | `ELEMENT` | ✓ | — | — | ✓ | ✓ |
 | [`cipher_mode`](#cipher_mode) | ✓ | &nbsp; | ✓ | — | — | — | — |
 | [`envelope_kek_configs`](#envelope_kek_configs) | ✓ (KMS-based envelope encryption only) | `[]` | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -112,7 +114,7 @@ May be deliberately left empty `[]` when keysets are sourced from cloud secret m
 
 ### `cipher_data_key_identifier`
 
-The default keyset identifier used for encryption in case field settings do not specify their own key. Must match an `identifier` present in `cipher_data_keys` (or resolvable from the used cloud KMS).
+The default key identifier used for encryption in case field settings do not specify their own key. For regular and keyset-based encryption this is the data-key identifier. It must match an `identifier` present in `cipher_data_keys` (or be resolvable from the used cloud KMS).
 
 !!! warning "`cipher_data_keys` is a required config parameter"
     Empty string is acceptable for decryption-only scenarios.
@@ -382,15 +384,41 @@ The explicit character set when `cipher_fpe_alphabet_type=CUSTOM`. At least 2 un
 
 ## Module Specific Parameters
 
-### Kafka Connect SMT
+### `dynamic_key_id_prefix`
 
-#### `cipher_mode`
+Supported by the **Kafka Connect SMT**, **Quarkus HTTP Service**, and the **Kroxylicious Filter**.
 
-`ENCRYPT` or `DECRYPT`. Required. Determines the direction of the transformation.
+Marks a configured key identifier as dynamic. When the selected configured identifier starts with this prefix, the remaining suffix is interpreted as a field path and resolved from the input record. The extracted textual field value is then used verbatim as the effective runtime key identifier.
 
-#### `field_config`
+This applies to:
 
-JSON array listing the payload fields to process. Each entry must at least specify the field `name`. Optional per-field overrides for other settings influencing the encryption / decryption behaviour.
+- field-level `keyId`
+- default `cipher_data_key_identifier`
+- for `TINK/AES_GCM_ENVELOPE_KMS`, default `envelope_kek_identifier`
+
+Example: `__#customer.country` resolves the runtime key identifier from field path `customer.country`.
+
+If the path cannot be resolved, resolves to a non-textual/non-string value, or resolves to a blank string, processing fails. The prefix itself must not be blank.
+
+**Default: `__#`**
+
+### `path_delimiter`
+
+Supported by the **Kafka Connect SMT** and the **Quarkus HTTP Service**.
+
+Separator for nested field references used by dynamic key identifier resolution and field path matching.
+For the Kafka Connect SMT, this delimiter is also used for nested field names in `field_config`.
+For the Quarkus HTTP Service, the same delimiter is used for nested field names in request-body `fieldConfig` entries.
+
+**Default: `.`**
+
+### `cipher_mode`
+
+Supported by the **Kafka Connect SMT**. `ENCRYPT` or `DECRYPT`. Required. Determines the direction of the transformation.
+
+### `field_config`
+
+Supported by the **Kafka Connect SMT**. JSON array listing the payload fields to process. Each entry must at least specify the field `name`. Optional per-field overrides for other settings influencing the encryption / decryption behaviour, including `keyId`.
 
 * Example
 
@@ -402,6 +430,8 @@ JSON array listing the payload fields to process. Each entry must at least speci
 ]
 ```
 
+The SMT also supports dynamic key identifiers for field-level `keyId`, the default `cipher_data_key_identifier`, and, for `TINK/AES_GCM_ENVELOPE_KMS`, the default `envelope_kek_identifier`. When one of those values starts with `dynamic_key_id_prefix`, the remaining suffix is resolved as a field path against the top-level record. This works for both schemaless `Map` records and schema-aware `Struct` records.
+
 For decryption of schema-aware records, include the `schema` field to allow the SMT to reconstruct the original type.
 
 * Example:
@@ -412,8 +442,5 @@ For decryption of schema-aware records, include the `schema` field to allow the 
 ]
 ```
 
-#### `path_delimiter`
-
-Separator for nested field references in `field_config`. 
-
-**Default: `.`**
+!!! note
+    The **Kafka Connect SMT**, **Quarkus HTTP Service**, and **Kroxylicious Filter** all support per-field configuration, but the config surface is expressed slightly different to better fit each module's way of working. Find more details in their respective docs pages.
