@@ -23,6 +23,7 @@ import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kryptonite.serdes.FieldHandler;
 
 import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,28 +70,32 @@ class RecordHandler {
     return CipherSpec.fromName(fieldMetaData.getAlgorithm().toUpperCase()).isCipherFPE();
   }
 
-  FieldMetaData determineFieldMetaData(Object object, String fieldPath) {
-    return Optional.ofNullable(fieldConfig.get(fieldPath))
-        .or(() -> resolveElementModeParentPath(fieldPath).map(fieldConfig::get))
-        .map(fc ->
-            FieldMetaData.builder()
-                .algorithm(fc.getAlgorithm().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_ALGORITHM)))
-                .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
-                .keyId(fc.getKeyId().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER)))
-                .fpeTweak(fc.getFpeTweak().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_FPE_TWEAK)))
-                .fpeAlphabet(determineAlphabetFromFieldConfig(fc))
-                .encoding(fc.getEncoding().orElse(config.getString(KryptoniteSettings.CIPHER_TEXT_ENCODING)))
-                .build()
-        ).orElseGet(
-            () -> FieldMetaData.builder()
-                .algorithm(config.getString(KryptoniteSettings.CIPHER_ALGORITHM))
-                .dataType(Optional.ofNullable(object).map(o -> o.getClass().getName()).orElse(""))
-                .keyId(config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER))
-                .fpeTweak(config.getString(KryptoniteSettings.CIPHER_FPE_TWEAK))
-                .fpeAlphabet(getAlphabetFromGlobalConfig())
-                .encoding(config.getString(KryptoniteSettings.CIPHER_TEXT_ENCODING))
-                .build()
-        );
+  FieldMetaData determineFieldMetaData(Object rootRecord, Object fieldValue, String fieldPath) {
+    var fieldConfig = Optional.ofNullable(this.fieldConfig.get(fieldPath))
+        .or(() -> resolveElementModeParentPath(fieldPath).map(this.fieldConfig::get))
+        .orElseGet(() -> FieldConfig.builder().name(fieldPath).build());
+    var algorithm = fieldConfig.getAlgorithm().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_ALGORITHM));
+    var keyId = resolveKeyId(fieldConfig, rootRecord);
+    return FieldMetaData.builder()
+        .algorithm(algorithm)
+        .dataType(Optional.ofNullable(fieldValue).map(o -> o.getClass().getName()).orElse(""))
+        .keyId(keyId)
+        .fpeTweak(fieldConfig.getFpeTweak().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_FPE_TWEAK)))
+        .fpeAlphabet(determineAlphabetFromFieldConfig(fieldConfig))
+        .encoding(fieldConfig.getEncoding().orElse(config.getString(KryptoniteSettings.CIPHER_TEXT_ENCODING)))
+        .build();
+  }
+
+  private String resolveKeyId(FieldConfig fieldConfig, Object rootRecord) {
+    if (rootRecord instanceof Map<?, ?> rootMap) {
+      @SuppressWarnings("unchecked")
+      var typedMap = (Map<String, Object>) rootMap;
+      return DynamicKeyIdResolver.resolve(fieldConfig, config, typedMap);
+    }
+    if (rootRecord instanceof Struct rootStruct) {
+      return DynamicKeyIdResolver.resolve(fieldConfig, config, rootStruct);
+    }
+    return fieldConfig.getKeyId().orElseGet(() -> config.getString(KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER));
   }
 
   /**
@@ -108,24 +113,24 @@ class RecordHandler {
     return mode == CipherField.FieldMode.ELEMENT ? Optional.of(parentPath) : Optional.empty();
   }
 
-  String encryptNonFPE(Object object, FieldMetaData fieldMetaData) {
-    LOGGER.trace("object to be encrypted: {}", object);
+  String encryptNonFPE(Object fieldValue, FieldMetaData fieldMetaData) {
+    LOGGER.trace("object to be encrypted: {}", fieldValue);
     var metadata = PayloadMetaData.from(fieldMetaData);
-    var encodedField = FieldHandler.encryptField(object, metadata, kryptonite, config.getString(KryptoniteSettings.SERDE_TYPE));
+    var encodedField = FieldHandler.encryptField(fieldValue, metadata, kryptonite, config.getString(KryptoniteSettings.SERDE_TYPE));
     LOGGER.trace("returning encoded field: {}", encodedField);
     return encodedField;
   }
 
-  String encryptFPE(Object object, FieldMetaData fieldMetaData) {
-    LOGGER.trace("object to be FPE encrypted: {}", object);
-    if (object == null) {
+  String encryptFPE(Object fieldValue, FieldMetaData fieldMetaData) {
+    LOGGER.trace("object to be FPE encrypted: {}", fieldValue);
+    if (fieldValue == null) {
       return null;
     }
-    if (!(object instanceof String)) {
+    if (!(fieldValue instanceof String)) {
       throw new DataException("FPE encryption only supported for String data types but found: "
-          + object.getClass().getName());
+          + fieldValue.getClass().getName());
     }
-    var plaintext = ((String) object).getBytes(StandardCharsets.UTF_8);
+    var plaintext = ((String) fieldValue).getBytes(StandardCharsets.UTF_8);
     var ciphertext = new String(kryptonite.cipherFieldFPE(plaintext, fieldMetaData), StandardCharsets.UTF_8);
     LOGGER.debug("FPE encrypted field: {}", ciphertext);
     return ciphertext;
@@ -135,26 +140,26 @@ class RecordHandler {
    * Decrypts the encoded field and returns the raw serde output.
    * The caller is responsible for any post-decrypt type conversion.
    */
-  Object decryptNonFPE(Object object) {
-    if (object == null) {
+  Object decryptNonFPE(Object fieldValue) {
+    if (fieldValue == null) {
       return null;
     }
-    LOGGER.debug("object to be decrypted: {}", object);
-    var restoredField = FieldHandler.decryptField((String) object, kryptonite);
+    LOGGER.debug("object to be decrypted: {}", fieldValue);
+    var restoredField = FieldHandler.decryptField((String) fieldValue, kryptonite);
     LOGGER.trace("restored field: {}", restoredField);
     return restoredField;
   }
 
-  String decryptFPE(Object object, FieldMetaData fieldMetaData) {
-    if (object == null) {
+  String decryptFPE(Object fieldValue, FieldMetaData fieldMetaData) {
+    if (fieldValue == null) {
       return null;
     }
-    if (!(object instanceof String)) {
+    if (!(fieldValue instanceof String)) {
       throw new DataException("FPE decryption only supported for String data types but found: "
-          + object.getClass().getName());
+          + fieldValue.getClass().getName());
     }
-    LOGGER.debug("object to be FPE decrypted: {}", object);
-    var ciphertext = ((String) object).getBytes(StandardCharsets.UTF_8);
+    LOGGER.debug("object to be FPE decrypted: {}", fieldValue);
+    var ciphertext = ((String) fieldValue).getBytes(StandardCharsets.UTF_8);
     var plaintext = new String(kryptonite.decipherFieldFPE(ciphertext, fieldMetaData), StandardCharsets.UTF_8);
     LOGGER.trace("FPE decrypted field: {}", plaintext);
     return plaintext;
