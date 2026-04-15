@@ -1,10 +1,15 @@
 package com.github.hpgrahsl.kryptonite;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -17,6 +22,21 @@ import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.TinkKeyVault;
 
 public class KryptoniteTest {
+
+    @Test
+    @DisplayName("reject blank dynamic_key_id_prefix in config")
+    void rejectsBlankDynamicKeyIdPrefixInConfig() {
+        Map<String, String> config = new HashMap<>();
+        config.put(com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.KEY_SOURCE, "CONFIG");
+        config.put(com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.CIPHER_DATA_KEYS, TestFixtures.CIPHER_DATA_KEYS_CONFIG);
+        config.put(com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.CIPHER_DATA_KEY_IDENTIFIER, "keyA");
+        config.put(com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.DYNAMIC_KEY_ID_PREFIX, "   ");
+
+        var exception = assertThrows(com.github.hpgrahsl.kryptonite.config.ConfigurationException.class,
+                () -> Kryptonite.createFromConfig(config));
+        assertEquals("dynamic_key_id_prefix must not be blank", exception.getMessage());
+    }
+
 
     @ParameterizedTest
     @MethodSource("com.github.hpgrahsl.kryptonite.KryptoniteTest#provideValidInputParamsLocalKeyVaultNoKeyEncryption")
