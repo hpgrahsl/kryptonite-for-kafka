@@ -120,6 +120,9 @@
                 <relocation>
                   <pattern>com.google</pattern>
                   <shadedPattern>com.github.hpgrahsl.shaded.kmsazure.com.google</shadedPattern>
+                  <excludes>
+                    <exclude>com.google.crypto.tink.**</exclude>
+                  </excludes>
                 </relocation>
                 <relocation>
                   <pattern>com.fasterxml.jackson</pattern>
