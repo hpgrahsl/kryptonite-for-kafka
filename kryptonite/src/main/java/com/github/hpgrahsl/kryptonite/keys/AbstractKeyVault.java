@@ -23,6 +23,7 @@ import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.CleartextKeysetHandle;
 import com.google.crypto.tink.JsonKeysetReader;
 import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.TinkJsonProtoKeysetFormat;
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.INFO;
 import static java.lang.System.Logger.Level.WARNING;
@@ -167,8 +168,8 @@ public abstract class AbstractKeyVault implements KeyVault, AutoCloseable {
 
   protected static KeysetHandle createKeysetHandle(TinkKeyConfigEncrypted tinkKeyConfigEncrypted, Aead keyEncryption) {
     try {
-      return KeysetHandle.read(
-        JsonKeysetReader.withString(OBJECT_MAPPER.writeValueAsString(tinkKeyConfigEncrypted)),keyEncryption
+      return TinkJsonProtoKeysetFormat.parseEncryptedKeyset(
+        OBJECT_MAPPER.writeValueAsString(tinkKeyConfigEncrypted), keyEncryption, new byte[0]
       );
     } catch (Exception exc) {
       throw new KeyException("failed to read encrypted key config", exc);
