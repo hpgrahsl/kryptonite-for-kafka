@@ -93,7 +93,7 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <createDependencyReducedPom>true</createDependencyReducedPom>
               <artifactSet>
                 <excludes>
                   <exclude>com.github.hpgrahsl:kryptonite</exclude>
