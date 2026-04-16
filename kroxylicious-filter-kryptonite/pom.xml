@@ -18,12 +18,12 @@
         <kroxylicious.version>0.20.0</kroxylicious.version>
         <kryptonite.serdes.converters.version>0.2.0</kryptonite.serdes.converters.version>
         <jackson.version>2.20.0</jackson.version>
-        <kafka.version>4.1.1</kafka.version>
+        <kafka.version>4.1.2</kafka.version>
         <confluent.version>7.9.0</confluent.version>
         <junit.version>5.14.0</junit.version>
         <mockito.version>5.20.0</mockito.version>
         <log4j.version>2.25.2</log4j.version>
-        <assertj-core.version>3.27.6</assertj-core.version>
+        <assertj-core.version>3.27.7</assertj-core.version>
         <slf4j.version>2.0.17</slf4j.version>
         <java.version>17</java.version>
         <maven.compiler.version>3.10.1</maven.compiler.version>
