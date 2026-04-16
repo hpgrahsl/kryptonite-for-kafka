@@ -17,8 +17,9 @@
 package com.github.hpgrahsl.kryptonite.crypto.custom.mysto.fpe;
 
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
-import com.google.crypto.tink.CleartextKeysetHandle;
+import com.google.crypto.tink.InsecureSecretKeyAccess;
 import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.TinkProtoKeysetFormat;
 import com.google.crypto.tink.proto.KeyData;
 import com.google.crypto.tink.proto.Keyset;
 import java.security.GeneralSecurityException;
@@ -56,7 +57,8 @@ public final class FpeKeysetHandle {
             if (parameters == null) {
                 throw new IllegalArgumentException("FpeParameters must not be null");
             }
-            Keyset keyset = CleartextKeysetHandle.getKeyset(keysetHandle);
+            Keyset keyset = Keyset.parseFrom(
+                TinkProtoKeysetFormat.serializeKeyset(keysetHandle, InsecureSecretKeyAccess.get()));
             Keyset.Key primaryKey = null;
             for (Keyset.Key key : keyset.getKeyList()) {
                 if (key.getKeyId() == keyset.getPrimaryKeyId()) {

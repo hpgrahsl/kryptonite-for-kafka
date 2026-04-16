@@ -16,6 +16,7 @@
 
 package com.github.hpgrahsl.kryptonite.kms.gcp;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.KeyException;
@@ -28,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GcpKeyVault extends AbstractKeyVault {
 
   public static final String SECRET_NAME_PREFIX = "k4k-tink-plain_";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final KeyMaterialResolver keyMaterialResolver;
   private final boolean lazyLoadEnabled;

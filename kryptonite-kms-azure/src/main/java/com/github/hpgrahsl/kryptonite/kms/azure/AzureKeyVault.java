@@ -16,6 +16,7 @@
 
 package com.github.hpgrahsl.kryptonite.kms.azure;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfig;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
 import com.github.hpgrahsl.kryptonite.keys.KeyException;
@@ -26,6 +27,8 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AzureKeyVault extends AbstractKeyVault {
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final KeyMaterialResolver keyMaterialResolver;
   private final boolean lazyLoadEnabled;
