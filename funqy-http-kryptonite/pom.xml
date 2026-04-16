@@ -6,20 +6,20 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.7.0</version>
   </parent>
   <groupId>com.github.hpgrahsl</groupId>
   <artifactId>funqy-http-kryptonite</artifactId>
-  <version>0.4.0-SNAPSHOT</version>
+  <version>0.4.0</version>
   <name>funqy-http-kryptonite</name>
   <properties>
     <protobuf.version>4.32.1</protobuf.version>
-    <kryptonite.serdes.converters.version>0.2.0-SNAPSHOT</kryptonite.serdes.converters.version>
-    <kryptonite.test.fixtures.version>0.2.0-SNAPSHOT</kryptonite.test.fixtures.version>
-    <kryptonite.kms.aws.version>0.2.0-SNAPSHOT</kryptonite.kms.aws.version>
-    <kryptonite.kms.azure.version>0.2.0-SNAPSHOT</kryptonite.kms.azure.version>
-    <kryptonite.kms.gcp.version>0.2.0-SNAPSHOT</kryptonite.kms.gcp.version>
-    <kryptonite.edek.store.kafka.version>0.1.0-SNAPSHOT</kryptonite.edek.store.kafka.version>
+    <kryptonite.serdes.converters.version>0.2.0</kryptonite.serdes.converters.version>
+    <kryptonite.test.fixtures.version>0.2.0</kryptonite.test.fixtures.version>
+    <kryptonite.kms.aws.version>0.2.0</kryptonite.kms.aws.version>
+    <kryptonite.kms.azure.version>0.2.0</kryptonite.kms.azure.version>
+    <kryptonite.kms.gcp.version>0.2.0</kryptonite.kms.gcp.version>
+    <kryptonite.edek.store.kafka.version>0.1.0</kryptonite.edek.store.kafka.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
