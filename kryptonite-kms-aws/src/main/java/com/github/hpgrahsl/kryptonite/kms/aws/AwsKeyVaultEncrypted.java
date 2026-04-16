@@ -16,6 +16,7 @@
 
 package com.github.hpgrahsl.kryptonite.kms.aws;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.KryptoniteException;
 import com.github.hpgrahsl.kryptonite.config.TinkKeyConfigEncrypted;
 import com.github.hpgrahsl.kryptonite.keys.AbstractKeyVault;
@@ -32,6 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AwsKeyVaultEncrypted extends AbstractKeyVault {
 
   public static final String SECRET_NAME_PREFIX = "k4k/tink_encrypted/";
+
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private final KeyMaterialResolver keyMaterialResolver;
   private final KmsKeyEncryption kmsKeyEncryption;

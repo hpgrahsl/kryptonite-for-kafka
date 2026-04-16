@@ -37,8 +37,7 @@ import java.util.concurrent.TimeUnit;
 public abstract class AbstractKeyVault implements KeyVault, AutoCloseable {
 
   private static final System.Logger LOG = System.getLogger(AbstractKeyVault.class.getName());
-
-  protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   protected final ConcurrentHashMap<String, KeysetHandle> keysetHandles;
 
