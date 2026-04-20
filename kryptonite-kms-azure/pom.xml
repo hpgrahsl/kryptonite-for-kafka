@@ -33,7 +33,7 @@
     <az.keyvault.version>4.10.3</az.keyvault.version>
     <az.identity.version>1.18.1</az.identity.version>
     <junit.version>5.14.0</junit.version>
-    <kryptonite.test.fixtures.version>0.2.0</kryptonite.test.fixtures.version>
+    <kryptonite.test.fixtures.version>0.3.0-SNAPSHOT</kryptonite.test.fixtures.version>
   </properties>
 
   <dependencies>

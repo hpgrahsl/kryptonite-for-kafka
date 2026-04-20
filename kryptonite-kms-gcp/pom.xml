@@ -34,7 +34,7 @@
     <google.cloud.secretmanager.version>2.31.0</google.cloud.secretmanager.version>
     <google.protobuf.version>4.32.1</google.protobuf.version>
     <junit.version>5.14.0</junit.version>
-    <kryptonite.test.fixtures.version>0.2.0</kryptonite.test.fixtures.version>
+    <kryptonite.test.fixtures.version>0.3.0-SNAPSHOT</kryptonite.test.fixtures.version>
   </properties>
 
   <dependencies>

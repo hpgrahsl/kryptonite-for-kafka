@@ -33,7 +33,7 @@
     <google.tink.java.awskms.version>1.11.0</google.tink.java.awskms.version>
     <aws.java.sdk.version>1.12.779</aws.java.sdk.version>
     <junit.version>5.14.0</junit.version>
-    <kryptonite.test.fixtures.version>0.2.0</kryptonite.test.fixtures.version>
+    <kryptonite.test.fixtures.version>0.3.0-SNAPSHOT</kryptonite.test.fixtures.version>
   </properties>
 
   <dependencies>
