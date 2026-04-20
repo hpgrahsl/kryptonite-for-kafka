@@ -22,22 +22,22 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.7.0</version>
+    <version>0.8.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>connect-transform-kryptonite</artifactId>
-  <version>0.7.0</version>
+  <version>0.8.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <properties>
-    <kryptonite.serdes.converters.version>0.2.0</kryptonite.serdes.converters.version>
-    <kryptonite.kms.version>0.2.0</kryptonite.kms.version>
+    <kryptonite.serdes.converters.version>0.3.0-SNAPSHOT</kryptonite.serdes.converters.version>
+    <kryptonite.kms.version>0.3.0-SNAPSHOT</kryptonite.kms.version>
     <kafka.version>4.1.0</kafka.version>
     <jackson.version>2.20.0</jackson.version>
     <logback.version>1.2.13</logback.version>
     <junit.version>5.14.0</junit.version>
-    <kryptonite.test.fixtures.version>0.2.0</kryptonite.test.fixtures.version>
-    <kryptonite.kms.azure.version>0.2.0</kryptonite.kms.azure.version>
+    <kryptonite.test.fixtures.version>0.3.0-SNAPSHOT</kryptonite.test.fixtures.version>
+    <kryptonite.kms.azure.version>0.3.0-SNAPSHOT</kryptonite.kms.azure.version>
   </properties>
 
   <dependencies>

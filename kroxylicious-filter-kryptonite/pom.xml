@@ -6,17 +6,17 @@
     <parent>
         <artifactId>kryptonite-for-kafka</artifactId>
         <groupId>com.github.hpgrahsl</groupId>
-        <version>0.7.0</version>
+        <version>0.8.0-SNAPSHOT</version>
     </parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kroxylicious-filter-kryptonite</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <properties>
         <kroxylicious.extension.version>0.15.0</kroxylicious.extension.version>
         <kroxylicious.version>0.20.0</kroxylicious.version>
-        <kryptonite.serdes.converters.version>0.2.0</kryptonite.serdes.converters.version>
+        <kryptonite.serdes.converters.version>0.3.0-SNAPSHOT</kryptonite.serdes.converters.version>
         <jackson.version>2.20.0</jackson.version>
         <kafka.version>4.1.2</kafka.version>
         <confluent.version>7.9.0</confluent.version>
@@ -166,7 +166,7 @@
         <dependency>
             <groupId>com.github.hpgrahsl</groupId>
             <artifactId>kryptonite-test-fixtures</artifactId>
-            <version>0.2.0</version>
+            <version>0.3.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
