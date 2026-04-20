@@ -22,11 +22,11 @@
   <parent>
     <groupId>com.github.hpgrahsl</groupId>
     <artifactId>kryptonite-for-kafka</artifactId>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.7.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>kryptonite</artifactId>
-  <version>0.7.0-SNAPSHOT</version>
+  <version>0.7.0</version>
   <packaging>jar</packaging>
 
   <properties>
@@ -84,25 +84,6 @@
             <!--<arg>-parameters</arg>-->
           </compilerArgs>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>${assembly.plugin.version}</version>
-        <executions>
-            <execution>
-                <phase>package</phase>
-                <goals>
-                    <goal>single</goal>
-                </goals>
-                <configuration>
-                    <descriptors>
-                      <descriptor>src/main/resources/kryptonite-distribution.xml</descriptor>
-                    </descriptors>
-                    <appendAssemblyId>false</appendAssemblyId>
-                </configuration>
-            </execution>
-        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>

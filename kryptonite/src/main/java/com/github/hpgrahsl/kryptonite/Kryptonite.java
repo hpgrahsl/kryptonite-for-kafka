@@ -55,8 +55,10 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.*;
@@ -560,11 +562,7 @@ public class Kryptonite implements AutoCloseable {
     var kmsType = config.get(KMS_TYPE);
     var refreshIntervalMinutes = kmsCacheRefreshIntervalMinutes(config);
     LOG.log(INFO, "key vault: KMS vault (plain keysets), kmsType={0} refreshInterval={1}min", kmsType, refreshIntervalMinutes);
-    var provider = ServiceLoader.load(KmsKeyVaultProvider.class, KmsKeyVaultProvider.class.getClassLoader())
-        .stream()
-        .map(ServiceLoader.Provider::get)
-        .filter(p -> p.kmsType().equals(kmsType))
-        .findFirst()
+    var provider = loadProvider(KmsKeyVaultProvider.class, p -> p.kmsType().equals(kmsType))
         .orElseThrow(() -> new ConfigurationException(
             "no KMS key vault provider found for type '" + kmsType
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
@@ -585,11 +583,7 @@ public class Kryptonite implements AutoCloseable {
     var refreshIntervalMinutes = kmsCacheRefreshIntervalMinutes(config);
     LOG.log(INFO, "key vault: KMS vault (KEK-encrypted keysets), kmsType={0} kekType={1} refreshInterval={2}min",
         kmsType, kekType, refreshIntervalMinutes);
-    var provider = ServiceLoader.load(KmsKeyVaultProvider.class, KmsKeyVaultProvider.class.getClassLoader())
-        .stream()
-        .map(ServiceLoader.Provider::get)
-        .filter(p -> p.kmsType().equals(kmsType))
-        .findFirst()
+    var provider = loadProvider(KmsKeyVaultProvider.class, p -> p.kmsType().equals(kmsType))
         .orElseThrow(() -> new ConfigurationException(
             "no KMS key vault provider found for type '" + kmsType
                 + "' — add the corresponding kryptonite KMS module to the classpath"));
@@ -714,10 +708,7 @@ public class Kryptonite implements AutoCloseable {
       LOG.log(DEBUG, "edek_store_config: not configured — EdekStore not available");
       return null;
     }
-    var edekStoreImpl = ServiceLoader.load(EdekStore.class, EdekStore.class.getClassLoader())
-        .stream()
-        .map(ServiceLoader.Provider::get)
-        .findFirst()
+    var edekStoreImpl = loadProvider(EdekStore.class, provider -> true)
         .orElseThrow(() -> new ConfigurationException(
             "edek_store_config is set but no EdekStore implementation found on classpath — "
                 + "add kryptonite-edek-store-kafka (or another EdekStore implementation) to the classpath"));
@@ -734,15 +725,30 @@ public class Kryptonite implements AutoCloseable {
     var kekType = config.get(KEK_TYPE);
     var kekConfig = config.get(KEK_CONFIG);
     var kekUri = config.get(KEK_URI);
-    var provider = ServiceLoader.load(KmsKeyEncryptionProvider.class, KmsKeyEncryptionProvider.class.getClassLoader())
-        .stream()
-        .map(ServiceLoader.Provider::get)
-        .filter(p -> p.kekType().equals(kekType))
-        .findFirst()
+    var provider = loadProvider(KmsKeyEncryptionProvider.class, p -> p.kekType().equals(kekType))
         .orElseThrow(() -> new ConfigurationException(
             "no KMS key encryption provider found for type '" + kekType
                 + "' — add the corresponding kryptonite-kms module to the classpath"));
     return provider.createKeyEncryption(kekUri, kekConfig);
+  }
+
+  private static <T> Optional<T> loadProvider(Class<T> serviceType, Predicate<T> predicate) {
+    var serviceClassLoader = serviceType.getClassLoader();
+    var contextClassLoader = Thread.currentThread().getContextClassLoader();
+
+    var provider = ServiceLoader.load(serviceType, serviceClassLoader)
+        .stream()
+        .map(ServiceLoader.Provider::get)
+        .filter(predicate)
+        .findFirst();
+    if (provider.isPresent() || contextClassLoader == serviceClassLoader) {
+      return provider;
+    }
+    return ServiceLoader.load(serviceType, contextClassLoader)
+        .stream()
+        .map(ServiceLoader.Provider::get)
+        .filter(predicate)
+        .findFirst();
   }
 
 }
