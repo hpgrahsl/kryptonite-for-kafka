@@ -1,0 +1,1665 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Client-side field-level cryptography for Apache Kafka">
+      
+      
+      
+        <link rel="canonical" href="https://hpgrahsl.github.io/kryptonite-for-kafka/envelope-encryption/">
+      
+      
+        <link rel="prev" href="../kms/azure/">
+      
+      
+        <link rel="next" href="../keyset-tool/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.33">
+    
+    
+      
+        <title>Envelope Encryption - Kryptonite for Apache Kafka</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.53a7feaf.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#envelope-encryption" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Kryptonite for Apache Kafka" class="md-header__button md-logo" aria-label="Kryptonite for Apache Kafka" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kryptonite for Apache Kafka
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Envelope Encryption
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/hpgrahsl/kryptonite-for-kafka" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hpgrahsl/kryptonite-for-kafka
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="./.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../key-management/" class="md-tabs__link">
+        
+  
+  Key Management
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../kms/overview/" class="md-tabs__link">
+          
+  
+  Cloud KMS
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="././" class="md-tabs__link">
+        
+  
+  Envelope Encryption
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../keyset-tool/" class="md-tabs__link">
+        
+  
+  Keyset Tool
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../modules/connect-smt/" class="md-tabs__link">
+          
+  
+  Modules
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../security/" class="md-tabs__link">
+        
+  
+  Security
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configuration/" class="md-tabs__link">
+        
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Kryptonite for Apache Kafka" class="md-nav__button md-logo" aria-label="Kryptonite for Apache Kafka" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    Kryptonite for Apache Kafka
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/hpgrahsl/kryptonite-for-kafka" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hpgrahsl/kryptonite-for-kafka
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../key-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud KMS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud KMS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kms/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kms/gcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP Cloud KMS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kms/aws/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS KMS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kms/azure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Azure Key Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Envelope Encryption
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Envelope Encryption
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#two-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two Variants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyset-based-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyset-based Envelope Encryption
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kms-based-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KMS-based Envelope Encryption
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="KMS-based Envelope Encryption">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edekstore-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EdekStore Implementations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edekstore-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EdekStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dek-session-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DEK Session Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kek-configuration-for-kms-based-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KEK configuration for KMS-based envelope encryption
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keyset-tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyset Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/connect-smt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Kafka Connect SMT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/flink-udfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Flink UDFs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/ksqldb-udfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ksqlDB UDFs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/funqy-http/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarkus HTTP Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules/kroxylicious-filter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kroxylicious Proxy Filter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#two-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two Variants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyset-based-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyset-based Envelope Encryption
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kms-based-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KMS-based Envelope Encryption
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="KMS-based Envelope Encryption">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#edekstore-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EdekStore Implementations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edekstore-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EdekStore Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dek-session-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DEK Session Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kek-configuration-for-kms-based-envelope-encryption" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        KEK configuration for KMS-based envelope encryption
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+<h1 id="envelope-encryption">Envelope Encryption</h1>
+<p>By default, Kryptonite for Kafka applies encryption using key material sourced directly from Tink keysets. An alternative mode is to opt in for <a href="https://en.wikipedia.org/wiki/Hybrid_cryptosystem#Envelope_encryption">envelope encryption</a>. This mode randomly generates a short-lived <strong>Data Encryption Key (DEK)</strong> which is used to encrypt field data, and uses a long-lived <strong>Key Encryption Key (KEK)</strong> to wrap the DEK. The wrapped DEK then travels with the ciphertext which guarantees there is no direct relationship between the ciphertext and the long-lived KEK material.</p>
+<p><strong>Key benefits:</strong></p>
+<ul>
+<li><strong>KEK never touches field data:</strong> the KEK is only used to wrap/unwrap DEKs; all field encryption uses the short-lived DEK</li>
+<li><strong>Independent DEK and KEK lifecycle:</strong> DEKs rotate automatically on a high-frequency operational schedule; the KEK rotates on a slower administrative schedule; these two concerns are fully decoupled</li>
+<li><strong>Reduced blast radius:</strong> a compromised DEK only affects records encrypted during that DEK's lifetime which is configurable</li>
+</ul>
+<hr />
+<h2 id="two-variants">Two Variants</h2>
+<p>Kryptonite for Kafka supports two envelope encryption variants which differ in where the KEK lives and how the wrapped DEK is stored alongside the ciphertext.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Keyset-based</th>
+<th>KMS-based</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Algorithm</strong></td>
+<td><code>TINK/AES_GCM_ENVELOPE_KEYSET</code></td>
+<td><code>TINK/AES_GCM_ENVELOPE_KMS</code></td>
+</tr>
+<tr>
+<td><strong>KEK</strong></td>
+<td>a Tink keyset (sourced from config or cloud KMS)</td>
+<td>a cloud KMS key which never leaves the KMS</td>
+</tr>
+<tr>
+<td><strong>Wrapped DEK</strong></td>
+<td>bundled as is with the ciphertext</td>
+<td>reference to wrapped DEK bundled with ciphertext</td>
+</tr>
+<tr>
+<td><strong>Extra Infrastructure</strong></td>
+<td>None</td>
+<td>Persistent <code>EdekStore</code> implementation (defaults to KCache/Kafka)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="keyset-based-envelope-encryption">Keyset-based Envelope Encryption</h2>
+<p>Uses a regular Tink keyset as the KEK. The wrapped DEK is bundled directly inside the ciphertext alongside the encrypted field data, so no external store is needed.</p>
+<p><strong>Wire format:</strong> <code>[4-byte wrappedDekLen | wrappedDek | dekCiphertext]</code></p>
+<p><strong>Configuration:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="na">cipher_algorithm</span><span class="o">=</span><span class="s">TINK/AES_GCM_ENVELOPE_KEYSET</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="na">cipher_data_key_identifier</span><span class="o">=</span><span class="s">my-kek-keyset</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="na">cipher_data_keys</span><span class="o">=</span><span class="s">[{&quot;identifier&quot;:&quot;my-kek-keyset&quot;,&quot;material&quot;:{...}}]</span>
+</code></pre></div>
+<p>The <code>cipher_data_key_identifier</code> and <code>cipher_data_keys</code> refer to the keyset acting as the KEK. All the usual <code>key_source</code> options apply which means you can source the KEK keyset from configuration (plain or encrypted) or from a cloud secret manager.</p>
+<div class="admonition tip">
+<p class="admonition-title">DEK session caching</p>
+<p>By default a single DEK session is reused for up to 100,000 encryptions or 720 minutes, whichever comes first. Tune <code>dek_max_encryptions</code> and <code>dek_ttl_minutes</code> to balance KMS call frequency against DEK lifetime. See <a href="../configuration/#envelope-encryption-parameters">Configuration</a> for details.</p>
+</div>
+<hr />
+<h2 id="kms-based-envelope-encryption">KMS-based Envelope Encryption</h2>
+<p>Uses a cloud KMS key as the KEK. The KEK never leaves the cloud KMS and all wrap/unwrap operations happen remotely. Because the wrapped DEK would make every ciphertext considerably larger if bundled inline, only a compact 16-byte fingerprint is embedded in the ciphertext; the actual wrapped DEK is stored externally using implementations of <code>EdekStore</code> for which the default is KCache/Kafka.</p>
+<p><strong>Wire format:</strong> <code>[16-byte fingerprint | dekCiphertext]</code></p>
+<p><strong>Configuration:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="na">cipher_algorithm</span><span class="o">=</span><span class="s">TINK/AES_GCM_ENVELOPE_KMS</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">envelope_kek_configs</span><span class="o">=</span><span class="s">[{&quot;identifier&quot;:&quot;my-kek&quot;,&quot;type&quot;:&quot;GCP&quot;,&quot;uri&quot;:&quot;gcp-kms://...&quot;,&quot;config&quot;:{&quot;credentials&quot;:&quot;...&quot;,&quot;projectId&quot;:&quot;...&quot;}}]</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="na">envelope_kek_identifier</span><span class="o">=</span><span class="s">my-kek</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="na">edek_store_config</span><span class="o">=</span><span class="s">{&quot;kafkacache.bootstrap.servers&quot;:&quot;localhost:9092&quot;,&quot;kafkacache.topic&quot;:&quot;_k4k_edeks&quot;}</span>
+</code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">An <code>EdekStore</code> implementation is required</p>
+<p>KMS-based envelope encryption will refuse to start if <code>edek_store_config</code> is not provided. The <code>EdekStore</code> is load-bearing as without it the wrapped DEK could not be derived at decrypt time.</p>
+</div>
+<h3 id="edekstore-implementations">EdekStore Implementations</h3>
+<p>The <code>EdekStore</code> defaults to KCache which persists into a compacted Kafka topic to permanently store the wrapped DEKs. Each record maps a 16-byte fingerprint (a SHA-256 prefix of the wrapped DEK) to the actual wrapped DEK bytes.</p>
+<p><strong>Encrypt path:</strong></p>
+<ol>
+<li>When a new DEK session is created, Kryptonite publishes the wrapped DEK to the <code>EdekStore</code> before any encryption happens, and only then makes the DEK session available for use</li>
+<li>Each ciphertext carries only the 16-byte fingerprint as a compact pointer to the wrapped DEK in the <code>EdekStore</code></li>
+</ol>
+<p><strong>Decrypt path:</strong></p>
+<ol>
+<li>Extract the 16-byte fingerprint from the ciphertext</li>
+<li>Check the L1 in-process cache (fingerprint → Aead): if hit, decrypt directly; no <code>EdekStore</code> or KMS involved</li>
+<li>On L1 miss: look up the fingerprint in the <code>EdekStore</code> to retrieve the wrapped DEK</li>
+<li>Call the KMS to unwrap the DEK, build the Aead, and populate the L1 cache for future lookups</li>
+<li>Decrypt the field data with the Aead</li>
+</ol>
+<p><strong>Topic requirements:</strong></p>
+<ul>
+<li>Must be a compacted topic — <code>cleanup.policy=compact</code></li>
+<li><code>kafkacache.topic.require.compact=true</code> applies by default; Kryptonite for Kafka will refuse to start against a non-compacted topic</li>
+<li>Replication factor and partition count follow standard Kafka best practices for your environment; one partition is enough in low-write-volume setups like this one (one record per DEK session)</li>
+</ul>
+<div class="admonition info">
+<p class="admonition-title">Cross-Instance Consumer Lag</p>
+<p>Each instance maintains a local in-memory mirror of the <code>EdekStore</code> topic via a background KCache consumer thread. After a new wrapped DEK is published, other instances will only see it once their consumer thread has caught up to that offset. If a decrypt request for a freshly-encrypted record reaches an instance whose consumer hasn't yet processed the new entry, the fingerprint lookup will fail. In practice this lag should be sub-second under normal conditions, and retry logic in the consumer application is the recommended mitigation.</p>
+</div>
+<h3 id="edekstore-configuration">EdekStore Configuration</h3>
+<p>The <code>edek_store_config</code> value is a JSON object and is supposed to contain the expected configuration based on the chosen <code>EdekStore</code> implementation. For KCache/Kafka it might look like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;kafkacache.bootstrap.servers&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;broker1:9092,...&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;kafkacache.topic&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;_k4k_edeks&quot;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Required keys for KCache/Kafka EdekStore</strong></p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kafkacache.bootstrap.servers</code></td>
+<td>Kafka bootstrap address for the <code>EdekStore</code> topic</td>
+</tr>
+<tr>
+<td><code>kafkacache.topic</code></td>
+<td>Name of the compacted topic to use</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Optional overrides</strong> (defaults shown):</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kafkacache.backing.cache</code></td>
+<td><code>memory</code></td>
+<td>In-memory map; the compacted topic is the durable store</td>
+</tr>
+<tr>
+<td><code>kafkacache.topic.require.compact</code></td>
+<td><code>true</code></td>
+<td>Fail at startup if the topic is not compacted</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For security settings (SSL, SASL, authentication) use the corresponding <code>kafkacache.*</code> prefixed keys defined by KCache — for example <code>kafkacache.security.protocol</code>, <code>kafkacache.ssl.truststore.location</code>, <code>kafkacache.sasl.mechanism</code>. Raw Kafka <code>ssl.*</code> / <code>sasl.*</code> keys are not forwarded directly.</p>
+</div>
+<hr />
+<h2 id="dek-session-lifecycle">DEK Session Lifecycle</h2>
+<p>Both variants share the same DEK session management. Instead of generating a fresh DEK for every field encryption (which would mean a KMS/keyset operation per record), a DEK session is reused across a configurable window.</p>
+<p>A session expires when <strong>either</strong> threshold is reached first:</p>
+<ul>
+<li><strong><code>dek_max_encryptions</code>:</strong> upper limit for field encryptions with this DEK (default: <code>100,000</code>)</li>
+<li><strong><code>dek_ttl_minutes</code>:</strong> longest allowed age of the DEK session (default: <code>720</code> = 12 hours)</li>
+</ul>
+<p>When a session expires, a new DEK is generated and wrapped transparently without the need for intervention. For KMS-based envelope encryption the new wrapped DEK is published to the <code>EdekStore</code> before the session becomes active.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tuning Guidance</p>
+<p>Lower <code>dek_max_encryptions</code> or <code>dek_ttl_minutes</code> to increase DEK freshness at the cost of more frequent KMS calls. The defaults are reasonable and suit most workloads. For KMS-based envelope encryption each session creation involves one KMS network call, so aggressive rotation (e.g., <code>dek_max_encryptions=1</code>) will reduce throughput, might saturate the KMS quickly, and can noticeably increase cloud KMS costs.</p>
+</div>
+<hr />
+<h2 id="kek-configuration-for-kms-based-envelope-encryption">KEK configuration for KMS-based envelope encryption</h2>
+<p>The <code>envelope_kek_configs</code> parameter takes a JSON array of KEK entries. Each entry identifies which cloud KMS key to use as the KEK:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">GCP Cloud KMS</label><label for="__tabbed_1_2">AWS KMS</label><label for="__tabbed_1_3">Azure Key Vault</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">[</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">&quot;identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-gcp-kek&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GCP&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="nt">&quot;uri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gcp-kms://projects/&lt;project&gt;/locations/&lt;location&gt;/keyRings/&lt;ring&gt;/cryptoKeys/&lt;key&gt;&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="nt">&quot;config&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="nt">&quot;credentials&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;GCP service account JSON contents&gt;&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="nt">&quot;projectId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&lt;project&gt;&quot;</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="p">]</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">[</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="p">{</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">&quot;identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-aws-kek&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AWS&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">&quot;uri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;aws-kms://arn:aws:kms:&lt;region&gt;:&lt;account&gt;:key/&lt;key-id&gt;&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nt">&quot;config&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">      </span><span class="nt">&quot;accessKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">      </span><span class="nt">&quot;secretKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">      </span><span class="nt">&quot;region&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="p">]</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">[</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="p">{</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">&quot;identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-azure-kek&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AZURE&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nt">&quot;uri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;azure-kv://&lt;vault-name&gt;.vault.azure.net/keys/&lt;key-name&gt;&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nt">&quot;config&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">      </span><span class="nt">&quot;clientId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">      </span><span class="nt">&quot;tenantId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">      </span><span class="nt">&quot;clientSecret&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">      </span><span class="nt">&quot;keyVaultUrl&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://&lt;vault-name&gt;.vault.azure.net&quot;</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">]</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">AAD not supported for Azure</p>
+<p>Azure Key Vault's RSA-OAEP-256 key wrap/unwrap has no associated-data parameter. The <code>wrapAad</code> binding used by GCP and AWS is silently ignored for Azure. Security relies on the <code>EdekStore</code> fingerprint lookup chain.</p>
+</div>
+</div>
+</div>
+</div>
+<p>You can define more than one KEK entry. Each field can reference a different KEK identifier, enabling per-field or per-topic key isolation.</p>
+<p>See <a href="../kms/overview/">Cloud KMS</a> for provider-specific IAM permissions and setup details.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.tabs","navigation.sections","navigation.expand","navigation.top","search.highlight","search.suggest","content.code.copy","content.code.annotate"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.63456bd9.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
+      
+        <script src="../assets/javascripts/glightbox-init.js"></script>
+      
+        <script src="../assets/javascripts/version-picker.js"></script>
+      
+    
+  <script>(function () {
+  'use strict';
+
+  /**
+   * Determine whether the current page is inside a versioned path, e.g.
+   *   /kryptonite-for-kafka/v0.7/...
+   *   /kryptonite-for-kafka/dev/...
+   *
+   * Returns { siteRoot, currentVersion } or null if not in a versioned path.
+   */
+  function parseSiteInfo() {
+    var path = window.location.pathname;
+    // Match /base/vX.Y/... or /base/dev/... (base may be empty for root deployments)
+    var m = path.match(/^((?:\/[^/]+)?\/)((v\d+\.\d+|dev)\/)/);
+    if (!m) return null;
+    return {
+      siteRoot: window.location.origin + m[1],
+      currentVersion: m[2].replace(/\/$/, '')
+    };
+  }
+
+  function buildPicker(versions, info) {
+    var select = document.createElement('select');
+    select.className = 'k4k-version-picker';
+    select.setAttribute('aria-label', 'Select docs version');
+    select.setAttribute('title', 'Select docs version');
+
+    versions.forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = info.siteRoot + v.version + '/';
+      opt.textContent = v.title || v.version;
+      if (v.version === info.currentVersion) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+
+    select.addEventListener('change', function () {
+      window.location.href = this.value;
+    });
+
+    return select;
+  }
+
+  async function initVersionPicker() {
+    var info = parseSiteInfo();
+    if (!info) return;
+
+    var versions;
+    try {
+      var resp = await fetch(info.siteRoot + 'versions.json', { cache: 'no-cache' });
+      if (!resp.ok) return;
+      versions = await resp.json();
+    } catch (e) {
+      return;
+    }
+
+    if (!versions || versions.length < 2) return;
+
+    var select = buildPicker(versions, info);
+    var wrapper = document.createElement('div');
+    wrapper.className = 'k4k-version-picker-wrapper';
+    wrapper.appendChild(select);
+
+    // Inject into the Material/Zensical header bar
+    var header = document.querySelector('.md-header__inner');
+    if (header) {
+      header.appendChild(wrapper);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initVersionPicker);
+  } else {
+    initVersionPicker();
+  }
+})();
+</script>
+</body>
+</html>

@@ -4,10 +4,14 @@
     "title": "dev"
   },
   {
-    "version": "v0.6",
-    "title": "v0.6 (latest)",
+    "version": "v0.7",
+    "title": "v0.7 (latest)",
     "aliases": [
       "latest"
     ]
+  },
+  {
+    "version": "v0.6",
+    "title": "v0.6"
   }
 ]

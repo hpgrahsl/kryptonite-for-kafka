@@ -1,0 +1,108 @@
+/* ============================================================
+   Four Integration Modules — custom card grid
+   Text on the left, image on the right inside each card.
+   2 columns on wide screens, 1 column on narrow screens.
+   ============================================================ */
+
+.k4k-modules {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.8rem;
+  margin: 1em 0;
+}
+
+@media screen and (max-width: 76.1875em) {
+  .k4k-modules {
+    grid-template-columns: 1fr;
+  }
+}
+
+.k4k-module-card {
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  /*gap: 1rem;*/
+  transition: box-shadow 125ms;
+}
+
+.k4k-module-card:hover {
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.1), 0 0 0.05rem rgba(0, 0, 0, 0.1);
+}
+
+.k4k-module-body {
+  width: 100%;
+}
+
+.k4k-module-body p:last-child {
+  margin-bottom: 0;
+}
+
+.k4k-module-img {
+  width: 100%;
+}
+
+.k4k-module-img a {
+  display: block;
+}
+
+.k4k-module-img img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.1rem;
+}
+
+/* ============================================================
+   Version picker — injected into Material/Zensical header
+   ============================================================ */
+
+.k4k-version-picker-wrapper {
+  display: flex;
+  align-items: center;
+  margin-left: 0.7rem;
+}
+
+.k4k-version-picker {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: color-mix(in srgb, currentColor 12%, transparent);
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 0.2rem;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0.2rem 1.4rem 0.2rem 0.5rem;
+  outline: none;
+}
+
+/* Scheme-specific arrows — data URI SVGs cannot use currentColor */
+[data-md-color-scheme="default"] .k4k-version-picker {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='black' opacity='.6'/%3E%3C/svg%3E");
+}
+
+[data-md-color-scheme="slate"] .k4k-version-picker {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='white' opacity='.7'/%3E%3C/svg%3E");
+}
+
+.k4k-version-picker:hover,
+.k4k-version-picker:focus {
+  border-color: color-mix(in srgb, currentColor 75%, transparent);
+}
+
+.k4k-version-picker option {
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+}
+
+/* ============================================================
+   Core parameter table — enforce minimum width on first column
+   ============================================================ */
+
+.k4k-param-table th:nth-child(1),
+.k4k-param-table td:nth-child(1) {
+  min-width: 250px;
+}

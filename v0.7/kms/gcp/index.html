@@ -1,0 +1,1715 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Client-side field-level cryptography for Apache Kafka">
+      
+      
+      
+        <link rel="canonical" href="https://hpgrahsl.github.io/kryptonite-for-kafka/kms/gcp/">
+      
+      
+        <link rel="prev" href="../overview/">
+      
+      
+        <link rel="next" href="../aws/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.33">
+    
+    
+      
+        <title>GCP Cloud KMS - Kryptonite for Apache Kafka</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.53a7feaf.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/glightbox/dist/css/glightbox.min.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#gcp-cloud-kms" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Kryptonite for Apache Kafka" class="md-header__button md-logo" aria-label="Kryptonite for Apache Kafka" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Kryptonite for Apache Kafka
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              GCP Cloud KMS
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="none" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/hpgrahsl/kryptonite-for-kafka" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hpgrahsl/kryptonite-for-kafka
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/" class="md-tabs__link">
+          
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../key-management/" class="md-tabs__link">
+        
+  
+  Key Management
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+  Cloud KMS
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../envelope-encryption/" class="md-tabs__link">
+        
+  
+  Envelope Encryption
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../keyset-tool/" class="md-tabs__link">
+        
+  
+  Keyset Tool
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../modules/connect-smt/" class="md-tabs__link">
+          
+  
+  Modules
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../security/" class="md-tabs__link">
+        
+  
+  Security
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../configuration/" class="md-tabs__link">
+        
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Kryptonite for Apache Kafka" class="md-nav__button md-logo" aria-label="Kryptonite for Apache Kafka" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+
+    </a>
+    Kryptonite for Apache Kafka
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/hpgrahsl/kryptonite-for-kafka" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    hpgrahsl/kryptonite-for-kafka
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../key-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Key Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud KMS
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cloud KMS
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP Cloud KMS
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GCP Cloud KMS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#secret-storage-with-kms_typegcp_sm_secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret Storage with kms_type=GCP_SM_SECRETS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Secret Storage with kms_type=GCP_SM_SECRETS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secret-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-encryption-key-with-kek_typegcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Encryption Key with kek_type=GCP
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Encryption Key with kek_type=GCP">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-for-key_sourceconfig_encrypted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration for key_source=CONFIG_ENCRYPTED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-for-key_sourcekms_encrypted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration for key_source=KMS_ENCRYPTED
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#envelope-kek-with-cipher_algorithmtinkaes_gcm_envelope_kms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Envelope KEK with cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Envelope KEK with cipher_algorithm=TINK&#x2f;AES_GCM_ENVELOPE_KMS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../aws/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS KMS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../azure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Azure Key Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../envelope-encryption/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Envelope Encryption
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../keyset-tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyset Tool
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modules
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modules
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../modules/connect-smt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Kafka Connect SMT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../modules/flink-udfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apache Flink UDFs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../modules/ksqldb-udfs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ksqlDB UDFs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../modules/funqy-http/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarkus HTTP Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../modules/kroxylicious-filter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kroxylicious Proxy Filter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#secret-storage-with-kms_typegcp_sm_secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret Storage with kms_type=GCP_SM_SECRETS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Secret Storage with kms_type=GCP_SM_SECRETS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#secret-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret naming
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-encryption-key-with-kek_typegcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Encryption Key with kek_type=GCP
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Encryption Key with kek_type=GCP">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-for-key_sourceconfig_encrypted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration for key_source=CONFIG_ENCRYPTED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-for-key_sourcekms_encrypted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration for key_source=KMS_ENCRYPTED
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#envelope-kek-with-cipher_algorithmtinkaes_gcm_envelope_kms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Envelope KEK with cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Envelope KEK with cipher_algorithm=TINK&#x2f;AES_GCM_ENVELOPE_KMS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#iam-permissions-required_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IAM permissions required
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+<h1 id="gcp-cloud-kms">GCP Cloud KMS</h1>
+<p>The <code>kryptonite-kms-gcp</code> module adds three capabilities:</p>
+<ol>
+<li><strong>Keyset Storage</strong>: fetch Tink keysets from GCP Secret Manager at runtime (<code>kms_type=GCP_SM_SECRETS</code>)</li>
+<li><strong>Keyset Encryption Key</strong>: use a GCP Cloud KMS symmetric key to encrypt/decrypt keysets at rest (<code>kek_type=GCP</code>)</li>
+<li><strong>Envelope KEK</strong>: use a GCP Cloud KMS key as the Key Encryption Key for envelope encryption (<code>cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS</code>)</li>
+</ol>
+<p>Add the module JAR to the classpath alongside the core library. The runtime discovers it automatically via <code>ServiceLoader</code>.</p>
+<hr />
+<h2 id="secret-storage-with-kms_typegcp_sm_secrets">Secret Storage with <code>kms_type=GCP_SM_SECRETS</code></h2>
+<h3 id="secret-naming">Secret naming</h3>
+<p>Secrets are expected to be stored in GCP Secret Manager with a mandatory prefix to differentiate between plain vs. encrypted keysets.</p>
+<table>
+<thead>
+<tr>
+<th>Keyset type</th>
+<th>Secret name prefix</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain keysets</td>
+<td><code>k4k-tink-plain_</code></td>
+<td><code>k4k-tink-plain_my-aes-key</code></td>
+</tr>
+<tr>
+<td>Encrypted keysets</td>
+<td><code>k4k-tink-encrypted_</code></td>
+<td><code>k4k-tink-encrypted_my-aes-key</code></td>
+</tr>
+</tbody>
+</table>
+<p>Create the actual cloud secrets using the <code>gcloud</code> CLI or the GCP Console. <strong>Each secret's value must be the Tink keyset JSON in <code>RAW</code> format:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>gcloud<span class="w"> </span>secrets<span class="w"> </span>create<span class="w"> </span>k4k-tink-plain_my-aes-key<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>--data-file<span class="o">=</span>my-aes-key-raw.json<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--project<span class="o">=</span>my-gcp-project
+</code></pre></div>
+<h3 id="iam-permissions-required">IAM permissions required</h3>
+<p>The service account used in <code>kms_config</code> requires:</p>
+<ul>
+<li><code>roles/secretmanager.secretAccessor</code> on the project (or on individual secrets)</li>
+</ul>
+<h3 id="configuration">Configuration</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;key_source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;KMS&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;kms_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GCP_SM_SECRETS&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;kms_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;credentials\&quot;:\&quot;&lt;GCP service account JSON contents&gt;\&quot;,\&quot;projectId\&quot;:\&quot;my-gcp-project\&quot;}&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">&quot;cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[]&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">&quot;cipher_data_key_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-aes-key&quot;</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>kms_config</code> fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>credentials</code></td>
+<td>Full content of the GCP service account JSON key file</td>
+</tr>
+<tr>
+<td><code>projectId</code></td>
+<td>GCP project ID where secrets are stored</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="key-encryption-key-with-kek_typegcp">Key Encryption Key with <code>kek_type=GCP</code></h2>
+<p>GCP Cloud KMS symmetric keys (AES-256) support direct AEAD encryption. The module integrates via Tink's official <code>tink-java-gcpkms</code> library.</p>
+<h3 id="iam-permissions-required_1">IAM permissions required</h3>
+<ul>
+<li><code>roles/cloudkms.cryptoKeyEncrypterDecrypter</code> on the specific KMS key</li>
+</ul>
+<h3 id="configuration-for-key_sourceconfig_encrypted">Configuration for <code>key_source=CONFIG_ENCRYPTED</code></h3>
+<p>Generate the <strong>GCP KEK encrypted keyset(s) in <code>FULL</code> format</strong> using the <a href="../../keyset-tool/">keyset tool</a>, then configure:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;key_source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CONFIG_ENCRYPTED&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;identifier\&quot;:\&quot;my-key\&quot;,\&quot;material\&quot;:{\&quot;encryptedKeyset\&quot;:\&quot;...\&quot;,\&quot;keysetInfo\&quot;:{...}}}]&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;cipher_data_key_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-key&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;kek_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GCP&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="nt">&quot;kek_uri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;kek_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;credentials\&quot;:\&quot;&lt;GCP service account JSON contents&gt;\&quot;,\&quot;projectId\&quot;:\&quot;my-project\&quot;}&quot;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="configuration-for-key_sourcekms_encrypted">Configuration for <code>key_source=KMS_ENCRYPTED</code></h3>
+<p>Generate the <strong>GCP KEK encrypted keyset(s) in <code>RAW</code> format</strong> using the <a href="../../keyset-tool/">keyset tool</a> and store it as a GCP secret.</p>
+<p>Then configure:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;key_source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;KMS_ENCRYPTED&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;kms_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GCP_SM_SECRETS&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">&quot;kms_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;credentials\&quot;:\&quot;&lt;GCP service account JSON contents&gt;\&quot;,\&quot;projectId\&quot;:\&quot;my-gcp-project\&quot;}&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">&quot;cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[]&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">&quot;cipher_data_key_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-key&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="nt">&quot;kek_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GCP&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="nt">&quot;kek_uri&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="nt">&quot;kek_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;credentials\&quot;:\&quot;&lt;GCP service account JSON contents&gt;\&quot;,\&quot;projectId\&quot;:\&quot;my-project\&quot;}&quot;</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">}</span>
+</code></pre></div>
+<hr />
+<h2 id="envelope-kek-with-cipher_algorithmtinkaes_gcm_envelope_kms">Envelope KEK with <code>cipher_algorithm=TINK/AES_GCM_ENVELOPE_KMS</code></h2>
+<p>GCP Cloud KMS keys can act as the KEK for envelope encryption. In this mode a fresh DEK is generated per session, all field encryptions use the DEK, and GCP Cloud KMS wraps/unwraps the DEK on session boundaries. The raw KEK material never leaves GCP Cloud KMS.</p>
+<p>See <a href="../../envelope-encryption/">Envelope Encryption</a> for a full explanation of the encrypt/decrypt paths, DEK session lifecycle, and <code>EdekStore</code> configuration.</p>
+<h3 id="iam-permissions-required_2">IAM permissions required</h3>
+<p>The service account requires the same permission as for keyset encryption:</p>
+<ul>
+<li><code>roles/cloudkms.cryptoKeyEncrypterDecrypter</code> on the specific KMS key</li>
+</ul>
+<h3 id="configuration_1">Configuration</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;cipher_algorithm&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;TINK/AES_GCM_ENVELOPE_KMS&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;envelope_kek_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-gcp-kek&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;envelope_kek_configs&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[{\&quot;identifier\&quot;:\&quot;my-gcp-kek\&quot;,\&quot;type\&quot;:\&quot;GCP\&quot;,\&quot;uri\&quot;:\&quot;gcp-kms://projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-kek\&quot;,\&quot;config\&quot;:{\&quot;credentials\&quot;:\&quot;&lt;GCP service account JSON contents&gt;\&quot;,\&quot;projectId\&quot;:\&quot;my-project\&quot;}}]&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;edek_store_config&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;kafkacache.bootstrap.servers\&quot;:\&quot;broker1:9092\&quot;,\&quot;kafkacache.topic\&quot;:\&quot;_k4k_edeks\&quot;}&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">&quot;cipher_data_keys&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;[]&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="nt">&quot;cipher_data_key_identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">}</span>
+</code></pre></div>
+<p><code>envelope_kek_configs</code> entry fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>identifier</code></td>
+<td>Logical name referenced by <code>envelope_kek_identifier</code></td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>Must be <code>GCP</code></td>
+</tr>
+<tr>
+<td><code>uri</code></td>
+<td>Full GCP Cloud KMS key URI (<code>gcp-kms://projects/...</code>)</td>
+</tr>
+<tr>
+<td><code>config.credentials</code></td>
+<td>Full content of the GCP service account JSON key file</td>
+</tr>
+<tr>
+<td><code>config.projectId</code></td>
+<td>GCP project ID where the KMS key is located</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["navigation.tabs","navigation.sections","navigation.expand","navigation.top","search.highlight","search.suggest","content.code.copy","content.code.annotate"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.63456bd9.min.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/glightbox/dist/js/glightbox.min.js"></script>
+      
+        <script src="../../assets/javascripts/glightbox-init.js"></script>
+      
+        <script src="../../assets/javascripts/version-picker.js"></script>
+      
+    
+  <script>(function () {
+  'use strict';
+
+  /**
+   * Determine whether the current page is inside a versioned path, e.g.
+   *   /kryptonite-for-kafka/v0.7/...
+   *   /kryptonite-for-kafka/dev/...
+   *
+   * Returns { siteRoot, currentVersion } or null if not in a versioned path.
+   */
+  function parseSiteInfo() {
+    var path = window.location.pathname;
+    // Match /base/vX.Y/... or /base/dev/... (base may be empty for root deployments)
+    var m = path.match(/^((?:\/[^/]+)?\/)((v\d+\.\d+|dev)\/)/);
+    if (!m) return null;
+    return {
+      siteRoot: window.location.origin + m[1],
+      currentVersion: m[2].replace(/\/$/, '')
+    };
+  }
+
+  function buildPicker(versions, info) {
+    var select = document.createElement('select');
+    select.className = 'k4k-version-picker';
+    select.setAttribute('aria-label', 'Select docs version');
+    select.setAttribute('title', 'Select docs version');
+
+    versions.forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = info.siteRoot + v.version + '/';
+      opt.textContent = v.title || v.version;
+      if (v.version === info.currentVersion) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+
+    select.addEventListener('change', function () {
+      window.location.href = this.value;
+    });
+
+    return select;
+  }
+
+  async function initVersionPicker() {
+    var info = parseSiteInfo();
+    if (!info) return;
+
+    var versions;
+    try {
+      var resp = await fetch(info.siteRoot + 'versions.json', { cache: 'no-cache' });
+      if (!resp.ok) return;
+      versions = await resp.json();
+    } catch (e) {
+      return;
+    }
+
+    if (!versions || versions.length < 2) return;
+
+    var select = buildPicker(versions, info);
+    var wrapper = document.createElement('div');
+    wrapper.className = 'k4k-version-picker-wrapper';
+    wrapper.appendChild(select);
+
+    // Inject into the Material/Zensical header bar
+    var header = document.querySelector('.md-header__inner');
+    if (header) {
+      header.appendChild(wrapper);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initVersionPicker);
+  } else {
+    initVersionPicker();
+  }
+})();
+</script>
+</body>
+</html>
