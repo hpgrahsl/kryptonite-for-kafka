@@ -43,6 +43,11 @@
   }
 
   async function initVersionPicker() {
+    // Defends against the script running more than once on the same page
+    // (e.g. both a native <script src> reference and an inlined backfill
+    // copy present at the same time) — only ever render one picker.
+    if (document.querySelector('.k4k-version-picker-wrapper')) return;
+
     var info = parseSiteInfo();
     if (!info) return;
 

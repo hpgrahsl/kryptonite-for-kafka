@@ -72,12 +72,28 @@ jobs:
               pathlib.Path('docs/assets/stylesheets/extra.css').read_text()
           )
 
+          picker_js = pathlib.Path('docs/assets/javascripts/version-picker.js').read_text()
+
+          # Tags whose own build already references version-picker.js via
+          # extra_javascript have it copied into the built site as a static
+          # asset by zensical, frozen at whatever that tag contained. Refresh
+          # it with the current content so bug fixes reach already-tagged
+          # versions too, not just dev and future releases — same reasoning
+          # as the extra.css overwrite above.
+          picker_asset = site / 'assets/javascripts/version-picker.js'
+          if picker_asset.exists():
+              picker_asset.write_text(picker_js)
+
           # Inline picker JS before </body> — avoids relative-path issues
-          # for tags that predate extra_javascript: version-picker.js
-          script_tag = '<script>' + pathlib.Path('docs/assets/javascripts/version-picker.js').read_text() + '</script>'
+          # for tags that predate extra_javascript: version-picker.js (a
+          # <script src> wouldn't resolve correctly for nested pages without
+          # computing each page's depth). Skip pages that already reference
+          # the script natively — those already point at the file refreshed
+          # above.
+          script_tag = '<script>' + picker_js + '</script>'
           for html in site.rglob('*.html'):
               content = html.read_text()
-              if 'k4k-version-picker' not in content:
+              if 'version-picker.js' not in content:
                   html.write_text(content.replace('</body>', script_tag + '\n</body>', 1))
           EOF
 
