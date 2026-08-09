@@ -6,13 +6,13 @@ The Kryptonite proxy filter provides **transparent, client-agnostic field-level 
 **Field-Level Encryption with Proxy Filter**
 
 <div class="k4k-module-img">
-<a href="../../assets/images/8a_kroxylicious_filter_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/8a_kroxylicious_filter_encryption.png" alt="Kroxylicious Encryption Filter"></a>
+<a href="../assets/images/8a_kroxylicious_filter_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../assets/images/8a_kroxylicious_filter_encryption.png" alt="Kroxylicious Encryption Filter"></a>
 </div>
 
 **Field-Level Decryption with Proxy Filter**
 
 <div class="k4k-module-img">
-<a href="../../assets/images/8b_kroxylicious_filter_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/8b_kroxylicious_filter_decryption.png" alt="Kroxylicious Decryption Filter"></a>
+<a href="../assets/images/8b_kroxylicious_filter_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../assets/images/8b_kroxylicious_filter_decryption.png" alt="Kroxylicious Decryption Filter"></a>
 </div>
 
 ---
