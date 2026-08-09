@@ -60,6 +60,19 @@ jobs:
       - name: Build release site
         run: cd _build-src && zensical build --clean
 
+      - name: Patch pre-fix image paths
+        # v0.6/v0.7 were tagged before the docs/modules/*.md relative-path fix,
+        # so their source still has the old "../../assets/images/..." form.
+        # Newer zensical (pinned above) applies its own directory-URL
+        # adjustment on top of that, producing a broken
+        # "../../../assets/images/...". Gated on the tag itself (not a
+        # content-pattern guess) so it can never touch v0.8+ or any future
+        # docs structure, however deeply nested it ends up being.
+        if: steps.version.outputs.version == 'v0.6' || steps.version.outputs.version == 'v0.7'
+        run: |
+          grep -rl '\.\./\.\./\.\./assets/images/' _build-src/site --include='*.html' | \
+            xargs -r sed -i 's|\.\./\.\./\.\./assets/images/|../../assets/images/|g'
+
       - name: Inject current version picker assets
         run: |
           python3 - <<'EOF'
