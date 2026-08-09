@@ -5,13 +5,13 @@ Kryptonite for Kafka provides a range of Flink user-defined functions (UDFs) for
 **Field-Level Encryption with UDFs in Flink SQL**
 
 <div class="k4k-module-img">
-<a href="../../assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
+<a href="../assets/images/04a_csflc_flink_sql_udf_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../assets/images/04a_csflc_flink_sql_udf_encryption.png" alt="Apache Flink UDFs"></a>
 </div>
 
 **Field-Level Decryption with UDFs in Flink SQL**
 
 <div class="k4k-module-img">
-<a href="../../assets/images/04b_csflc_flink_sql_udf_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/04b_csflc_flink_sql_udf_decryption.png" alt="Apache Flink UDFs"></a>
+<a href="../assets/images/04b_csflc_flink_sql_udf_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../assets/images/04b_csflc_flink_sql_udf_decryption.png" alt="Apache Flink UDFs"></a>
 </div>
 
 ## UDFs Overview

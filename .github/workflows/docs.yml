@@ -34,7 +34,7 @@ jobs:
           python-version: '3.x'
 
       - name: Install Zensical
-        run: pip install zensical mkdocs-glightbox
+        run: pip install zensical==0.0.53 mkdocs-glightbox
 
       - name: Build dev site
         run: zensical build --clean

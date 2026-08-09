@@ -5,13 +5,13 @@ The Quarkus Funqy HTTP API is a lightweight standalone service that exposes encr
 **Field-Level Encryption with HTTP API**
 
 <div class="k4k-module-img">
-<a href="../../assets/images/06a_csflc_quarkus_funqy_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/06a_csflc_quarkus_funqy_encryption.png" alt="Quarkus HTTP API"></a>
+<a href="../assets/images/06a_csflc_quarkus_funqy_encryption.png" class="glightbox" data-glightbox="type: image"><img src="../assets/images/06a_csflc_quarkus_funqy_encryption.png" alt="Quarkus HTTP API"></a>
 </div>
 
 **Field-Level Decryption with HTTP API**
 
 <div class="k4k-module-img">
-<a href="../../assets/images/06b_csflc_quarkus_funqy_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../../assets/images/06b_csflc_quarkus_funqy_decryption.png" alt="Quarkus HTTP API"></a>
+<a href="../assets/images/06b_csflc_quarkus_funqy_decryption.png" class="glightbox" data-glightbox="type: image"><img src="../assets/images/06b_csflc_quarkus_funqy_decryption.png" alt="Quarkus HTTP API"></a>
 </div>
 
 ## Installation / Deployment
