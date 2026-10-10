@@ -44,7 +44,13 @@ Topic routing is controlled by `topic_pattern` entries, each carrying its own `f
 1. Download the filter JAR from the [GitHub Releases page](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
 2. Place the JAR in a folder that is on Kroxylicious' classpath (e.g. the `lib/` directory next to any other JARs shipping with Kroxylicious).
 3. Reference the filter factories in your Kroxylicious proxy configuration YAML (see examples below).
-4. Run Kroxylicious (see official [Proxy Quick Start](https://kroxylicious.io/documentation/0.20.0/html/proxy-quick-start/))
+4. Run Kroxylicious (see official [Proxy Quick Start](https://kroxylicious.io/documentation/0.25.0/html/proxy-quick-start/))
+
+!!! note "Kroxylicious Compatibility"
+    The filter is built and tested against **Kroxylicious 0.25.0** and requires **Java 21+** at runtime. Kroxylicious versions before 0.24 are incompatible because the Filter API switched to Kroxylicious' own Kafka protocol types in 0.24.
+
+!!! note "Filter Resources per Virtual Cluster"
+    Kroxylicious initializes each filter factory separately for every virtual cluster that uses it. Every such initialization creates its own `Kryptonite` instance (incl. key vault), blocking thread pool, and, for `JSON_SR` and `AVRO`, its own Schema Registry client. Using both the encryption and decryption filter on several virtual clusters multiplies these resources accordingly, as well as the resulting KMS and Schema Registry requests.
 
 If building from sources (requires JDK 21+, the filter JAR targets Java 21):
 
@@ -58,13 +64,17 @@ If building from sources (requires JDK 21+, the filter JAR targets Java 21):
 
 ### Proxy Config Structure
 
-A basic Kroxylicious proxy config defines a `virtualClusters` block which specifies at least the upstream broker and the gateway address, plus optional `filterDefinitions` and a corresponding `defaultFilters` block. A minimal skeleton could look like this:
+A basic Kroxylicious proxy config defines the upstream Kafka cluster in a `clusterDefinitions` block and a `virtualClusters` block which references it and specifies at least the gateway address, plus optional `filterDefinitions` and a corresponding `defaultFilters` block. A minimal skeleton could look like this:
 
 ```yaml
+clusterDefinitions:
+  - name: kafka
+    bootstrapServers: kafka:9092          # upstream Kafka broker
+
 virtualClusters:
   - name: mycluster
-    targetCluster:
-      bootstrapServers: kafka:9092        # upstream Kafka broker
+    target:
+      cluster: kafka                      # refers to the clusterDefinitions entry
     gateways:
       - name: mygateway
         portIdentifiesNode:
@@ -84,7 +94,7 @@ defaultFilters:
 !!! note
     `advertisedBrokerAddressPattern` controls the broker address that Kroxylicious advertises to clients in metadata responses. Set it to the hostname or IP that clients use to reach the proxy. For single-node local setups, `localhost` is typical; for containerised or remote deployments, use the proxy's externally reachable hostname.
 
-If you want to dig deeper, read the official documentation to understand all [proxy configuration](https://kroxylicious.io/documentation/0.20.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy) options in depth.
+If you want to dig deeper, read the official documentation to understand all [proxy configuration](https://kroxylicious.io/documentation/0.25.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy) options in depth.
 
 ---
 
