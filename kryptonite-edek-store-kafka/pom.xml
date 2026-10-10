@@ -31,9 +31,28 @@
 
   <properties>
     <kcache.version>5.2.3</kcache.version>
-    <jackson.version>2.18.4</jackson.version>
+    <jackson.version>2.18.11</jackson.version>
+    <!-- pins kafka-clients pulled in by kcache to a patched version of the same minor -->
+    <kafka.clients.version>3.9.2</kafka.clients.version>
     <junit.version>5.14.0</junit.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${kafka.clients.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
 

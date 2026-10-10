@@ -28,6 +28,12 @@ public class TestFixturesCloudKms {
     private static final String PATH = "src/test/resources/credentials.properties";
     private static final Properties CREDENTIALS = new Properties();
 
+    // Quarkus (3.22+) evaluates a test class' @TestProfile during test discovery, i.e. before
+    // @EnabledIfSystemProperty disables the cloud KMS tests, so profiles must check this themselves
+    public static boolean cloudKmsTestsEnabled() {
+        return "true".equals(System.getProperty("cloud.kms.tests"));
+    }
+
     public static synchronized Properties readCredentials() throws IOException {
         if(!CREDENTIALS.isEmpty()) {
             return CREDENTIALS;

@@ -44,6 +44,7 @@ import io.restassured.RestAssured;
 import jakarta.inject.Inject;
 
 @QuarkusTest
+@TestProfile(ProfileKeySourceConfigFPE.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CipherFieldResourceFunctionalFpeTest {
 
@@ -51,7 +52,6 @@ public class CipherFieldResourceFunctionalFpeTest {
     public ObjectMapper objectMapper;
 
     @Nested
-    @TestProfile(ProfileKeySourceConfigFPE.class)
     class WithKeySourceConfigTest {
         @ParameterizedTest
         @MethodSource("com.github.hpgrahsl.funqy.http.kryptonite.ProfileKeySourceConfigFPE#generateValidParamCombinations")

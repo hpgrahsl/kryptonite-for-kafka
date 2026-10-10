@@ -32,8 +32,8 @@
   <properties>
     <kryo.version>5.6.2</kryo.version>
     <kryo.serializers>0.45</kryo.serializers>
-    <kafka.version>4.1.0</kafka.version>
-    <flink.version>1.20.3</flink.version>
+    <kafka.version>4.1.2</kafka.version>
+    <flink.version>1.20.5</flink.version>
     <avro.version>1.11.4</avro.version>
     <junit.version>5.14.0</junit.version>
   </properties>

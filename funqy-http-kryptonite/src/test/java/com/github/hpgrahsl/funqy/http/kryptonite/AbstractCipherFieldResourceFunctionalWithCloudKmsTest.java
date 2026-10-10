@@ -24,12 +24,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -39,57 +33,18 @@ import com.github.hpgrahsl.funqy.http.kryptonite.KryptoniteConfiguration.FieldMo
 import com.github.hpgrahsl.kryptonite.Kryptonite.CipherSpec;
 
 import io.quarkus.logging.Log;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import jakarta.inject.Inject;
 
-@QuarkusTest
-@EnabledIfSystemProperty(named="cloud.kms.tests",matches="true")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class CipherFieldResourceFunctionalWithCloudKmsTest {
+/**
+ * Shared test logic for the cloud KMS functional tests. Quarkus (3.22+) rejects {@code @Nested} classes
+ * that declare a different {@code @TestProfile} than their enclosing class, so each key source profile
+ * gets its own concrete test class extending this one.
+ */
+public abstract class AbstractCipherFieldResourceFunctionalWithCloudKmsTest {
 
     @Inject
     public ObjectMapper objectMapper;
-
-    @Nested
-    @TestProfile(ProfileKeySourceConfigEncrypted.class)
-    class WithKeySourceConfigEncryptedTest {
-        @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.funqy.http.kryptonite.ProfileKeySourceConfigEncrypted#generateValidParamCombinations")
-        @DisplayName("perform decrypt(encrypt(plaintext)) = plaintext for payload with config param combinations")
-        void encryptDecryptPayloadWithCustomConfigTest(
-            FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2)
-                throws JsonMappingException, JsonProcessingException {
-            performTest(fieldMode, cipherSpec, keyId1, keyId2);
-        }
-    }
-
-    @Nested
-    @TestProfile(ProfileKeySourceKms.class)
-    class WithKeySourceKms {
-        @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.funqy.http.kryptonite.ProfileKeySourceKms#generateValidParamCombinations")
-        @DisplayName("perform decrypt(encrypt(plaintext)) = plaintext for payload with config param combinations")
-        void encryptDecryptPayloadWithCustomConfigTest(
-                FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2)
-                    throws JsonMappingException, JsonProcessingException {
-            performTest(fieldMode, cipherSpec, keyId1, keyId2);
-        }
-    }
-
-    @Nested
-    @TestProfile(ProfileKeySourceKmsEncrypted.class)
-    class WithKeySourceKmsEncrypted {
-        @ParameterizedTest
-        @MethodSource("com.github.hpgrahsl.funqy.http.kryptonite.ProfileKeySourceKmsEncrypted#generateValidParamCombinations")
-        @DisplayName("perform decrypt(encrypt(plaintext)) = plaintext for payload with config param combinations")
-        void encryptDecryptPayloadWithCustomConfigTest(
-                FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2)
-                    throws JsonMappingException, JsonProcessingException {
-            performTest(fieldMode, cipherSpec, keyId1, keyId2);
-        }
-    }
 
     void performTest(FieldMode fieldMode, CipherSpec cipherSpec, String keyId1, String keyId2) 
             throws JsonMappingException, JsonProcessingException {
