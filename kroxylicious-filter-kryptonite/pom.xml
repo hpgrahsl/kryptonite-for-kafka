@@ -15,7 +15,7 @@
 
     <properties>
         <kroxylicious.extension.version>0.15.0</kroxylicious.extension.version>
-        <kroxylicious.version>0.20.0</kroxylicious.version>
+        <kroxylicious.version>0.25.0</kroxylicious.version>
         <kryptonite.serdes.converters.version>0.3.0-SNAPSHOT</kryptonite.serdes.converters.version>
         <jackson.version>2.21.7</jackson.version>
         <kafka.version>4.1.2</kafka.version>
@@ -300,7 +300,7 @@
                     <systemPropertyVariables>
                         <container.logs.dir>${project.build.directory}/container-logs/</container.logs.dir>
                         <filter.jar.path>${project.build.directory}/${project.artifactId}-${project.version}.jar</filter.jar.path>
-                        <e2e.kroxylicious.image>quay.io/kroxylicious/kroxylicious:${kroxylicious.version}</e2e.kroxylicious.image>
+                        <e2e.kroxylicious.image>quay.io/kroxylicious/proxy:${kroxylicious.version}</e2e.kroxylicious.image>
                         <e2e.kafka.image>confluentinc/cp-kafka:${confluent.version}</e2e.kafka.image>
                         <e2e.schema.registry.image>confluentinc/cp-schema-registry:${confluent.version}</e2e.schema.registry.image>
                     </systemPropertyVariables>
