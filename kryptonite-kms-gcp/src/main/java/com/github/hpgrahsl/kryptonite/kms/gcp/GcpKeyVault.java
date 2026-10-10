@@ -43,6 +43,7 @@ public class GcpKeyVault extends AbstractKeyVault {
     this(keyMaterialResolver, prefetch, true);
   }
 
+  @SuppressWarnings("this-escape")
   public GcpKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
     super(new ConcurrentHashMap<>());
     if (!prefetch && !lazyLoadEnabled) {

@@ -41,6 +41,7 @@ public class AzureKeyVault extends AbstractKeyVault {
     this(keyMaterialResolver, prefetch, true);
   }
 
+  @SuppressWarnings("this-escape")
   public AzureKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
     super(new ConcurrentHashMap<>());
     if (!prefetch && !lazyLoadEnabled) {

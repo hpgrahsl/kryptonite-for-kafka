@@ -226,6 +226,8 @@ See `sample-proxy-config-json.yaml`, `sample-proxy-config-jsonschema.yaml`, and 
 
 ## Building
 
+Requires JDK 21+ (the filter JAR targets Java 21, all other modules still target Java 17).
+
 ```bash
 # from the repository root
 ./mvnw clean install -pl kroxylicious-filter-kryptonite
