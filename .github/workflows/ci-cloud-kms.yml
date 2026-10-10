@@ -45,5 +45,7 @@ jobs:
           mkdir -p funqy-http-kryptonite/src/test/resources
           printf '%s' "$CREDS" > funqy-http-kryptonite/src/test/resources/credentials.properties
 
+      # --fail-at-end: a failing module (e.g. expired credentials for one cloud provider) only skips the
+      # modules depending on it, so the cloud KMS tests of all other modules still run
       - name: Build and run including all cloud KMS tests
-        run: ./mvnw verify -Dcloud.kms.tests=true
+        run: ./mvnw --fail-at-end verify -Dcloud.kms.tests=true
