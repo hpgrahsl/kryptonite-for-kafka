@@ -12,6 +12,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.NetworkException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -27,11 +28,13 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 
 /**
@@ -93,8 +96,7 @@ class JsonProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
             .withNetworkAliases("kroxylicious")
             .dependsOn(KAFKA)
             .withCopyFileToContainer(
-                    MountableFile.forHostPath(System.getProperty("filter.jar.path",
-                            "target/kroxylicious-filter-kryptonite-0.1.0-SNAPSHOT.jar")),
+                    MountableFile.forHostPath(FILTER_JAR_PATH),
                     "/opt/kroxylicious/plugins/kroxylicious-filter-kryptonite.jar")
             .withCopyFileToContainer(
                     MountableFile.forClasspathResource("e2e-proxy-config-json.yaml"),
@@ -184,6 +186,36 @@ class JsonProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
             assertThat(entry.getValue().isTextual()).isTrue();
             assertThat(List.of(95, 87)).doesNotContain(entry.getValue().asInt());
         });
+    }
+
+    @Test
+    void encryptionFailureFailsProduceAndNothingReachesBroker() throws Exception {
+        String topic = "e2e-json-" + UUID.randomUUID();
+        createTopic(topic);
+
+        // not a JSON object, so field encryption fails inside the proxy; the proxy reacts to a filter
+        // ending exceptionally by closing the client connection (no error response is sent), which
+        // the producer surfaces as a NetworkException once retries are disabled
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
+                "bootstrap.servers", kroxyliciousBootstrap(),
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "enable.idempotence", "false",
+                "retries", "0"))) {
+            assertThatThrownBy(() -> producer.send(new ProducerRecord<>(topic, "this is not json"))
+                    .get(30, TimeUnit.SECONDS))
+                    .isInstanceOf(ExecutionException.class)
+                    .hasCauseInstanceOf(NetworkException.class);
+        }
+
+        // the failed batch must never have been forwarded to the broker
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(Map.of(
+                "bootstrap.servers", kafkaBootstrap(),
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer"))) {
+            TopicPartition tp = new TopicPartition(topic, 0);
+            assertThat(consumer.endOffsets(List.of(tp))).containsEntry(tp, 0L);
+        }
     }
 
     // -------------------------------------------------------------------------

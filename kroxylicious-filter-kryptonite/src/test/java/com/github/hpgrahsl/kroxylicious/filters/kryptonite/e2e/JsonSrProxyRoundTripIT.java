@@ -89,8 +89,7 @@ class JsonSrProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
             .withNetworkAliases("kroxylicious")
             .dependsOn(KAFKA, SCHEMA_REGISTRY)
             .withCopyFileToContainer(
-                    MountableFile.forHostPath(System.getProperty("filter.jar.path",
-                            "target/kroxylicious-filter-kryptonite-0.1.0-SNAPSHOT.jar")),
+                    MountableFile.forHostPath(FILTER_JAR_PATH),
                     "/opt/kroxylicious/plugins/kroxylicious-filter-kryptonite.jar")
             .withCopyFileToContainer(
                     MountableFile.forClasspathResource("e2e-proxy-config-jsonsr.yaml"),
