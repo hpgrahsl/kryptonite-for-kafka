@@ -18,10 +18,14 @@ management:
   endpoints:
     prometheus: {}
 
+clusterDefinitions:
+  - name: kafka
+    bootstrapServers: kafka:9092
+
 virtualClusters:
   - name: e2ecluster
-    targetCluster:
-      bootstrapServers: kafka:9092
+    target:
+      cluster: kafka
     gateways:
       - name: e2egateway
         portIdentifiesNode:

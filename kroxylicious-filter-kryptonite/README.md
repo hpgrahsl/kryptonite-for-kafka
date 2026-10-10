@@ -45,6 +45,8 @@ In practice this means the KMS will receive twice the number of list/fetch calls
 
 The simplest mitigation is to configure the same `kms_refresh_interval_minutes` in both factory configs and accept the doubled call rate, or to increase the interval if quota headroom is tight. A shared key-vault / shared `Kryptonite` instance across both factories would eliminate the duplication but is not implemented today.
 
+Since Kroxylicious 0.22, filter factories are additionally initialized **once per virtual cluster** that uses them. Every virtual cluster therefore gets its own `Kryptonite` instance, blocking thread pool, Schema Registry client, and KMS sync thread per factory, i.e. the KMS call rate scales with the number of virtual clusters × factories.
+
 ## What is currently supported
 
 | Dimension | Supported |
