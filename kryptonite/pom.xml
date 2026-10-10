@@ -32,7 +32,8 @@
   <properties>
     <google.tink.java.version>1.21.0</google.tink.java.version>
     <mysto.fpe.version>1.2.0</mysto.fpe.version>
-    <jackson.version>2.18.4</jackson.version>
+    <jackson.version>2.18.11</jackson.version>
+    <log4j.version>2.25.5</log4j.version>
     <caffeine.version>3.2.0</caffeine.version>
     <junit.version>5.14.0</junit.version>
   </properties>
@@ -47,6 +48,24 @@
       <groupId>io.github.mysto</groupId>
       <artifactId>ff3</artifactId>
       <version>${mysto.fpe.version}</version>
+      <!-- ff3 declares log4j-api and log4j-core at runtime scope: a library must not ship a logging backend,
+           so log4j-core is dropped and log4j-api is declared below with a patched version -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.logging.log4j</groupId>
+          <artifactId>log4j-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>${log4j.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

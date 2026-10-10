@@ -32,13 +32,25 @@
   <properties>
     <kryptonite.serdes.converters.version>0.3.0-SNAPSHOT</kryptonite.serdes.converters.version>
     <kryptonite.kms.version>0.3.0-SNAPSHOT</kryptonite.kms.version>
-    <kafka.version>4.1.0</kafka.version>
-    <jackson.version>2.20.0</jackson.version>
+    <kafka.version>4.1.2</kafka.version>
+    <jackson.version>2.18.11</jackson.version>
     <logback.version>1.2.13</logback.version>
     <junit.version>5.14.0</junit.version>
     <kryptonite.test.fixtures.version>0.3.0-SNAPSHOT</kryptonite.test.fixtures.version>
     <kryptonite.kms.azure.version>0.3.0-SNAPSHOT</kryptonite.kms.azure.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>

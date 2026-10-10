@@ -34,7 +34,7 @@
         <kryptonite.serdes.converters.version>0.3.0-SNAPSHOT</kryptonite.serdes.converters.version>
         <kryptonite.kms.version>0.3.0-SNAPSHOT</kryptonite.kms.version>
         <ksql.version>7.5.9</ksql.version>
-        <jackson.version>2.18.3</jackson.version>
+        <jackson.version>2.18.11</jackson.version>
         <logback.version>1.2.13</logback.version>
         <junit.version>5.10.2</junit.version>
         <kryptonite.test.fixtures.version>0.3.0-SNAPSHOT</kryptonite.test.fixtures.version>

@@ -25,10 +25,28 @@
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>3.21.4</quarkus.platform.version>
+    <jackson.version>2.18.11</jackson.version>
+    <log4j.version>2.25.5</log4j.version>
     <skipITs>true</skipITs>
   </properties>
   <dependencyManagement>
     <dependencies>
+      <!-- imported before the quarkus-bom so that it takes precedence: patched jackson within the same minor version -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- quarkus-bom manages log4j-api 2.24.3: override with a patched version -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>${log4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>${quarkus.platform.artifact-id}</artifactId>
@@ -77,7 +95,7 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-to-slf4j</artifactId>
-      <version>2.24.3</version>
+      <version>${log4j.version}</version>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
