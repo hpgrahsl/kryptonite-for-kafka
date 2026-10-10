@@ -32,8 +32,9 @@
   <properties>
     <jackson.version>2.18.11</jackson.version>
     <google.tink.java.gcpkms.version>1.10.0</google.tink.java.gcpkms.version>
-    <google.cloud.secretmanager.version>2.31.0</google.cloud.secretmanager.version>
-    <google.protobuf.version>4.32.1</google.protobuf.version>
+    <google.cloud.libraries.bom.version>26.90.0</google.cloud.libraries.bom.version>
+    <google.cloud.secretmanager.version>2.99.0</google.cloud.secretmanager.version>
+    <google.protobuf.version>4.33.6</google.protobuf.version>
     <junit.version>5.14.0</junit.version>
     <kryptonite.test.fixtures.version>0.3.0-SNAPSHOT</kryptonite.test.fixtures.version>
   </properties>
@@ -44,6 +45,14 @@
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- aligns protobuf, grpc, gax, auth and http-client versions across secretmanager and tink-gcpkms -->
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>libraries-bom</artifactId>
+        <version>${google.cloud.libraries.bom.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
