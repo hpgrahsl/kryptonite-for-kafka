@@ -34,6 +34,9 @@ public class ProfileKeySourceConfigEncrypted implements QuarkusTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
+        if (!TestFixturesCloudKms.cloudKmsTestsEnabled()) {
+            return Map.of();
+        }
         try {
             var credentials = TestFixturesCloudKms.readCredentials();
             return Map.ofEntries(
