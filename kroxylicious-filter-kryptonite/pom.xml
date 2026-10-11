@@ -18,7 +18,8 @@
         <kryptonite.serdes.converters.version>0.3.0-SNAPSHOT</kryptonite.serdes.converters.version>
         <jackson.version>2.21.7</jackson.version>
         <kafka.version>4.1.2</kafka.version>
-        <confluent.version>7.9.0</confluent.version>
+        <confluent.version>8.3.2</confluent.version>
+        <avro.version>1.12.1</avro.version>
         <junit.version>5.14.0</junit.version>
         <mockito.version>5.20.0</mockito.version>
         <log4j.version>2.25.5</log4j.version>
@@ -79,6 +80,13 @@
                 <version>${log4j.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <!-- align Avro with the version the Confluent serdes are built against;
+                 kryptonite-serdes-converters would otherwise pull in its older Avro -->
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -80,9 +80,9 @@ abstract class AbstractKroxyliciousBaseIT {
     protected static final int PROXY_BOOTSTRAP_PORT = 9192;
     protected static final int PROXY_BROKER_PORT = 9193;
 
-    protected static final String KAFKA_IMAGE = System.getProperty("e2e.kafka.image", "confluentinc/cp-kafka:7.9.0");
+    protected static final String KAFKA_IMAGE = System.getProperty("e2e.kafka.image", "confluentinc/cp-kafka:8.3.2");
     protected static final String SR_IMAGE = System.getProperty("e2e.schema.registry.image",
-            "confluentinc/cp-schema-registry:7.9.0");
+            "confluentinc/cp-schema-registry:8.3.2");
     protected static final String KROXYLICIOUS_IMAGE = System.getProperty("e2e.kroxylicious.image",
             "quay.io/kroxylicious/proxy:0.25.0");
     protected static final String FILTER_JAR_PATH = System.getProperty("filter.jar.path",
