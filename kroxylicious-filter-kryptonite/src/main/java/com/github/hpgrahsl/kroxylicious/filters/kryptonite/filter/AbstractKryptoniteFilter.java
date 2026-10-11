@@ -68,6 +68,13 @@ abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
      */
     protected abstract byte[] transform(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs);
 
+    /**
+     * Handles a control batch (transaction marker) encountered in the records of a partition. Control batches
+     * are never passed to {@link #transform}; implementations either copy them unchanged into {@code builder}
+     * or reject them by throwing a {@link RecordFormatException}.
+     */
+    protected abstract void handleControlBatch(MutableRecordBatch batch, BatchAwareMemoryRecordsBuilder builder);
+
     @Override
     public CompletionStage<ResponseFilterResult> onApiVersionsResponse(
             short apiVersion, ResponseHeaderData header, ApiVersionsResponseData response,
@@ -98,21 +105,31 @@ abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
         BatchAwareMemoryRecordsBuilder builder = new BatchAwareMemoryRecordsBuilder(stream);
 
         return CompletableFuture.runAsync(() -> {
-            int transformedRecords = 0;
+            int deliveredRecords = 0;
             try {
                 for (var rawBatch : records.batches()) {
                     MutableRecordBatch batch = (MutableRecordBatch) rawBatch;
+                    // control batches (transaction markers) carry no user data and are never transformed. This is the
+                    // very check Kafka consumers use to never hand such records to applications, so no data batch can
+                    // ever bypass the transformation; what happens to the control batch is direction-specific
+                    if (batch.isControlBatch()) {
+                        handleControlBatch(batch, builder);
+                        deliveredRecords++;
+                        continue;
+                    }
                     builder.addBatchLike(batch);
                     for (Record record : batch) {
-                        byte[] originalValue = toBytes(record.value());
-                        byte[] transformedValue = transform(originalValue, topicName, fieldConfigs);
+                        // tombstones (null value) are passed through unchanged to preserve their delete semantics
+                        ByteBuffer value = record.hasValue()
+                                ? ByteBuffer.wrap(transform(toBytes(record.value()), topicName, fieldConfigs))
+                                : null;
                         builder.appendWithOffset(record.offset(), record.timestamp(),
-                                record.key(), ByteBuffer.wrap(transformedValue), record.headers());
-                        transformedRecords++;
+                                record.key(), value, record.headers());
+                        deliveredRecords++;
                     }
                 }
             } catch (RecordFormatException e) {
-                if (!truncateOnRecordFormatError || transformedRecords == 0) {
+                if (!truncateOnRecordFormatError || deliveredRecords == 0) {
                     throw e;
                 }
                 // keep the records before the failing one; an opened but empty batch is not written by the builder

@@ -30,7 +30,7 @@ Kryptonite for Kafka ships two independent filters:
 
 Each filter operates entirely independently. Running both in the same proxy instance is the most common setup. It gives producers and consumers a single transparent endpoint with bi-directional, end-to-end field-level protection. That said, you do not have to deploy them together. You can place only the encryption filter in a proxy in front of producers, and a separate proxy instance with only the decryption filter in front of consumers, depending on your architecture.
 
-Fields that are not listed in the configuration (see `topic_field_configs`) pass through unchanged regardless of which filters are active.
+Fields that are not listed in the configuration (see `topic_field_configs`) pass through unchanged regardless of which filters are active. The same applies to tombstones (records with a `null` value), which keep their delete semantics, and to transaction markers (control records) on transactional topics.
 
 Topic routing is controlled by `topic_pattern` entries, each carrying its own `field_configs` list. Patterns are **Java regular expressions** anchored at both ends (the same as `^pattern$`), giving full regex expressiveness for topic name matching.
 
@@ -585,7 +585,7 @@ The filters distinguish **record format errors**, which can never succeed when r
 
 | Failure | Examples | Produce path (encryption) | Fetch path (decryption) |
 |---|---|---|---|
-| **Record format error** | record value not parseable in the configured `record_format` (invalid JSON, missing Schema Registry wire prefix, undecodable Avro); field for a dynamic key identifier missing, non-string, or blank | The produce request is rejected with `INVALID_RECORD`. Producers fail immediately with an `InvalidRecordException`, without retries. | Records before the failing one are delivered. The partition then reports `CORRUPT_MESSAGE`, so the consumer's `poll()` throws a `KafkaException` at the exact offset of the failing record. Other partitions are unaffected. Applications can `seek()` past the record to skip it. |
+| **Record format error** | record value not parseable in the configured `record_format` (invalid JSON, missing Schema Registry wire prefix, undecodable Avro); field for a dynamic key identifier missing, non-string, or blank; control records (transaction markers) in a produce request, which only brokers may write | The produce request is rejected with `INVALID_RECORD`. Producers fail immediately with an `InvalidRecordException`, without retries. | Records before the failing one are delivered. The partition then reports `CORRUPT_MESSAGE`, so the consumer's `poll()` throws a `KafkaException` at the exact offset of the failing record. Other partitions are unaffected. Applications can `seek()` past the record to skip it. |
 | **Any other failure** | unknown or wrong key, tampered ciphertext, KMS or Schema Registry unavailable, field configuration not matching the schema | The proxy closes the client connection. Producers retry until `delivery.timeout.ms` expires. | The proxy closes the client connection. Consumers re-fetch and make no progress until the cause is resolved. |
 
 !!! note

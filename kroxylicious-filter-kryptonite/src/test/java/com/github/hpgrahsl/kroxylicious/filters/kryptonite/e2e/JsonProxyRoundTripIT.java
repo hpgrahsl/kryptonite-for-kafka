@@ -267,9 +267,92 @@ class JsonProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
         }
     }
 
+    @Test
+    void tombstonesPassThroughUnchanged() throws Exception {
+        String topic = "e2e-json-" + UUID.randomUUID();
+        createTopic(topic);
+
+        produceViaProxy(topic, MAPPER.readTree(PAYLOAD));      // offset 0
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
+                "bootstrap.servers", kroxyliciousBootstrap(),
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer"))) {
+            producer.send(new ProducerRecord<>(topic, "deleted-key", null)).get(10, TimeUnit.SECONDS); // offset 1
+        }
+        produceViaProxy(topic, MAPPER.readTree(PAYLOAD));      // offset 2
+
+        // at rest: the tombstone is stored as a tombstone
+        List<ConsumerRecord<String, String>> atRest = consumeAll(topic, kafkaBootstrap(), "read_uncommitted", 3);
+        assertThat(atRest.get(1).key()).isEqualTo("deleted-key");
+        assertThat(atRest.get(1).value()).isNull();
+
+        // through the proxy: the tombstone is delivered as is and does not block the records around it
+        List<ConsumerRecord<String, String>> viaProxy = consumeAll(topic, kroxyliciousBootstrap(), "read_uncommitted", 3);
+        assertThat(viaProxy).extracting(ConsumerRecord::offset).containsExactly(0L, 1L, 2L);
+        assertThat(viaProxy.get(1).key()).isEqualTo("deleted-key");
+        assertThat(viaProxy.get(1).value()).isNull();
+        assertThat(MAPPER.readTree(viaProxy.get(0).value()).get("firstname").asText()).isEqualTo("Alice");
+        assertThat(MAPPER.readTree(viaProxy.get(2).value()).get("firstname").asText()).isEqualTo("Alice");
+    }
+
+    @Test
+    void transactionalRecordsAndMarkersRoundTrip() throws Exception {
+        String topic = "e2e-json-" + UUID.randomUUID();
+        createTopic(topic);
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
+                "bootstrap.servers", kroxyliciousBootstrap(),
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "transactional.id", "e2e-txn-" + UUID.randomUUID()))) {
+            producer.initTransactions();
+            producer.beginTransaction();
+            producer.send(new ProducerRecord<>(topic, "committed", MAPPER.writeValueAsString(MAPPER.readTree(PAYLOAD))));
+            producer.commitTransaction();                      // offset 0 data, offset 1 commit marker
+            producer.beginTransaction();
+            producer.send(new ProducerRecord<>(topic, "aborted", MAPPER.writeValueAsString(MAPPER.readTree(PAYLOAD))));
+            producer.flush();
+            producer.abortTransaction();                       // offset 2 data, offset 3 abort marker
+        }
+        produceViaProxy(topic, MAPPER.readTree(PAYLOAD));      // offset 4, non-transactional
+
+        // at rest: transactional records are encrypted like any other record
+        List<ConsumerRecord<String, String>> atRest = consumeAll(topic, kafkaBootstrap(), "read_uncommitted", 3);
+        assertEncryptedString(MAPPER.readTree(atRest.get(0).value()), "firstname", "Alice");
+
+        // markers pass through the proxy unchanged, so consumers apply transaction semantics as usual
+        List<ConsumerRecord<String, String>> committed = consumeAll(topic, kroxyliciousBootstrap(), "read_committed", 2);
+        assertThat(committed).extracting(ConsumerRecord::offset).containsExactly(0L, 4L);
+        List<ConsumerRecord<String, String>> uncommitted = consumeAll(topic, kroxyliciousBootstrap(), "read_uncommitted", 3);
+        assertThat(uncommitted).extracting(ConsumerRecord::offset).containsExactly(0L, 2L, 4L);
+        for (ConsumerRecord<String, String> record : uncommitted) {
+            assertThat(MAPPER.readTree(record.value()).get("firstname").asText()).isEqualTo("Alice");
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    private static List<ConsumerRecord<String, String>> consumeAll(String topic, String bootstrap,
+                                                                   String isolationLevel, int expectedRecords) {
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(Map.of(
+                "bootstrap.servers", bootstrap,
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "isolation.level", isolationLevel,
+                "enable.auto.commit", "false"))) {
+            TopicPartition tp = new TopicPartition(topic, 0);
+            consumer.assign(List.of(tp));
+            consumer.seekToBeginning(List.of(tp));
+            List<ConsumerRecord<String, String>> received = new ArrayList<>();
+            await().atMost(15, TimeUnit.SECONDS).until(() -> {
+                consumer.poll(Duration.ofMillis(500)).forEach(received::add);
+                return received.size() >= expectedRecords;
+            });
+            return received;
+        }
+    }
 
     private static void produceDirect(String topic, String value) throws Exception {
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
