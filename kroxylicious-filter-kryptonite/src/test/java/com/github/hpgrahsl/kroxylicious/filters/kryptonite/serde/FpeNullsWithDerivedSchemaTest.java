@@ -34,6 +34,7 @@ import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestF
 import static com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures.toWireBytes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -41,12 +42,13 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
- * FPE null handling against encrypted schemas produced by the real schema derivers (as in DYNAMIC
- * schema mode), rather than hand-written ones: null is by definition not encryptable with FPE and
- * stays null, so the derived encrypted schema must be able to hold it.
+ * FPE against encrypted schemas produced by the real schema derivers (as in DYNAMIC schema mode),
+ * rather than hand-written ones: null is by definition not encryptable with FPE and stays null, so the
+ * derived encrypted schema must be able to hold it; nested Avro records in ELEMENT mode get each string
+ * sub-field FPE-encrypted individually.
  */
 @ExtendWith(MockitoExtension.class)
-@DisplayName("FPE null handling with derived encrypted schemas")
+@DisplayName("FPE with derived encrypted schemas — null handling and nested records")
 class FpeNullsWithDerivedSchemaTest {
 
     private static final String TOPIC = "test-topic";
@@ -162,6 +164,99 @@ class FpeNullsWithDerivedSchemaTest {
                     stripWirePrefix(processor.decryptFields(encrypted, TOPIC, fields)), AVRO_ORIG).get("codes"));
             assertThat(decCodes.get("a").toString()).isEqualTo(CARD);
             assertThat(decCodes).containsEntry("b", null);
+        }
+    }
+
+    // ---- AVRO nested record in ELEMENT mode ----
+
+    private static final String SSN = "123456789";
+
+    private static final Schema PAYMENT = SchemaBuilder.record("Payment").namespace("test").fields()
+            .name("card").type().stringType().noDefault()
+            .name("ssn").type().unionOf().nullType().and().stringType().endUnion().nullDefault()
+            .endRecord();
+
+    private static final Schema ORDER = SchemaBuilder.record("Order").namespace("test").fields()
+            .name("id").type().stringType().noDefault()
+            .name("payment").type(PAYMENT).noDefault()
+            .endRecord();
+
+    @Nested
+    @DisplayName("AVRO nested record in ELEMENT mode")
+    class AvroNestedRecord {
+
+        private final Set<FieldConfig> fields = Set.of(fpeField("payment", FieldConfig.FieldMode.ELEMENT));
+
+        private AvroSchemaRegistryRecordProcessor processor;
+        private Schema derived;
+
+        @BeforeEach
+        void setUp() {
+            processor = new AvroSchemaRegistryRecordProcessor(TestFixtures.fpeKryptonite(), adapter, TestFixtures.fpeFilterConfig());
+            derived = new AvroSchemaDeriver().deriveEncrypted(ORDER, fields).schema();
+            lenient().when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(ORDER));
+            lenient().when(adapter.fetchSchema(ENCRYPTED_ID)).thenReturn(new AvroSchema(derived));
+        }
+
+        private byte[] wire(String card, String ssn) throws Exception {
+            GenericRecord payment = new GenericData.Record(PAYMENT);
+            payment.put("card", card);
+            payment.put("ssn", ssn);
+            GenericRecord order = new GenericData.Record(ORDER);
+            order.put("id", "o-1");
+            order.put("payment", payment);
+            return toWireBytes(ORIGINAL_ID, avroSerialize(order, ORDER));
+        }
+
+        @Test
+        @DisplayName("each string sub-field is FPE-encrypted individually and restored on decrypt")
+        void stringSubFieldsRoundTrip() throws Exception {
+            byte[] encrypted = processor.encryptFields(wire(CARD, SSN), TOPIC, fields);
+            GenericRecord encPayment = (GenericRecord) avroDeserialize(stripWirePrefix(encrypted), derived).get("payment");
+            assertThat(encPayment.get("card").toString()).hasSize(CARD.length()).isNotEqualTo(CARD).containsOnlyDigits();
+            assertThat(encPayment.get("ssn").toString()).hasSize(SSN.length()).isNotEqualTo(SSN).containsOnlyDigits();
+
+            GenericRecord payment = (GenericRecord) avroDeserialize(
+                    stripWirePrefix(processor.decryptFields(encrypted, TOPIC, fields)), ORDER).get("payment");
+            assertThat(payment.get("card").toString()).isEqualTo(CARD);
+            assertThat(payment.get("ssn").toString()).isEqualTo(SSN);
+        }
+
+        @Test
+        @DisplayName("a null sub-field stays null on encrypt and decrypt")
+        void nullSubFieldStaysNull() throws Exception {
+            byte[] encrypted = processor.encryptFields(wire(CARD, null), TOPIC, fields);
+            GenericRecord encPayment = (GenericRecord) avroDeserialize(stripWirePrefix(encrypted), derived).get("payment");
+            assertThat(encPayment.get("card").toString()).isNotEqualTo(CARD);
+            assertThat(encPayment.get("ssn")).isNull();
+
+            GenericRecord payment = (GenericRecord) avroDeserialize(
+                    stripWirePrefix(processor.decryptFields(encrypted, TOPIC, fields)), ORDER).get("payment");
+            assertThat(payment.get("card").toString()).isEqualTo(CARD);
+            assertThat(payment.get("ssn")).isNull();
+        }
+
+        @Test
+        @DisplayName("a non-string sub-field is rejected — FPE only applies to strings")
+        void nonStringSubFieldRejected() throws Exception {
+            Schema mixed = SchemaBuilder.record("Mixed").namespace("test").fields()
+                    .name("card").type().stringType().noDefault()
+                    .name("amount").type().intType().noDefault()
+                    .endRecord();
+            Schema outer = SchemaBuilder.record("Outer").namespace("test").fields()
+                    .name("payment").type(mixed).noDefault()
+                    .endRecord();
+            when(adapter.fetchSchema(ORIGINAL_ID)).thenReturn(new AvroSchema(outer));
+            GenericRecord payment = new GenericData.Record(mixed);
+            payment.put("card", CARD);
+            payment.put("amount", 42);
+            GenericRecord record = new GenericData.Record(outer);
+            record.put("payment", payment);
+
+            assertThatThrownBy(() -> processor.encryptFields(
+                    toWireBytes(ORIGINAL_ID, avroSerialize(record, outer)), TOPIC, fields))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("sub-field 'amount'");
         }
     }
 
