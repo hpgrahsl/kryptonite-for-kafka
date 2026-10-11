@@ -48,6 +48,7 @@ public class AwsKeyVaultEncrypted extends AbstractKeyVault {
     this(kmsKeyEncryption, keyMaterialResolver, prefetch, true);
   }
 
+  @SuppressWarnings("this-escape")
   public AwsKeyVaultEncrypted(KmsKeyEncryption kmsKeyEncryption, KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
     super(new ConcurrentHashMap<>());
     if (!prefetch && !lazyLoadEnabled) {

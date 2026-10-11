@@ -46,7 +46,7 @@ Topic routing is controlled by `topic_pattern` entries, each carrying its own `f
 3. Reference the filter factories in your Kroxylicious proxy configuration YAML (see examples below).
 4. Run Kroxylicious (see official [Proxy Quick Start](https://kroxylicious.io/documentation/0.20.0/html/proxy-quick-start/))
 
-If building from sources:
+If building from sources (requires JDK 21+, the filter JAR targets Java 21):
 
 ```bash
 ./mvnw clean package -DskipTests -pl kroxylicious-filter-kryptonite

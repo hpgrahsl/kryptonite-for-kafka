@@ -82,6 +82,7 @@ public class UnifiedTypeConverter {
     private final MapToRowConverter mapToRowConverter;
     private final StructToRowConverter structToRowConverter;
 
+    @SuppressWarnings("this-escape")
     public UnifiedTypeConverter() {
         this.structToMapConverter = new StructToMapConverter(this);
         this.rowToMapConverter = new RowToMapConverter(this);

@@ -43,6 +43,7 @@ public class AwsKeyVault extends AbstractKeyVault {
     this(keyMaterialResolver, prefetch, true);
   }
 
+  @SuppressWarnings("this-escape")
   public AwsKeyVault(KeyMaterialResolver keyMaterialResolver, boolean prefetch, boolean lazyLoadEnabled) {
     super(new ConcurrentHashMap<>());
     if (!prefetch && !lazyLoadEnabled) {

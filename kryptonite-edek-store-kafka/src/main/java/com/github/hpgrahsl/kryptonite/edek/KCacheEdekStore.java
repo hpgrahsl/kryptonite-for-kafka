@@ -75,6 +75,7 @@ public class KCacheEdekStore implements EdekStore {
    * Convenience constructor for direct instantiation — calls {@link #init(String)} immediately,
    * so the returned instance is ready to use without a separate init call.
    */
+  @SuppressWarnings("this-escape")
   public KCacheEdekStore(String configJson) throws Exception {
     init(configJson);
   }

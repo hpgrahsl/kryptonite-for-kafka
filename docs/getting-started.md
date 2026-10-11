@@ -63,7 +63,7 @@ Kryptonite for Kafka ships five independent integration modules. Pick the one(s)
 
 Kryptonite for Kafka modules share the same baseline requirements:
 
-- **Java 17+** available on the host running the respective Kryptonite for Kafka module
+- **Java 17+** available on the host running the respective Kryptonite for Kafka module (**Java 21+** for the [Kroxylicious Filter](modules/kroxylicious-filter.md))
 - **Key material:** generate keysets either with the purpose-built [Keyset Tool](keyset-tool.md) or embed an existing Tink keyset
 - **Apache Kafka:** a running cluster reachable from the module's runtime
 
