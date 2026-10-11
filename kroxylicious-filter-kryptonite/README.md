@@ -279,8 +279,8 @@ Container images can be overridden via system properties:
 
 | Property | Default |
 |---|---|
-| `e2e.kafka.image` | `confluentinc/cp-kafka:7.9.0` |
-| `e2e.schema.registry.image` | `confluentinc/cp-schema-registry:7.9.0` |
+| `e2e.kafka.image` | `confluentinc/cp-kafka:8.3.2` |
+| `e2e.schema.registry.image` | `confluentinc/cp-schema-registry:8.3.2` |
 | `e2e.kroxylicious.image` | `quay.io/kroxylicious/kroxylicious:0.19.0` |
 
 ## Known Limitations

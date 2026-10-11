@@ -1,7 +1,9 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.it;
 
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -11,6 +13,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Base class for Schema Registry integration tests.
@@ -41,9 +45,9 @@ abstract class AbstractSchemaRegistryIT {
     private static final Network NETWORK = Network.newNetwork();
 
     public static final String KAFKA_IMAGE =
-            System.getProperty("e2e.kafka.image", "confluentinc/cp-kafka:7.9.0");
+            System.getProperty("e2e.kafka.image", "confluentinc/cp-kafka:8.3.2");
     public static final String SCHEMA_REGISTRY_IMAGE =
-            System.getProperty("e2e.schema.registry.image", "confluentinc/cp-schema-registry:7.9.0");
+            System.getProperty("e2e.schema.registry.image", "confluentinc/cp-schema-registry:8.3.2");
 
     @Container
     protected static final GenericContainer<?> KAFKA =
@@ -85,6 +89,8 @@ abstract class AbstractSchemaRegistryIT {
     }
 
     protected static SchemaRegistryClient newSchemaRegistryClient() {
-        return new CachedSchemaRegistryClient(schemaRegistryUrl(), 100);
+        // same providers as the filter factory: without them the client only knows Avro and can't parse JSON schemas
+        return new CachedSchemaRegistryClient(List.of(schemaRegistryUrl()), 100,
+                List.of(new JsonSchemaProvider(), new AvroSchemaProvider()), Map.of());
     }
 }
