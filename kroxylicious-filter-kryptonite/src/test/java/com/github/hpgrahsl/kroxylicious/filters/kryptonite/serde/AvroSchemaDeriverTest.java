@@ -320,4 +320,70 @@ class AvroSchemaDeriverTest {
             assertThat(numsSchema.getElementType().getType()).isEqualTo(Schema.Type.INT);
         }
     }
+    // ---- ELEMENT mode with FPE ----
+
+    private static final String FPE_ALGORITHM = "CUSTOM/MYSTO_FPE_FF3_1";
+
+    private static final Schema NULLABLE_SLOTS = SchemaBuilder.record("Slots").namespace("test").fields()
+            .name("tags").type().array().items().nullable().stringType().noDefault()
+            .name("attrs").type().map().values().nullable().stringType().noDefault()
+            .name("inner").type(SchemaBuilder.record("Inner").namespace("test").fields()
+                    .name("a").type().nullable().stringType().noDefault()
+                    .name("b").type().stringType().noDefault()
+                    .endRecord()).noDefault()
+            .endRecord();
+
+    private static boolean isNullableString(Schema schema) {
+        return schema.getType() == Schema.Type.UNION
+                && schema.getTypes().stream().map(Schema::getType).toList()
+                        .containsAll(List.of(Schema.Type.NULL, Schema.Type.STRING))
+                && schema.getTypes().size() == 2;
+    }
+
+    @Nested
+    @DisplayName("deriveEncrypted — ELEMENT mode with FPE keeps nullable element slots nullable")
+    class DeriveEncryptedElementModeFpe {
+
+        private FieldConfig fpeElement(String name) {
+            return FieldConfig.builder().name(name).fieldMode(FieldConfig.FieldMode.ELEMENT).algorithm(FPE_ALGORITHM).build();
+        }
+
+        @Test
+        @DisplayName("FPE: nullable array items, map values and record sub-fields become [null,string]; non-nullable stay string")
+        void fpeNullableSlotsStayNullable() {
+            Schema derived = deriver.deriveEncrypted(NULLABLE_SLOTS,
+                    Set.of(fpeElement("tags"), fpeElement("attrs"), fpeElement("inner"))).schema();
+
+            assertThat(isNullableString(derived.getField("tags").schema().getElementType())).isTrue();
+            assertThat(isNullableString(derived.getField("attrs").schema().getValueType())).isTrue();
+            Schema inner = derived.getField("inner").schema();
+            assertThat(isNullableString(inner.getField("a").schema())).isTrue();
+            assertThat(inner.getField("b").schema().getType()).isEqualTo(Schema.Type.STRING);
+        }
+
+        @Test
+        @DisplayName("non-FPE (AEAD): element slots become plain string as before — encrypted nulls are ciphertext")
+        void aeadSlotsUnchanged() {
+            Set<FieldConfig> fields = Set.of(
+                    FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build(),
+                    FieldConfig.builder().name("attrs").fieldMode(FieldConfig.FieldMode.ELEMENT).build(),
+                    FieldConfig.builder().name("inner").fieldMode(FieldConfig.FieldMode.ELEMENT).build());
+            Schema derived = deriver.deriveEncrypted(NULLABLE_SLOTS, fields).schema();
+
+            assertThat(derived.getField("tags").schema().getElementType().getType()).isEqualTo(Schema.Type.STRING);
+            assertThat(derived.getField("attrs").schema().getValueType().getType()).isEqualTo(Schema.Type.STRING);
+            assertThat(derived.getField("inner").schema().getField("a").schema().getType()).isEqualTo(Schema.Type.STRING);
+        }
+
+        @Test
+        @DisplayName("FPE inherited from the filter-level cipher_algorithm is detected as well")
+        void fpeFromFilterDefault() {
+            var fpeDefaultDeriver = new AvroSchemaDeriver(FPE_ALGORITHM);
+            FieldConfig fc = FieldConfig.builder().name("tags").fieldMode(FieldConfig.FieldMode.ELEMENT).build();
+
+            Schema derived = fpeDefaultDeriver.deriveEncrypted(NULLABLE_SLOTS, Set.of(fc)).schema();
+
+            assertThat(isNullableString(derived.getField("tags").schema().getElementType())).isTrue();
+        }
+    }
 }

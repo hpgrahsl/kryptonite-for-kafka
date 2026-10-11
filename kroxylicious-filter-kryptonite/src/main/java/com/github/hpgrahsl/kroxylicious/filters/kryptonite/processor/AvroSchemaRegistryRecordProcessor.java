@@ -84,6 +84,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptRecordFieldValues(record, fc, resolvedKeyId));
             } else {
                 if (FieldConfigUtils.isFpe(fc, config)) {
+                    // null is by definition not encryptable with FPE ciphers and stays null
+                    if (fieldValue == null) continue;
                     if (!(fieldValue instanceof CharSequence cs)) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got type " + fieldValue.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
@@ -175,6 +177,10 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         if (FieldConfigUtils.isFpe(fc, config)) {
             FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             for (Object element : source) {
+                if (element == null) {
+                    result.add(null);
+                    continue;
+                }
                 if (!(element instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string elements in field '" + fc.getName()
                         + "' but got type " + (element == null ? "null" : element.getClass().getSimpleName()) + " — FPE cannot encrypt non-string types");
@@ -195,6 +201,10 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         if (FieldConfigUtils.isFpe(fc, config)) {
             FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             source.forEach((k, v) -> {
+                if (v == null) {
+                    result.put(k, null);
+                    return;
+                }
                 if (!(v instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string values in field '" + fc.getName()
                         + "' but got type " + (v == null ? "null" : v.getClass().getSimpleName()) + " — FPE cannot encrypt non-string types");

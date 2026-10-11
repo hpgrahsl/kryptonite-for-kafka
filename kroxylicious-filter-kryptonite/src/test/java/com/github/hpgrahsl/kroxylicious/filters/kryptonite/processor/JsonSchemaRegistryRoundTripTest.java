@@ -3,6 +3,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings.AlphabetTypeFPE;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.fixtures.TestFixtures;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.SchemaIdAndPayload;
@@ -317,6 +318,24 @@ class JsonSchemaRegistryRoundTripTest {
 
             byte[] decrypted = processor.decryptFields(encrypted, TOPIC, fields);
             assertThat(payloadOf(decrypted).get("optVal").isNull()).isTrue(); // restored to null
+        }
+
+        @Test
+        @DisplayName("FPE OBJECT mode: null field stays null — null is by definition not encryptable with FPE")
+        void fpeNullFieldStaysNull() throws Exception {
+            var fpeProcessor = new JsonSchemaRegistryRecordProcessor(
+                    TestFixtures.fpeKryptonite(), adapter, TestFixtures.fpeFilterConfig());
+            byte[] input = wireBytes("""
+                    {"id":"x","card":null}""");
+            FieldConfig fc = FieldConfig.builder().name("card").fieldMode(FieldConfig.FieldMode.OBJECT)
+                    .algorithm("CUSTOM/MYSTO_FPE_FF3_1").keyId("keyC").fpeAlphabetType(AlphabetTypeFPE.DIGITS).build();
+            Set<FieldConfig> fields = Set.of(fc);
+
+            byte[] encrypted = fpeProcessor.encryptFields(input, TOPIC, fields);
+            assertThat(payloadOf(encrypted).get("card").isNull()).isTrue();
+
+            byte[] decrypted = fpeProcessor.decryptFields(encrypted, TOPIC, fields);
+            assertThat(payloadOf(decrypted).get("card").isNull()).isTrue();
         }
 
         @Test

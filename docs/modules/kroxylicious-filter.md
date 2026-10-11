@@ -495,6 +495,8 @@ topic_field_configs:
         fpeAlphabetType: ALPHANUMERIC
 ```
 
+FPE only applies to string values. `null` values (whole fields as well as array elements or object/map values in `ELEMENT` mode) are by definition not encryptable with FPE and are passed through as `null`, consistent with all other Kryptonite for Kafka modules. Any other non-string value fails the record.
+
 !!! danger "Important"
     Both the encrypt and decrypt filter must be configured with the **exact same** FPE settings (`algorithm`, `keyId`, `fpeAlphabetType`, `fpeTweak`) for a successful round-trip.
 
@@ -541,7 +543,7 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages extr
 | Subject name | Purpose |
 |---|---|
 | `<topic>-value` | Original producer schema (untouched!) |
-| `<topic>-value__k4k_enc` | Encrypted schema for which the original field types are replaced with type `string` for encrypted fields; consumed by direct SR clients reading encrypted data |
+| `<topic>-value__k4k_enc` | Encrypted schema for which the original field types are replaced with type `string` for encrypted fields (nullable fields stay nullable; for FPE in `ELEMENT` mode, nullable array items, map/object values and record sub-fields stay nullable too, since FPE leaves `null` as is); consumed by direct SR clients reading encrypted data |
 | `<topic>-value__k4k_meta<originalSchemaId>` | Encryption metadata, keyed by the original schema ID|
 | `<topic>-value__k4k_meta<encryptedSchemaId>` | Encryption metadata, keyed by the encrypted schema ID |
 
