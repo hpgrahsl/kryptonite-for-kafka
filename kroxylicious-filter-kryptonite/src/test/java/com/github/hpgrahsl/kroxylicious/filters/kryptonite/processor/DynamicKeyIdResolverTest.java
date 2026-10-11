@@ -1,5 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
@@ -142,7 +143,7 @@ class DynamicKeyIdResolverTest {
                     """.getBytes());
 
             assertThatThrownBy(() -> DynamicKeyIdResolver.resolve(fc, cfg, accessor))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(RecordFormatException.class)
                     .hasMessageContaining("customer.country");
         }
 
@@ -161,7 +162,7 @@ class DynamicKeyIdResolverTest {
                     """.getBytes());
 
             assertThatThrownBy(() -> DynamicKeyIdResolver.resolve(fc, cfg, accessor))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(RecordFormatException.class)
                     .hasMessageContaining("textual");
         }
 
@@ -180,7 +181,7 @@ class DynamicKeyIdResolverTest {
                     """.getBytes());
 
             assertThatThrownBy(() -> DynamicKeyIdResolver.resolve(fc, cfg, accessor))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(RecordFormatException.class)
                     .hasMessageContaining("blank string");
         }
 
@@ -298,7 +299,7 @@ class DynamicKeyIdResolverTest {
             var fc = FieldConfig.builder().name("age").build();
 
             assertThatThrownBy(() -> DynamicKeyIdResolver.resolve(fc, cfg, accessorWithoutCustomer()))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(RecordFormatException.class)
                     .hasMessageContaining("customer.country");
         }
 
@@ -309,7 +310,7 @@ class DynamicKeyIdResolverTest {
             var fc = FieldConfig.builder().name("age").build();
 
             assertThatThrownBy(() -> DynamicKeyIdResolver.resolve(fc, cfg, accessor("de", "eu", 123)))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(RecordFormatException.class)
                     .hasMessageContaining("string value is required");
         }
 
@@ -320,7 +321,7 @@ class DynamicKeyIdResolverTest {
             var fc = FieldConfig.builder().name("age").build();
 
             assertThatThrownBy(() -> DynamicKeyIdResolver.resolve(fc, cfg, accessor("   ", "eu", 123)))
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(RecordFormatException.class)
                     .hasMessageContaining("blank string");
         }
 

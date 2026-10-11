@@ -1,5 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumReader;
@@ -52,6 +53,7 @@ public class AvroGenericRecordAccessor implements StructuredRecordAccessor {
      *
      * @param payload    raw Avro binary bytes (no SR prefix — already stripped by the adapter)
      * @param schema     the Avro schema to use for reading
+     * @throws RecordFormatException if the payload cannot be decoded with the given schema
      */
     public static AvroGenericRecordAccessor from(byte[] payload, Schema schema) {
         try {
@@ -60,7 +62,7 @@ public class AvroGenericRecordAccessor implements StructuredRecordAccessor {
             GenericRecord record = reader.read(null, decoder);
             return new AvroGenericRecordAccessor(record, schema);
         } catch (IOException | RuntimeException e) {
-            throw new AvroAccessorException("Failed to deserialize Avro payload", e);
+            throw new RecordFormatException("Failed to deserialize Avro payload", e);
         }
     }
 

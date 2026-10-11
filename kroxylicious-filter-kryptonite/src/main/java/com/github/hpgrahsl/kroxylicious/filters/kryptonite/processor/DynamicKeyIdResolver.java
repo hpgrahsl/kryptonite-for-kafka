@@ -2,6 +2,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor.StructuredRecordAccessor;
@@ -32,13 +33,13 @@ final class DynamicKeyIdResolver {
 
         Object extracted = accessor.getField(fieldPath);
         if (extracted == null) {
-            throw new IllegalStateException("Dynamic key identifier resolution failed for expression '"
+            throw new RecordFormatException("Dynamic key identifier resolution failed for expression '"
                     + configuredKeyId + "': field path '" + fieldPath + "' was not found or resolved to null");
         }
 
         if (extracted instanceof JsonNode node) {
             if (!node.isTextual()) {
-                throw new IllegalStateException("Dynamic key identifier resolution failed for expression '"
+                throw new RecordFormatException("Dynamic key identifier resolution failed for expression '"
                         + configuredKeyId + "': field path '" + fieldPath + "' resolved to JSON type "
                         + node.getNodeType() + " but a textual value is required");
             }
@@ -49,7 +50,7 @@ final class DynamicKeyIdResolver {
             return requireNonBlank(configuredKeyId, fieldPath, cs.toString());
         }
 
-        throw new IllegalStateException("Dynamic key identifier resolution failed for expression '"
+        throw new RecordFormatException("Dynamic key identifier resolution failed for expression '"
                 + configuredKeyId + "': field path '" + fieldPath + "' resolved to type "
                 + extracted.getClass().getSimpleName() + " but a string value is required");
     }
@@ -68,7 +69,7 @@ final class DynamicKeyIdResolver {
 
     private static String requireNonBlank(String configuredKeyId, String fieldPath, String resolvedKeyId) {
         if (resolvedKeyId == null || resolvedKeyId.isBlank()) {
-            throw new IllegalStateException("Dynamic key identifier resolution failed for expression '"
+            throw new RecordFormatException("Dynamic key identifier resolution failed for expression '"
                     + configuredKeyId + "': field path '" + fieldPath
                     + "' resolved to a blank string but a non-blank key id is required");
         }

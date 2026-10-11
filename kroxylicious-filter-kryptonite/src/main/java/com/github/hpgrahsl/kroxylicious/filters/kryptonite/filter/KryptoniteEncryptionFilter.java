@@ -7,6 +7,7 @@ import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldCon
 import io.kroxylicious.kafka.common.message.ProduceRequestData;
 import io.kroxylicious.kafka.common.message.RequestHeaderData;
 import io.kroxylicious.kafka.common.protocol.ApiKeys;
+import io.kroxylicious.kafka.common.protocol.Errors;
 import io.kroxylicious.kafka.common.record.internal.AbstractRecords;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformer;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformers;
@@ -25,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 
 /**
  * Kroxylicious filter that encrypts targeted fields in Kafka ProduceRequests.
@@ -50,6 +52,10 @@ public class KryptoniteEncryptionFilter extends AbstractKryptoniteFilter impleme
     private static final ApiVersionsResponseTransformer DOWNGRADE =
             ApiVersionsResponseTransformers.limitMaxVersionForApiKeys(
                     Map.of(ApiKeys.PRODUCE, (short) 12));
+
+    // deliberately generic: never echo record content back to the client
+    static final String INVALID_RECORD_MESSAGE =
+            "record value does not match the configured record format for field-level encryption by the Kryptonite proxy filter";
 
     KryptoniteEncryptionFilter(KryptoniteFilterConfig config, RecordValueProcessor processor,
                                TopicFieldConfigResolver resolver,
@@ -87,7 +93,7 @@ public class KryptoniteEncryptionFilter extends AbstractKryptoniteFilter impleme
             for (ProduceRequestData.PartitionProduceData partition : topic.partitionData()) {
                 futures.add(applyTransformAsync(
                         (AbstractRecords) partition.records(), context, topic.name(), fieldConfigs.get(),
-                        partition::setRecords));
+                        partition::setRecords, false));
             }
         }
 
@@ -95,9 +101,28 @@ public class KryptoniteEncryptionFilter extends AbstractKryptoniteFilter impleme
             return context.forwardRequest(header, request);
         }
 
-        // wait for all partition tasks to complete, hop back to the filter dispatch thread, then forward
+        // wait for all partition tasks to complete, hop back to the filter dispatch thread, then forward or reject
         CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         return filterDispatchExecutor.completeOnFilterDispatchThread(allDone)
-                .thenCompose(ignored -> context.forwardRequest(header, request));
+                .handle((ignored, error) -> error == null
+                        ? context.forwardRequest(header, request)
+                        : rejectRequest(header, request, context, error))
+                .thenCompose(Function.identity());
+    }
+
+    /**
+     * Record format errors can never succeed on retry, so the whole request is answered with a
+     * non-retriable {@code INVALID_RECORD} error. Any other failure (crypto, keys, KMS, schema registry)
+     * may be transient: the filter fails, the proxy closes the connection and clients retry.
+     * In both cases nothing is forwarded to the broker.
+     */
+    private static CompletionStage<RequestFilterResult> rejectRequest(RequestHeaderData header, ProduceRequestData request,
+                                                                      FilterContext context, Throwable error) {
+        if (isRecordFormatError(error)) {
+            return context.requestFilterResultBuilder()
+                    .errorResponse(header, request, Errors.INVALID_RECORD, INVALID_RECORD_MESSAGE)
+                    .completed();
+        }
+        return CompletableFuture.failedFuture(error);
     }
 }

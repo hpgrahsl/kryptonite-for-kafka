@@ -11,8 +11,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.InvalidRecordException;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.NetworkException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -24,6 +25,7 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -193,19 +195,16 @@ class JsonProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
         String topic = "e2e-json-" + UUID.randomUUID();
         createTopic(topic);
 
-        // not a JSON object, so field encryption fails inside the proxy; the proxy reacts to a filter
-        // ending exceptionally by closing the client connection (no error response is sent), which
-        // the producer surfaces as a NetworkException once retries are disabled
+        // not a JSON object, so field encryption fails inside the proxy with a record format error, which
+        // the filter answers with a non-retriable INVALID_RECORD: a default producer fails fast, no retries
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
                 "bootstrap.servers", kroxyliciousBootstrap(),
                 "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer",
-                "enable.idempotence", "false",
-                "retries", "0"))) {
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer"))) {
             assertThatThrownBy(() -> producer.send(new ProducerRecord<>(topic, "this is not json"))
-                    .get(30, TimeUnit.SECONDS))
+                    .get(10, TimeUnit.SECONDS))
                     .isInstanceOf(ExecutionException.class)
-                    .hasCauseInstanceOf(NetworkException.class);
+                    .hasCauseInstanceOf(InvalidRecordException.class);
         }
 
         // the failed batch must never have been forwarded to the broker
@@ -218,9 +217,68 @@ class JsonProxyRoundTripIT extends AbstractKroxyliciousBaseIT {
         }
     }
 
+    @Test
+    void undecryptableRecordFailsConsumerAtExactOffset() throws Exception {
+        String topic = "e2e-json-" + UUID.randomUUID();
+        createTopic(topic);
+
+        produceViaProxy(topic, MAPPER.readTree(PAYLOAD));  // offset 0
+        produceDirect(topic, "this is not json");          // offset 1, bypasses the proxy
+        produceViaProxy(topic, MAPPER.readTree(PAYLOAD));  // offset 2
+
+        TopicPartition tp = new TopicPartition(topic, 0);
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(Map.of(
+                "bootstrap.servers", kroxyliciousBootstrap(),
+                "key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer",
+                "enable.auto.commit", "false"))) {
+            consumer.assign(List.of(tp));
+            consumer.seekToBeginning(List.of(tp));
+
+            // records before the undecryptable one are delivered, then poll() fails at its exact offset
+            List<ConsumerRecord<String, String>> received = new ArrayList<>();
+            AtomicReference<KafkaException> failure = new AtomicReference<>();
+            await().atMost(15, TimeUnit.SECONDS).until(() -> {
+                try {
+                    consumer.poll(Duration.ofMillis(500)).forEach(received::add);
+                    return false;
+                } catch (KafkaException e) {
+                    failure.set(e);
+                    return true;
+                }
+            });
+            assertThat(received).extracting(ConsumerRecord::offset).containsExactly(0L);
+            assertThat(MAPPER.readTree(received.get(0).value()).get("firstname").asText()).isEqualTo("Alice");
+            assertThat(failure.get())
+                    .hasMessageContaining("corrupt message")
+                    .hasMessageContaining("offset 1 ");
+
+            // the application can skip the bad record and continue with the next one
+            consumer.seek(tp, 2);
+            AtomicReference<ConsumerRecord<String, String>> next = new AtomicReference<>();
+            await().atMost(15, TimeUnit.SECONDS).until(() -> {
+                ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
+                if (records.isEmpty()) return false;
+                next.set(records.iterator().next());
+                return true;
+            });
+            assertThat(next.get().offset()).isEqualTo(2L);
+            assertThat(MAPPER.readTree(next.get().value()).get("firstname").asText()).isEqualTo("Alice");
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
+
+    private static void produceDirect(String topic, String value) throws Exception {
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
+                "bootstrap.servers", kafkaBootstrap(),
+                "key.serializer", "org.apache.kafka.common.serialization.StringSerializer",
+                "value.serializer", "org.apache.kafka.common.serialization.StringSerializer"))) {
+            producer.send(new ProducerRecord<>(topic, value)).get(30, TimeUnit.SECONDS);
+        }
+    }
 
     private static void produceViaProxy(String topic, JsonNode payload) throws Exception {
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(Map.of(
