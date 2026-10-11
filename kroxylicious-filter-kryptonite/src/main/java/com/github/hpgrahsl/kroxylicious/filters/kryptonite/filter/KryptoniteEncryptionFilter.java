@@ -1,5 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
@@ -9,6 +10,8 @@ import io.kroxylicious.kafka.common.message.RequestHeaderData;
 import io.kroxylicious.kafka.common.protocol.ApiKeys;
 import io.kroxylicious.kafka.common.protocol.Errors;
 import io.kroxylicious.kafka.common.record.internal.AbstractRecords;
+import io.kroxylicious.kafka.common.record.internal.MutableRecordBatch;
+import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformer;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformers;
 import io.kroxylicious.proxy.filter.FilterContext;
@@ -77,6 +80,17 @@ public class KryptoniteEncryptionFilter extends AbstractKryptoniteFilter impleme
             LOG.error("Encryption failed for topic '{}' — failing produce request to prevent unencrypted data reaching the broker: {}", topicName, e.getMessage(), e);
             throw e;
         }
+    }
+
+    /**
+     * Control batches are written by brokers (transaction coordinator) only; a produce request from a client must
+     * never contain one. Rejecting it here, rather than relying on the broker to do so, keeps the guarantee that
+     * nothing unencrypted leaves the proxy independent of broker-side validation.
+     */
+    @Override
+    protected void handleControlBatch(MutableRecordBatch batch, BatchAwareMemoryRecordsBuilder builder) {
+        throw new RecordFormatException("produce request contains a control batch at base offset "
+                + batch.baseOffset() + " — clients must not write control records");
     }
 
     @Override

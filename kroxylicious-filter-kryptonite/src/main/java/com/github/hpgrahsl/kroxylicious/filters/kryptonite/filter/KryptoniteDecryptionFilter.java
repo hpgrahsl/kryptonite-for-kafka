@@ -10,6 +10,8 @@ import io.kroxylicious.kafka.common.protocol.ApiKeys;
 import io.kroxylicious.kafka.common.protocol.Errors;
 import io.kroxylicious.kafka.common.record.internal.AbstractRecords;
 import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
+import io.kroxylicious.kafka.common.record.internal.MutableRecordBatch;
+import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformer;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformers;
 import io.kroxylicious.proxy.filter.FetchResponseFilter;
@@ -74,6 +76,15 @@ public class KryptoniteDecryptionFilter extends AbstractKryptoniteFilter impleme
             LOG.error("Decryption failed for topic '{}' — record is not delivered to the consumer: {}", topicName, e.getMessage(), e);
             throw e;
         }
+    }
+
+    /**
+     * Control batches in fetch responses are legitimate transaction markers written by the broker; they are
+     * copied unchanged so that consumers apply transaction semantics ({@code isolation.level}) as usual.
+     */
+    @Override
+    protected void handleControlBatch(MutableRecordBatch batch, BatchAwareMemoryRecordsBuilder builder) {
+        builder.writeBatch(batch);
     }
 
     @Override
