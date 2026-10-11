@@ -1,5 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -98,14 +99,14 @@ class DefaultDynamicSchemaRegistryAdapterTest {
         @DisplayName("stripPrefix with fewer than 5 bytes throws IllegalArgumentException")
         void stripPrefixTooShortThrows() {
             assertThatThrownBy(() -> adapter().stripPrefix(new byte[]{0x00, 0x01}))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(RecordFormatException.class);
         }
 
         @Test
         @DisplayName("stripPrefix with null throws IllegalArgumentException")
         void stripPrefixNullThrows() {
             assertThatThrownBy(() -> adapter().stripPrefix(null))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(RecordFormatException.class);
         }
 
         @Test
@@ -115,7 +116,7 @@ class DefaultDynamicSchemaRegistryAdapterTest {
             wireBytes[0] = (byte) 0xFF; // corrupt magic byte
 
             assertThatThrownBy(() -> adapter().stripPrefix(wireBytes))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(RecordFormatException.class)
                     .hasMessageContaining("magic byte");
         }
 

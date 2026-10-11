@@ -1,26 +1,28 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.routing.TopicFieldConfigResolver;
+import io.kroxylicious.kafka.common.message.ApiVersionsResponseData;
+import io.kroxylicious.kafka.common.message.ResponseHeaderData;
+import io.kroxylicious.kafka.common.record.internal.AbstractRecords;
+import io.kroxylicious.kafka.common.record.internal.MemoryRecords;
+import io.kroxylicious.kafka.common.record.internal.MutableRecordBatch;
+import io.kroxylicious.kafka.common.record.internal.Record;
+import io.kroxylicious.kafka.common.utils.ByteBufferOutputStream;
 import io.kroxylicious.kafka.transform.ApiVersionsResponseTransformer;
 import io.kroxylicious.kafka.transform.BatchAwareMemoryRecordsBuilder;
 import io.kroxylicious.proxy.filter.ApiVersionsResponseFilter;
 import io.kroxylicious.proxy.filter.FilterContext;
 import io.kroxylicious.proxy.filter.FilterDispatchExecutor;
 import io.kroxylicious.proxy.filter.ResponseFilterResult;
-import org.apache.kafka.common.message.ApiVersionsResponseData;
-import org.apache.kafka.common.message.ResponseHeaderData;
-import org.apache.kafka.common.record.AbstractRecords;
-import org.apache.kafka.common.record.MemoryRecords;
-import org.apache.kafka.common.record.MutableRecordBatch;
-import org.apache.kafka.common.record.Record;
-import org.apache.kafka.common.utils.ByteBufferOutputStream;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -66,6 +68,13 @@ abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
      */
     protected abstract byte[] transform(byte[] wireBytes, String topicName, Set<FieldConfig> fieldConfigs);
 
+    /**
+     * Handles a control batch (transaction marker) encountered in the records of a partition. Control batches
+     * are never passed to {@link #transform}; implementations either copy them unchanged into {@code builder}
+     * or reject them by throwing a {@link RecordFormatException}.
+     */
+    protected abstract void handleControlBatch(MutableRecordBatch batch, BatchAwareMemoryRecordsBuilder builder);
+
     @Override
     public CompletionStage<ResponseFilterResult> onApiVersionsResponse(
             short apiVersion, ResponseHeaderData header, ApiVersionsResponseData response,
@@ -73,9 +82,20 @@ abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
         return context.forwardResponse(header, apiVersionsTransformer().transform(response));
     }
 
+    /**
+     * Transforms all records of one partition on the blocking executor and hands the rebuilt records
+     * to {@code recordsSetter}.
+     *
+     * @param truncateOnRecordFormatError if {@code true}, a {@link RecordFormatException} for any record but
+     *                                    the first one truncates the partition's records right before the
+     *                                    failing record instead of failing, so that the client's next request
+     *                                    starts exactly at that record; the returned future still fails if
+     *                                    the first record is affected
+     */
     protected CompletableFuture<Void> applyTransformAsync(AbstractRecords records, FilterContext context,
                                                            String topicName, Set<FieldConfig> fieldConfigs,
-                                                           Consumer<MemoryRecords> recordsSetter) {
+                                                           Consumer<MemoryRecords> recordsSetter,
+                                                           boolean truncateOnRecordFormatError) {
         if (records == null || !records.batchIterator().hasNext()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -85,18 +105,49 @@ abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
         BatchAwareMemoryRecordsBuilder builder = new BatchAwareMemoryRecordsBuilder(stream);
 
         return CompletableFuture.runAsync(() -> {
-            for (var rawBatch : records.batches()) {
-                MutableRecordBatch batch = (MutableRecordBatch) rawBatch;
-                builder.addBatchLike(batch);
-                for (Record record : batch) {
-                    byte[] originalValue = toBytes(record.value());
-                    byte[] transformedValue = transform(originalValue, topicName, fieldConfigs);
-                    builder.appendWithOffset(record.offset(), record.timestamp(),
-                            record.key(), ByteBuffer.wrap(transformedValue), record.headers());
+            int deliveredRecords = 0;
+            try {
+                for (var rawBatch : records.batches()) {
+                    MutableRecordBatch batch = (MutableRecordBatch) rawBatch;
+                    // control batches (transaction markers) carry no user data and are never transformed. This is the
+                    // very check Kafka consumers use to never hand such records to applications, so no data batch can
+                    // ever bypass the transformation; what happens to the control batch is direction-specific
+                    if (batch.isControlBatch()) {
+                        handleControlBatch(batch, builder);
+                        deliveredRecords++;
+                        continue;
+                    }
+                    builder.addBatchLike(batch);
+                    for (Record record : batch) {
+                        // tombstones (null value) are passed through unchanged to preserve their delete semantics
+                        ByteBuffer value = record.hasValue()
+                                ? ByteBuffer.wrap(transform(toBytes(record.value()), topicName, fieldConfigs))
+                                : null;
+                        builder.appendWithOffset(record.offset(), record.timestamp(),
+                                record.key(), value, record.headers());
+                        deliveredRecords++;
+                    }
                 }
+            } catch (RecordFormatException e) {
+                if (!truncateOnRecordFormatError || deliveredRecords == 0) {
+                    throw e;
+                }
+                // keep the records before the failing one; an opened but empty batch is not written by the builder
             }
             recordsSetter.accept(builder.build());
         }, filterBlockingExecutor);
+    }
+
+    /**
+     * Returns {@code true} if {@code error}, possibly wrapped by the async machinery, is a
+     * {@link RecordFormatException}, i.e. a failure that retrying the same record can never fix.
+     */
+    protected static boolean isRecordFormatError(Throwable error) {
+        Throwable t = error;
+        while (t instanceof CompletionException && t.getCause() != null) {
+            t = t.getCause();
+        }
+        return t instanceof RecordFormatException;
     }
 
     protected static byte[] toBytes(ByteBuffer buffer) {

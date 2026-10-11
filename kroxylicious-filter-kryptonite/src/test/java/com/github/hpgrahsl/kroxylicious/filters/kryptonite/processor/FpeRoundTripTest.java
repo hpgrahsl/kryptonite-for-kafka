@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Real-crypto round-trip tests for FPE (Format-Preserving Encryption) via
@@ -188,6 +189,91 @@ class FpeRoundTripTest {
             assertThat(cards.get(0).asText()).isEqualTo("1234567890123456");
             assertThat(cards.get(1).asText()).isEqualTo("9876543210987654");
             assertThat(cards.get(2).asText()).isEqualTo("1111222233334444");
+        }
+    }
+
+    // ---- null handling ----
+
+    @Nested
+    @DisplayName("null handling — null is by definition not encryptable with FPE and stays null")
+    class NullHandling {
+
+        private FieldConfig elementFieldConfig(String fieldName) {
+            return FieldConfig.builder()
+                    .name(fieldName)
+                    .fieldMode(FieldConfig.FieldMode.ELEMENT)
+                    .algorithm(FPE_ALGORITHM)
+                    .keyId("keyC")
+                    .fpeAlphabetType(AlphabetTypeFPE.DIGITS)
+                    .build();
+        }
+
+        @Test
+        @DisplayName("OBJECT mode: null field stays null on encrypt and decrypt; other fields are still encrypted")
+        void nullFieldStaysNull() throws Exception {
+            byte[] input = """
+                    {"card":null,"other":"1234567890123456"}""".getBytes();
+            Set<FieldConfig> fields = Set.of(
+                    fpeFieldConfig("card", AlphabetTypeFPE.DIGITS),
+                    fpeFieldConfig("other", AlphabetTypeFPE.DIGITS));
+
+            byte[] encrypted = processor.encryptFields(input, TOPIC, fields);
+            JsonNode encNode = MAPPER.readTree(encrypted);
+            assertThat(encNode.get("card").isNull()).isTrue();
+            assertFpeInvariants(encNode.get("other").asText(), "1234567890123456", AlphabetTypeFPE.DIGITS);
+
+            JsonNode decNode = MAPPER.readTree(processor.decryptFields(encrypted, TOPIC, fields));
+            assertThat(decNode.get("card").isNull()).isTrue();
+            assertThat(decNode.get("other").asText()).isEqualTo("1234567890123456");
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null array element stays null; non-null elements are encrypted and restored")
+        void nullArrayElementStaysNull() throws Exception {
+            byte[] input = """
+                    {"cards":["1234567890123456",null,"9876543210987654"]}""".getBytes();
+            Set<FieldConfig> fields = Set.of(elementFieldConfig("cards"));
+
+            byte[] encrypted = processor.encryptFields(input, TOPIC, fields);
+            JsonNode encCards = MAPPER.readTree(encrypted).get("cards");
+            assertThat(encCards).hasSize(3);
+            assertFpeInvariants(encCards.get(0).asText(), "1234567890123456", AlphabetTypeFPE.DIGITS);
+            assertThat(encCards.get(1).isNull()).isTrue();
+            assertFpeInvariants(encCards.get(2).asText(), "9876543210987654", AlphabetTypeFPE.DIGITS);
+
+            JsonNode cards = MAPPER.readTree(processor.decryptFields(encrypted, TOPIC, fields)).get("cards");
+            assertThat(cards.get(0).asText()).isEqualTo("1234567890123456");
+            assertThat(cards.get(1).isNull()).isTrue();
+            assertThat(cards.get(2).asText()).isEqualTo("9876543210987654");
+        }
+
+        @Test
+        @DisplayName("ELEMENT mode: null object value stays null; non-null values are encrypted and restored")
+        void nullObjectValueStaysNull() throws Exception {
+            byte[] input = """
+                    {"codes":{"a":"1234567890123456","b":null}}""".getBytes();
+            Set<FieldConfig> fields = Set.of(elementFieldConfig("codes"));
+
+            byte[] encrypted = processor.encryptFields(input, TOPIC, fields);
+            JsonNode encCodes = MAPPER.readTree(encrypted).get("codes");
+            assertFpeInvariants(encCodes.get("a").asText(), "1234567890123456", AlphabetTypeFPE.DIGITS);
+            assertThat(encCodes.get("b").isNull()).isTrue();
+
+            JsonNode codes = MAPPER.readTree(processor.decryptFields(encrypted, TOPIC, fields)).get("codes");
+            assertThat(codes.get("a").asText()).isEqualTo("1234567890123456");
+            assertThat(codes.get("b").isNull()).isTrue();
+        }
+
+        @Test
+        @DisplayName("non-null, non-string values are still rejected — FPE only applies to strings")
+        void nonStringValueStillRejected() {
+            byte[] input = """
+                    {"card":1234567890123456}""".getBytes();
+            Set<FieldConfig> fields = Set.of(fpeFieldConfig("card", AlphabetTypeFPE.DIGITS));
+
+            assertThatThrownBy(() -> processor.encryptFields(input, TOPIC, fields))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("FPE encryption requires a string value");
         }
     }
 }

@@ -45,6 +45,8 @@ In practice this means the KMS will receive twice the number of list/fetch calls
 
 The simplest mitigation is to configure the same `kms_refresh_interval_minutes` in both factory configs and accept the doubled call rate, or to increase the interval if quota headroom is tight. A shared key-vault / shared `Kryptonite` instance across both factories would eliminate the duplication but is not implemented today.
 
+Since Kroxylicious 0.22, filter factories are additionally initialized **once per virtual cluster** that uses them. Every virtual cluster therefore gets its own `Kryptonite` instance, blocking thread pool, Schema Registry client, and KMS sync thread per factory, i.e. the KMS call rate scales with the number of virtual clusters × factories.
+
 ## What is currently supported
 
 | Dimension | Supported |
@@ -75,8 +77,10 @@ In **STATIC** mode the filter performs no schema registry subject registrations 
 
 ## Failure handling
 
-- **Encryption failure**: If encrypting a field fails, the exception propagates and the produce request fails. Plaintext data is never forwarded to the broker on encryption failure. **However, the proxy filter has no way to detect missing field configuration on sensitive data. It's your own responsibility to makes sure that field names/paths match!**
-- **Decryption failure**: If decrypting a field fails, the original (still-encrypted) bytes are returned to the consumer and the error is logged at ERROR level. The consumer receives raw broker data rather than corrupt or partial output.
+See the [Failure Handling](https://hpgrahsl.github.io/kryptonite-for-kafka/dev/modules/kroxylicious-filter/#failure-handling) section of the module docs for details.
+
+- **Encryption failure**: Plaintext data is never forwarded to the broker. Record format errors (e.g. unparseable payloads) reject the produce request with a non-retriable `INVALID_RECORD`; all other failures close the client connection so that producers retry. **However, the proxy filter has no way to detect missing field configuration on sensitive data. It's your own responsibility to makes sure that field names/paths match!**
+- **Decryption failure**: Undecryptable records are never delivered. Record format errors surface as `CORRUPT_MESSAGE` for the affected partition at the exact offset of the failing record, so the consumer's `poll()` throws and the application can `seek()` past it; all other failures close the client connection so that consumers re-fetch.
 
 ## Quick-start configuration
 

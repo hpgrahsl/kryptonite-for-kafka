@@ -3,6 +3,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.github.hpgrahsl.kryptonite.serdes.SerdeProcessor;
 
 /**
@@ -32,18 +33,20 @@ public class JsonObjectNodeAccessor implements StructuredRecordAccessor {
      *
      * @param payloadBytes raw JSON bytes (no SR prefix)
      * @return a new accessor wrapping the parsed root node
-     * @throws RuntimeException if the bytes cannot be parsed as a JSON object
+     * @throws RecordFormatException if the bytes cannot be parsed as a JSON object
      */
     public static JsonObjectNodeAccessor from(byte[] payloadBytes) {
+        JsonNode node;
         try {
-            JsonNode node = MAPPER.readTree(payloadBytes);
-            if (!node.isObject()) {
-                throw new IllegalArgumentException("JSON payload is not an object node; got: " + node.getNodeType());
-            }
-            return new JsonObjectNodeAccessor((ObjectNode) node);
+            node = MAPPER.readTree(payloadBytes);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse JSON payload", e);
+            throw new RecordFormatException("Failed to parse JSON payload", e);
         }
+        if (node == null || !node.isObject()) {
+            throw new RecordFormatException("JSON payload is not an object node; got: "
+                    + (node == null ? "no content" : node.getNodeType()));
+        }
+        return new JsonObjectNodeAccessor((ObjectNode) node);
     }
 
     @Override

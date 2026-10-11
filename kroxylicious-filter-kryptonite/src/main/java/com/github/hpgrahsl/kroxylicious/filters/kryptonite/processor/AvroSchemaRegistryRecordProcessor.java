@@ -84,6 +84,8 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptRecordFieldValues(record, fc, resolvedKeyId));
             } else {
                 if (FieldConfigUtils.isFpe(fc, config)) {
+                    // null is by definition not encryptable with FPE ciphers and stays null
+                    if (fieldValue == null) continue;
                     if (!(fieldValue instanceof CharSequence cs)) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got type " + fieldValue.getClass().getSimpleName() + " — FPE cannot encrypt non-string types");
@@ -138,7 +140,10 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
                         : null;
                 accessor.setField(fc.getName(), decryptMapValues(map, fc, resolvedKeyId));
             } else if (mode == FieldConfig.FieldMode.ELEMENT && fieldValue instanceof GenericRecord record) {
-                accessor.setField(fc.getName(), decryptRecordFieldValues(record, fc));
+                String resolvedKeyId = FieldConfigUtils.isFpe(fc, config)
+                        ? DynamicKeyIdResolver.resolve(fc, config, accessor)
+                        : null;
+                accessor.setField(fc.getName(), decryptRecordFieldValues(record, fc, resolvedKeyId));
             } else {
                 if (!(fieldValue instanceof CharSequence cs)) {
                     LOG.warn("Decryption skipping field '{}': value is not a string (type={}) — possibly pre-existing unencrypted data",
@@ -175,6 +180,10 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         if (FieldConfigUtils.isFpe(fc, config)) {
             FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             for (Object element : source) {
+                if (element == null) {
+                    result.add(null);
+                    continue;
+                }
                 if (!(element instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string elements in field '" + fc.getName()
                         + "' but got type " + (element == null ? "null" : element.getClass().getSimpleName()) + " — FPE cannot encrypt non-string types");
@@ -195,6 +204,10 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         if (FieldConfigUtils.isFpe(fc, config)) {
             FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             source.forEach((k, v) -> {
+                if (v == null) {
+                    result.put(k, null);
+                    return;
+                }
                 if (!(v instanceof CharSequence cs)) throw new IllegalStateException(
                         "FPE encryption requires string values in field '" + fc.getName()
                         + "' but got type " + (v == null ? "null" : v.getClass().getSimpleName()) + " — FPE cannot encrypt non-string types");
@@ -280,6 +293,24 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
 
     private GenericRecord encryptRecordFieldValues(GenericRecord source, FieldConfig fc, String resolvedKeyId) {
         GenericData.Record result = new GenericData.Record(source.getSchema());
+        if (FieldConfigUtils.isFpe(fc, config)) {
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
+            for (Schema.Field f : source.getSchema().getFields()) {
+                Object value = source.get(f.name());
+                // null is by definition not encryptable with FPE ciphers and stays null
+                if (value == null) {
+                    result.put(f.name(), null);
+                    continue;
+                }
+                if (!(value instanceof CharSequence cs)) throw new IllegalStateException(
+                        "FPE encryption requires string values in field '" + fc.getName()
+                        + "' but sub-field '" + f.name() + "' has type " + value.getClass().getSimpleName()
+                        + " — FPE cannot encrypt non-string types");
+                byte[] ciphertext = kryptonite.cipherFieldFPE(cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
+                result.put(f.name(), new String(ciphertext, StandardCharsets.UTF_8));
+            }
+            return result;
+        }
         for (Schema.Field f : source.getSchema().getFields()) {
             Object value = source.get(f.name());
             result.put(f.name(), FieldHandler.encryptField(fieldConverter.toCanonical(value, f.schema(), serdeType), FieldConfigUtils.buildPayloadMetaData(fc, config, resolvedKeyId), kryptonite, serdeType));
@@ -287,8 +318,26 @@ public class AvroSchemaRegistryRecordProcessor implements RecordValueProcessor {
         return result;
     }
 
-    private GenericRecord decryptRecordFieldValues(GenericRecord source, FieldConfig fc) {
+    private GenericRecord decryptRecordFieldValues(GenericRecord source, FieldConfig fc, String resolvedKeyId) {
         GenericData.Record result = new GenericData.Record(source.getSchema());
+        if (FieldConfigUtils.isFpe(fc, config)) {
+            // FPE ciphertext carries no key metadata, so the field's FPE settings and resolved key id are used
+            FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
+            for (Schema.Field f : source.getSchema().getFields()) {
+                Object value = source.get(f.name());
+                if (value instanceof CharSequence cs) {
+                    byte[] plaintext = kryptonite.decipherFieldFPE(cs.toString().getBytes(StandardCharsets.UTF_8), fmd);
+                    result.put(f.name(), new String(plaintext, StandardCharsets.UTF_8));
+                } else {
+                    if (value != null) {
+                        LOG.warn("Decryption skipping non-string value for sub-field '{}' of FPE ELEMENT-mode field '{}' (type={}) — possibly pre-existing unencrypted data",
+                                f.name(), fc.getName(), value.getClass().getSimpleName());
+                    }
+                    result.put(f.name(), value); // null stays null: FPE never encrypts it
+                }
+            }
+            return result;
+        }
         for (Schema.Field f : source.getSchema().getFields()) {
             Object value = source.get(f.name());
             if (value == null) {

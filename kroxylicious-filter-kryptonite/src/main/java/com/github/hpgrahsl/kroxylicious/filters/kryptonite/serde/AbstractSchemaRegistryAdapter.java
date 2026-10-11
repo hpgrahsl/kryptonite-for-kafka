@@ -1,6 +1,7 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -22,14 +23,14 @@ abstract class AbstractSchemaRegistryAdapter implements SchemaRegistryAdapter {
     @Override
     public SchemaIdAndPayload stripPrefix(byte[] wireBytes) {
         if (wireBytes == null || wireBytes.length < 5) {
-            throw new IllegalArgumentException(
+            throw new RecordFormatException(
                     "Invalid SR wire bytes: expected at least 5 bytes (magic + 4-byte schemaId), got "
                             + (wireBytes == null ? "null" : wireBytes.length));
         }
         ByteBuffer buf = ByteBuffer.wrap(wireBytes);
         byte magic = buf.get();
         if (magic != MAGIC_BYTE) {
-            throw new IllegalArgumentException(
+            throw new RecordFormatException(
                     "Missing SR magic byte 0x00 — got 0x" + String.format("%02X", magic));
         }
         int schemaId = buf.getInt();

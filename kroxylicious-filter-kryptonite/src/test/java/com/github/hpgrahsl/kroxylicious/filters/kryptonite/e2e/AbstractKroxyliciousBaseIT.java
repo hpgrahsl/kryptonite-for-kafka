@@ -84,7 +84,9 @@ abstract class AbstractKroxyliciousBaseIT {
     protected static final String SR_IMAGE = System.getProperty("e2e.schema.registry.image",
             "confluentinc/cp-schema-registry:7.9.0");
     protected static final String KROXYLICIOUS_IMAGE = System.getProperty("e2e.kroxylicious.image",
-            "quay.io/kroxylicious/kroxylicious:0.19.0");
+            "quay.io/kroxylicious/proxy:0.25.0");
+    protected static final String FILTER_JAR_PATH = System.getProperty("filter.jar.path",
+            "target/kroxylicious-filter-kryptonite-0.2.0-SNAPSHOT.jar");
 
     protected static final Network NETWORK = Network.newNetwork();
 

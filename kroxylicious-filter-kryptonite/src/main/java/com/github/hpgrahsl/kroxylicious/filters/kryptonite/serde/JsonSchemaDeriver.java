@@ -3,7 +3,10 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,12 +26,25 @@ import java.util.stream.Collectors;
  * <p>Coverage: object {@code properties} at any nesting depth; primitive leaf types;
  * array fields (ELEMENT mode: {@code items} replaced with {@code {"type":"string"}});
  * object fields (ELEMENT mode: each direct property type replaced with {@code "string"}).
+ * ELEMENT mode with FPE: nullable element slots keep their null type, e.g. {@code ["null","string"]},
+ * since FPE leaves {@code null} as is.
  * Not supported: {@code $ref}.
  */
 class JsonSchemaDeriver {
 
     private static final Logger LOG = LoggerFactory.getLogger(JsonSchemaDeriver.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    // algorithm applied to fields without an explicit one, needed to tell FPE fields apart
+    private final String defaultCipherAlgorithm;
+
+    JsonSchemaDeriver() {
+        this(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
+    }
+
+    JsonSchemaDeriver(String defaultCipherAlgorithm) {
+        this.defaultCipherAlgorithm = defaultCipherAlgorithm;
+    }
 
     /**
      * Produce path: derives the encrypted schema from the original.
@@ -53,9 +69,11 @@ class JsonSchemaDeriver {
                 FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
                 boolean replaced;
                 if (mode == FieldConfig.FieldMode.ELEMENT) {
-                    replaced = replaceArrayItemsType(root, fc.getName(), "string");
+                    // FPE keeps null elements as null (null is not encryptable with FPE), so their slots must stay nullable
+                    boolean preserveElementNulls = isFpe(fc);
+                    replaced = replaceArrayItemsType(root, fc.getName(), preserveElementNulls);
                     if (!replaced) {
-                        replaced = replaceObjectPropertyTypes(root, fc.getName(), "string");
+                        replaced = replaceObjectPropertyTypes(root, fc.getName(), preserveElementNulls);
                     }
                 } else {
                     replaced = replaceLeafType(root, fc.getName(), "string");
@@ -166,25 +184,25 @@ class JsonSchemaDeriver {
 
     /**
      * ELEMENT mode for array fields: replaces the field's {@code items} node with
-     * {@code {"type": newItemType}}.
+     * {@code {"type": "string"}} (see {@link #elementSlotType}).
      */
-    private boolean replaceArrayItemsType(ObjectNode schemaRoot, String dotPath, String newItemType) {
+    private boolean replaceArrayItemsType(ObjectNode schemaRoot, String dotPath, boolean preserveElementNulls) {
         ObjectNode fieldNode = navigateToFieldNode(schemaRoot, dotPath);
         if (fieldNode == null) return false;
         JsonNode typeNode = fieldNode.get("type");
         if (typeNode == null || !"array".equals(typeNode.asText())) return false;
         ObjectNode newItems = MAPPER.createObjectNode();
-        newItems.put("type", newItemType);
+        newItems.set("type", elementSlotType(fieldNode.get("items"), preserveElementNulls));
         fieldNode.set("items", newItems);
         return true;
     }
 
     /**
      * ELEMENT mode for object fields: replaces each direct property schema with
-     * {@code {"type": newValueType}}. Falls back to {@code additionalProperties} if
+     * {@code {"type": "string"}} (see {@link #elementSlotType}). Falls back to {@code additionalProperties} if
      * no explicit {@code properties} block is present.
      */
-    private boolean replaceObjectPropertyTypes(ObjectNode schemaRoot, String dotPath, String newValueType) {
+    private boolean replaceObjectPropertyTypes(ObjectNode schemaRoot, String dotPath, boolean preserveElementNulls) {
         ObjectNode fieldNode = navigateToFieldNode(schemaRoot, dotPath);
         if (fieldNode == null) return false;
         JsonNode typeNode = fieldNode.get("type");
@@ -195,17 +213,48 @@ class JsonSchemaDeriver {
             props.fieldNames().forEachRemaining(keys::add);
             for (String key : keys) {
                 ObjectNode newPropSchema = MAPPER.createObjectNode();
-                newPropSchema.put("type", newValueType);
+                newPropSchema.set("type", elementSlotType(props.get(key), preserveElementNulls));
                 props.set(key, newPropSchema);
             }
             return true;
         }
         JsonNode additionalProps = fieldNode.get("additionalProperties");
         if (additionalProps instanceof ObjectNode ap) {
-            ap.put("type", newValueType);
+            ap.set("type", elementSlotType(ap, preserveElementNulls));
             return true;
         }
         return false;
+    }
+
+    /**
+     * Type of a single element slot (array item, object property, additionalProperties) in ELEMENT mode.
+     * Non-FPE ciphers turn every value, including {@code null}, into a ciphertext string, so the slot
+     * becomes {@code "string"}. FPE leaves {@code null} as is, so a slot whose type array includes
+     * {@code "null"} keeps it: {@code ["null","string"]}.
+     */
+    private static JsonNode elementSlotType(JsonNode originalSlot, boolean preserveElementNulls) {
+        JsonNode typeNode = originalSlot != null ? originalSlot.get("type") : null;
+        if (preserveElementNulls && typeNode != null && typeNode.isArray()) {
+            ArrayNode newTypeArray = MAPPER.createArrayNode();
+            boolean hasNull = false;
+            boolean hasString = false;
+            for (JsonNode t : typeNode) {
+                if ("null".equals(t.asText())) {
+                    if (!hasNull) newTypeArray.add("null");
+                    hasNull = true;
+                } else if (!hasString) {
+                    newTypeArray.add("string");
+                    hasString = true;
+                }
+            }
+            if (hasNull) return newTypeArray;
+        }
+        return TextNode.valueOf("string");
+    }
+
+    private boolean isFpe(FieldConfig fc) {
+        String algorithm = fc.getAlgorithm().orElse(defaultCipherAlgorithm);
+        return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
     }
 
     // ---- Decrypt-side schema restorations ----

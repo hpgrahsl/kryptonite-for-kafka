@@ -137,6 +137,8 @@ public class JsonSchemaRegistryRecordProcessor extends AbstractJsonRecordProcess
             } else {
                 // OBJECT mode
                 if (FieldConfigUtils.isFpe(fc, config)) {
+                    // null is by definition not encryptable with FPE ciphers and stays null
+                    if (node.isNull()) continue;
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");

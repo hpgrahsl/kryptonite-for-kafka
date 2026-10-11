@@ -3,6 +3,7 @@ package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde.JsonSchemaDeriver.DeriveEncryptedResult;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -53,9 +54,17 @@ public class DefaultDynamicSchemaRegistryAdapter extends AbstractSchemaRegistryA
     private final ConcurrentHashMap<MetadataCacheKey, EncryptionMetadata> encryptionMetadataCache = new ConcurrentHashMap<>();
 
     public DefaultDynamicSchemaRegistryAdapter(SchemaRegistryClient srClient) {
+        this(srClient, KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
+    }
+
+    /**
+     * @param defaultCipherAlgorithm the filter-level {@code cipher_algorithm}, applied to fields without an explicit
+     *                               algorithm; schema derivation needs it to tell FPE fields apart
+     */
+    public DefaultDynamicSchemaRegistryAdapter(SchemaRegistryClient srClient, String defaultCipherAlgorithm) {
         this.srClient = srClient;
-        this.deriver = new JsonSchemaDeriver();
-        this.avroDeriver = new AvroSchemaDeriver();
+        this.deriver = new JsonSchemaDeriver(defaultCipherAlgorithm);
+        this.avroDeriver = new AvroSchemaDeriver(defaultCipherAlgorithm);
     }
 
     // --- Produce path ---

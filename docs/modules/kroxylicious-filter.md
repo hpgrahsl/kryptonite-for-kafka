@@ -30,7 +30,7 @@ Kryptonite for Kafka ships two independent filters:
 
 Each filter operates entirely independently. Running both in the same proxy instance is the most common setup. It gives producers and consumers a single transparent endpoint with bi-directional, end-to-end field-level protection. That said, you do not have to deploy them together. You can place only the encryption filter in a proxy in front of producers, and a separate proxy instance with only the decryption filter in front of consumers, depending on your architecture.
 
-Fields that are not listed in the configuration (see `topic_field_configs`) pass through unchanged regardless of which filters are active.
+Fields that are not listed in the configuration (see `topic_field_configs`) pass through unchanged regardless of which filters are active. The same applies to tombstones (records with a `null` value), which keep their delete semantics, and to transaction markers (control records) on transactional topics.
 
 Topic routing is controlled by `topic_pattern` entries, each carrying its own `field_configs` list. Patterns are **Java regular expressions** anchored at both ends (the same as `^pattern$`), giving full regex expressiveness for topic name matching.
 
@@ -44,7 +44,16 @@ Topic routing is controlled by `topic_pattern` entries, each carrying its own `f
 1. Download the filter JAR from the [GitHub Releases page](https://github.com/hpgrahsl/kryptonite-for-kafka/releases).
 2. Place the JAR in a folder that is on Kroxylicious' classpath (e.g. the `lib/` directory next to any other JARs shipping with Kroxylicious).
 3. Reference the filter factories in your Kroxylicious proxy configuration YAML (see examples below).
-4. Run Kroxylicious (see official [Proxy Quick Start](https://kroxylicious.io/documentation/0.20.0/html/proxy-quick-start/))
+4. Run Kroxylicious (see official [Proxy Quick Start](https://kroxylicious.io/documentation/0.25.0/html/proxy-quick-start/))
+
+!!! note "Kroxylicious Compatibility"
+    The filter is built and tested against **Kroxylicious 0.25.0** and requires **Java 21+** at runtime. Kroxylicious versions before 0.24 are incompatible because the Filter API switched to Kroxylicious' own Kafka protocol types in 0.24.
+
+!!! warning "Share Groups Not Supported"
+    The decryption filter only handles regular fetches (`Fetch` API). Records consumed via share groups (KIP-932, `ShareFetch` API) pass through the proxy **without being decrypted**, so share consumers receive the encrypted field values.
+
+!!! note "Filter Resources per Virtual Cluster"
+    Kroxylicious initializes each filter factory separately for every virtual cluster that uses it. Every such initialization creates its own `Kryptonite` instance (incl. key vault), blocking thread pool, and, for `JSON_SR` and `AVRO`, its own Schema Registry client. Using both the encryption and decryption filter on several virtual clusters multiplies these resources accordingly, as well as the resulting KMS and Schema Registry requests.
 
 If building from sources (requires JDK 21+, the filter JAR targets Java 21):
 
@@ -58,13 +67,17 @@ If building from sources (requires JDK 21+, the filter JAR targets Java 21):
 
 ### Proxy Config Structure
 
-A basic Kroxylicious proxy config defines a `virtualClusters` block which specifies at least the upstream broker and the gateway address, plus optional `filterDefinitions` and a corresponding `defaultFilters` block. A minimal skeleton could look like this:
+A basic Kroxylicious proxy config defines the upstream Kafka cluster in a `clusterDefinitions` block and a `virtualClusters` block which references it and specifies at least the gateway address, plus optional `filterDefinitions` and a corresponding `defaultFilters` block. A minimal skeleton could look like this:
 
 ```yaml
+clusterDefinitions:
+  - name: kafka
+    bootstrapServers: kafka:9092          # upstream Kafka broker
+
 virtualClusters:
   - name: mycluster
-    targetCluster:
-      bootstrapServers: kafka:9092        # upstream Kafka broker
+    target:
+      cluster: kafka                      # refers to the clusterDefinitions entry
     gateways:
       - name: mygateway
         portIdentifiesNode:
@@ -84,7 +97,7 @@ defaultFilters:
 !!! note
     `advertisedBrokerAddressPattern` controls the broker address that Kroxylicious advertises to clients in metadata responses. Set it to the hostname or IP that clients use to reach the proxy. For single-node local setups, `localhost` is typical; for containerised or remote deployments, use the proxy's externally reachable hostname.
 
-If you want to dig deeper, read the official documentation to understand all [proxy configuration](https://kroxylicious.io/documentation/0.20.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy) options in depth.
+If you want to dig deeper, read the official documentation to understand all [proxy configuration](https://kroxylicious.io/documentation/0.25.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy) options in depth.
 
 ---
 
@@ -485,6 +498,8 @@ topic_field_configs:
         fpeAlphabetType: ALPHANUMERIC
 ```
 
+FPE only applies to string values. In `ELEMENT` mode, FPE is applied individually to each array element, map value, and sub-field of a nested object/record, so all of them must be strings. `null` values (whole fields as well as individual elements) are by definition not encryptable with FPE and are passed through as `null`, consistent with all other Kryptonite for Kafka modules. Any other non-string value fails the record.
+
 !!! danger "Important"
     Both the encrypt and decrypt filter must be configured with the **exact same** FPE settings (`algorithm`, `keyId`, `fpeAlphabetType`, `fpeTweak`) for a successful round-trip.
 
@@ -531,7 +546,7 @@ When `record_format` is `JSON_SR` or `AVRO`, the filter creates and manages extr
 | Subject name | Purpose |
 |---|---|
 | `<topic>-value` | Original producer schema (untouched!) |
-| `<topic>-value__k4k_enc` | Encrypted schema for which the original field types are replaced with type `string` for encrypted fields; consumed by direct SR clients reading encrypted data |
+| `<topic>-value__k4k_enc` | Encrypted schema for which the original field types are replaced with type `string` for encrypted fields (nullable fields stay nullable; for FPE in `ELEMENT` mode, nullable array items, map/object values and record sub-fields stay nullable too, since FPE leaves `null` as is); consumed by direct SR clients reading encrypted data |
 | `<topic>-value__k4k_meta<originalSchemaId>` | Encryption metadata, keyed by the original schema ID|
 | `<topic>-value__k4k_meta<encryptedSchemaId>` | Encryption metadata, keyed by the encrypted schema ID |
 
@@ -567,7 +582,23 @@ Example:
 
 For `TINK/AES_GCM_ENVELOPE_KMS`, the algorithm-aware default fallback is `envelope_kek_identifier` rather than `cipher_data_key_identifier`.
 
-Resolution is performed against the top-level record before the selected field is encrypted or decrypted. This works for plain JSON, JSON Schema Registry, and Avro records. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails.
+Resolution is performed against the top-level record before the selected field is encrypted or decrypted. This works for plain JSON, JSON Schema Registry, and Avro records. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails with a record format error (see [Failure Handling](#failure-handling)).
+
+## Failure Handling
+
+The filters distinguish **record format errors**, which can never succeed when retried, from **all other failures**, which may be transient. In either case, plaintext is never forwarded to the broker on the produce path, and records that cannot be decrypted are never delivered to consumers.
+
+| Failure | Examples | Produce path (encryption) | Fetch path (decryption) |
+|---|---|---|---|
+| **Record format error** | record value not parseable in the configured `record_format` (invalid JSON, missing Schema Registry wire prefix, undecodable Avro); field for a dynamic key identifier missing, non-string, or blank; control records (transaction markers) in a produce request, which only brokers may write | The produce request is rejected with `INVALID_RECORD`. Producers fail immediately with an `InvalidRecordException`, without retries. | Records before the failing one are delivered. The partition then reports `CORRUPT_MESSAGE`, so the consumer's `poll()` throws a `KafkaException` at the exact offset of the failing record. Other partitions are unaffected. Applications can `seek()` past the record to skip it. |
+| **Any other failure** | unknown or wrong key, tampered ciphertext, KMS or Schema Registry unavailable, field configuration not matching the schema | The proxy closes the client connection. Producers retry until `delivery.timeout.ms` expires. | The proxy closes the client connection. Consumers re-fetch and make no progress until the cause is resolved. |
+
+!!! note
+    - `INVALID_RECORD` applies to all partitions of the affected produce request, including records that would have been encrypted successfully. With `acks=0` there is no response to send; the records are dropped.
+    - Fields configured for decryption that hold non-string values (e.g. pre-existing unencrypted data) are passed through unchanged and logged at `WARN`.
+
+!!! danger "Important"
+    The filter cannot detect sensitive fields that are missing from the field configuration. Such fields are forwarded as plaintext. Make sure that configured field names/paths match your records.
 
 ## Configuration Reference
 
