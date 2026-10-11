@@ -495,7 +495,7 @@ topic_field_configs:
         fpeAlphabetType: ALPHANUMERIC
 ```
 
-FPE only applies to string values. `null` values (whole fields as well as array elements or object/map values in `ELEMENT` mode) are by definition not encryptable with FPE and are passed through as `null`, consistent with all other Kryptonite for Kafka modules. Any other non-string value fails the record.
+FPE only applies to string values. In `ELEMENT` mode, FPE is applied individually to each array element, map value, and sub-field of a nested object/record, so all of them must be strings. `null` values (whole fields as well as individual elements) are by definition not encryptable with FPE and are passed through as `null`, consistent with all other Kryptonite for Kafka modules. Any other non-string value fails the record.
 
 !!! danger "Important"
     Both the encrypt and decrypt filter must be configured with the **exact same** FPE settings (`algorithm`, `keyId`, `fpeAlphabetType`, `fpeTweak`) for a successful round-trip.
