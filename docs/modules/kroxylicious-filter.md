@@ -577,7 +577,23 @@ Example:
 
 For `TINK/AES_GCM_ENVELOPE_KMS`, the algorithm-aware default fallback is `envelope_kek_identifier` rather than `cipher_data_key_identifier`.
 
-Resolution is performed against the top-level record before the selected field is encrypted or decrypted. This works for plain JSON, JSON Schema Registry, and Avro records. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails.
+Resolution is performed against the top-level record before the selected field is encrypted or decrypted. This works for plain JSON, JSON Schema Registry, and Avro records. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails with a record format error (see [Failure Handling](#failure-handling)).
+
+## Failure Handling
+
+The filters distinguish **record format errors**, which can never succeed when retried, from **all other failures**, which may be transient. In either case, plaintext is never forwarded to the broker on the produce path, and records that cannot be decrypted are never delivered to consumers.
+
+| Failure | Examples | Produce path (encryption) | Fetch path (decryption) |
+|---|---|---|---|
+| **Record format error** | record value not parseable in the configured `record_format` (invalid JSON, missing Schema Registry wire prefix, undecodable Avro); field for a dynamic key identifier missing, non-string, or blank | The produce request is rejected with `INVALID_RECORD`. Producers fail immediately with an `InvalidRecordException`, without retries. | Records before the failing one are delivered. The partition then reports `CORRUPT_MESSAGE`, so the consumer's `poll()` throws a `KafkaException` at the exact offset of the failing record. Other partitions are unaffected. Applications can `seek()` past the record to skip it. |
+| **Any other failure** | unknown or wrong key, tampered ciphertext, KMS or Schema Registry unavailable, field configuration not matching the schema | The proxy closes the client connection. Producers retry until `delivery.timeout.ms` expires. | The proxy closes the client connection. Consumers re-fetch and make no progress until the cause is resolved. |
+
+!!! note
+    - `INVALID_RECORD` applies to all partitions of the affected produce request, including records that would have been encrypted successfully. With `acks=0` there is no response to send; the records are dropped.
+    - Fields configured for decryption that hold non-string values (e.g. pre-existing unencrypted data) are passed through unchanged and logged at `WARN`.
+
+!!! danger "Important"
+    The filter cannot detect sensitive fields that are missing from the field configuration. Such fields are forwarded as plaintext. Make sure that configured field names/paths match your records.
 
 ## Configuration Reference
 

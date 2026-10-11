@@ -1,5 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.filter;
 
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.KryptoniteFilterConfig;
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.RecordValueProcessor;
@@ -21,6 +22,7 @@ import io.kroxylicious.proxy.filter.ResponseFilterResult;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
@@ -73,9 +75,20 @@ abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
         return context.forwardResponse(header, apiVersionsTransformer().transform(response));
     }
 
+    /**
+     * Transforms all records of one partition on the blocking executor and hands the rebuilt records
+     * to {@code recordsSetter}.
+     *
+     * @param truncateOnRecordFormatError if {@code true}, a {@link RecordFormatException} for any record but
+     *                                    the first one truncates the partition's records right before the
+     *                                    failing record instead of failing, so that the client's next request
+     *                                    starts exactly at that record; the returned future still fails if
+     *                                    the first record is affected
+     */
     protected CompletableFuture<Void> applyTransformAsync(AbstractRecords records, FilterContext context,
                                                            String topicName, Set<FieldConfig> fieldConfigs,
-                                                           Consumer<MemoryRecords> recordsSetter) {
+                                                           Consumer<MemoryRecords> recordsSetter,
+                                                           boolean truncateOnRecordFormatError) {
         if (records == null || !records.batchIterator().hasNext()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -85,18 +98,39 @@ abstract class AbstractKryptoniteFilter implements ApiVersionsResponseFilter {
         BatchAwareMemoryRecordsBuilder builder = new BatchAwareMemoryRecordsBuilder(stream);
 
         return CompletableFuture.runAsync(() -> {
-            for (var rawBatch : records.batches()) {
-                MutableRecordBatch batch = (MutableRecordBatch) rawBatch;
-                builder.addBatchLike(batch);
-                for (Record record : batch) {
-                    byte[] originalValue = toBytes(record.value());
-                    byte[] transformedValue = transform(originalValue, topicName, fieldConfigs);
-                    builder.appendWithOffset(record.offset(), record.timestamp(),
-                            record.key(), ByteBuffer.wrap(transformedValue), record.headers());
+            int transformedRecords = 0;
+            try {
+                for (var rawBatch : records.batches()) {
+                    MutableRecordBatch batch = (MutableRecordBatch) rawBatch;
+                    builder.addBatchLike(batch);
+                    for (Record record : batch) {
+                        byte[] originalValue = toBytes(record.value());
+                        byte[] transformedValue = transform(originalValue, topicName, fieldConfigs);
+                        builder.appendWithOffset(record.offset(), record.timestamp(),
+                                record.key(), ByteBuffer.wrap(transformedValue), record.headers());
+                        transformedRecords++;
+                    }
                 }
+            } catch (RecordFormatException e) {
+                if (!truncateOnRecordFormatError || transformedRecords == 0) {
+                    throw e;
+                }
+                // keep the records before the failing one; an opened but empty batch is not written by the builder
             }
             recordsSetter.accept(builder.build());
         }, filterBlockingExecutor);
+    }
+
+    /**
+     * Returns {@code true} if {@code error}, possibly wrapped by the async machinery, is a
+     * {@link RecordFormatException}, i.e. a failure that retrying the same record can never fix.
+     */
+    protected static boolean isRecordFormatError(Throwable error) {
+        Throwable t = error;
+        while (t instanceof CompletionException && t.getCause() != null) {
+            t = t.getCause();
+        }
+        return t instanceof RecordFormatException;
     }
 
     protected static byte[] toBytes(ByteBuffer buffer) {

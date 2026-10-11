@@ -1,5 +1,6 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.processor.accessor;
 
+import com.github.hpgrahsl.kroxylicious.filters.kryptonite.RecordFormatException;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
@@ -85,7 +86,7 @@ class AvroGenericRecordAccessorTest {
         void truncatedBytesThrow() {
             assertThatThrownBy(() ->
                 AvroGenericRecordAccessor.from(new byte[]{1, 2, 3}, FLAT_SCHEMA))
-                    .isInstanceOf(AvroGenericRecordAccessor.AvroAccessorException.class);
+                    .isInstanceOf(RecordFormatException.class);
         }
     }
 
