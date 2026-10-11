@@ -1210,17 +1210,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#failure-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Failure Handling
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#configuration-reference" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1556,17 +1545,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#failure-handling" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Failure Handling
-      </span>
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#configuration-reference" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1633,7 +1611,7 @@
 </tbody>
 </table>
 <p>Each filter operates entirely independently. Running both in the same proxy instance is the most common setup. It gives producers and consumers a single transparent endpoint with bi-directional, end-to-end field-level protection. That said, you do not have to deploy them together. You can place only the encryption filter in a proxy in front of producers, and a separate proxy instance with only the decryption filter in front of consumers, depending on your architecture.</p>
-<p>Fields that are not listed in the configuration (see <code>topic_field_configs</code>) pass through unchanged regardless of which filters are active. The same applies to tombstones (records with a <code>null</code> value), which keep their delete semantics, and to transaction markers (control records) on transactional topics.</p>
+<p>Fields that are not listed in the configuration (see <code>topic_field_configs</code>) pass through unchanged regardless of which filters are active.</p>
 <p>Topic routing is controlled by <code>topic_pattern</code> entries, each carrying its own <code>field_configs</code> list. Patterns are <strong>Java regular expressions</strong> anchored at both ends (the same as <code>^pattern$</code>), giving full regex expressiveness for topic name matching.</p>
 <div class="admonition note">
 <p class="admonition-title">Schema Registry Integration</p>
@@ -1645,55 +1623,39 @@
 <li>Download the filter JAR from the <a href="https://github.com/hpgrahsl/kryptonite-for-kafka/releases">GitHub Releases page</a>.</li>
 <li>Place the JAR in a folder that is on Kroxylicious' classpath (e.g. the <code>lib/</code> directory next to any other JARs shipping with Kroxylicious).</li>
 <li>Reference the filter factories in your Kroxylicious proxy configuration YAML (see examples below).</li>
-<li>Run Kroxylicious (see official <a href="https://kroxylicious.io/documentation/0.25.0/html/proxy-quick-start/">Proxy Quick Start</a>)</li>
+<li>Run Kroxylicious (see official <a href="https://kroxylicious.io/documentation/0.20.0/html/proxy-quick-start/">Proxy Quick Start</a>)</li>
 </ol>
-<div class="admonition note">
-<p class="admonition-title">Kroxylicious Compatibility</p>
-<p>The filter is built and tested against <strong>Kroxylicious 0.25.0</strong> and requires <strong>Java 21+</strong> at runtime. Kroxylicious versions before 0.24 are incompatible because the Filter API switched to Kroxylicious' own Kafka protocol types in 0.24.</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Share Groups Not Supported</p>
-<p>The decryption filter only handles regular fetches (<code>Fetch</code> API). Records consumed via share groups (KIP-932, <code>ShareFetch</code> API) pass through the proxy <strong>without being decrypted</strong>, so share consumers receive the encrypted field values.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Filter Resources per Virtual Cluster</p>
-<p>Kroxylicious initializes each filter factory separately for every virtual cluster that uses it. Every such initialization creates its own <code>Kryptonite</code> instance (incl. key vault), blocking thread pool, and, for <code>JSON_SR</code> and <code>AVRO</code>, its own Schema Registry client. Using both the encryption and decryption filter on several virtual clusters multiplies these resources accordingly, as well as the resulting KMS and Schema Registry requests.</p>
-</div>
 <p>If building from sources (requires JDK 21+, the filter JAR targets Java 21):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./mvnw<span class="w"> </span>clean<span class="w"> </span>package<span class="w"> </span>-DskipTests<span class="w"> </span>-pl<span class="w"> </span>kroxylicious-filter-kryptonite
 </code></pre></div>
 <hr />
 <h2 id="basic-usage">Basic Usage</h2>
 <h3 id="proxy-config-structure">Proxy Config Structure</h3>
-<p>A basic Kroxylicious proxy config defines the upstream Kafka cluster in a <code>clusterDefinitions</code> block and a <code>virtualClusters</code> block which references it and specifies at least the gateway address, plus optional <code>filterDefinitions</code> and a corresponding <code>defaultFilters</code> block. A minimal skeleton could look like this:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">clusterDefinitions</span><span class="p">:</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kafka</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">bootstrapServers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kafka:9092</span><span class="w">          </span><span class="c1"># upstream Kafka broker</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nt">virtualClusters</span><span class="p">:</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycluster</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">      </span><span class="nt">cluster</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kafka</span><span class="w">                      </span><span class="c1"># refers to the clusterDefinitions entry</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="nt">gateways</span><span class="p">:</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mygateway</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="nt">portIdentifiesNode</span><span class="p">:</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">          </span><span class="nt">bootstrapAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0.0.0:9192</span><span class="w">  </span><span class="c1"># proxy listen address</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">          </span><span class="nt">advertisedBrokerAddressPattern</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">localhost</span><span class="w">  </span><span class="c1"># address advertised to clients</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="nt">logNetwork</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="nt">logFrames</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nt">filterDefinitions</span><span class="p">:</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="c1"># ... (see per-format examples below)</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="nt">defaultFilters</span><span class="p">:</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">some-filter</span>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">another-filter</span>
+<p>A basic Kroxylicious proxy config defines a <code>virtualClusters</code> block which specifies at least the upstream broker and the gateway address, plus optional <code>filterDefinitions</code> and a corresponding <code>defaultFilters</code> block. A minimal skeleton could look like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">virtualClusters</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mycluster</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">targetCluster</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">bootstrapServers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kafka:9092</span><span class="w">        </span><span class="c1"># upstream Kafka broker</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">gateways</span><span class="p">:</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mygateway</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="nt">portIdentifiesNode</span><span class="p">:</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">          </span><span class="nt">bootstrapAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0.0.0:9192</span><span class="w">  </span><span class="c1"># proxy listen address</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">          </span><span class="nt">advertisedBrokerAddressPattern</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">localhost</span><span class="w">  </span><span class="c1"># address advertised to clients</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="nt">logNetwork</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="nt">logFrames</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="nt">filterDefinitions</span><span class="p">:</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="c1"># ... (see per-format examples below)</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="nt">defaultFilters</span><span class="p">:</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">some-filter</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">another-filter</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><code>advertisedBrokerAddressPattern</code> controls the broker address that Kroxylicious advertises to clients in metadata responses. Set it to the hostname or IP that clients use to reach the proxy. For single-node local setups, <code>localhost</code> is typical; for containerised or remote deployments, use the proxy's externally reachable hostname.</p>
 </div>
-<p>If you want to dig deeper, read the official documentation to understand all <a href="https://kroxylicious.io/documentation/0.25.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy">proxy configuration</a> options in depth.</p>
+<p>If you want to dig deeper, read the official documentation to understand all <a href="https://kroxylicious.io/documentation/0.20.0/html/kroxylicious-proxy/#assembly-configuring-proxy-proxy">proxy configuration</a> options in depth.</p>
 <hr />
 <h3 id="kryptonite-filter-definitions">Kryptonite Filter Definitions</h3>
 <p>What follows are basic examples for proxy filter definitions.</p>
@@ -2063,7 +2025,6 @@
 <a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="w">        </span><span class="nt">keyId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-fpe-key</span>
 <a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="w">        </span><span class="nt">fpeAlphabetType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ALPHANUMERIC</span>
 </code></pre></div>
-<p>FPE only applies to string values. In <code>ELEMENT</code> mode, FPE is applied individually to each array element, map value, and sub-field of a nested object/record, so all of them must be strings. <code>null</code> values (whole fields as well as individual elements) are by definition not encryptable with FPE and are passed through as <code>null</code>, consistent with all other Kryptonite for Kafka modules. Any other non-string value fails the record.</p>
 <div class="admonition danger">
 <p class="admonition-title">Important</p>
 <p>Both the encrypt and decrypt filter must be configured with the <strong>exact same</strong> FPE settings (<code>algorithm</code>, <code>keyId</code>, <code>fpeAlphabetType</code>, <code>fpeTweak</code>) for a successful round-trip.</p>
@@ -2113,7 +2074,7 @@
 </tr>
 <tr>
 <td><code>&lt;topic&gt;-value__k4k_enc</code></td>
-<td>Encrypted schema for which the original field types are replaced with type <code>string</code> for encrypted fields (nullable fields stay nullable; for FPE in <code>ELEMENT</code> mode, nullable array items, map/object values and record sub-fields stay nullable too, since FPE leaves <code>null</code> as is); consumed by direct SR clients reading encrypted data</td>
+<td>Encrypted schema for which the original field types are replaced with type <code>string</code> for encrypted fields; consumed by direct SR clients reading encrypted data</td>
 </tr>
 <tr>
 <td><code>&lt;topic&gt;-value__k4k_meta&lt;originalSchemaId&gt;</code></td>
@@ -2165,44 +2126,7 @@
 <li>effective runtime key identifier: <code>Austria</code></li>
 </ul>
 <p>For <code>TINK/AES_GCM_ENVELOPE_KMS</code>, the algorithm-aware default fallback is <code>envelope_kek_identifier</code> rather than <code>cipher_data_key_identifier</code>.</p>
-<p>Resolution is performed against the top-level record before the selected field is encrypted or decrypted. This works for plain JSON, JSON Schema Registry, and Avro records. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails with a record format error (see <a href="#failure-handling">Failure Handling</a>).</p>
-<h2 id="failure-handling">Failure Handling</h2>
-<p>The filters distinguish <strong>record format errors</strong>, which can never succeed when retried, from <strong>all other failures</strong>, which may be transient. In either case, plaintext is never forwarded to the broker on the produce path, and records that cannot be decrypted are never delivered to consumers.</p>
-<table>
-<thead>
-<tr>
-<th>Failure</th>
-<th>Examples</th>
-<th>Produce path (encryption)</th>
-<th>Fetch path (decryption)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Record format error</strong></td>
-<td>record value not parseable in the configured <code>record_format</code> (invalid JSON, missing Schema Registry wire prefix, undecodable Avro); field for a dynamic key identifier missing, non-string, or blank; control records (transaction markers) in a produce request, which only brokers may write</td>
-<td>The produce request is rejected with <code>INVALID_RECORD</code>. Producers fail immediately with an <code>InvalidRecordException</code>, without retries.</td>
-<td>Records before the failing one are delivered. The partition then reports <code>CORRUPT_MESSAGE</code>, so the consumer's <code>poll()</code> throws a <code>KafkaException</code> at the exact offset of the failing record. Other partitions are unaffected. Applications can <code>seek()</code> past the record to skip it.</td>
-</tr>
-<tr>
-<td><strong>Any other failure</strong></td>
-<td>unknown or wrong key, tampered ciphertext, KMS or Schema Registry unavailable, field configuration not matching the schema</td>
-<td>The proxy closes the client connection. Producers retry until <code>delivery.timeout.ms</code> expires.</td>
-<td>The proxy closes the client connection. Consumers re-fetch and make no progress until the cause is resolved.</td>
-</tr>
-</tbody>
-</table>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul>
-<li><code>INVALID_RECORD</code> applies to all partitions of the affected produce request, including records that would have been encrypted successfully. With <code>acks=0</code> there is no response to send; the records are dropped.</li>
-<li>Fields configured for decryption that hold non-string values (e.g. pre-existing unencrypted data) are passed through unchanged and logged at <code>WARN</code>.</li>
-</ul>
-</div>
-<div class="admonition danger">
-<p class="admonition-title">Important</p>
-<p>The filter cannot detect sensitive fields that are missing from the field configuration. Such fields are forwarded as plaintext. Make sure that configured field names/paths match your records.</p>
-</div>
+<p>Resolution is performed against the top-level record before the selected field is encrypted or decrypted. This works for plain JSON, JSON Schema Registry, and Avro records. If the field path cannot be resolved, resolves to a non-string value, or resolves to a blank string, processing fails.</p>
 <h2 id="configuration-reference">Configuration Reference</h2>
 <p><strong>Configuration settings common to both the encrypt and decrypt filter definitions:</strong></p>
 <div class="k4k-param-table">
