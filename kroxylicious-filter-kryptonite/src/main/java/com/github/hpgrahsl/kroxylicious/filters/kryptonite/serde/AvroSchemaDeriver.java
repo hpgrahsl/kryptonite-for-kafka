@@ -1,6 +1,8 @@
 package com.github.hpgrahsl.kroxylicious.filters.kryptonite.serde;
 
 import com.github.hpgrahsl.kroxylicious.filters.kryptonite.config.FieldConfig;
+import com.github.hpgrahsl.kryptonite.Kryptonite;
+import com.github.hpgrahsl.kryptonite.config.KryptoniteSettings;
 import org.apache.avro.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +29,25 @@ import java.util.Set;
  * <p>ELEMENT mode on record fields: each direct field of the record is replaced with
  * {@code string}; the record container and field names are preserved. The original sub-field
  * schemas are restored on decrypt.
+ *
+ * <p>ELEMENT mode with FPE: nullable element slots (array items, map values, record sub-fields)
+ * become {@code ["null","string"]} instead of {@code string}, since FPE leaves {@code null} as is.
  */
 class AvroSchemaDeriver {
 
     private static final Logger LOG = LoggerFactory.getLogger(AvroSchemaDeriver.class);
     private static final Schema STRING_SCHEMA = Schema.create(Schema.Type.STRING);
+
+    // algorithm applied to fields without an explicit one, needed to tell FPE fields apart
+    private final String defaultCipherAlgorithm;
+
+    AvroSchemaDeriver() {
+        this(KryptoniteSettings.CIPHER_ALGORITHM_DEFAULT);
+    }
+
+    AvroSchemaDeriver(String defaultCipherAlgorithm) {
+        this.defaultCipherAlgorithm = defaultCipherAlgorithm;
+    }
 
     /**
      * Produce path: derives the encrypted Avro schema from the original.
@@ -51,8 +67,10 @@ class AvroSchemaDeriver {
         for (FieldConfig fc : fieldConfigs) {
             String[] pathParts = fc.getName().split("\\.");
             FieldConfig.FieldMode mode = fc.getFieldMode().orElse(FieldConfig.DEFAULT_MODE);
+            // FPE keeps null elements as null (null is not encryptable with FPE), so their slots must stay nullable
+            boolean preserveElementNulls = isFpe(fc);
             try {
-                result = replaceFieldType(result, pathParts, 0, mode);
+                result = replaceFieldType(result, pathParts, 0, mode, preserveElementNulls);
                 encryptedFields.add(fc.getName());
             } catch (FieldNotFoundException e) {
                 LOG.debug("deriveEncrypted: field path '{}' not found in Avro schema — leaving unchanged", fc.getName());
@@ -97,7 +115,7 @@ class AvroSchemaDeriver {
      * immutable — affected records are rebuilt up the path).
      */
     private Schema replaceFieldType(Schema schema, String[] pathParts, int index,
-                                    FieldConfig.FieldMode mode) {
+                                    FieldConfig.FieldMode mode, boolean preserveElementNulls) {
         Schema unwrapped = unwrapNullableUnion(schema);
         boolean wasNullable = unwrapped != schema;
 
@@ -121,10 +139,10 @@ class AvroSchemaDeriver {
         Schema newFieldSchema;
         if (index == pathParts.length - 1) {
             // Leaf: apply the transformation
-            newFieldSchema = transformLeafFieldSchema(targetField.schema(), mode, pathParts[index]);
+            newFieldSchema = transformLeafFieldSchema(targetField.schema(), mode, pathParts[index], preserveElementNulls);
         } else {
             // Intermediate: recurse deeper
-            newFieldSchema = replaceFieldType(targetField.schema(), pathParts, index + 1, mode);
+            newFieldSchema = replaceFieldType(targetField.schema(), pathParts, index + 1, mode, preserveElementNulls);
         }
 
         Schema rebuilt = rebuildRecord(unwrapped, targetField.name(), newFieldSchema);
@@ -135,7 +153,7 @@ class AvroSchemaDeriver {
      * Transforms the field schema at the leaf of the path according to {@code mode}.
      */
     private Schema transformLeafFieldSchema(Schema fieldSchema, FieldConfig.FieldMode mode,
-                                            String fieldName) {
+                                            String fieldName, boolean preserveElementNulls) {
         Schema unwrapped = unwrapNullableUnion(fieldSchema);
         boolean wasNullable = unwrapped != fieldSchema;
 
@@ -148,7 +166,7 @@ class AvroSchemaDeriver {
 
         Schema transformed;
         if (mode == FieldConfig.FieldMode.ELEMENT) {
-            transformed = transformElementMode(unwrapped, fieldName);
+            transformed = transformElementMode(unwrapped, fieldName, preserveElementNulls);
         } else {
             // OBJECT mode: entire field → string (all Avro types including RECORD, ENUM, FIXED)
             if (unwrapped.getType() == Schema.Type.STRING) {
@@ -161,13 +179,14 @@ class AvroSchemaDeriver {
         return wasNullable ? rewrapNullableUnion(fieldSchema, transformed) : transformed;
     }
 
-    private Schema transformElementMode(Schema fieldSchema, String fieldName) {
+    private Schema transformElementMode(Schema fieldSchema, String fieldName, boolean preserveElementNulls) {
         return switch (fieldSchema.getType()) {
-            case ARRAY -> Schema.createArray(STRING_SCHEMA);
-            case MAP -> Schema.createMap(STRING_SCHEMA);
+            case ARRAY -> Schema.createArray(elementSlotSchema(fieldSchema.getElementType(), preserveElementNulls));
+            case MAP -> Schema.createMap(elementSlotSchema(fieldSchema.getValueType(), preserveElementNulls));
             case RECORD -> {
                 List<Schema.Field> stringFields = fieldSchema.getFields().stream()
-                        .map(f -> new Schema.Field(f.name(), STRING_SCHEMA, f.doc(), f.defaultVal(), f.order()))
+                        .map(f -> new Schema.Field(f.name(), elementSlotSchema(f.schema(), preserveElementNulls),
+                                f.doc(), f.defaultVal(), f.order()))
                         .toList();
                 Schema newRecord = Schema.createRecord(
                         fieldSchema.getName(), fieldSchema.getDoc(),
@@ -179,6 +198,24 @@ class AvroSchemaDeriver {
                     "ELEMENT mode requires array, map or record field type, but field '" + fieldName
                             + "' has type " + fieldSchema.getType());
         };
+    }
+
+    /**
+     * Schema of a single element slot (array item, map value, record sub-field) in ELEMENT mode.
+     * Non-FPE ciphers turn every value, including {@code null}, into a ciphertext string, so the slot
+     * becomes plain {@code string}. FPE leaves {@code null} as is, so a nullable slot keeps its null
+     * branch: {@code ["null","string"]}.
+     */
+    private static Schema elementSlotSchema(Schema originalSlot, boolean preserveElementNulls) {
+        if (preserveElementNulls && unwrapNullableUnion(originalSlot) != originalSlot) {
+            return rewrapNullableUnion(originalSlot, STRING_SCHEMA);
+        }
+        return STRING_SCHEMA;
+    }
+
+    private boolean isFpe(FieldConfig fc) {
+        String algorithm = fc.getAlgorithm().orElse(defaultCipherAlgorithm);
+        return Kryptonite.CipherSpec.fromName(algorithm.toUpperCase()).isCipherFPE();
     }
 
     /**

@@ -315,4 +315,61 @@ class JsonSchemaDeriverTest {
         }
     }
 
+    // ---- ELEMENT mode with FPE ----
+
+    private static final String FPE_ALGORITHM = "CUSTOM/MYSTO_FPE_FF3_1";
+
+    private static final String NULLABLE_SLOTS_SCHEMA = """
+            {
+              "type": "object",
+              "properties": {
+                "tags":  {"type": "array", "items": {"type": ["null", "string"]}},
+                "obj":   {"type": "object", "properties": {"a": {"type": ["string", "null"]}, "b": {"type": "string"}}},
+                "free":  {"type": "object", "additionalProperties": {"type": ["null", "string"]}}
+              }
+            }
+            """;
+
+    @Nested
+    @DisplayName("deriveEncrypted — ELEMENT mode with FPE keeps nullable element slots nullable")
+    class DeriveEncryptedElementModeFpe {
+
+        private FieldConfig element(String name, String algorithm) {
+            return FieldConfig.builder().name(name).fieldMode(FieldConfig.FieldMode.ELEMENT).algorithm(algorithm).build();
+        }
+
+        @Test
+        @DisplayName("FPE: nullable items, properties and additionalProperties keep their null type; non-nullable stay string")
+        void fpeNullableSlotsStayNullable() throws Exception {
+            JsonNode derived = MAPPER.readTree(deriver.deriveEncrypted(NULLABLE_SLOTS_SCHEMA, Set.of(
+                    element("tags", FPE_ALGORITHM), element("obj", FPE_ALGORITHM), element("free", FPE_ALGORITHM))).schemaJson());
+
+            assertThat(derived.at("/properties/tags/items/type")).isEqualTo(MAPPER.readTree("[\"null\",\"string\"]"));
+            assertThat(derived.at("/properties/obj/properties/a/type")).isEqualTo(MAPPER.readTree("[\"string\",\"null\"]"));
+            assertThat(derived.at("/properties/obj/properties/b/type").asText()).isEqualTo("string");
+            assertThat(derived.at("/properties/free/additionalProperties/type")).isEqualTo(MAPPER.readTree("[\"null\",\"string\"]"));
+        }
+
+        @Test
+        @DisplayName("non-FPE (AEAD): element slots become plain string as before — encrypted nulls are ciphertext")
+        void aeadSlotsUnchanged() throws Exception {
+            JsonNode derived = MAPPER.readTree(deriver.deriveEncrypted(NULLABLE_SLOTS_SCHEMA, Set.of(
+                    element("tags", null), element("obj", null), element("free", null))).schemaJson());
+
+            assertThat(derived.at("/properties/tags/items/type").asText()).isEqualTo("string");
+            assertThat(derived.at("/properties/obj/properties/a/type").asText()).isEqualTo("string");
+            assertThat(derived.at("/properties/free/additionalProperties/type").asText()).isEqualTo("string");
+        }
+
+        @Test
+        @DisplayName("FPE inherited from the filter-level cipher_algorithm is detected as well")
+        void fpeFromFilterDefault() throws Exception {
+            var fpeDefaultDeriver = new JsonSchemaDeriver(FPE_ALGORITHM);
+
+            JsonNode derived = MAPPER.readTree(fpeDefaultDeriver.deriveEncrypted(NULLABLE_SLOTS_SCHEMA,
+                    Set.of(element("tags", null))).schemaJson());
+
+            assertThat(derived.at("/properties/tags/items/type")).isEqualTo(MAPPER.readTree("[\"null\",\"string\"]"));
+        }
+    }
 }

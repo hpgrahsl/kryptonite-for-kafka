@@ -66,6 +66,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, null, resolvedKeyId));
             } else {
                 if (FieldConfigUtils.isFpe(fc, config)) {
+                    // null is by definition not encryptable with FPE ciphers and stays null
+                    if (node.isNull()) continue;
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
@@ -108,6 +110,8 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
                 accessor.setField(fc.getName(), encryptObjectValues((ObjectNode) node, fc, schemaCacheKey, resolvedKeyId));
             } else {
                 if (FieldConfigUtils.isFpe(fc, config)) {
+                    // null is by definition not encryptable with FPE ciphers and stays null
+                    if (node.isNull()) continue;
                     if (!node.isTextual()) throw new IllegalStateException(
                             "FPE encryption requires a string value for field '" + fc.getName()
                             + "' but got JSON type " + node.getNodeType() + " — FPE cannot encrypt non-string types");
@@ -168,6 +172,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
         if (FieldConfigUtils.isFpe(fc, config)) {
             FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             for (JsonNode element : source) {
+                if (element.isNull()) {
+                    result.addNull();
+                    continue;
+                }
                 if (!element.isTextual()) throw new IllegalStateException(
                         "FPE encryption requires string elements in field '" + fc.getName()
                         + "' but got JSON type " + element.getNodeType() + " — FPE cannot encrypt non-string types");
@@ -189,6 +197,10 @@ abstract class AbstractJsonRecordProcessor implements RecordValueProcessor {
             FieldMetaData fmd = FieldConfigUtils.buildFieldMetaData(fc, config, resolvedKeyId);
             source.properties().forEach(entry -> {
                 JsonNode value = entry.getValue();
+                if (value.isNull()) {
+                    result.putNull(entry.getKey());
+                    return;
+                }
                 if (!value.isTextual()) throw new IllegalStateException(
                         "FPE encryption requires string values in field '" + fc.getName()
                         + "' but got JSON type " + value.getNodeType() + " — FPE cannot encrypt non-string types");

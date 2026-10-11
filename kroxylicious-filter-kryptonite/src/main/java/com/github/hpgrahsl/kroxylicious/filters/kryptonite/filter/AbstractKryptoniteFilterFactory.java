@@ -76,9 +76,9 @@ abstract class AbstractKryptoniteFilterFactory
         return switch (config.getRecordFormat()) {
             case JSON -> new PlainJsonRecordProcessor(kryptonite, config);
             case JSON_SR -> new JsonSchemaRegistryRecordProcessor(kryptonite,
-                    createAdapter(createSrClient(config), config.getSchemaMode()), config);
+                    createAdapter(createSrClient(config), config), config);
             case AVRO -> new AvroSchemaRegistryRecordProcessor(kryptonite,
-                    createAdapter(createSrClient(config), config.getSchemaMode()), config);
+                    createAdapter(createSrClient(config), config), config);
             case PROTOBUF -> throw new IllegalArgumentException("PROTOBUF record format is not yet supported");
         };
     }
@@ -90,9 +90,9 @@ abstract class AbstractKryptoniteFilterFactory
                 config.getSchemaRegistryConfig());
     }
 
-    private static SchemaRegistryAdapter createAdapter(SchemaRegistryClient srClient, SchemaMode schemaMode) {
-        return schemaMode == SchemaMode.STATIC
+    private static SchemaRegistryAdapter createAdapter(SchemaRegistryClient srClient, KryptoniteFilterConfig config) {
+        return config.getSchemaMode() == SchemaMode.STATIC
                 ? new DefaultStaticSchemaRegistryAdapter(srClient)
-                : new DefaultDynamicSchemaRegistryAdapter(srClient);
+                : new DefaultDynamicSchemaRegistryAdapter(srClient, config.getCipherAlgorithm());
     }
 }
