@@ -49,6 +49,9 @@ Topic routing is controlled by `topic_pattern` entries, each carrying its own `f
 !!! note "Kroxylicious Compatibility"
     The filter is built and tested against **Kroxylicious 0.25.0** and requires **Java 21+** at runtime. Kroxylicious versions before 0.24 are incompatible because the Filter API switched to Kroxylicious' own Kafka protocol types in 0.24.
 
+!!! warning "Share Groups Not Supported"
+    The decryption filter only handles regular fetches (`Fetch` API). Records consumed via share groups (KIP-932, `ShareFetch` API) pass through the proxy **without being decrypted**, so share consumers receive the encrypted field values.
+
 !!! note "Filter Resources per Virtual Cluster"
     Kroxylicious initializes each filter factory separately for every virtual cluster that uses it. Every such initialization creates its own `Kryptonite` instance (incl. key vault), blocking thread pool, and, for `JSON_SR` and `AVRO`, its own Schema Registry client. Using both the encryption and decryption filter on several virtual clusters multiplies these resources accordingly, as well as the resulting KMS and Schema Registry requests.
 
